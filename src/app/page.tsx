@@ -17,22 +17,22 @@ export default async function Home() {
         <nav className="pointer-events-auto">
           <ul className="flex rounded-full bg-white/90 px-3 text-sm text-zinc-800 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10">
             <li>
-              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/picture">
+              <Link className="relative block px-4 py-3 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/picture">
                 壁纸
               </Link>
             </li>
             <li>
-              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/music">
+              <Link className="relative block px-4 py-3 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/music">
                 音乐
               </Link>
             </li>
             <li>
-              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/chat">
+              <Link className="relative block px-4 py-3 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/chat">
                 星球
               </Link>
             </li>
             <li>
-              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/video">
+              <Link className="relative block px-4 py-3 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/video">
                 面对面
               </Link>
             </li>
