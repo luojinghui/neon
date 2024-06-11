@@ -1,39 +1,53 @@
-import Link from "next/link";
-import "@/styles/index.css";
-import { useState } from "react";
+import Link from 'next/link';
+import '@/styles/index.css';
+import { useState } from 'react';
 
 export default async function Home() {
   let resp = null;
   try {
     resp = await getData();
-    console.log("=====data: ", resp);
+    console.log('=====data: ', resp);
   } catch (error) {
-    console.log("=====fetch error: ", error);
+    console.log('=====fetch error: ', error);
   }
 
   return (
-    <div className="app-page">
-      <div className="bg12 h-screen">
-        {/* <div>Home page</div>
-        <div>user: {JSON.stringify(resp.data)}</div> */}
-        <div className="nav ">
-          <Link
-            href="/chat"
-            className="flex items-center justify-center cursor-pointer rounded-full text-black hover:text-white  w-16 h-16  bg-gradient-to-r from-pink-400 to-yellow-500 hover:from-blue-500  hover:to-green-500  hover:transition-all duration-700 ease-in-out"
-          >
-            Chat
-          </Link>
-        </div>
+    <div className="h-screen flex justify-center items-center bg12">
+      <div>
+        <nav className="pointer-events-auto">
+          <ul className="flex rounded-full bg-white/90 px-3 text-sm text-zinc-800 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10">
+            <li>
+              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/picture">
+                壁纸
+              </Link>
+            </li>
+            <li>
+              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/music">
+                音乐
+              </Link>
+            </li>
+            <li>
+              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/chat">
+                星球
+              </Link>
+            </li>
+            <li>
+              <Link className="relative block px-3 py-2 transition hover:text-teal-500 dark:hover:text-teal-400" href="/video">
+                面对面
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
   );
 }
 
 async function getData() {
-  const res = await fetch("http://localhost:3000/api/user");
+  const res = await fetch('http://localhost:3000/api/user');
 
   if (!res.ok) {
-    throw new Error("Failed to fetch data");
+    throw new Error('Failed to fetch data');
   }
 
   return res.json();
