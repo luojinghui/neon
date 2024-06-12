@@ -8,43 +8,6 @@ import '@/styles/index.css';
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    if (socket.connected) {
-      onConnect();
-    }
-
-    function onConnect() {
-      console.log('=======socket connect');
-      socket.emit('message', 'Hello');
-      setIsConnected(true);
-    }
-
-    function onDisconnect() {
-      console.log('=======socket disconnect');
-      setIsConnected(false);
-    }
-
-    function onMessage(e: any) {
-      console.log('========event: ', e);
-    }
-
-    console.log('==========start');
-
-    socket.on('message', onMessage);
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-    };
-  }, []);
-
-  useEffect(() => {
-    console.log('============111');
-  }, []);
-
   const onHandleWebSocket = () => {};
 
   return (

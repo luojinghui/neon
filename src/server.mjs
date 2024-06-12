@@ -18,7 +18,7 @@ app.prepare().then(() => {
 
     socket.on('message', (data) => {
       console.log('Received from API ::', data);
-      socket.emit('message2', data);
+      // socket.emit('message2', data);
     });
 
     socket.emit('message', { a: 1, b: 2 });
