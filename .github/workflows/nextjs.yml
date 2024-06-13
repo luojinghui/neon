@@ -44,9 +44,7 @@ jobs:
           last_ssh: |-
             cd $TARGET_DEV_DIR
             whoami
-            export NVM_DIR=~/.nvm
-            source ~/.nvm/nvm.sh
             yarn install
-            yarn build:dev
-            pm2 restart all
+            yarn build
+            pm2 start npm -- run start
             echo $LASTSSH
