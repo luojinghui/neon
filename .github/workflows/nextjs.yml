@@ -8,8 +8,8 @@ on:
       - README.md
       - LICENSE
 env:
-  TARGET_DEV_DIR: /home/soul_v2/developer/soul
-  TARGET_PRD_DIR: /home/soul_v2/production/soul
+  TARGET_DEV_DIR: /home/soul_v2/developer/
+  TARGET_PRD_DIR: /home/soul_v2/production/
 
 jobs:
   deploy:
