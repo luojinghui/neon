@@ -8,19 +8,19 @@ on:
       - README.md
       - LICENSE
 env:
-  TARGET_DEV_DIR: /home/soul/developer/soul
-  TARGET_PRD_DIR: /home/soul/production/soul
+  TARGET_DEV_DIR: /home/soul_v2/developer/soul
+  TARGET_PRD_DIR: /home/soul_v2/production/soul
 
 jobs:
   deploy:
     runs-on: ubuntu-latest # 使用ubuntu系统镜像运行自动化脚本
 
     steps: # 自动化步骤
-      - uses: actions/checkout@v3 # 第一步，下载代码仓库
+      - uses: actions/checkout@v4 # 第一步，下载代码仓库
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: v20.14.0
+          node-version: '20'
 
       - name: DEPLOY DEV
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
