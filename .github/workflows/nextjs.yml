@@ -42,7 +42,7 @@ jobs:
             git checkout .
             git fetch --all
             git checkout main
-            git pull --force origin dev
+            git pull --force origin main
           last_ssh: |-
             cd $TARGET_DEV_DIR
             whoami
