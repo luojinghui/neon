@@ -8,8 +8,8 @@ on:
       - README.md
       - LICENSE
 env:
-  TARGET_DEV_DIR: /home/soul_v2/developer/
-  TARGET_PRD_DIR: /home/soul_v2/production/
+  TARGET_DEV_DIR: /home/soul_v2/developer/soul-v2/
+  TARGET_PRD_DIR: /home/soul_v2/production/soul-v2/
 
 jobs:
   deploy:
@@ -37,9 +37,11 @@ jobs:
             ls -la
             echo $WELCOME
             cd $TARGET_DEV_DIR
+            pwd
+            ls -la
             git checkout .
             git fetch --all
-            git checkout dev
+            git checkout main
             git pull --force origin dev
           last_ssh: |-
             cd $TARGET_DEV_DIR
