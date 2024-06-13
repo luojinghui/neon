@@ -1,17 +1,35 @@
+'use client';
+
 import Link from 'next/link';
 import '@/styles/index.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export default async function Home() {
+export default function Home() {
+  const [random, setRandom] = useState(1);
   let resp = null;
-  try {
-    resp = await getData();
-    console.log('=====data: ', resp);
-  } catch (error) {
-    console.log('=====fetch error: ', error);
-  }
 
-  const random = Math.round(Math.random() * 20);
+  const getData = async () => {
+    const res = await fetch('http://localhost:3000/api/user');
+
+    if (!res.ok) {
+      throw new Error('Failed to fetch data');
+    }
+
+    return res.json();
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        resp = await getData();
+        console.log('=====data: ', resp);
+      } catch (error) {
+        console.log('=====fetch error: ', error);
+      }
+    })();
+
+    setRandom(Math.round(Math.random() * 20));
+  }, []);
 
   return (
     <div className={`h-screen flex justify-center items-center bg${random}`}>
@@ -47,14 +65,4 @@ export default async function Home() {
       </ul>
     </div>
   );
-}
-
-async function getData() {
-  const res = await fetch('http://localhost:3000/api/user');
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch data');
-  }
-
-  return res.json();
 }
