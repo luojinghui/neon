@@ -9,7 +9,7 @@ export default function Home() {
   let resp = null;
 
   const getData = async () => {
-    const res = await fetch('http://localhost:3000/api/user');
+    const res = await fetch('/api/user');
 
     if (!res.ok) {
       throw new Error('Failed to fetch data');
