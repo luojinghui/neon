@@ -63,6 +63,12 @@ export default function Home() {
           </Link>
         </li>
       </ul>
+
+      <div className="fixed bottom-2 flex justify-center items-end text-white">
+        <a href="https://beian.miit.gov.cn/" rel="noopener noreferrer" target="_blank">
+          陕ICP备19012299号-1
+        </a>
+      </div>
     </div>
   );
 }
