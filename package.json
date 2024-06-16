@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ./src/server.mjs",
+    "dev": "node ./src/server.js",
     "build": "next build",
     "start_v1": "next start",
-    "start": "NODE_ENV=production node ./src/server.mjs",
+    "start": "NODE_ENV=production node ./src/server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -24,6 +24,7 @@
     "clsx": "^2.1.1",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
+    "express": "^4.19.2",
     "postcss": "^8",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
