@@ -38,3 +38,5 @@ next-env.d.ts
 config.js
 /public/uploads
 /public/uploads/*
+/public/upload
+/public/upload/*
