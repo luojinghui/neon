@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { socket } from '@/socket.mjs';
 import { useEffect, useState } from 'react';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { io } from 'socket.io-client';
 import '@/styles/index.css';
+
+const socket = io({ path: '/im' });
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
@@ -16,7 +18,12 @@ export default function Home() {
 
     function onConnect() {
       console.log('=======socket connect');
-      socket.emit('message', 'Hello');
+
+      socket.emit('message', {
+        type: 'init',
+        msg: 'hello',
+        data: '123123'
+      });
       setIsConnected(true);
     }
 
@@ -29,8 +36,6 @@ export default function Home() {
       console.log('========event: ', e);
     }
 
-    console.log('==========start');
-
     socket.on('message', onMessage);
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
@@ -40,12 +45,6 @@ export default function Home() {
       socket.off('disconnect', onDisconnect);
     };
   }, []);
-
-  useEffect(() => {
-    console.log('============111');
-  }, []);
-
-  const onHandleWebSocket = () => {};
 
   return (
     <div className="h-screen bg12">

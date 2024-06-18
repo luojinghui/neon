@@ -1,23 +1,34 @@
 const express = require('express');
+const http = require('http');
 const next = require('next');
+const { Server } = require('socket.io');
+const chatController = require('./server/controller/chatController');
 
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
-const handle = app.getRequestHandler();
+const nextApp = next({ dev });
+const handle = nextApp.getRequestHandler();
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: true, path: '/im' });
 
-app
+nextApp
   .prepare()
   .then(() => {
-    const server = express();
-
-    server.use(express.static('public'));
-
-    server.get('*', (req, res) => {
-      return handle(req, res);
+    // wss服务
+    io.on('connection', (socket) => {
+      chatController.onSocket(socket, io);
     });
 
+    app
+      .use(express.static('public'))
+      .use(express.static('static'))
+      .all('*', (req, res) => handle(req, res));
+
     server.listen(3000, (err) => {
-      if (err) throw err;
+      if (err) {
+        throw err;
+      }
+
       console.log('> Ready on http://localhost:3000');
     });
   })
