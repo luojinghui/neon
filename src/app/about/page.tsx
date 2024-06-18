@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { socket } from '@/socket.mjs';
 import { useEffect, useState } from 'react';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import '@/styles/index.css';
