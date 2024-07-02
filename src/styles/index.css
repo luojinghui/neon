@@ -1,5 +1,5 @@
 .bg {
-  background: linear-gradient(125deg, #7690ec 20%, #9f44d3 100%);
+  background: linear-gradient(125deg, #7690ec 30%, #9f44d3 100%);
   animation: hue 60s infinite linear;
 }
 
@@ -74,4 +74,8 @@
 }
 .bg20 {
   background: linear-gradient(120deg, #4871a5 20%, #ea426c 100%);
+}
+
+.neon-container {
+  max-width: 1920px;
 }
