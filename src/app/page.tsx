@@ -4,6 +4,8 @@ import Link from 'next/link';
 import '@/styles/index.css';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Container } from '@/components/container';
 
 export default function Home() {
   const [random, setRandom] = useState(1);
@@ -33,47 +35,57 @@ export default function Home() {
   }, []);
 
   return (
-    <div className={`h-screen flex justify-center items-center bg`}>
-      <div>
-        <Image src="/source/logo.svg" className="fixed left-5 top-5" draggable={false} alt="logo" width={68} height={68}></Image>
-      </div>
+    <div className="h-screen bg">
+      <Container relative mx-auto center>
+        <div>
+          <Image src="/source/logo.svg" className="absolute left-0 top-5" draggable={false} alt="logo" width={68} height={68}></Image>
+        </div>
 
-      <ul className="flex rounded-full transition bg-white/90 px-3 text-sm text-zinc-800 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10">
-        <li>
-          <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/chat">
-            星球
-          </Link>
-        </li>
-        <li>
-          <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/music">
-            音乐
-          </Link>
-        </li>
-        <li>
-          <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/picture">
-            图片
-          </Link>
-        </li>
-        <li>
-          <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/video">
-            视频
-          </Link>
-        </li>
-      </ul>
+        {/* <ul className="flex rounded-full transition bg-white/90 px-3 text-sm text-zinc-800 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10">
+          <li>
+            <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/chat">
+              星球
+            </Link>
+          </li>
+          <li>
+            <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/music">
+              音乐
+            </Link>
+          </li>
+          <li>
+            <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/picture">
+              图片
+            </Link>
+          </li>
+          <li>
+            <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/video">
+              视频
+            </Link>
+          </li>
+        </ul>
 
-      <ul className="ml-5 flex rounded-full transition bg-white/90 px-3 text-sm text-zinc-800 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10">
-        <li>
-          <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/about">
-            关于我
-          </Link>
-        </li>
-      </ul>
+        <ul className="ml-5 flex rounded-full transition bg-white/90 px-3 text-sm text-zinc-800 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:text-zinc-200 dark:ring-white/10">
+          <li>
+            <Link className="relative block px-4 py-4 transition hover:text-cyan-500 dark:hover:text-cyan-400" href="/about">
+              关于我
+            </Link>
+          </li>
+        </ul> */}
+      </Container>
 
-      <div className="fixed bottom-2 flex justify-center items-end">
-        <a href="https://beian.miit.gov.cn/" rel="noopener noreferrer" className="text-xs text-slate-50 opacity-30" target="_blank">
-          陕ICP备19012299号-1
-        </a>
-      </div>
+      <Container h-full relative>
+        <div className="absolute left-0 h-full w-auto opacity-15"></div>
+      </Container>
+
+      <Container full fixed bottom-2 center>
+        <Container mx-auto center>
+          <div className="flex justify-center items-end">
+            <a href="https://beian.miit.gov.cn/" rel="noopener noreferrer" className="text-xs text-slate-50 opacity-30" target="_blank">
+              陕ICP备19012299号-1
+            </a>
+          </div>
+        </Container>
+      </Container>
     </div>
   );
 }
