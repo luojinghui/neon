@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/container';
+import { Box } from '@/components/box';
 import { HomeFilled, TikTokFilled, PictureFilled, HeartFilled, SmileFilled } from '@ant-design/icons';
 
 import '@/styles/index.css';
@@ -37,14 +38,14 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-screen bg">
+    <div className="h-screen bg overflow-hidden">
       <Container relative mx-auto center>
         <div>
           <Image src="/source/logo.svg" className="absolute left-5 top-5" draggable={false} alt="logo" width={58} height={58}></Image>
         </div>
       </Container>
 
-      <Container h-full relative>
+      <Container h-full relative className="">
         <div className="absolute left-3 h-full">
           <ul className="h-full center flex-col">
             <li className="group relative flex p-4 pl-6 pr-14 cursor-pointer transition rounded-md hover:bg-blue-400/70">
@@ -69,6 +70,25 @@ export default function Home() {
             </li>
           </ul>
         </div>
+
+        <Box>
+          <div className="mt-12 relative">
+            <div className="text-6xl text-white font-medium">Neon Planet</div>
+            <div className="mt-6 text-base text-white font-medium">漆黑夜里，风吹熄了星月，你却是我藏在血液里的光</div>
+          </div>
+        </Box>
+
+        <Box>
+          <div className="mt-20 relative">
+            <div className="share bg-white/50 rounded-[4px] p-8">分享</div>
+          </div>
+        </Box>
+
+        <Box>
+          <div className="mt-20 relative">
+            <div className="share bg-white/50 rounded-[4px] p-8">列表</div>
+          </div>
+        </Box>
       </Container>
 
       <Container full fixed bottom-2 center>
