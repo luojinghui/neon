@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge';
 
 export function Box(props: any) {
   const { className, children, ...other } = props;
-  let containerClass = 'w-[1080px] mx-auto';
+  let containerClass = 'w-[980px] mx-auto';
   let baseClass = '';
 
   const cls = clsx(baseClass, containerClass, className);

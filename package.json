@@ -29,6 +29,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "express": "^4.19.2",
+    "framer-motion": "^11.2.12",
     "mongoose": "^8.4.3",
     "postcss": "^8",
     "socket.io": "^4.7.5",
