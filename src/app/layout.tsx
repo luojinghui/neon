@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import Music from '@/components/music';
+import { Nav } from '@/components/nav';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn(inter.className, 'font-sans antialiased', inter.variable)}>
         {/* <Music></Music> */}
+        <Nav />
         {children}
       </body>
     </html>
