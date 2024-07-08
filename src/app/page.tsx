@@ -45,29 +45,29 @@ export default function Home() {
 
   return (
     <div className="h-screen bg12 overflow-hidden">
-      <Image src="/source/logo.svg" className="fixed left-5 top-5" draggable={false} alt="logo" width={58} height={58}></Image>
+      <Image src="/source/logo.svg" className="fixed left-5 top-5" draggable={false} alt="logo" width={100} height={100}></Image>
 
       <Container className="h-full relative">
         <div className="absolute left-3 top-0 h-full">
           <motion.ul className="h-full center flex-col" initial="hidden" animate="show">
             <motion.li variants={item} className="group relative flex p-4 pl-6 pr-14 cursor-pointer transition rounded-md hover:bg-blue-400/70">
-              <HomeFilled className="text-red-400 text-2xl opacity-90" />
+              <HomeFilled className="text-red-400 text-3xl opacity-90 " />
               <span className="hidden text-sm  text-slate-50 absolute left-14 top-[18px] group-hover:block">首页</span>
             </motion.li>
             <motion.li variants={item} className="group relative flex p-4 pl-6 pr-14 cursor-pointer transition rounded-md hover:bg-blue-400/70">
-              <HeartFilled className="text-white text-2xl opacity-90" />
+              <HeartFilled className="text-white text-3xl opacity-90" />
               <span className="hidden text-sm  text-slate-50 absolute left-14 top-[18px] group-hover:block">星球</span>
             </motion.li>
             <motion.li variants={item} className="group relative flex p-4 pl-6 pr-14 cursor-pointer transition rounded-md hover:bg-blue-400/70">
-              <TikTokFilled className="text-white text-2xl opacity-90" />
+              <TikTokFilled className="text-white text-3xl opacity-90" />
               <span className="hidden text-sm  text-slate-50 absolute left-14 top-[18px] group-hover:block">音乐</span>
             </motion.li>
             <motion.li variants={item} className="group relative flex p-4 pl-6 pr-14 cursor-pointer transition rounded-md hover:bg-blue-400/70">
-              <PictureFilled className="text-white text-2xl opacity-90" />
+              <PictureFilled className="text-white text-3xl opacity-90" />
               <span className="hidden text-sm  text-slate-50 absolute left-14 top-[18px] group-hover:block">壁纸</span>
             </motion.li>
             <motion.li variants={item} className="group relative flex p-4 pl-6 pr-14 cursor-pointer transition rounded-md hover:bg-blue-400/70">
-              <SmileFilled className="text-white text-2xl opacity-90" />
+              <SmileFilled className="text-white text-3xl opacity-90" />
               <span className="hidden text-sm  text-slate-50 absolute left-14 top-[18px] group-hover:block">我的</span>
             </motion.li>
           </motion.ul>
