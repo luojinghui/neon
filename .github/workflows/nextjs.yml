@@ -48,7 +48,7 @@ jobs:
             whoami
             export NVM_DIR=~/.nvm
             source ~/.nvm/nvm.sh
-            yarn install
-            yarn build
+            pnpm install
+            pnpm build
             pm2 start npm -- run start
             echo $LASTSSH

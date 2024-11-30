@@ -22,7 +22,7 @@ export default function Home() {
     return res.json();
   };
 
-  useEffect(() => {
+  useEffect(() => { 
     (async () => {
       try {
         resp = await getData();
