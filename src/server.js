@@ -25,7 +25,10 @@ nextApp
       .all('*', (req, res) => handle(req, res));
 
     server.listen(3000, (err) => {
+      console.log('========listen 3000');
+
       if (err) {
+        console.error('start server err: ', err);
         throw err;
       }
 

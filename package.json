@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "server": "node ./src/server.js",
     "dev": "next start",
+    "start": "node ./src/server.js",
+    "start:prd": "NODE_ENV=production node ./src/server.js",
     "build": "next build",
-    "start": "NODE_ENV=production node ./src/server.js",
     "lint": "next lint"
   },
   "dependencies": {

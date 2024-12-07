@@ -22,7 +22,7 @@ export default function Home() {
     return res.json();
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     (async () => {
       try {
         resp = await getData();
@@ -49,7 +49,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="mt-6 text-base text-white font-medium"
             >
-              漆黑夜里，风吹熄了星月，你却是我藏在血液里的光
+              漆黑夜里，风吹熄了星月，你却是我藏在血液里的光8899000
             </motion.div>
 
             <motion.div
