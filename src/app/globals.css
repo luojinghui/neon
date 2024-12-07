@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .center {
+    @apply flex items-center justify-center;
+  }
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

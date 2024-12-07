@@ -1,0 +1,81 @@
+.bg {
+  background: linear-gradient(125deg, #7690ec 30%, #9f44d3 100%);
+  animation: hue 60s infinite linear;
+}
+
+@keyframes hue {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.bg0 {
+  background: linear-gradient(120deg, #4871a5 20%, #ea426c 100%);
+}
+.bg1 {
+  background: linear-gradient(135deg, #ee9ae5 20%, #5961f9 100%);
+}
+.bg2 {
+  background: linear-gradient(130deg, #8e54e9 20%, #4776e6 100%);
+}
+.bg3 {
+  background: linear-gradient(125deg, #7690ec 20%, #9f44d3 100%);
+}
+.bg4 {
+  background: linear-gradient(120deg, #05d1d4 20%, #5454b9 100%);
+}
+.bg5 {
+  background: linear-gradient(140deg, #e87471 20%, #d4aa1a 100%);
+}
+.bg6 {
+  background: linear-gradient(115deg, #55cabb 20%, #a93074 100%);
+}
+.bg7 {
+  background: linear-gradient(110deg, #f1ca74 20%, #a64db6 100%);
+}
+.bg8 {
+  background: linear-gradient(115deg, #ffa6b7 20%, #97abff 100%);
+}
+.bg9 {
+  background: linear-gradient(115deg, #f5b470 20%, #fd6585 100%);
+}
+.bg10 {
+  background: linear-gradient(145deg, #feb692 20%, #ea5455 100%);
+}
+.bg11 {
+  background: linear-gradient(150deg, #ff9d6c 20%, #bb4e75 100%);
+}
+.bg12 {
+  background: linear-gradient(135deg, #4e4376 20%, #2b5876 100%);
+}
+.bg13 {
+  background: linear-gradient(130deg, #a3bf7e 20%, #f6416c 100%);
+}
+.bg14 {
+  background: linear-gradient(125deg, #e05c5c 20%, #21b7a9 100%);
+}
+.bg15 {
+  background: linear-gradient(115deg, #2f987b 20%, #2070b5 100%);
+}
+.bg16 {
+  background: linear-gradient(105deg, #d47de2 20%, #42979e 100%);
+}
+.bg17 {
+  background: linear-gradient(110deg, #ea7878 20%, #f1a533 100%);
+}
+.bg18 {
+  background: linear-gradient(135deg, #5fb8ef 20%, #e22a45 100%);
+}
+.bg19 {
+  background: linear-gradient(125deg, #f17b8b 20%, #f1b4bc 100%);
+}
+.bg20 {
+  background: linear-gradient(120deg, #4871a5 20%, #ea426c 100%);
+}
+
+.neon-container {
+  max-width: 1920px;
+}

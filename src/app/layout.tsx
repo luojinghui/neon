@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import '@/styles/index.css';
 
 export const metadata: Metadata = {
   title: 'Neon Planet',
