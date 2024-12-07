@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import './globals.css';
+import '@/styles/var.css';
 import '@/styles/index.css';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Neon Planet',
-  description: 'Neon Planet For You',
+  title: 'Soul Planet',
+  description: 'Soul Planet For You',
   icons: '/favicon.ico'
 };
 
