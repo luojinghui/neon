@@ -1,6 +1,6 @@
 .bg {
   background: linear-gradient(125deg, #7690ec 30%, #9f44d3 100%);
-  animation: hue 60s infinite linear;
+  animation: hue 240s infinite linear;
 }
 
 @keyframes hue {

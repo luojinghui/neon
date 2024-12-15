@@ -1,21 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Container } from '@/components/container';
-import { Box } from '@/components/box';
-import { Footer } from '@/components/footer';
-import { useNavStore } from '@/store/nav';
+import { Header } from '@/components/header';
+import { MENU } from '@/store/nav.type';
+import { Textarea } from '@nextui-org/input';
 
 export default function Page() {
-  const activeKey = useNavStore((state) => state.activeKey);
-
-  useEffect(() => {
-    console.log('===activeKey2: ', activeKey);
-  }, [activeKey]);
-
   return (
     <div className="h-screen bg12 overflow-hidden">
-      <div>文件传输</div>
+      <Header activeKey={MENU.cloud}></Header>
+
+      <div className="h-screen w-full center">
+        <Textarea className="max-w-[80%]" placeholder="输入文本内容" />
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { Header } from '@/components/header';
 import '@/styles/index.css';
 import './globals.css';
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'Soul Planet',
@@ -17,8 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <Header></Header>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
