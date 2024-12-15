@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '@/styles/var.css';
+import { Header } from '@/components/header';
 import '@/styles/index.css';
 import './globals.css';
 
@@ -16,7 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <Header></Header>
+        {children}
+      </body>
     </html>
   );
 }

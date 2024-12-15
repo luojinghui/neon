@@ -1,15 +1,15 @@
-import { NAV } from '@/type/nav.type';
+import { MENU } from './nav.type';
 import { create } from 'zustand';
 
 interface INavStore {
-  activeKey: NAV;
-  setActiveKey: (key: NAV) => void;
+  activeKey: MENU;
+  setActiveKey: (key: MENU) => void;
 }
 
 export const useNavStore = create<INavStore>((set) => ({
-  activeKey: NAV.index,
+  activeKey: MENU.home,
 
-  setActiveKey: (key: NAV) =>
+  setActiveKey: (key: MENU) =>
     set((state) => {
       state.activeKey = key;
       return state;

@@ -2,21 +2,20 @@
 
 import { useEffect } from 'react';
 import { Container } from '@/components/container';
+import { Box } from '@/components/box';
 import { Footer } from '@/components/footer';
 import { useNavStore } from '@/store/nav';
 
-export default function Home() {
+export default function Page() {
   const activeKey = useNavStore((state) => state.activeKey);
 
   useEffect(() => {
-    console.log('===activeKey: ', activeKey);
+    console.log('===activeKey2: ', activeKey);
   }, [activeKey]);
 
   return (
     <div className="h-screen bg12 overflow-hidden">
-      <Container className="w-full fixed bottom-0 center">
-        <Footer />
-      </Container>
+      <div>文件传输</div>
     </div>
   );
 }

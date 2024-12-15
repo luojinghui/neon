@@ -17,6 +17,8 @@
   },
   "devDependencies": {
     "@ant-design/icons": "^5.5.2",
+    "@svgr/webpack": "^8.1.0",
+    "@tailwindcss/postcss": "4.0.0-beta.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -28,7 +30,7 @@
     "postcss": "^8",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "4.0.0-beta.7",
     "typescript": "^5"
   }
 }

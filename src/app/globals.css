@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
 @layer components {
   .center {
@@ -8,9 +6,28 @@
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'PingFangSC-Regular', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Tahoma, Arial, 'Hiragino Sans GB', 'Heiti SC', 'WenQuanYi Micro Hei', sans-serif;
+@theme {
+  /* 颜色 */
+  --color-neon-gray-50: #fafafa;
+  --color-neon-gray-100: #f5f5f5;
+  --color-neon-gray-200: #e5e5e5;
+  --color-neon-gray-300: #d4d4d4;
+  --color-neon-gray-400: #a3a3a3;
+  --color-neon-gray-500: #737373;
+  --color-neon-gray-600: #525252;
+  --color-neon-gray-700: #404040;
+  --color-neon-gray-800: #262626;
+  --color-neon-gray-900: #171717;
+
+  /* 线条颜色 */
+  --color-neon_line: #a8a8a8;
+}
+
+* {
   user-select: none;
+}
+
+html,
+body {
+  overflow: hidden;
 }
