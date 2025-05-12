@@ -70,6 +70,10 @@ const config = {
       },
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans]
+      },
+      screens: {
+        sm: { max: '630px' },
+        lg: { max: '1220px' }
       }
     }
   },

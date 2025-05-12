@@ -18,7 +18,7 @@ export function Container(props: any) {
   });
 
   if (!isExistFull) {
-    containerClass += twMerge('neon-container mx-auto', containerClass);
+    containerClass += twMerge('mx-auto', containerClass);
   }
 
   const cls = clsx(baseClass, containerClass, className);
