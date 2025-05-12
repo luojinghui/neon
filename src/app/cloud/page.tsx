@@ -1,10 +1,10 @@
 'use client';
 
 import '@/styles/index.css';
-import { LeftOutlined } from '@ant-design/icons';
+import { LeftOutlined, CopyOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { Button, Input } from 'antd';
-import { useState } from 'react';
+import { Button, Input, message } from 'antd';
+import { useEffect, useRef, useState } from 'react';
 
 const { TextArea } = Input;
 
@@ -12,9 +12,26 @@ export default function Home() {
   const [text, setText] = useState('');
   const [password, setPassword] = useState('');
   const [queryPassword, setQueryPassword] = useState('');
+
+  const queryPasswordRef = useRef('');
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
   };
+
+  // 解析url参数，如果携带pwd参数，则直接注入到查询密码中，并查询内容
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const pwd = urlParams.get('pwd');
+    queryPasswordRef.current = pwd || '';
+
+    console.log('chat useEffect', pwd);
+
+    if (pwd) {
+      setQueryPassword(pwd);
+      handleQuery();
+    }
+  }, []);
 
   const handleSend = async () => {
     console.log('chat handleSend', text);
@@ -37,7 +54,7 @@ export default function Home() {
     console.log('chat handleQuery', queryPassword);
 
     // Send password as query parameter
-    const res = await fetch(`/api/cloud?password=${encodeURIComponent(queryPassword)}`, {
+    const res = await fetch(`/api/cloud?password=${encodeURIComponent(queryPasswordRef.current)}`, {
       method: 'GET'
     });
 
@@ -51,6 +68,13 @@ export default function Home() {
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQueryPassword(e.target.value);
+    queryPasswordRef.current = e.target.value;
+  };
+
+  const handleCopy = () => {
+    console.log('chat handleCopy', password);
+    message.success('复制成功');
+    navigator.clipboard.writeText(password);
   };
 
   return (
@@ -72,9 +96,12 @@ export default function Home() {
 
           {password && (
             <div className="mt-6">
-              <div className="text-center text-gray-500 select-text">
+              <div className="text-center text-gray-500">
                 <span>接收密码：</span>
-                <span className="text-gray-800 px-4 py-2 bg-gray-100 rounded-[6px]">{password}</span>
+                <span className="text-gray-800 px-4 py-2 bg-gray-100 rounded-[6px] select-text">{password}</span>
+                <span className="ml-2 cursor-pointer px-4 py-2 bg-gray-100 rounded-[6px]" onClick={handleCopy}>
+                  <CopyOutlined />
+                </span>
               </div>
             </div>
           )}
