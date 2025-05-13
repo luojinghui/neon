@@ -1,44 +1,33 @@
 'use client';
 
 import '@ant-design/v5-patch-for-react-19';
-import { useEffect, useRef } from 'react';
 import '@/styles/index.css';
 import { Footer } from '@/components/footer';
-import Link from 'next/link';
+import { Card } from '@/components/card';
 
 export default function Home() {
-  const resp = useRef(null);
-
-  const getData = async () => {
-    const res = await fetch('/api/user');
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch data');
+  const cards = [
+    {
+      title: '云传',
+      description: '快速、安全、便捷的文件传输服务',
+      href: '/cloud'
     }
-
-    return res.json();
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        resp.current = await getData();
-        console.log('=====data: ', resp);
-      } catch (error) {
-        console.log('=====fetch error: ', error);
-      }
-    })();
-  }, []);
+  ];
 
   return (
-    <div className="h-screen w-full overflow-hidden">
-      <div className="center h-full w-full">
-        <Link href={'/'} className="m-3">
-          首页
-        </Link>
-        <Link href={'/cloud'} className="m-3">
-          云传
-        </Link>
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="container mx-auto px-4 py-16">
+        <h1 className="mb-12 text-center text-5xl font-bold">
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 animate-gradient-x">Soul星球</span>
+        </h1>
+
+        <div className="flex flex-wrap justify-center gap-6">
+          {cards.map((card, index) => (
+            <div key={index} className="w-full max-w-[500px] md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+              <Card {...card} />
+            </div>
+          ))}
+        </div>
       </div>
       <Footer />
     </div>
