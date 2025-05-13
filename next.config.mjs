@@ -5,9 +5,7 @@ const nextConfig = {
   compiler: {
     // 移除控制台日志
     removeConsole: process.env.NODE_ENV === 'production'
-  },
-  // 优化构建输出
-  swcMinify: true
+  }
 };
 
 export default nextConfig;

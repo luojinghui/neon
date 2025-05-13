@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: DEPLOY DEV
+      - name: DEPLOY PRD
         uses: cross-the-world/ssh-scp-ssh-pipelines@latest
         env:
           WELCOME: 'Start Deploy'
@@ -50,5 +50,5 @@ jobs:
             source ~/.nvm/nvm.sh
             pnpm install
             pnpm build
-            pm2 start npm -- run start
+            pm2 start npm -- run start:prod
             echo $LASTSSH
