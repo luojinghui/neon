@@ -123,8 +123,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="header fixed top-0 left-0 w-full  z-10">
+    <div className="h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+      <div className="header fixed top-0 left-0 w-full z-10">
         <div className="max-w-screen-xl mx-auto px-4 h-14 m-3">
           <div className="flex items-center justify-between space-x-2 bg-white/90 p-2 rounded-[8px]">
             <Link href={'/'} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/80 transition-all duration-300 shadow-sm hover:shadow-md">
@@ -136,7 +136,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="content w-full pt-20 pb-8">
+      <div className="content w-full pt-20 pb-8 flex-1 overflow-y-auto">
         <div className="max-w-screen-xl mx-auto px-4 space-y-6">
           <Card title="发送内容" className="w-full" styles={{ body: { padding: '16px' } }}>
             <TextArea rows={10} className="w-full" onChange={handleChange} value={text} />
