@@ -147,8 +147,8 @@ export default function Home() {
 
           {password && (
             <Card title="接收密码" className="w-full" styles={{ body: { padding: '16px' } }}>
-              <div className="space-y-4">
-                <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex items-center bg-gray-100 p-4 rounded-lg">
                   <div className="flex-1 flex items-center space-x-2">
                     <span className="text-gray-500">密码：</span>
                     <span className="text-lg font-medium text-gray-800">{password}</span>
@@ -158,7 +158,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center bg-gray-100 p-4 rounded-lg">
                   <div className="flex-1 flex items-center space-x-2">
                     <span className="text-gray-500">分享链接：</span>
                     <span className="text-sm text-gray-600 truncate max-w-[300px]">{`${window.location.origin}/cloud?pwd=${password}`}</span>
