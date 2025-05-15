@@ -23,7 +23,7 @@ export default function Home() {
 
         <div className="flex flex-wrap justify-center gap-6">
           {cards.map((card, index) => (
-            <div key={index} className="w-full max-w-[500px] md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
+            <div key={index} className="w-full max-w-[400px]">
               <Card {...card} />
             </div>
           ))}

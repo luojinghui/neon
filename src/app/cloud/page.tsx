@@ -123,7 +123,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+    <div className="h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col pb-10">
       <div className="header fixed top-0 left-0 w-full z-10">
         <div className="max-w-screen-xl mx-auto px-4 h-14 m-3">
           <div className="flex items-center justify-between space-x-2 bg-white/90 p-2 rounded-[8px]">
@@ -136,21 +136,33 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="content w-full pt-20 pb-8 flex-1 overflow-y-auto">
+      <div className="content w-full pt-20 pb-8 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="max-w-screen-xl mx-auto px-4 space-y-6">
-          <Card title="发送内容" className="w-full" styles={{ body: { padding: '16px' } }}>
-            <TextArea rows={10} className="w-full" onChange={handleChange} value={text} />
-            <Button type="primary" className="mt-4" onClick={handleSend}>
-              发送
-            </Button>
+          <Card title="发送内容" className="w-full" styles={{ body: { padding: '12px' } }}>
+            <TextArea rows={8} className="w-full" allowClear onChange={handleChange} value={text} />
+            <div className="flex space-x-2 mt-4">
+              <Button type="primary" onClick={handleSend}>
+                发送
+              </Button>
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(text);
+                  message.success('内容已复制');
+                }}
+                disabled={!text}
+              >
+                复制内容
+              </Button>
+            </div>
           </Card>
 
           {password && (
-            <Card title="接收密码" className="w-full" styles={{ body: { padding: '16px' } }}>
+            <Card title="内容信息" className="w-full" styles={{ body: { padding: '12px' } }}>
               <div className="space-y-2">
                 <div className="flex items-center bg-gray-100 p-4 rounded-lg">
                   <div className="flex-1 flex items-center space-x-2">
-                    <span className="text-gray-500">密码：</span>
+                    <span className="text-gray-500 w-[50px]">密码：</span>
                     <span className="text-lg font-medium text-gray-800">{password}</span>
                     <Button type="text" icon={<CopyOutlined />} onClick={handleCopy} className="hover:bg-gray-100">
                       复制密码
@@ -159,9 +171,9 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center bg-gray-100 p-4 rounded-lg">
-                  <div className="flex-1 flex items-center space-x-2">
-                    <span className="text-gray-500">分享链接：</span>
-                    <span className="text-sm text-gray-600 truncate max-w-[300px]">{`${window.location.origin}/cloud?pwd=${password}`}</span>
+                  <div className="flex-1 flex items-center space-x-2 flex-wrap">
+                    <span className="text-gray-500 w-[50px]">链接：</span>
+                    <span className="text-sm text-gray-600 truncate max-w-[200px]">{`${window.location.origin}/cloud?pwd=${password}`}</span>
                     <div className="flex items-center space-x-1">
                       <Button type="text" icon={<LinkOutlined />} onClick={handleCopyLink} className="hover:bg-gray-100">
                         复制链接
@@ -176,10 +188,10 @@ export default function Home() {
             </Card>
           )}
 
-          <Card title="查询内容" className="w-full" styles={{ body: { padding: '16px' } }}>
+          <Card title="查询内容" className="w-full" styles={{ body: { padding: '12px' } }}>
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Input placeholder="请输入密码" onChange={handleQueryChange} value={queryPassword} className="h-10 w-[200px]" />
+                <Input placeholder="请输入密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-10 w-[200px]" />
                 <Button type="primary" onClick={handleQuery}>
                   查询
                 </Button>
