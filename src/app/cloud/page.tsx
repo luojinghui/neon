@@ -42,6 +42,11 @@ export default function Home() {
   const handleSend = async () => {
     console.log('chat handleSend', text);
 
+    if (!text) {
+      message.warning('请输入内容');
+      return;
+    }
+
     const res = await fetch('/api/cloud', {
       method: 'POST',
       body: JSON.stringify({ text })
@@ -51,15 +56,21 @@ export default function Home() {
     console.log('chat handleSend', data);
 
     if (data.state === 200) {
-      setText('');
       setPassword(data.data.password);
     }
+
+    message.success('发送成功，请及时分享密码');
   };
 
   const handleQuery = async () => {
     console.log('chat handleQuery', queryPassword);
 
-    const res = await fetch(`/api/cloud?password=${encodeURIComponent(queryPasswordRef.current)}`, {
+    if (!queryPassword) {
+      message.error('请输入密码');
+      return;
+    }
+
+    const res = await fetch(`/api/cloud?password=${encodeURIComponent(queryPassword)}`, {
       method: 'GET'
     });
 
@@ -138,7 +149,14 @@ export default function Home() {
 
       <div className="content w-full pt-20 pb-8 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="max-w-screen-xl mx-auto px-4 space-y-6">
-          <Card title="发送内容" className="w-full" styles={{ body: { padding: '12px' } }}>
+          <Card
+            title="发送内容"
+            className="w-full"
+            styles={{
+              body: { padding: '12px' },
+              header: { padding: '8px 12px', minHeight: '40px' }
+            }}
+          >
             <TextArea rows={8} className="w-full" allowClear onChange={handleChange} value={text} />
             <div className="flex space-x-2 mt-4">
               <Button type="primary" onClick={handleSend}>
@@ -158,7 +176,14 @@ export default function Home() {
           </Card>
 
           {password && (
-            <Card title="内容信息" className="w-full" styles={{ body: { padding: '12px' } }}>
+            <Card
+              title="内容信息"
+              className="w-full"
+              styles={{
+                body: { padding: '12px' },
+                header: { padding: '8px 12px', minHeight: '40px' }
+              }}
+            >
               <div className="space-y-2">
                 <div className="flex items-center bg-gray-100 p-4 rounded-lg">
                   <div className="flex-1 flex items-center space-x-2">
@@ -188,10 +213,17 @@ export default function Home() {
             </Card>
           )}
 
-          <Card title="查询内容" className="w-full" styles={{ body: { padding: '12px' } }}>
+          <Card
+            title="查询内容"
+            className="w-full"
+            styles={{
+              body: { padding: '12px' },
+              header: { padding: '8px 12px', minHeight: '40px' }
+            }}
+          >
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Input placeholder="请输入密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-10 w-[200px]" />
+                <Input placeholder="请输入密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-10 w-[200px]" onPressEnter={handleQuery} />
                 <Button type="primary" onClick={handleQuery}>
                   查询
                 </Button>

@@ -20,6 +20,20 @@ export async function GET(request: Request) {
   });
 }
 
+async function getPassword() {
+  // 生成一个最多2-4位数据的密码，包含数字和字母
+  const password = Math.random().toString(36).substring(2, 4);
+
+  // 密码需要查询数据库，如果被占用，更新为新的密码
+  const isExist = await CloudMessage.findOne({ password });
+
+  if (isExist) {
+    return getPassword();
+  }
+
+  return password;
+}
+
 export async function POST(request: Request) {
   const { text } = await request.json();
   console.log('cloud server POST', text);
@@ -28,8 +42,7 @@ export async function POST(request: Request) {
   const messageId = new mongoose.Types.ObjectId().toString();
   // 设置过期时间为24小时后
   const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  // 生成一个最多2-4位数据的密码，包含数字和字母
-  const password = Math.random().toString(36).substring(2, 4);
+  const password = await getPassword();
 
   // 调用mongoose 保存数据
   const cloudMessage = new CloudMessage({
