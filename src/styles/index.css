@@ -1,3 +1,4 @@
+@import './theme.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,4 +18,20 @@
 .animate-gradient-x {
   background-size: 200% auto;
   animation: gradient-x 15s ease infinite;
+}
+
+@layer base {
+  body {
+    @apply bg-[rgb(var(--background))];
+    @apply text-[rgb(var(--foreground))];
+    @apply transition-colors duration-300;
+  }
+
+  html {
+    @apply transition-colors duration-300;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
 }

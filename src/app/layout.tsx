@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
+import '@/styles/index.css';
 import { cn } from '@/utils/cn';
+import { Suspense } from 'react';
+import { ThemeProvider } from '@/store/ThemeContext';
+import ClientThemeWrapper from '../components/theme/theme-wrapper';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -19,7 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn('font-sans antialiased', inter.variable)} suppressHydrationWarning>
-        {children}
+        <Suspense fallback={null}>
+          <ThemeProvider>
+            <ClientThemeWrapper>{children}</ClientThemeWrapper>
+          </ThemeProvider>
+        </Suspense>
       </body>
     </html>
   );

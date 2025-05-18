@@ -10,14 +10,18 @@ const { TextArea } = Input;
 
 const HISTORY_KEY = 'cloud_query_history';
 const MAX_HISTORY = 10;
+const TEXT_HISTORY_KEY = 'cloud_text_history';
+const MAX_TEXT_HISTORY = 20;
 
 export default function Home() {
   const [text, setText] = useState('');
   const [password, setPassword] = useState('');
   const [queryPassword, setQueryPassword] = useState('');
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [historyPasswords, setHistoryPasswords] = useState<string[]>([]);
+  const [textHistory, setTextHistory] = useState<Array<{ text: string; timestamp: number }>>([]);
 
   const queryPasswordRef = useRef('');
 
@@ -57,6 +61,8 @@ export default function Home() {
 
     if (data.state === 200) {
       setPassword(data.data.password);
+      // Add to text history
+      addToTextHistory(text);
     }
 
     message.success('发送成功，请及时分享密码');
@@ -117,16 +123,48 @@ export default function Home() {
     setHistoryPasswords(newHistory);
   };
 
+  const addToTextHistory = (text: string) => {
+    if (!text) return;
+
+    const history = JSON.parse(localStorage.getItem(TEXT_HISTORY_KEY) || '[]');
+    const newItem = { text, timestamp: Date.now() };
+    const newHistory = [newItem, ...history].slice(0, MAX_TEXT_HISTORY);
+    localStorage.setItem(TEXT_HISTORY_KEY, JSON.stringify(newHistory));
+    setTextHistory(newHistory);
+  };
+
   const deleteFromHistory = (pwdToDelete: string) => {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     const newHistory = history.filter((pwd: string) => pwd !== pwdToDelete);
+
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
     setHistoryPasswords(newHistory);
+  };
+
+  const deleteFromTextHistory = (timestamp: number) => {
+    const history = JSON.parse(localStorage.getItem(TEXT_HISTORY_KEY) || '[]');
+    const newHistory = history.filter((item: { text: string; timestamp: number }) => item.timestamp !== timestamp);
+
+    localStorage.setItem(TEXT_HISTORY_KEY, JSON.stringify(newHistory));
+    setTextHistory(newHistory);
   };
 
   const loadHistory = () => {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     setHistoryPasswords(history);
+
+    const textHistory = JSON.parse(localStorage.getItem(TEXT_HISTORY_KEY) || '[]');
+    setTextHistory(textHistory);
+  };
+
+  const handleUseHistoryItem = (item: { text: string; timestamp: number }) => {
+    setText(item.text);
+    setIsHistoryModalOpen(false);
+  };
+
+  const handleCopyText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    message.success('内容已复制');
   };
 
   useEffect(() => {
@@ -137,8 +175,8 @@ export default function Home() {
     <div className="h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col pb-10">
       <div className="header fixed top-0 left-0 w-full z-10">
         <div className="max-w-screen-xl mx-auto px-4 h-14 m-3">
-          <div className="flex items-center justify-between space-x-2 bg-white/90 p-2 rounded-[8px]">
-            <Link href={'/'} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/80 transition-all duration-300 shadow-sm hover:shadow-md">
+          <div className="flex items-center justify-between space-x-2 bg-white/90 p-2 rounded-[6px]">
+            <Link href={'/'} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 transition-all duration-300 shadow-sm hover:shadow-md hover:bg-gray-200">
               <LeftOutlined className="text-xl text-gray-800" />
             </Link>
             <span className="text-lg font-medium">云传</span>
@@ -151,13 +189,18 @@ export default function Home() {
         <div className="max-w-screen-xl mx-auto px-4 space-y-6">
           <Card
             title="发送内容"
+            extra={
+              <span className="text-gray-800 text-sm cursor-pointer hover:text-blue-500" onClick={() => setIsHistoryModalOpen(true)}>
+                历史数据
+              </span>
+            }
             className="w-full"
             styles={{
               body: { padding: '12px' },
               header: { padding: '8px 12px', minHeight: '40px' }
             }}
           >
-            <TextArea rows={8} className="w-full" allowClear onChange={handleChange} value={text} />
+            <TextArea autoSize={{ minRows: 8, maxRows: 14 }} showCount className="w-full" allowClear onChange={handleChange} value={text} />
             <div className="flex space-x-2 mt-4">
               <Button type="primary" onClick={handleSend}>
                 发送
@@ -269,6 +312,38 @@ export default function Home() {
         <div className="flex flex-col items-center space-y-4 py-4">
           <QRCode value={shareLink} size={200} />
           <p className="text-gray-500 text-sm">扫描二维码访问内容</p>
+        </div>
+      </Modal>
+
+      <Modal title="历史数据" open={isHistoryModalOpen} onCancel={() => setIsHistoryModalOpen(false)} footer={null} width={700} centered>
+        <div className="max-h-[70vh] overflow-y-auto py-2">
+          {textHistory.length > 0 ? (
+            <div className="space-y-4">
+              {textHistory.map((item, index) => (
+                <Card
+                  key={item.timestamp}
+                  size="small"
+                  className="group border border-gray-100 hover:border-blue-200 transition-all"
+                  extra={
+                    <div className="flex space-x-2">
+                      <Button size="small" type="primary" onClick={() => handleUseHistoryItem(item)}>
+                        使用
+                      </Button>
+                      <Button size="small" danger icon={<DeleteOutlined />} onClick={() => deleteFromTextHistory(item.timestamp)} />
+                      <Button size="small" icon={<CopyOutlined />} onClick={() => handleCopyText(item.text)} />
+                    </div>
+                  }
+                >
+                  <div className="flex flex-col">
+                    <div className="text-xs text-gray-500 mb-2">{new Date(item.timestamp).toLocaleString()}</div>
+                    <div className="text-sm line-clamp-5 text-gray-700 whitespace-pre-wrap">{item.text}</div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">暂无历史数据</div>
+          )}
         </div>
       </Modal>
     </div>
