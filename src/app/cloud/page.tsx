@@ -1,10 +1,11 @@
 'use client';
 
 import '@/styles/index.css';
-import { LeftOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { LeftOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, DeleteOutlined, ClearOutlined, FileTextOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { Button, Input, message, Card, QRCode, Modal } from 'antd';
+import { Button, Input, Card, QRCode, Modal, App, Switch, Space, Divider } from 'antd';
 import { useEffect, useRef, useState } from 'react';
+import JsonView from '@uiw/react-json-view';
 
 const { TextArea } = Input;
 
@@ -13,17 +14,22 @@ const MAX_HISTORY = 10;
 const TEXT_HISTORY_KEY = 'cloud_text_history';
 const MAX_TEXT_HISTORY = 20;
 
-export default function Home() {
+function CloudPage() {
   const [text, setText] = useState('');
   const [password, setPassword] = useState('');
   const [queryPassword, setQueryPassword] = useState('');
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [historyPasswords, setHistoryPasswords] = useState<string[]>([]);
   const [textHistory, setTextHistory] = useState<Array<{ text: string; timestamp: number }>>([]);
+  const [formattedJson, setFormattedJson] = useState('');
+  const [jsonObject, setJsonObject] = useState<any>(null);
+  const [showEscaped, setShowEscaped] = useState(false);
 
   const queryPasswordRef = useRef('');
+  const { message } = App.useApp();
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -167,6 +173,81 @@ export default function Home() {
     message.success('内容已复制');
   };
 
+  const handleClear = () => {
+    setText('');
+    setQueryPassword('');
+    queryPasswordRef.current = '';
+    message.success('内容已清空');
+  };
+
+  const handleJsonParse = () => {
+    if (!text.trim()) {
+      message.warning('请先输入内容');
+      return;
+    }
+
+    try {
+      // 默认情况下不保留转义字符，对字符串进行处理
+      let textToParse = text;
+      if (!showEscaped) {
+        // 移除不必要的转义字符，但保持JSON结构完整
+        textToParse = text.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      }
+
+      const parsed = JSON.parse(textToParse);
+      const formatted = JSON.stringify(parsed, null, 2);
+
+      setJsonObject(parsed);
+      setFormattedJson(formatted);
+      setIsJsonModalOpen(true);
+    } catch (error) {
+      // 如果解析失败，尝试原始文本
+      try {
+        const parsed = JSON.parse(text);
+        const formatted = JSON.stringify(parsed, null, 2);
+
+        setJsonObject(parsed);
+        setFormattedJson(formatted);
+        setIsJsonModalOpen(true);
+      } catch (secondError) {
+        message.error('JSON格式错误，无法解析');
+      }
+    }
+  };
+
+  const handleEscapeToggle = (checked: boolean) => {
+    setShowEscaped(checked);
+
+    if (!text.trim()) return;
+
+    try {
+      let textToParse = text;
+      if (!checked) {
+        // 不保留转义字符
+        textToParse = text.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      }
+
+      const parsed = JSON.parse(textToParse);
+      const formatted = JSON.stringify(parsed, null, 2);
+
+      setJsonObject(parsed);
+      setFormattedJson(formatted);
+    } catch (error) {
+      // 保持原有状态，不更新
+    }
+  };
+
+  const handleCopyFormattedJson = () => {
+    if (showEscaped) {
+      // 如果显示转义字符，复制带转义的版本
+      const escapedJson = JSON.stringify(formattedJson);
+      navigator.clipboard.writeText(escapedJson);
+    } else {
+      navigator.clipboard.writeText(formattedJson);
+    }
+    message.success('JSON已复制');
+  };
+
   useEffect(() => {
     loadHistory();
   }, []);
@@ -208,12 +289,17 @@ export default function Home() {
               <Button
                 icon={<CopyOutlined />}
                 onClick={() => {
-                  navigator.clipboard.writeText(text);
-                  message.success('内容已复制');
+                  handleCopyText(text);
                 }}
                 disabled={!text}
               >
                 复制内容
+              </Button>
+              <Button icon={<ClearOutlined />} onClick={handleClear}>
+                清空
+              </Button>
+              <Button icon={<FileTextOutlined />} onClick={handleJsonParse} disabled={!text}>
+                JSON解析
               </Button>
             </div>
           </Card>
@@ -346,6 +432,71 @@ export default function Home() {
           )}
         </div>
       </Modal>
+
+      <Modal
+        title="JSON格式化"
+        open={isJsonModalOpen}
+        onCancel={() => setIsJsonModalOpen(false)}
+        footer={[
+          <div key="footer" className="flex justify-between items-center w-full">
+            <Space>
+              <span className="text-sm text-gray-600">显示转义字符：</span>
+              <Switch size="small" checked={showEscaped} onChange={handleEscapeToggle} />
+            </Space>
+            <Space>
+              <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyFormattedJson}>
+                复制JSON
+              </Button>
+              <Button key="close" onClick={() => setIsJsonModalOpen(false)}>
+                关闭
+              </Button>
+            </Space>
+          </div>
+        ]}
+        width={900}
+        centered
+      >
+        <div className="max-h-[70vh] overflow-y-auto">
+          {jsonObject && (
+            <div className="space-y-4">
+              {/* 美化显示区域 */}
+              <div>
+                <div className="text-sm text-gray-600 mb-2 font-medium">美化视图：</div>
+                <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                  <JsonView
+                    value={jsonObject}
+                    displayDataTypes={false}
+                    enableClipboard={false}
+                    collapsed={false}
+                    shortenTextAfterLength={99999}
+                    displayObjectSize={false}
+                    style={{
+                      fontSize: '13px',
+                      fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <Divider />
+
+              {/* 源码显示区域 */}
+              <div>
+                <div className="text-sm text-gray-600 mb-2 font-medium">源码视图：</div>
+                <pre className="bg-gray-50 p-4 rounded-lg text-sm font-mono whitespace-pre-wrap break-words border border-gray-200">{formattedJson}</pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <App>
+      <CloudPage />
+    </App>
   );
 }
