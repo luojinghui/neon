@@ -1,7 +1,7 @@
 'use client';
 
 import '@/styles/index.css';
-import { LeftOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, DeleteOutlined, ClearOutlined, FileTextOutlined } from '@ant-design/icons';
+import { LeftOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, DeleteOutlined, ClearOutlined, FileTextOutlined, CloseOutlined, HistoryOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { Button, Input, Card, QRCode, Modal, App, Switch, Space, Divider } from 'antd';
 import { useEffect, useRef, useState } from 'react';
@@ -22,11 +22,11 @@ function CloudPage() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
-  const [historyPasswords, setHistoryPasswords] = useState<string[]>([]);
   const [textHistory, setTextHistory] = useState<Array<{ text: string; timestamp: number }>>([]);
   const [formattedJson, setFormattedJson] = useState('');
   const [jsonObject, setJsonObject] = useState<any>(null);
   const [showEscaped, setShowEscaped] = useState(false);
+  const [showContentInfo, setShowContentInfo] = useState(true);
 
   const queryPasswordRef = useRef('');
   const { message } = App.useApp();
@@ -45,7 +45,9 @@ function CloudPage() {
 
     if (pwd) {
       setQueryPassword(pwd);
-      handleQuery();
+      setTimeout(() => {
+        handleQuery();
+      }, 50);
     }
   }, []);
 
@@ -67,6 +69,7 @@ function CloudPage() {
 
     if (data.state === 200) {
       setPassword(data.data.password);
+      setShowContentInfo(true); // Show content info when new content is sent
       // Add to text history
       addToTextHistory(text);
     }
@@ -126,7 +129,6 @@ function CloudPage() {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     const newHistory = [pwd, ...history.filter((item: string) => item !== pwd)].slice(0, MAX_HISTORY);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-    setHistoryPasswords(newHistory);
   };
 
   const addToTextHistory = (text: string) => {
@@ -139,14 +141,6 @@ function CloudPage() {
     setTextHistory(newHistory);
   };
 
-  const deleteFromHistory = (pwdToDelete: string) => {
-    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const newHistory = history.filter((pwd: string) => pwd !== pwdToDelete);
-
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-    setHistoryPasswords(newHistory);
-  };
-
   const deleteFromTextHistory = (timestamp: number) => {
     const history = JSON.parse(localStorage.getItem(TEXT_HISTORY_KEY) || '[]');
     const newHistory = history.filter((item: { text: string; timestamp: number }) => item.timestamp !== timestamp);
@@ -156,9 +150,6 @@ function CloudPage() {
   };
 
   const loadHistory = () => {
-    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    setHistoryPasswords(history);
-
     const textHistory = JSON.parse(localStorage.getItem(TEXT_HISTORY_KEY) || '[]');
     setTextHistory(textHistory);
   };
@@ -253,7 +244,7 @@ function CloudPage() {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col pb-10">
+    <div className="h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col pb-10 select-none">
       <div className="header fixed top-0 left-0 w-full z-10">
         <div className="max-w-screen-xl mx-auto px-4 h-14 m-3">
           <div className="flex items-center justify-between space-x-2 bg-white/90 p-2 rounded-[6px]">
@@ -270,11 +261,7 @@ function CloudPage() {
         <div className="max-w-screen-xl mx-auto px-4 space-y-6">
           <Card
             title="发送内容"
-            extra={
-              <span className="text-gray-800 text-sm cursor-pointer hover:text-blue-500" onClick={() => setIsHistoryModalOpen(true)}>
-                历史数据
-              </span>
-            }
+            extra={<Button type="text" icon={<HistoryOutlined />} onClick={() => setIsHistoryModalOpen(true)} className="hover:bg-gray-100" />}
             className="w-full"
             styles={{
               body: { padding: '12px' },
@@ -286,6 +273,9 @@ function CloudPage() {
               <Button type="primary" onClick={handleSend}>
                 发送
               </Button>
+              <Button icon={<ClearOutlined />} onClick={handleClear}>
+                清空
+              </Button>
               <Button
                 icon={<CopyOutlined />}
                 onClick={() => {
@@ -295,18 +285,16 @@ function CloudPage() {
               >
                 复制内容
               </Button>
-              <Button icon={<ClearOutlined />} onClick={handleClear}>
-                清空
-              </Button>
               <Button icon={<FileTextOutlined />} onClick={handleJsonParse} disabled={!text}>
                 JSON解析
               </Button>
             </div>
           </Card>
 
-          {password && (
+          {showContentInfo && password && (
             <Card
               title="内容信息"
+              extra={<Button type="text" icon={<CloseOutlined />} onClick={() => setShowContentInfo(false)} className="hover:bg-gray-100" />}
               className="w-full"
               styles={{
                 body: { padding: '12px' },
@@ -314,7 +302,7 @@ function CloudPage() {
               }}
             >
               <div className="space-y-2">
-                <div className="flex items-center bg-gray-100 p-4 rounded-lg">
+                <div className="flex items-center bg-gray-100 p-2 rounded-lg">
                   <div className="flex-1 flex items-center space-x-2">
                     <span className="text-gray-500 w-[50px]">密码：</span>
                     <span className="text-lg font-medium text-gray-800">{password}</span>
@@ -324,7 +312,7 @@ function CloudPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center bg-gray-100 p-4 rounded-lg">
+                <div className="flex items-center bg-gray-100 p-2 rounded-lg">
                   <div className="flex-1 flex items-center space-x-2 flex-wrap">
                     <span className="text-gray-500 w-[50px]">链接：</span>
                     <span className="text-sm text-gray-600 truncate max-w-[200px]">{`${window.location.origin}/cloud?pwd=${password}`}</span>
@@ -352,43 +340,11 @@ function CloudPage() {
           >
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Input placeholder="请输入密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-10 w-[200px]" onPressEnter={handleQuery} />
+                <Input placeholder="查询密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-8 w-[100px]" onPressEnter={handleQuery} />
                 <Button type="primary" onClick={handleQuery}>
                   查询
                 </Button>
               </div>
-
-              {historyPasswords.length > 0 && (
-                <div className="mt-4">
-                  <div className="text-sm text-gray-500 mb-2">历史查询密码：</div>
-                  <div className="flex flex-wrap gap-2">
-                    {historyPasswords.map((pwd, index) => (
-                      <div
-                        key={index}
-                        className="group relative flex items-center bg-white rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100"
-                      >
-                        <Button
-                          size="small"
-                          onClick={() => {
-                            setQueryPassword(pwd);
-                            queryPasswordRef.current = pwd;
-                          }}
-                          className="border-0 hover:bg-gray-50 px-2 py-1"
-                        >
-                          {pwd}
-                        </Button>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={() => deleteFromHistory(pwd)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-50 hover:text-red-500 px-2"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </Card>
         </div>
@@ -459,31 +415,19 @@ function CloudPage() {
         <div className="max-h-[70vh] overflow-y-auto">
           {jsonObject && (
             <div className="space-y-4">
-              {/* 美化显示区域 */}
-              <div>
-                <div className="text-sm text-gray-600 mb-2 font-medium">美化视图：</div>
-                <div className="border border-gray-200 rounded-lg p-4 bg-white">
-                  <JsonView
-                    value={jsonObject}
-                    displayDataTypes={false}
-                    enableClipboard={false}
-                    collapsed={false}
-                    shortenTextAfterLength={99999}
-                    displayObjectSize={false}
-                    style={{
-                      fontSize: '13px',
-                      fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <Divider />
-
-              {/* 源码显示区域 */}
-              <div>
-                <div className="text-sm text-gray-600 mb-2 font-medium">源码视图：</div>
-                <pre className="bg-gray-50 p-4 rounded-lg text-sm font-mono whitespace-pre-wrap break-words border border-gray-200">{formattedJson}</pre>
+              <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                <JsonView
+                  value={jsonObject}
+                  displayDataTypes={false}
+                  enableClipboard={false}
+                  collapsed={false}
+                  shortenTextAfterLength={99999}
+                  displayObjectSize={false}
+                  style={{
+                    fontSize: '13px',
+                    fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
+                  }}
+                />
               </div>
             </div>
           )}
