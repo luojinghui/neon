@@ -45,9 +45,7 @@ function CloudPage() {
 
     if (pwd) {
       setQueryPassword(pwd);
-      setTimeout(() => {
-        handleQuery();
-      }, 50);
+      handleQuery(pwd);
     }
   }, []);
 
@@ -69,33 +67,32 @@ function CloudPage() {
 
     if (data.state === 200) {
       setPassword(data.data.password);
-      setShowContentInfo(true); // Show content info when new content is sent
-      // Add to text history
+      setShowContentInfo(true);
       addToTextHistory(text);
     }
 
     message.success('发送成功，请及时分享密码');
   };
 
-  const handleQuery = async () => {
-    console.log('chat handleQuery', queryPassword);
+  const handleQuery = async (pwd?: string) => {
+    const password = pwd || queryPasswordRef.current;
+    console.log('chat handleQuery', password);
 
-    if (!queryPassword) {
+    if (!password) {
       message.error('请输入密码');
       return;
     }
 
-    const res = await fetch(`/api/cloud?password=${encodeURIComponent(queryPassword)}`, {
-      method: 'GET'
-    });
-
+    const res = await fetch(`/api/cloud?password=${encodeURIComponent(password)}`, { method: 'GET' });
     const data = await res.json();
+
     console.log('chat handleQuery', data);
 
     if (data.state === 200) {
       setText(data.data.text);
-      // Add to history
       addToHistory(queryPasswordRef.current);
+
+      message.success('查询成功');
     }
   };
 
@@ -261,15 +258,22 @@ function CloudPage() {
         <div className="max-w-screen-xl mx-auto px-4 space-y-6">
           <Card
             title="发送内容"
-            extra={<Button type="text" icon={<HistoryOutlined />} onClick={() => setIsHistoryModalOpen(true)} className="hover:bg-gray-100" />}
+            extra={
+              <div className="flex items-center space-x-2">
+                <Input placeholder="查询密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-8 w-[130px]" onPressEnter={() => handleQuery()} />
+                <Button type="primary" onClick={() => handleQuery()}>
+                  查询
+                </Button>
+              </div>
+            }
             className="w-full"
             styles={{
               body: { padding: '12px' },
               header: { padding: '8px 12px', minHeight: '40px' }
             }}
           >
-            <TextArea autoSize={{ minRows: 8, maxRows: 14 }} showCount className="w-full" allowClear onChange={handleChange} value={text} />
-            <div className="flex space-x-2 mt-4">
+            <TextArea autoSize={{ minRows: 14, maxRows: 24 }} showCount className="w-full" allowClear onChange={handleChange} value={text} />
+            <div className="flex flex-wrap gap-2 mt-4">
               <Button type="primary" onClick={handleSend}>
                 发送
               </Button>
@@ -288,6 +292,11 @@ function CloudPage() {
               <Button icon={<FileTextOutlined />} onClick={handleJsonParse} disabled={!text}>
                 JSON解析
               </Button>
+              {textHistory.length > 0 && (
+                <Button icon={<HistoryOutlined />} onClick={() => setIsHistoryModalOpen(true)}>
+                  历史记录
+                </Button>
+              )}
             </div>
           </Card>
 
@@ -329,24 +338,6 @@ function CloudPage() {
               </div>
             </Card>
           )}
-
-          <Card
-            title="查询内容"
-            className="w-full"
-            styles={{
-              body: { padding: '12px' },
-              header: { padding: '8px 12px', minHeight: '40px' }
-            }}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Input placeholder="查询密码" maxLength={4} onChange={handleQueryChange} value={queryPassword} className="h-8 w-[100px]" onPressEnter={handleQuery} />
-                <Button type="primary" onClick={handleQuery}>
-                  查询
-                </Button>
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
 
