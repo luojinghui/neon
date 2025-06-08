@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
-import '@/styles/index.css';
 import { cn } from '@/utils/cn';
 import { Suspense } from 'react';
 import { ThemeProvider } from '@/store/ThemeContext';
 import ClientThemeWrapper from '../components/theme/theme-wrapper';
+import '@/styles/theme.css';
+import '@/styles/index.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
