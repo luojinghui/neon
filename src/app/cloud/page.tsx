@@ -3,7 +3,7 @@
 import '@/styles/index.css';
 import { LeftOutlined, CopyOutlined, LinkOutlined, QrcodeOutlined, DeleteOutlined, ClearOutlined, FileTextOutlined, CloseOutlined, HistoryOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { Button, Input, Card, QRCode, Modal, App, Switch, Space, Divider } from 'antd';
+import { Button, Input, Card, QRCode, Modal, App, Switch, Space } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import JsonView from '@uiw/react-json-view';
 
@@ -165,6 +165,9 @@ function CloudPage() {
     setText('');
     setQueryPassword('');
     queryPasswordRef.current = '';
+    setPassword('');
+    setShowContentInfo(false);
+
     message.success('内容已清空');
   };
 
@@ -410,7 +413,7 @@ function CloudPage() {
                 <JsonView
                   value={jsonObject}
                   displayDataTypes={false}
-                  enableClipboard={false}
+                  enableClipboard={true}
                   collapsed={false}
                   shortenTextAfterLength={99999}
                   displayObjectSize={false}
