@@ -32,7 +32,6 @@ jobs:
           user: ${{ secrets.SSH_USERNAME }}
           pass: ${{ secrets.SSH_PWD }}
           connect_timeout: 30s
-          debug: true
           first_ssh: |-
             pwd
             ls -la
