@@ -23,7 +23,7 @@ jobs:
           node-version: '20'
 
       - name: DEPLOY DEV
-        uses: cross-the-world/ssh-scp-ssh-pipelines@latest
+        uses: cross-the-world/ssh-scp-ssh-pipelines@v1.1.5
         env:
           WELCOME: 'Start Deploy'
           LASTSSH: 'Done Deploy'
