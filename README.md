@@ -11,3 +11,7 @@ $ pnpm start
 ```bash
 $ pnpm build
 ```
+
+## 安全
+
+- 修复漏洞

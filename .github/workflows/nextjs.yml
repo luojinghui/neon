@@ -9,7 +9,6 @@ on:
       - LICENSE
 env:
   TARGET_DEV_DIR: /home/soul_v2/developer/soul-v2/
-  TARGET_PRD_DIR: /home/soul_v2/production/soul-v2/
 
 jobs:
   deploy:
