@@ -7,6 +7,9 @@ const config = {
   prefix: '',
   theme: {
     extend: {
+      colors: {
+        primary: 'rgb(var(--primary-color))'
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

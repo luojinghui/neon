@@ -18,7 +18,8 @@ export const ThemeSwitcher = () => {
     { name: '绿色', value: 'green', bgClass: 'bg-green-500' },
     { name: '紫色', value: 'purple', bgClass: 'bg-purple-500' },
     { name: '红色', value: 'red', bgClass: 'bg-red-500' },
-    { name: '琥珀', value: 'amber', bgClass: 'bg-amber-500' }
+    { name: '琥珀', value: 'amber', bgClass: 'bg-amber-500' },
+    { name: '耀黑', value: 'black', bgClass: 'bg-gray-900' }
   ];
 
   // Close the dropdown when clicking outside
@@ -71,7 +72,7 @@ export const ThemeSwitcher = () => {
             <div className="flex">
               <button
                 className={`px-3 py-1 rounded-l-lg ${
-                  themeMode === 'light' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  themeMode === 'light' ? 'bg-primary text-white dark:bg-primary dark:text-white' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                 }`}
                 onClick={() => setThemeMode('light')}
               >
@@ -79,7 +80,7 @@ export const ThemeSwitcher = () => {
               </button>
               <button
                 className={`px-3 py-1 rounded-r-lg ${
-                  themeMode === 'dark' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  themeMode === 'dark' ? 'bg-primary text-white dark:bg-primary dark:text-white' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                 }`}
                 onClick={() => setThemeMode('dark')}
               >

@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@uiw/react-json-view": "2.0.0-alpha.32",
+    "@uiw/react-json-view": "2.0.0-alpha.39",
     "next": "15.1.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",

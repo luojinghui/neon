@@ -28,7 +28,7 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-20">
         <h1 className="mb-20 text-center text-5xl font-bold">
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-[rgb(var(--gradient-from))] to-[rgb(var(--gradient-to))] animate-gradient-x">Soul星球</span>
+          <span className="bg-clip-text bg-gradient-to-r text-primary animate-gradient-x cursor-default">Soul星球</span>
         </h1>
 
         <div className="flex flex-wrap justify-center gap-6">
