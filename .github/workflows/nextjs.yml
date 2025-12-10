@@ -8,7 +8,7 @@ on:
       - README.md
       - LICENSE
 env:
-  TARGET_DEV_DIR: /home/soul_v2/developer/soul-v2/
+  TARGET_DEV_DIR: /home/server/neon/
 
 jobs:
   deploy:
