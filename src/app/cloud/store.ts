@@ -33,6 +33,7 @@ interface CloudStore {
   isHistoryModalOpen: boolean;
   isJsonModalOpen: boolean;
   showContentInfo: boolean;
+  isVersionModalOpen: boolean;
 
   // ===== 历史记录 =====
   textHistory: Array<{ text: string; timestamp: number }>;
@@ -63,6 +64,7 @@ interface CloudStore {
   setIsHistoryModalOpen: (open: boolean) => void;
   setIsJsonModalOpen: (open: boolean) => void;
   setShowContentInfo: (show: boolean) => void;
+  setIsVersionModalOpen: (open: boolean) => void;
   setTextHistory: (history: Array<{ text: string; timestamp: number }>) => void;
   setJsonObject: (obj: any) => void;
   setQueryFiles: (files: CloudFileInfo[]) => void;
@@ -83,6 +85,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   isHistoryModalOpen: false,
   isJsonModalOpen: false,
   showContentInfo: true,
+  isVersionModalOpen: false,
   textHistory: [],
   jsonObject: null,
   queryFiles: [],
@@ -103,6 +106,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   setIsHistoryModalOpen: (open) => set({ isHistoryModalOpen: open }),
   setIsJsonModalOpen: (open) => set({ isJsonModalOpen: open }),
   setShowContentInfo: (show) => set({ showContentInfo: show }),
+  setIsVersionModalOpen: (open) => set({ isVersionModalOpen: open }),
   setTextHistory: (history) => set({ textHistory: history }),
   setJsonObject: (obj) => set({ jsonObject: obj }),
   setQueryFiles: (queryFiles) => set({ queryFiles }),
