@@ -3,7 +3,7 @@
  * 使用 Zustand 管理所有 UI 响应式状态
  *
  * Created at     : 2025-12-07 22:37:37
- * Last modified  : 2026-03-17 16:38:15
+ * Last modified  : 2026-03-17 18:02:50
  */
 
 import { create } from 'zustand';
@@ -43,6 +43,10 @@ interface CloudStore {
   // ===== 查询结果文件 =====
   queryFiles: CloudFileInfo[];
 
+  // ===== 上传状态 =====
+  isSending: boolean;
+  uploadProgress: number;
+
   // ===== 分享相关 =====
   shareLink: string;
 
@@ -63,6 +67,8 @@ interface CloudStore {
   setJsonObject: (obj: any) => void;
   setQueryFiles: (files: CloudFileInfo[]) => void;
   setShareLink: (link: string) => void;
+  setIsSending: (sending: boolean) => void;
+  setUploadProgress: (progress: number) => void;
   reset: () => void;
 }
 
@@ -80,6 +86,8 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   textHistory: [],
   jsonObject: null,
   queryFiles: [],
+  isSending: false,
+  uploadProgress: 0,
   shareLink: '',
 
   // ===== Actions =====
@@ -99,6 +107,8 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   setJsonObject: (obj) => set({ jsonObject: obj }),
   setQueryFiles: (queryFiles) => set({ queryFiles }),
   setShareLink: (link) => set({ shareLink: link }),
+  setIsSending: (sending) => set({ isSending: sending }),
+  setUploadProgress: (progress) => set({ uploadProgress: progress }),
   reset: () =>
     set({
       text: '',

@@ -15,7 +15,7 @@ export class CloudAPI {
     return await res.json();
   }
 
-  static async sendWithFiles(text: string, files: File[], relativePaths: string[]) {
+  static async sendWithFiles(text: string, files: File[], relativePaths: string[], onProgress?: (percent: number) => void) {
     const formData = new FormData();
     formData.append('text', text);
     files.forEach((file, i) => {
@@ -23,11 +23,27 @@ export class CloudAPI {
       formData.append('relativePaths', relativePaths[i] || file.name);
     });
 
-    const res = await fetch('/api/cloud', {
-      method: 'POST',
-      body: formData
+    return new Promise<any>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/cloud');
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress?.(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+
+      xhr.onload = () => {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error('Invalid response'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
     });
-    return await res.json();
   }
 
   static async queryMessage(password: string) {

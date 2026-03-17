@@ -92,7 +92,8 @@ export class NeonCloud {
    * 发送消息（纯文本走 JSON，有文件走 FormData）
    */
   public async sendMessage(): Promise<void> {
-    const files = useCloudStore.getState().files;
+    const store = useCloudStore.getState();
+    const files = store.files;
     const hasText = !!this._text.trim();
     const hasFiles = files.length > 0;
 
@@ -101,16 +102,23 @@ export class NeonCloud {
       return;
     }
 
+    store.setIsSending(true);
+    store.setUploadProgress(0);
+
     try {
       let data;
 
       if (hasFiles) {
         const rawFiles = files.map((f) => f.file);
         const relativePaths = files.map((f) => f.relativePath || f.name);
-        data = await CloudAPI.sendWithFiles(this._text, rawFiles, relativePaths);
+        data = await CloudAPI.sendWithFiles(this._text, rawFiles, relativePaths, (percent) => {
+          useCloudStore.getState().setUploadProgress(percent);
+        });
       } else {
         data = await CloudAPI.sendMessage(this._text);
       }
+
+      useCloudStore.getState().setUploadProgress(100);
 
       if (data.state === 200) {
         this.setPassword(data.data.password);
@@ -126,6 +134,9 @@ export class NeonCloud {
     } catch (error) {
       console.error('发送消息失败:', error);
       this._message?.error('发送失败，请重试');
+    } finally {
+      useCloudStore.getState().setIsSending(false);
+      useCloudStore.getState().setUploadProgress(0);
     }
   }
 

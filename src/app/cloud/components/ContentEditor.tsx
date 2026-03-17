@@ -2,12 +2,12 @@
  * 内容编辑器组件
  *
  * Created at     : 2025-12-07 23:00:00
- * Last modified  : 2026-03-17 16:34:54
+ * Last modified  : 2026-03-17 18:08:14
  */
 
 import { useRef } from 'react';
 import { Card, Button, Input } from 'antd';
-import { ClearOutlined, CopyOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, DeleteOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { ClearOutlined, CopyOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, DeleteOutlined, PaperClipOutlined, SendOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useCloudStore, FileItem } from '../store';
 import { neonCloud } from '../core';
 
@@ -42,13 +42,18 @@ function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: strin
 export default function ContentEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { text, queryPassword, textHistory, files, isDragging } = useCloudStore((state) => ({
+  const { text, queryPassword, textHistory, files, isDragging, isSending, uploadProgress } = useCloudStore((state) => ({
     text: state.text,
     queryPassword: state.queryPassword,
     textHistory: state.textHistory,
     files: state.files,
-    isDragging: state.isDragging
+    isDragging: state.isDragging,
+    isSending: state.isSending,
+    uploadProgress: state.uploadProgress
   }));
+
+  const hasFiles = files.length > 0;
+  const showProgress = isSending && hasFiles;
 
   return (
     <Card
@@ -111,9 +116,28 @@ export default function ContentEditor() {
 
       {/* 操作按钮 */}
       <div className="flex flex-wrap gap-2 mt-4">
-        <Button type="primary" onClick={() => neonCloud.sendMessage()}>
-          发送
-        </Button>
+        <button
+          onClick={() => neonCloud.sendMessage()}
+          disabled={isSending}
+          className={`relative h-8 px-4 rounded-md text-sm font-medium text-white overflow-hidden transition-all disabled:cursor-not-allowed ${
+            showProgress ? 'bg-border' : 'bg-primary hover:bg-primary-hover'
+          }`}
+        >
+          {showProgress && <span className="absolute inset-y-0 left-0 bg-primary transition-[width] duration-300 ease-out rounded-md" style={{ width: `${uploadProgress}%` }} />}
+          <span className="relative z-10 flex items-center gap-1.5">
+            {isSending ? (
+              <>
+                <LoadingOutlined className="text-xs" />
+                {showProgress ? `${uploadProgress}%` : '发送中'}
+              </>
+            ) : (
+              <>
+                <SendOutlined className="text-xs" />
+                发送{hasFiles ? ` (${files.length} 文件)` : ''}
+              </>
+            )}
+          </span>
+        </button>
         <Button icon={<ClearOutlined />} onClick={() => neonCloud.clear()}>
           清空
         </Button>
