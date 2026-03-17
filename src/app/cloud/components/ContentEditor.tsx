@@ -2,12 +2,22 @@
  * 内容编辑器组件
  *
  * Created at     : 2025-12-07 23:00:00
- * Last modified  : 2026-03-17 18:08:14
+ * Last modified  : 2026-03-17 18:25:32
  */
 
 import { useRef } from 'react';
 import { Card, Button, Input } from 'antd';
-import { ClearOutlined, CopyOutlined, FileTextOutlined, HistoryOutlined, InboxOutlined, DeleteOutlined, PaperClipOutlined, SendOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  ClearOutlined,
+  CopyOutlined,
+  FileTextOutlined,
+  HistoryOutlined,
+  InboxOutlined,
+  DeleteOutlined,
+  PaperClipOutlined,
+  RocketOutlined,
+  LoadingOutlined
+} from '@ant-design/icons';
 import { useCloudStore, FileItem } from '../store';
 import { neonCloud } from '../core';
 
@@ -119,23 +129,12 @@ export default function ContentEditor() {
         <button
           onClick={() => neonCloud.sendMessage()}
           disabled={isSending}
-          className={`relative h-8 px-4 rounded-md text-sm font-medium text-white overflow-hidden transition-all disabled:cursor-not-allowed ${
-            showProgress ? 'bg-border' : 'bg-primary hover:bg-primary-hover'
-          }`}
+          className="send-btn relative h-8 px-5 rounded-lg text-sm font-medium text-white overflow-hidden bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed"
+          style={showProgress ? { background: `linear-gradient(90deg, hsl(var(--primary)) ${uploadProgress}%, hsl(var(--border)) ${uploadProgress}%)` } : undefined}
         >
-          {showProgress && <span className="absolute inset-y-0 left-0 bg-primary transition-[width] duration-300 ease-out rounded-md" style={{ width: `${uploadProgress}%` }} />}
           <span className="relative z-10 flex items-center gap-1.5">
-            {isSending ? (
-              <>
-                <LoadingOutlined className="text-xs" />
-                {showProgress ? `${uploadProgress}%` : '发送中'}
-              </>
-            ) : (
-              <>
-                <SendOutlined className="text-xs" />
-                发送{hasFiles ? ` (${files.length} 文件)` : ''}
-              </>
-            )}
+            {isSending ? <LoadingOutlined className="text-xs" /> : <RocketOutlined className="send-icon text-xs" />}
+            {isSending ? showProgress ? `${uploadProgress}%` : '发送中...' : <>发送{hasFiles ? ` (${files.length})` : ''}</>}
           </span>
         </button>
         <Button icon={<ClearOutlined />} onClick={() => neonCloud.clear()}>
