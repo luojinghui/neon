@@ -12,6 +12,18 @@ const Schema = mongoose.Schema;
  * 6. 消息过期时间，最长1天
  * 7. 消息创建时间
  */
+const fileInfoSchema = new Schema(
+  {
+    fileId: { type: String, required: true },
+    fileName: { type: String, required: true },
+    fileSize: { type: Number, required: true },
+    mimeType: { type: String, default: 'application/octet-stream' },
+    relativePath: { type: String, default: '' },
+    storagePath: { type: String, required: true }
+  },
+  { _id: false }
+);
+
 const cloudSchema = new Schema({
   messageId: {
     type: String,
@@ -20,12 +32,16 @@ const cloudSchema = new Schema({
   },
   messageType: {
     type: String,
-    enum: ['text', 'file', 'image'],
+    enum: ['text', 'file', 'mixed'],
     required: true
   },
   content: {
     type: String,
-    required: true
+    default: ''
+  },
+  files: {
+    type: [fileInfoSchema],
+    default: []
   },
   userId: {
     type: Schema.Types.ObjectId,
@@ -42,7 +58,6 @@ const cloudSchema = new Schema({
     required: true,
     validate: {
       validator: function (v) {
-        // 确保过期时间不超过1天
         const oneDay = 24 * 60 * 60 * 1000;
         return v - this.createdAt <= oneDay;
       },
@@ -64,7 +79,11 @@ cloudSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 // 由于messageId字段被频繁查询且已设置为unique，索引可以加速查询操作
 cloudSchema.index({ messageId: 1 });
 
-// 防止模型重复定义
-const CloudMessage = mongoose.models.CloudMessage || mongoose.model('CloudMessage', cloudSchema);
+if (mongoose.models.CloudMessage) {
+  delete mongoose.models.CloudMessage;
+
+  if (mongoose.modelSchemas) delete mongoose.modelSchemas.CloudMessage;
+}
+const CloudMessage = mongoose.model('CloudMessage', cloudSchema);
 
 module.exports = { CloudMessage };

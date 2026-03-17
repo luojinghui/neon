@@ -1,14 +1,11 @@
 'use client';
 
-import '@ant-design/v5-patch-for-react-19';
 import '@/styles/index.css';
 import { Footer } from '@/components/footer';
 import { Card } from '@/components/card';
-import { ThemeSwitcher } from '@/components/theme';
-import { useTheme } from '@/store/ThemeContext';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 export default function Home() {
-  const { themeMode } = useTheme();
   const cards = [
     {
       title: '云传',
@@ -23,12 +20,14 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-[rgb(var(--background))] transition-colors duration-300">
-      <ThemeSwitcher />
+    <div className="min-h-screen w-full bg-background">
+      <div className="fixed top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
 
       <div className="container mx-auto px-4 py-20">
         <h1 className="mb-20 text-center text-5xl font-bold">
-          <span className="bg-clip-text bg-gradient-to-r text-primary animate-gradient-x cursor-default">Soul星球</span>
+          <span className="bg-clip-text text-primary animate-gradient-x cursor-default">Soul星球</span>
         </h1>
 
         <div className="flex flex-wrap justify-center gap-6">

@@ -1,10 +1,12 @@
+export interface CloudFileInfo {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  relativePath: string;
+}
+
 export class CloudAPI {
-  /**
-   * 发送消息
-   *
-   * @param { string } text - 消息内容
-   * @returns { Promise<any> } - 发送消息结果
-   */
   static async sendMessage(text: string) {
     const res = await fetch('/api/cloud', {
       method: 'POST',
@@ -13,14 +15,27 @@ export class CloudAPI {
     return await res.json();
   }
 
-  /**
-   * 查询消息
-   *
-   * @param { string } password - 查询密码
-   * @returns { Promise<any> } - 查询消息结果
-   */
+  static async sendWithFiles(text: string, files: File[], relativePaths: string[]) {
+    const formData = new FormData();
+    formData.append('text', text);
+    files.forEach((file, i) => {
+      formData.append('files', file);
+      formData.append('relativePaths', relativePaths[i] || file.name);
+    });
+
+    const res = await fetch('/api/cloud', {
+      method: 'POST',
+      body: formData
+    });
+    return await res.json();
+  }
+
   static async queryMessage(password: string) {
     const res = await fetch(`/api/cloud?password=${encodeURIComponent(password)}`, { method: 'GET' });
     return await res.json();
+  }
+
+  static getFileDownloadUrl(fileId: string) {
+    return `/api/cloud/file/${fileId}`;
   }
 }

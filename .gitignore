@@ -40,4 +40,6 @@ config.js
 /public/uploads/*
 /public/upload
 /public/upload/*
+/upload
+/upload/*
 /static/

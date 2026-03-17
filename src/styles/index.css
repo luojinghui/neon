@@ -2,6 +2,164 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --radius: 10px;
+
+    /* ─── Primary: 柔和橘色，温暖活泼 ─── */
+    --primary: 24 85% 58%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 24 85% 50%;
+    --primary-soft: 28 80% 94%;
+
+    /* ─── Accent: 珊瑚粉，卡通灵动 ─── */
+    --accent: 12 75% 62%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 12 60% 93%;
+
+    /* ─── Background: 暖奶白 ─── */
+    --background: 36 30% 98%;
+    --background-secondary: 33 22% 95%;
+    --background-tertiary: 30 18% 92%;
+
+    /* ─── Foreground: 暖棕灰文字 ─── */
+    --foreground: 24 20% 18%;
+    --foreground-secondary: 24 12% 42%;
+    --foreground-muted: 24 8% 58%;
+
+    /* ─── Surface: 奶油白卡片 ─── */
+    --surface: 36 30% 100%;
+    --surface-hover: 33 20% 97%;
+    --surface-active: 30 16% 94%;
+
+    /* ─── Border: 暖灰调 ─── */
+    --border: 30 14% 88%;
+    --border-hover: 28 18% 78%;
+    --border-focus: 24 80% 58%;
+
+    /* ─── Ring (focus outline) ─── */
+    --ring: 24 80% 58%;
+
+    /* ─── Semantic: 柔和状态色 ─── */
+    --success: 152 50% 42%;
+    --success-soft: 152 35% 92%;
+    --warning: 42 85% 52%;
+    --warning-soft: 42 65% 93%;
+    --danger: 4 65% 56%;
+    --danger-soft: 4 45% 94%;
+    --info: 200 65% 50%;
+    --info-soft: 200 45% 93%;
+
+    /* ─── Chat: 聊天气泡 ─── */
+    --chat-bubble-self: 24 75% 55%;
+    --chat-bubble-self-foreground: 0 0% 100%;
+    --chat-bubble-other: 33 18% 93%;
+    --chat-bubble-other-foreground: 24 20% 18%;
+
+    /* ─── Overlay ─── */
+    --overlay: 24 20% 14% / 0.35;
+
+    /* ─── Shadow ─── */
+    --shadow-color: 24 15% 20%;
+    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.04);
+    --shadow-md: 0 4px 12px hsl(var(--shadow-color) / 0.06);
+    --shadow-lg: 0 8px 24px hsl(var(--shadow-color) / 0.08);
+    --shadow-xl: 0 16px 48px hsl(var(--shadow-color) / 0.1);
+
+    /* ─── Sidebar ─── */
+    --sidebar: 33 22% 96%;
+    --sidebar-foreground: 24 20% 18%;
+    --sidebar-border: 30 14% 90%;
+    --sidebar-active: 24 80% 55%;
+
+    /* ─── Input ─── */
+    --input: 33 16% 93%;
+    --input-foreground: 24 20% 18%;
+    --input-placeholder: 24 8% 58%;
+    --input-focus: 36 30% 100%;
+  }
+
+  .dark {
+    /* ─── Primary: 明亮橘色，暗色中温暖点亮 ─── */
+    --primary: 24 80% 62%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 24 80% 70%;
+    --primary-soft: 24 40% 20%;
+
+    /* ─── Accent: 柔珊瑚 ─── */
+    --accent: 12 65% 65%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 12 30% 20%;
+
+    /* ─── Background: 暖深棕灰，柔和不刺眼 ─── */
+    --background: 24 14% 10%;
+    --background-secondary: 24 12% 13%;
+    --background-tertiary: 24 10% 16%;
+
+    /* ─── Foreground: 暖白文字 ─── */
+    --foreground: 30 10% 92%;
+    --foreground-secondary: 28 8% 68%;
+    --foreground-muted: 26 6% 48%;
+
+    /* ─── Surface: 卡片/面板 ─── */
+    --surface: 24 12% 14%;
+    --surface-hover: 24 10% 18%;
+    --surface-active: 24 8% 22%;
+
+    /* ─── Border ─── */
+    --border: 24 10% 22%;
+    --border-hover: 24 12% 30%;
+    --border-focus: 24 75% 58%;
+
+    /* ─── Ring ─── */
+    --ring: 24 75% 58%;
+
+    /* ─── Semantic ─── */
+    --success: 152 45% 50%;
+    --success-soft: 152 25% 16%;
+    --warning: 42 75% 58%;
+    --warning-soft: 42 35% 16%;
+    --danger: 4 60% 60%;
+    --danger-soft: 4 30% 16%;
+    --info: 200 60% 58%;
+    --info-soft: 200 35% 16%;
+
+    /* ─── Chat ─── */
+    --chat-bubble-self: 24 65% 45%;
+    --chat-bubble-self-foreground: 0 0% 100%;
+    --chat-bubble-other: 24 10% 20%;
+    --chat-bubble-other-foreground: 30 10% 90%;
+
+    /* ─── Overlay ─── */
+    --overlay: 0 0% 0% / 0.55;
+
+    /* ─── Shadow ─── */
+    --shadow-color: 0 0% 0%;
+    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.15);
+    --shadow-md: 0 4px 12px hsl(var(--shadow-color) / 0.2);
+    --shadow-lg: 0 8px 24px hsl(var(--shadow-color) / 0.25);
+    --shadow-xl: 0 16px 48px hsl(var(--shadow-color) / 0.3);
+
+    /* ─── Sidebar ─── */
+    --sidebar: 24 12% 12%;
+    --sidebar-foreground: 30 10% 90%;
+    --sidebar-border: 24 10% 20%;
+    --sidebar-active: 24 75% 60%;
+
+    /* ─── Input ─── */
+    --input: 24 10% 18%;
+    --input-foreground: 30 10% 92%;
+    --input-placeholder: 26 6% 48%;
+    --input-focus: 24 12% 22%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
 @keyframes gradient-x {
   0% {
     background-position: 0% 50%;
@@ -17,20 +175,4 @@
 .animate-gradient-x {
   background-size: 200% auto;
   animation: gradient-x 15s ease infinite;
-}
-
-@layer base {
-  body {
-    @apply bg-[rgb(var(--background))];
-    @apply text-[rgb(var(--foreground))];
-    @apply transition-colors duration-300;
-  }
-
-  html {
-    @apply transition-colors duration-300;
-  }
-
-  html.dark {
-    color-scheme: dark;
-  }
 }
