@@ -1,11 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
 import { cn } from '@/utils/cn';
 import { Suspense } from 'react';
 import ClientThemeWrapper from '../components/theme/theme-wrapper';
 import '@/styles/index.css';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'Soul',
@@ -27,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn('font-sans antialiased bg-background text-foreground', inter.variable)}>
+      <body className={cn('font-sans antialiased bg-background text-foreground')}>
         <Suspense fallback={null}>
           <ClientThemeWrapper>{children}</ClientThemeWrapper>
         </Suspense>
