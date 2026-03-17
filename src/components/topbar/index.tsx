@@ -25,11 +25,18 @@ export function TopBar({ middle, right, fallbackHref = '/', className }: TopBarP
 
   const handleBack = () => {
     if (typeof window === 'undefined') return;
-    if (window.history.length > 1) {
+    // 判断是否可以回退：
+    // 1. history.length > 2: 说明有多次跳转历史
+    // 2. document.referrer 存在且是站内页面：刷新后也能正常返回
+    const referrerUrl = new URL(document.referrer, window.location.origin);
+    const isInternalReferrer = referrerUrl.origin === window.location.origin && referrerUrl.pathname !== '/';
+    const hasHistory = window.history.length > 2;
+    
+    if (hasHistory || isInternalReferrer) {
       router.back();
-      return;
+    } else {
+      router.push(fallbackHref);
     }
-    router.push(fallbackHref);
   };
 
   return (
