@@ -48,6 +48,7 @@ jobs:
             export NVM_DIR=~/.nvm
             source ~/.nvm/nvm.sh
             pnpm install
+            rm -rf .next
             pnpm build
             pm2 start npm -- run start:prd
             echo $LASTSSH
