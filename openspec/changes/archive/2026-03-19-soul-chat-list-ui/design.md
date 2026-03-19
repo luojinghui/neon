@@ -30,7 +30,7 @@
   - 备选：使用首页 `container mx-auto px-4 py-20`。未选原因：需要额外处理 TopBar 固定高度与滚动区域。
 
 - **卡片样式优先使用 Tailwind token（不直接用 antd Card）**
-  - 选择：参考现有 `src/components/card/index.tsx` 的风格（`bg-surface`/`border-border`/hover 抬升/阴影）。
+  - 选择：参考现有 `src/components/card/index.tsx` 的风格（`bg-surface`/`border-border`/hover 抬升/阴影），不能出现边框和背景闪烁问题。
   - 理由：与现有 token 体系一致，暗色主题下表现更可控；避免 antd Card 在视觉上“像另一套 UI”。
   - 备选：antd `Card` + `Skeleton`/`Empty`。未选原因：需要额外样式覆盖以对齐 token。
 

@@ -5,7 +5,7 @@
  * Last modified  : 2026-03-17 18:25:32
  */
 
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { Card, Button, Input } from 'antd';
 import {
   ClearOutlined,
@@ -52,18 +52,35 @@ function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: strin
 export default function ContentEditor() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { text, queryPassword, textHistory, files, isDragging, isSending, uploadProgress } = useCloudStore((state) => ({
+  const { text, password, queryPassword, textHistory, files, isDragging, isSending, uploadProgress, showContentInfo } = useCloudStore((state) => ({
     text: state.text,
+    password: state.password,
     queryPassword: state.queryPassword,
     textHistory: state.textHistory,
     files: state.files,
     isDragging: state.isDragging,
     isSending: state.isSending,
-    uploadProgress: state.uploadProgress
+    uploadProgress: state.uploadProgress,
+    showContentInfo: state.showContentInfo
   }));
 
   const hasFiles = files.length > 0;
   const showProgress = isSending && hasFiles;
+  const trimmedText = text.trim();
+  const hasText = trimmedText.length > 0;
+  const hasInputContent = hasText || hasFiles;
+  const isContentInfoVisible = showContentInfo && !!password;
+  const showClearButton = hasInputContent || isContentInfoVisible;
+  const canShowJsonParseButton = useMemo(() => {
+    if (!hasText) return false;
+
+    try {
+      JSON.parse(trimmedText);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [hasText, trimmedText]);
 
   return (
     <Card
@@ -137,15 +154,21 @@ export default function ContentEditor() {
             {isSending ? showProgress ? `${uploadProgress}%` : '发送中...' : <>发送{hasFiles ? ` (${files.length})` : ''}</>}
           </span>
         </button>
-        <Button icon={<ClearOutlined />} onClick={() => neonCloud.clear()}>
-          清空
-        </Button>
-        <Button icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyText()} disabled={!text}>
-          复制内容
-        </Button>
-        <Button icon={<FileTextOutlined />} onClick={() => neonCloud.parseJson()} disabled={!text}>
-          JSON解析
-        </Button>
+        {showClearButton && (
+          <Button icon={<ClearOutlined />} onClick={() => neonCloud.clear()}>
+            清空
+          </Button>
+        )}
+        {hasText && (
+          <Button icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyText()}>
+            复制内容
+          </Button>
+        )}
+        {canShowJsonParseButton && (
+          <Button icon={<FileTextOutlined />} onClick={() => neonCloud.parseJson()}>
+            JSON解析
+          </Button>
+        )}
         <Button icon={<PaperClipOutlined />} onClick={() => fileInputRef.current?.click()}>
           选择文件
         </Button>

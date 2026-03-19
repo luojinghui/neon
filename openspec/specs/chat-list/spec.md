@@ -1,144 +1,116 @@
-## Spec: Chat List（星球页聊天室列表 / UI Only）
+## ADDED Requirements
 
-### 背景与目标
+### Requirement: Soul chat list page is accessible
 
-在 `星球` 页面（`/soul`）先实现一个**聊天室列表**页面，用于展示所有**在线聊天室**。当前阶段**不实现任何后台/实时逻辑**，只落地 UI 与交互骨架，便于后续接入 Socket.IO（或其他数据源）时直接替换数据层。
+The system SHALL render a chat room list UI at route `/soul` as a client page.
 
-### 范围（In scope）
+#### Scenario: User opens Soul page
 
-- **页面**：`/soul` 展示聊天室列表。
-- **布局**：聊天室采用**宫格（grid）**布局，自适应不同屏幕。
-- **状态**：提供 UI 层面的加载态、空态、错误态占位。
-- **交互**：点击聊天室卡片的基础交互（当前可先提示/跳转占位，不依赖后端）。
+- **WHEN** the user navigates to `/soul`
+- **THEN** the page renders a chat room list view (not placeholder content)
 
-### 非目标（Out of scope）
+### Requirement: Page uses standard top bar
 
-- 不接入真实在线列表数据（Socket.IO/HTTP 等）。
-- 不实现创建/加入/退出聊天室的真实流程。
-- 不实现聊天室详情页、消息列表与发送能力（可作为后续 spec/change）。
-- 不处理权限、鉴权、成员头像等复杂业务字段。
+The page SHALL use the shared `TopBar` component and provide a visible title.
 
-### 术语
+#### Scenario: Top bar renders with title
 
-- **聊天室（Chat Room）**：列表中的一个卡片项，表示一个可加入/可浏览的在线房间。
-- **在线（Online）**：当前仅表现为 UI 的标签/状态，不做实时联动。
+- **WHEN** the chat list page renders
+- **THEN** the user sees a top bar with a centered title for the page
 
----
+### Requirement: Responsive grid layout
 
-## 用户体验（UX）
+The system SHALL render chat rooms in a responsive grid layout with the following column rules:
 
-### 信息架构
+- < `sm`: 1 column
+- `sm` and up: 2 columns
+- `lg` and up: 4 columns
+- `xl` and up: 6 columns
 
-- 顶部：页面标题，使用通用TopBar组件
-- 中部：宫格列表（房间卡片）
-- 底部（可选）：分页/“加载更多”（当前阶段仅占位，默认为不展示）
+#### Scenario: Grid adapts to breakpoints
 
-### 宫格布局规则
+- **WHEN** the viewport width crosses the defined Tailwind breakpoints
+- **THEN** the grid column count changes to match the rule set above
 
-- **断点列数**（建议使用 Tailwind 断点）：
-  - `sm` 以下：1 列
-  - `sm`：2 列
-  - `lg`：4 列
-  - `xl`：6 列
-- **卡片间距**：`gap-4`～`gap-6`（与现有页面风格一致，偏舒展）。
-- **容器宽度**：使用 `container mx-auto px-4`，保持与首页一致。
+### Requirement: Room card minimum content
 
-### 卡片内容（最小字段集）
+Each room card SHALL render at least the following fields:
 
-每个聊天室卡片展示：
+- name (primary title)
+- status badge showing `在线`
+- onlineCount (static mock number)
+- description (optional, truncated to 1–2 lines when present)
+- a primary action control (e.g. “进入”/“查看”)
 
-- **名称**：room name（主标题）
-- **在线状态**：`在线` badge（静态）
-- **人数**：onlineCount（静态模拟数值）
-- **简介**：description（1～2 行截断）
-- **操作入口**：一个主要按钮（例如“进入”/“查看”）
+#### Scenario: User sees room card content
 
-字段样例（UI mock 数据）：
+- **WHEN** the page renders at least one room card
+- **THEN** the card shows the minimum content fields defined above
 
-- name: `深空电台`
-- description: `今天聊聊近况与计划。`
-- onlineCount: `23`
-- status: `online`
+### Requirement: Loading state placeholder
 
-### 交互
+The system SHALL provide a loading state that shows skeleton room cards (recommended 8) and keeps the grid layout stable.
 
-- **点击卡片/按钮**：
-  - 当前阶段不接后端，可先执行其中一种占位行为：
-    - 方案 A：弹出提示（antd `message.info("TODO: join room")`）
-    - 方案 B：路由跳转到占位页（例如 `/soul/rooms/[id]`，后续再补）
-  - 选择哪种由实现时决定，但 spec 要求：**有明确反馈**，不“无响应”。
-- **悬停与按压反馈**：
-  - 桌面端 hover：卡片轻微抬升/阴影增强。
-  - 移动端 tap：保持按钮的按压态即可。
+#### Scenario: Loading state shows skeletons
 
-### 状态设计
+- **WHEN** the page is in loading state
+- **THEN** the user sees skeleton placeholders in a grid layout
 
-- **加载态（Loading）**：
-  - 用 Skeleton 卡片占位（建议 8 个），保持宫格布局不跳动。
-- **空态（Empty）**：
-  - 文案：`暂无在线聊天室`
-  - 辅助文案：`稍后再来看看，或创建一个新房间（后续支持）`
-  - 图标：可用 antd `Empty` 组件或简洁图标（不强制）
-- **错误态（Error）**：
-  - 文案：`加载失败`
-  - 操作：`重试` 按钮（当前阶段仅触发重新设置 mock 状态）
+### Requirement: Empty state placeholder
 
----
+The system SHALL provide an empty state with:
 
-## 视觉与组件规范
+- primary copy `暂无在线聊天室`
+- secondary copy indicating to check later (and that creating rooms is future work)
 
-### 设计风格
+#### Scenario: Empty state is rendered
 
-- 延续现有项目风格：Tailwind + antd 的现代简洁风格。
-- 支持主题（浅/深色）：
-  - 背景使用 `bg-background`
-  - 文字/边框使用现有 token（与 `ThemeToggle` 保持一致）
+- **WHEN** the page has no rooms to show
+- **THEN** the user sees the empty-state copy and no room cards
 
-### 组件建议（非强制，但用于指导实现拆分）
+### Requirement: Error state placeholder with retry
 
-- `ChatListPage`（页面容器）
-- `ChatRoomGrid`（grid 容器）
-- `ChatRoomCard`（卡片）
-- `ChatRoomCardSkeleton`（加载占位）
+The system SHALL provide an error state with:
 
-### 可访问性（A11y）
+- copy `加载失败`
+- a `重试` control that triggers a retry action at UI layer
 
-- 卡片内主操作按钮必须可聚焦（keyboard focus）。
-- 卡片标题使用语义化层级（例如 `h2`/`h3`），避免纯 `div` 堆叠。
-- 文案对比度在暗色主题下可读。
+#### Scenario: User retries after error
 
----
+- **WHEN** the page is in error state and the user clicks `重试`
+- **THEN** the page triggers a retry action that can transition the UI state out of error
 
-## 数据契约（UI Mock）
+### Requirement: Click interaction provides explicit feedback
 
-仅用于当前 UI 层：
+Clicking a room card or its primary action control SHALL provide explicit user feedback without requiring a backend.
 
-```ts
-type ChatRoom = {
-  id: string;
-  name: string;
-  description?: string;
-  onlineCount: number;
-  status: 'online';
-  topicTags?: string[];
-};
-```
+#### Scenario: User clicks a room card
 
-Mock 数据数量：建议 8～20 条，用于覆盖不同长度名称/简介、不同人数。
+- **WHEN** the user clicks on a room card
+- **THEN** the system shows an explicit feedback message (e.g. “TODO: join room”)
 
----
+#### Scenario: User clicks primary action button
 
-## 路由与文件位置（建议）
+- **WHEN** the user clicks the room card primary action control
+- **THEN** the system shows an explicit feedback message (e.g. “TODO: join room”)
 
-- 路由：`src/app/soul/page.tsx`（本阶段先直接实现列表）
-- 若后续拆分：可新增 `src/app/soul/components/*` 或 `src/app/soul/_components/*`（按仓库约定选择）
+### Requirement: Theme compatibility
 
----
+The page SHALL remain readable and visually coherent in both light and dark themes using existing design tokens (background/surface/border/foreground).
 
-## 验收标准（Acceptance Criteria）
+#### Scenario: User toggles theme
 
-- **页面可访问**：访问 `/soul` 能看到聊天室列表 UI（非 Hello World）。
-- **宫格布局**：在不同屏宽下列数随断点变化，间距统一。
-- **三态齐全**：至少具备加载态与空态（错误态可选但推荐）。
-- **可交互**：点击任一聊天室卡片或按钮有明确反馈（提示或跳转占位）。
-- **主题兼容**：在浅/深色主题下均可读、无明显样式破损。
+- **WHEN** the user switches between light and dark themes
+- **THEN** the page remains readable and no key UI elements appear broken (text, borders, backgrounds)
+
+### Requirement: Basic accessibility
+
+The page SHALL meet basic accessibility expectations:
+
+- the primary action control in each card is keyboard-focusable
+- room title is rendered with a semantic heading element (e.g. `h2`/`h3`)
+
+#### Scenario: Keyboard user can focus actions
+
+- **WHEN** a keyboard-only user tabs through the page
+- **THEN** the primary action controls receive visible focus and are operable

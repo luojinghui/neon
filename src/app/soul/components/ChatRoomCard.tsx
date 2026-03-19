@@ -21,8 +21,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction }: { room: ChatRoo
                  shadow-sm transition-all duration-300
                  hover:shadow-md hover:-translate-y-1
                  bg-surface backdrop-blur-sm
-                 hover:border-primary/50
-                 focus:outline-none focus:ring-2 focus:ring-ring/40"
+                 hover:border-primary/50"
       aria-label={`进入聊天室：${room.name}`}
     >
       <div className="flex items-start justify-between gap-2">

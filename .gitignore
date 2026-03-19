@@ -43,3 +43,5 @@ config.js
 /upload
 /upload/*
 /static/
+
+.cache/
