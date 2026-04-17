@@ -15,17 +15,13 @@ import JsonModal from './components/JsonModal';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
 import VersionModal from './components/VersionModal';
-import { CLOUD_VERSION } from './version';
-
-const VERSION_KEY = 'neon_cloud_version_acknowledged';
 
 function CloudPage() {
   const { message } = App.useApp();
 
-  const { showContentInfo, password, setIsVersionModalOpen } = useCloudStore((state) => ({
+  const { showContentInfo, password } = useCloudStore((state) => ({
     showContentInfo: state.showContentInfo,
-    password: state.password,
-    setIsVersionModalOpen: state.setIsVersionModalOpen
+    password: state.password
   }));
 
   const queryFilesCount = useCloudStore((state) => state.queryFiles.length);
@@ -37,18 +33,6 @@ function CloudPage() {
   useEffect(() => {
     neonCloud.init();
   }, []);
-
-  // 检查版本提示
-  useEffect(() => {
-    const acknowledgedVersion = localStorage.getItem(VERSION_KEY);
-    if (acknowledgedVersion !== CLOUD_VERSION) {
-      // 延迟一点显示，让页面先渲染完成
-      const timer = setTimeout(() => {
-        setIsVersionModalOpen(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [setIsVersionModalOpen]);
 
   return (
     <div className="h-screen w-full bg-background flex flex-col select-none">

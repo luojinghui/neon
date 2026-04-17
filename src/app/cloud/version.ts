@@ -4,10 +4,11 @@
  * 每次更新功能时递增版本号，会自动触发版本更新弹窗
  *
  * Created at     : 2026-03-17 19:55:00
- * Last modified  : 2026-03-17 19:55:00
+ * Last modified  : 2026-04-17 21:59:54
  */
 
-export const CLOUD_VERSION = '2026.03.17';
+export const CLOUD_VERSION = '2026.04.17';
+export const CLOUD_VERSION_DISMISSED_KEY = 'neon_cloud_version_dismissed';
 
 export const VERSION_UPDATES = [
   { icon: '📁', title: '文件拖拽上传', desc: '支持直接将文件拖拽到上传区域' },

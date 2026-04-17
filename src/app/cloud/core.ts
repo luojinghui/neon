@@ -10,6 +10,7 @@ import { CloudAPI } from '@/action';
 import { useCloudStore, FileItem } from './store';
 import { HISTORY_KEY, TEXT_HISTORY_KEY, MAX_HISTORY, MAX_TEXT_HISTORY } from '@/constants/cloud';
 import { MessageInstance } from 'antd/es/message/interface';
+import { CLOUD_VERSION, CLOUD_VERSION_DISMISSED_KEY } from './version';
 
 export class NeonCloud {
   // ===== 私有变量（内部缓存） =====
@@ -34,8 +35,32 @@ export class NeonCloud {
     // 加载历史记录
     this.loadTextHistory();
 
+    // 检查版本更新提示
+    this.checkVersionModal();
+
     // 从 URL 解析密码并自动查询
     return await this.handleUrlParams();
+  }
+
+  /**
+   * 检查是否需要展示版本更新弹窗
+   */
+  public checkVersionModal(): void {
+    const dismissedVersion = localStorage.getItem(CLOUD_VERSION_DISMISSED_KEY);
+    if (dismissedVersion === CLOUD_VERSION) return;
+
+    // 延迟显示，避免首屏渲染阶段突兀弹出
+    window.setTimeout(() => {
+      useCloudStore.getState().setIsVersionModalOpen(true);
+    }, 500);
+  }
+
+  /**
+   * 关闭版本更新弹窗并记录当前版本已处理
+   */
+  public dismissVersionModal(): void {
+    localStorage.setItem(CLOUD_VERSION_DISMISSED_KEY, CLOUD_VERSION);
+    useCloudStore.getState().setIsVersionModalOpen(false);
   }
 
   // ===== Text 管理（核心功能） =====

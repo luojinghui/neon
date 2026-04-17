@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next start",
+    "dev": "node ./src/server.js",
     "start": "node ./src/server.js",
     "start:prd": "NODE_ENV=production node ./src/server.js",
     "build": "next build",

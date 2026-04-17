@@ -2,32 +2,20 @@
  * 版本更新提示弹窗
  *
  * Created at     : 2026-03-17 19:10:00
- * Last modified  : 2026-03-17 19:10:00
+ * Last modified  : 2026-04-17 21:58:45
  */
 
 import { Modal, Button } from 'antd';
 import { useCloudStore } from '../store';
 import { neonCloud } from '../core';
-import { CLOUD_VERSION, VERSION_UPDATES } from '../version';
-
-const VERSION_KEY = 'neon_cloud_version_acknowledged';
+import { VERSION_UPDATES } from '../version';
 
 export default function VersionModal() {
-  const { isVersionModalOpen, setIsVersionModalOpen } = useCloudStore((state) => ({
-    isVersionModalOpen: state.isVersionModalOpen,
-    setIsVersionModalOpen: state.setIsVersionModalOpen
-  }));
+  const isVersionModalOpen = useCloudStore((state) => state.isVersionModalOpen);
 
-  const handleAcknowledge = () => {
-    // 标记为已读，后续不再显示
-    localStorage.setItem(VERSION_KEY, CLOUD_VERSION);
-    setIsVersionModalOpen(false);
-  };
-
-  const handleRemindLater = () => {
-    // 关闭弹窗，下次刷新页面时重新显示
-    setIsVersionModalOpen(false);
-  };
+  const handleAcknowledge = () => neonCloud.dismissVersionModal();
+  const handleRemindLater = () => neonCloud.dismissVersionModal();
+  const handleCloseIcon = () => neonCloud.dismissVersionModal();
 
   return (
     <Modal
@@ -38,10 +26,12 @@ export default function VersionModal() {
         </div>
       }
       open={isVersionModalOpen}
-      onCancel={handleRemindLater}
+      onCancel={handleCloseIcon}
+      keyboard={false}
       footer={null}
       centered
       width={480}
+      mask={{ closable: false }}
       className="dark:dark"
     >
       <div className="space-y-4">
@@ -51,10 +41,7 @@ export default function VersionModal() {
 
         <div className="space-y-3">
           {VERSION_UPDATES.map((update, index) => (
-            <div
-              key={index}
-              className="flex items-start space-x-3 p-3 bg-background-secondary rounded-lg hover:bg-background-tertiary transition-colors border border-border"
-            >
+            <div key={index} className="flex items-start space-x-3 p-3 bg-background-secondary rounded-lg hover:bg-background-tertiary transition-colors border border-border">
               <span className="text-2xl flex-shrink-0">{update.icon}</span>
               <div>
                 <div className="font-medium text-foreground">{update.title}</div>
