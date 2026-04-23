@@ -49,6 +49,7 @@ jobs:
             source ~/.nvm/nvm.sh
             pnpm install
             rm -rf .next
-            pnpm build
-            pm2 start npm -- run start:prd
+            NODE_OPTIONS="--max-old-space-size=512" pnpm build
+            pm2 delete all || true
+            pm2 start npm --name neon -- run start:prd
             echo $LASTSSH
