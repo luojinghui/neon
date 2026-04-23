@@ -17,7 +17,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction }: { room: ChatRoo
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => handleCardKeyDown(e, onClick)}
-      className="group relative rounded-xl border border-border p-4
+      className="group relative rounded-lg border border-border p-4
                  shadow-sm transition-all duration-300
                  hover:shadow-md hover:-translate-y-1
                  bg-surface backdrop-blur-sm
@@ -26,7 +26,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction }: { room: ChatRoo
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2">{room.name}</h3>
-        <span className="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-success-soft text-success border border-success/20">在线</span>
+        <span className="shrink-0 inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-success-soft text-success border border-success/20">在线</span>
       </div>
 
       <div className="mt-2 text-xs text-foreground-muted">{room.onlineCount} 人在线</div>
@@ -44,7 +44,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction }: { room: ChatRoo
             e.stopPropagation();
             onPrimaryAction?.();
           }}
-          className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium
+          className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium
                      bg-primary text-white hover:bg-primary-hover transition-colors
                      focus:outline-none focus:ring-2 focus:ring-ring/40"
         >
