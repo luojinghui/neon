@@ -3,7 +3,7 @@
  * 负责：业务逻辑、数据处理、与 Store 同步
  *
  * Created at     : 2025-12-07 22:37:37
- * Last modified  : 2026-03-17 17:26:01
+ * Last modified  : 2026-04-25 20:59:21
  */
 
 import { CloudAPI } from '@/action';
@@ -36,7 +36,7 @@ export class NeonCloud {
     this.loadTextHistory();
 
     // 检查版本更新提示
-    this.checkVersionModal();
+    // this.checkVersionModal();
 
     // 从 URL 解析密码并自动查询
     return await this.handleUrlParams();
