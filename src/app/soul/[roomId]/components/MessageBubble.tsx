@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from './types';
 import { getAvatarUrl, formatTime } from './types';
@@ -32,13 +33,13 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   };
 
   return (
-    <div
-      ref={rowRef}
-      className={`flex gap-2 py-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}
-    >
-      <img
+    <div ref={rowRef} className={`flex gap-2 py-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+      <Image
         src={avatarUrl}
         alt={message.senderName}
+        width={32}
+        height={32}
+        unoptimized
         className="w-8 h-8 rounded-full shrink-0 bg-surface-hover mt-1"
       />
 
@@ -69,9 +70,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
               }
             }}
             className={`cursor-pointer select-text rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap ${
-              isLocal
-                ? 'bg-chat-self text-chat-self-foreground order-2'
-                : 'bg-chat-other text-chat-other-foreground order-1'
+              isLocal ? 'bg-chat-self text-chat-self-foreground order-2' : 'bg-chat-other text-chat-other-foreground order-1'
             }`}
             style={{ maxWidth: '70%' }}
           >
@@ -79,12 +78,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           </div>
 
           <div className={isLocal ? 'order-1' : 'order-2'}>
-            <MessageActions
-              messageId={message.id}
-              position={isLocal ? 'left' : 'right'}
-              visible={actionsOpen}
-              onRequestClose={() => setActionsOpen(false)}
-            />
+            <MessageActions messageId={message.id} position={isLocal ? 'left' : 'right'} visible={actionsOpen} onRequestClose={() => setActionsOpen(false)} />
           </div>
         </div>
       </div>

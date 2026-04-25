@@ -30,8 +30,8 @@ function ChatRoomPage() {
     <div className="h-screen w-full bg-background flex flex-col select-none">
       <TopBar middle={roomName || '加载中...'} right={<ThemeToggle />} fallbackHref="/soul" />
 
-      <div className="flex-1 overflow-hidden pt-20 flex flex-col max-w-screen-xl mx-auto w-full px-4">
-        <MessageList />
+      <div className="flex-1 overflow-hidden flex flex-col max-w-screen-xl mx-auto w-full px-4 min-h-0">
+        <MessageList className="pt-20" />
 
         <div className="shrink-0 pt-3 pb-3">
           <ChatInput />

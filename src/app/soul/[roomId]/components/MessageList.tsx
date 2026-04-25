@@ -6,7 +6,11 @@ import { MessageBubble } from './MessageBubble';
 
 const SCROLL_THRESHOLD = 100;
 
-export function MessageList() {
+type MessageListProps = {
+  className?: string;
+};
+
+export function MessageList({ className = '' }: MessageListProps) {
   const messages = useSoulStore((s) => s.messages);
   const hasNewMessage = useSoulStore((s) => s.hasNewMessage);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,11 +54,7 @@ export function MessageList() {
 
   return (
     <div className="relative flex-1 overflow-hidden">
-      <div
-        ref={containerRef}
-        className="h-full overflow-y-auto py-4"
-        onScroll={handleScroll}
-      >
+      <div ref={containerRef} className={`h-full overflow-y-auto pb-4 ${className}`} onScroll={handleScroll}>
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}

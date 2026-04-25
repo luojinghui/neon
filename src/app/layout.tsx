@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn('font-sans antialiased bg-background text-foreground')}>
+      <body suppressHydrationWarning className={cn('font-sans antialiased bg-background text-foreground')}>
         <Suspense fallback={null}>
           <ClientThemeWrapper>{children}</ClientThemeWrapper>
         </Suspense>
