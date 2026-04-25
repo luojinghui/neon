@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage } from './types';
 import { getAvatarUrl, formatTime } from './types';
 import { MessageActions } from './MessageActions';
@@ -7,9 +8,34 @@ import { MessageActions } from './MessageActions';
 export function MessageBubble({ message }: { message: ChatMessage }) {
   const isLocal = message.isLocal;
   const avatarUrl = getAvatarUrl(message.senderId);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const close = (e: MouseEvent | TouchEvent) => {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
+        setActionsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close, true);
+    document.addEventListener('touchstart', close, true);
+    return () => {
+      document.removeEventListener('mousedown', close, true);
+      document.removeEventListener('touchstart', close, true);
+    };
+  }, [actionsOpen]);
+
+  const toggleFromBubble = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionsOpen((v) => !v);
+  };
 
   return (
-    <div className={`group flex gap-2 py-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div
+      ref={rowRef}
+      className={`flex gap-2 py-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}
+    >
       <img
         src={avatarUrl}
         alt={message.senderName}
@@ -33,7 +59,16 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
 
         <div className="relative flex items-center gap-1">
           <div
-            className={`rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap ${
+            role="button"
+            tabIndex={0}
+            onClick={toggleFromBubble}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActionsOpen((v) => !v);
+              }
+            }}
+            className={`cursor-pointer select-text rounded-lg px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap ${
               isLocal
                 ? 'bg-chat-self text-chat-self-foreground order-2'
                 : 'bg-chat-other text-chat-other-foreground order-1'
@@ -47,6 +82,8 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
             <MessageActions
               messageId={message.id}
               position={isLocal ? 'left' : 'right'}
+              visible={actionsOpen}
+              onRequestClose={() => setActionsOpen(false)}
             />
           </div>
         </div>

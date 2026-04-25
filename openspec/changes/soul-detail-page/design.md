@@ -46,11 +46,11 @@
 **理由**: 节省纵向空间，列表更紧凑，视觉更干净。Discord / Slack 同思路。
 **替代方案**: 时间单独一行（微信/Telegram 风格）→ 太松散。
 
-### 4. 消息操作触发方式：hover + click 兼容
+### 4. 消息操作触发方式：仅点击气泡
 
-**选择**: 桌面端 hover 浮出，移动端 click 触发
-**理由**: 桌面体验流畅，移动端也可用。
-**替代方案**: 仅 hover → 移动端不可用；仅 long-press → 桌面端多一步。
+**选择**: 点击消息气泡展开/收起操作区；**不使用 hover 展示**（避免移动端误触、悬停类事件导致操作条反复出现）
+**理由**: 与触摸设备行为一致，交互可预期。
+**替代方案**: hover 展示 → 移动端体验差；纯长按 → 发现成本高。
 
 ### 5. 核心逻辑层模式：class 单例 + zustand
 
@@ -69,15 +69,15 @@
 **理由**: TopBar 使用 `max-w-screen-xl mx-auto` + `m-3`，消息列表和底部输入区必须在同一宽度容器内，否则在宽屏上三段宽度不一致，体验很差。
 **替代方案**: 各区域独立设置 `max-w-screen-xl` → 容易遗漏、边框线（如 `border-t`）撑满全屏不协调。
 
-### 8. 消息操作按钮使用纯 CSS 驱动，不使用 JS 状态
+### 8. 消息操作显隐：受控状态 + 固定 DOM，不用 hover
 
-**选择**: `MessageActions` 始终渲染在 DOM 中，通过 `opacity` + `pointer-events` + CSS `group-hover` 控制显隐
-**理由**: 之前使用 `useState` + 条件渲染（`if (!visible) return null`），hover 时 DOM 插入/移除导致 flex 布局重算，气泡宽高跳动并频繁闪烁（hover 区域变化 → 触发 mouseLeave → 隐藏 → 触发 mouseEnter → 循环）。纯 CSS 方案 DOM 结构恒定，无重排。
-**替代方案**: `useState` + `position: absolute` → 能避免布局跳动但仍有 JS 重渲染开销，不如纯 CSS 简洁。
+**选择**: `MessageActions` 始终渲染在 DOM 中，用 `useState(visible)` + `opacity` / `pointer-events` 控制显隐；显隐由**点击气泡**切换，**点击外部**（`mousedown` + `touchstart` 捕获阶段）关闭，执行操作后 `onRequestClose`。
+**理由**: 与「仅点击展示」一致；仍避免条件渲染导致 flex 重排；去掉 `group-hover` 后不再依赖悬停，移动端无反复触发问题。
+**替代方案**: 条件渲染操作按钮 → 会再次引入布局跳动。
 
 ### 9. Soul 页面统一圆角与 hover 规范
 
-**选择**: Soul 列表页 + 详情页统一使用 `rounded-lg`，仅 `TopBar` 的两个圆形 icon 按钮保留圆形；按钮 hover 统一为主按钮 `hover:bg-primary-hover`、中性按钮/图标按钮 `hover:bg-surface-hover`。
+**选择**: Soul 列表页 + 详情页统一使用 `rounded-lg`，仅 `TopBar` 的两个圆形 icon 按钮保留圆形；按钮 hover 统一为主按钮 `hover:bg-primary-hover`、图标类按钮与 TopBar 一致 `hover:bg-surface-active`。
 **理由**: 消除 `rounded-xl / rounded-md / rounded-full` 混用造成的视觉割裂，保证界面语言一致。
 **替代方案**: 保持各组件各自圆角策略 → 可扩展但会持续引入风格不一致问题。
 

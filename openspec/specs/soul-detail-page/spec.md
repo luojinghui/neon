@@ -96,9 +96,10 @@
 
 ### 3.5 消息操作 (MessageActions)
 
-- **触发方式**：桌面端 hover 整条消息行时浮出（CSS `group-hover`），纯 CSS 驱动，不使用 JS 状态切换
+- **触发方式**：**仅通过点击消息气泡**展开/收起操作按钮；**不使用 hover 展示**（避免移动端误触、反复出现）
+- **收起方式**：再次点击同一气泡可收起；点击消息区域外（`mousedown` / `touchstart` 捕获）自动收起；执行复制/下载/更多后自动收起
 - **位置**：气泡旁侧（远端消息在右侧，本端消息在左侧）
-- **渲染策略**：操作按钮**始终存在于 DOM 中**，通过 `opacity-0 / opacity-100` + `pointer-events-none / auto` 控制可见性，**不使用条件渲染**（避免 DOM 插入/移除导致布局跳动和闪烁）
+- **渲染策略**：操作按钮**始终存在于 DOM 中**，通过 `opacity` + `pointer-events` 与 `visible` 状态控制显隐，**不使用条件渲染**（避免布局跳动）
 - **一期操作按钮**：
 
 | 按钮 | 图标 | 行为 |
@@ -156,7 +157,7 @@
 
 - 图标样式：方块 icon，无文字说明
 - 尺寸：`w-8 h-8`，`rounded-md`
-- 颜色：`text-foreground-muted`，hover 时 `text-foreground` + `bg-surface-hover`
+- 颜色：`text-foreground-muted`，hover 时 `text-foreground` + `bg-surface-active`（与 TopBar icon 按钮一致）
 
 ---
 
@@ -232,7 +233,7 @@ src/app/soul/
 | `[roomId]/page.tsx` | 组装布局、初始化 core、注入 store | 不含业务逻辑 |
 | `MessageList` | 消息循环渲染、滚动管理、"新消息"提示 | 不关心单条消息长什么样 |
 | `MessageBubble` | 单条消息 UI（头像/名字/时间/气泡），按 type 分发渲染 | 不管列表滚动 |
-| `MessageActions` | hover/click 浮出的操作按钮 | 不执行业务逻辑，回调给 core |
+| `MessageActions` | 点击气泡后展示的操作按钮 | 不执行业务逻辑，回调给 core |
 | `ChatInput` | div 输入区、发送按钮、键盘事件 | 不管消息发送逻辑 |
 | `ChatToolbar` | 工具 icon 展示与点击 | 一期全部 placeholder |
 | `core/index.ts` | 所有非 UI 逻辑（发送/接收/缓存/socket） | 不直接操作 DOM |
@@ -270,5 +271,5 @@ src/app/soul/
 - 状态管理使用 zustand（参考 `src/app/cloud/store.ts`）
 - 颜色使用已有主题 token，不新增 CSS 变量
 - 圆角规范统一：除 TopBar 的两个圆形 icon 按钮外，其余 UI 元素统一使用 `rounded-lg`
-- 按钮 hover 统一：主按钮使用 `hover:bg-primary-hover`，中性按钮/图标按钮统一使用 `hover:bg-surface-hover`
+- 按钮 hover 统一：主按钮使用 `hover:bg-primary-hover`，中性按钮/图标按钮与 TopBar 一致使用 `hover:bg-surface-active`
 - 一期使用 mock 数据渲染，确保 UI 完整可交互

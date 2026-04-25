@@ -92,22 +92,28 @@ The system SHALL use existing chat theme tokens for bubble colors:
 - **WHEN** the user switches between light and dark themes
 - **THEN** bubble colors update to match the corresponding theme tokens
 
-### Requirement: Message actions appear on interaction
+### Requirement: Message actions appear on tap of bubble only
 
-Each message bubble SHALL show action buttons on hover (desktop) or click (mobile):
+Action buttons SHALL NOT be shown on pointer hover. The user SHALL tap or click the message bubble to toggle action buttons:
 
 - Position: beside the bubble (remote messages: right side, local messages: left side)
 - Actions: Copy, Download, More
+- Dismiss: tap the bubble again, tap outside the message row, or after a successful action (copy, download, more)
 
-#### Scenario: Actions appear on hover (desktop)
+#### Scenario: Actions appear on bubble click
 
-- **WHEN** the user hovers over a message bubble on desktop
+- **WHEN** the user clicks the message bubble
 - **THEN** action buttons (copy, download, more) appear beside the bubble
 
-#### Scenario: Actions appear on click (mobile)
+#### Scenario: Hover does not show actions
 
-- **WHEN** the user clicks a message bubble on mobile
-- **THEN** action buttons appear beside the bubble
+- **WHEN** the user moves the pointer over a message bubble without clicking
+- **THEN** action buttons do not appear
+
+#### Scenario: Tap outside dismisses actions
+
+- **WHEN** action buttons are visible and the user taps or clicks outside the message row
+- **THEN** action buttons are hidden
 
 ### Requirement: Copy action copies message text
 
