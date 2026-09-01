@@ -21,6 +21,57 @@ async function cleanupFixture(fixture) {
   fs.rmSync(fixture.directory, { recursive: true, force: true });
 }
 
+test('ships two relaxed default rooms and migrates retired fixed rooms out of stored data', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neon-room-defaults-'));
+  const dataFile = path.join(directory, 'soul-chat.json');
+  const uploadDirectory = path.join(directory, 'uploads');
+  fs.mkdirSync(uploadDirectory);
+  fs.writeFileSync(
+    dataFile,
+    JSON.stringify({
+      rooms: [
+        {
+          id: 'soul-harbor',
+          code: 'LH01',
+          name: '灵魂港湾',
+          description: '旧描述',
+          tags: ['旧标签'],
+          ownerId: 'planet-system',
+          isPrivate: false,
+          isFixed: true,
+          createdAt: '2026-01-01T00:00:00.000Z'
+        },
+        {
+          id: 'inspiration-orbit',
+          code: 'LG01',
+          name: '灵感轨道',
+          description: '旧默认星球',
+          tags: ['灵感'],
+          ownerId: 'planet-system',
+          isPrivate: false,
+          isFixed: true,
+          createdAt: '2026-01-01T00:02:00.000Z'
+        }
+      ],
+      messages: []
+    })
+  );
+  const repository = new RoomRepository({ dataFile, uploadDirectory });
+
+  try {
+    const fixedRooms = repository.listRooms().filter((room) => room.isFixed);
+    assert.deepEqual(
+      fixedRooms.map((room) => room.name),
+      ['随便聊聊', '灵感晾晒场']
+    );
+    assert.equal(repository.getRoom('inspiration-orbit'), null);
+    assert.deepEqual(repository.getRoom('soul-harbor').tags, ['日常', '闲聊']);
+  } finally {
+    await repository.writeQueue;
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('private password room is owner-bound, searchable and does not expose password data', async () => {
   const fixture = createFixture();
   try {

@@ -1,6 +1,7 @@
 'use client';
 
-import { Checkbox, Modal } from 'antd';
+import { GlobalOutlined, LockOutlined } from '@ant-design/icons';
+import { Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { soulChat, type ChatRoom, type CreateRoomInput } from '../core';
 
@@ -61,10 +62,10 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
   };
 
   return (
-    <Modal title={isEditing ? '编辑星球' : '创建星球'} open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={460}>
-      <form className="space-y-3 pt-1" onSubmit={handleSubmit}>
+    <Modal title={isEditing ? '编辑星球' : '创建星球'} open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={480}>
+      <form className="space-y-4 pt-2" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="room-name" className="mb-1 block text-sm font-medium text-foreground">
+          <label htmlFor="room-name" className="mb-1.5 block text-sm font-medium text-foreground">
             星球名
           </label>
           <input
@@ -73,27 +74,27 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             maxLength={32}
             onChange={(event) => setName(event.target.value)}
             placeholder="给这个星球起个名字"
-            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+            className="w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
           />
         </div>
 
         <div>
-          <label htmlFor="room-tags" className="mb-1 block text-sm font-medium text-foreground">
-            Tag
+          <label htmlFor="room-tags" className="mb-1.5 block text-sm font-medium text-foreground">
+            标签 <span className="font-normal text-foreground-muted">· 可选</span>
           </label>
           <input
             id="room-tags"
             value={tags}
             maxLength={80}
             onChange={(event) => setTags(event.target.value)}
-            placeholder="例如：日常、音乐、治愈（最多 5 个）"
-            className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+            placeholder="日常、音乐、治愈，最多 5 个"
+            className="w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
           />
         </div>
 
         <div>
-          <label htmlFor="room-description" className="mb-1 block text-sm font-medium text-foreground">
-            描述
+          <label htmlFor="room-description" className="mb-1.5 block text-sm font-medium text-foreground">
+            描述 <span className="font-normal text-foreground-muted">· 可选</span>
           </label>
           <textarea
             id="room-description"
@@ -102,43 +103,91 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             rows={3}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="介绍一下想在这里聊些什么"
-            className="w-full resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+            className="w-full resize-none rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm leading-6 text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
           />
         </div>
 
-        <div className="space-y-2 rounded-lg border border-border bg-surface-hover p-3">
-          <Checkbox checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} className="w-full items-start">
-              <span className="pl-1">
-                <span className="block text-sm font-medium text-foreground">私密星球</span>
-                <span className="mt-0.5 block text-xs text-foreground-muted">仅展示在私密列表，也可通过星球 ID 精确搜索。</span>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium text-foreground">可见范围</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              aria-pressed={!isPrivate}
+              onClick={() => setIsPrivate(false)}
+              className={`flex items-start gap-2.5 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                !isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-border bg-surface text-foreground-secondary hover:border-border-hover hover:bg-surface-hover'
+              }`}
+            >
+              <GlobalOutlined className={`mt-0.5 text-sm ${!isPrivate ? 'text-primary' : 'text-foreground-muted'}`} />
+              <span>
+                <span className="block text-sm font-medium">公开</span>
+                <span className="mt-0.5 block text-xs text-foreground-muted">出现在公共列表</span>
               </span>
-          </Checkbox>
+            </button>
+            <button
+              type="button"
+              aria-pressed={isPrivate}
+              onClick={() => setIsPrivate(true)}
+              className={`flex items-start gap-2.5 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-border bg-surface text-foreground-secondary hover:border-border-hover hover:bg-surface-hover'
+              }`}
+            >
+              <LockOutlined className={`mt-0.5 text-sm ${isPrivate ? 'text-primary' : 'text-foreground-muted'}`} />
+              <span>
+                <span className="block text-sm font-medium">私密</span>
+                <span className="mt-0.5 block text-xs text-foreground-muted">收进私密列表</span>
+              </span>
+            </button>
+          </div>
+        </fieldset>
 
-          <Checkbox checked={passwordEnabled} onChange={(event) => setPasswordEnabled(event.target.checked)} className="w-full items-start border-t border-border pt-2">
-            <span className="pl-1">
-              <span className="block text-sm font-medium text-foreground">进入需要密码</span>
-              <span className="mt-0.5 block text-xs text-foreground-muted">支持 2-4 位数字或字母。</span>
-            </span>
-          </Checkbox>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor={passwordEnabled ? 'room-password' : undefined} className="text-sm font-medium text-foreground">
+              进入密码 <span className="font-normal text-foreground-muted">· 可选</span>
+            </label>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={passwordEnabled}
+              aria-label="开启进入密码"
+              onClick={() => setPasswordEnabled((enabled) => !enabled)}
+              className={`relative h-6 w-11 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
+                passwordEnabled ? 'bg-primary' : 'bg-background-tertiary'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${passwordEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
+              />
+            </button>
+          </div>
 
-          {passwordEnabled && (
-            <input
-              aria-label="星球密码"
-              type="password"
-              value={password}
-              minLength={2}
-              maxLength={4}
-              autoComplete="new-password"
-              onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
-              placeholder={isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位密码'}
-              className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
-            />
-          )}
+          <div className={`rounded-xl border transition-colors ${passwordEnabled ? 'border-border bg-surface p-2' : 'border-border bg-surface-hover px-3.5 py-3'}`}>
+            {passwordEnabled ? (
+              <div className="flex items-center gap-2.5">
+                <LockOutlined className="ml-1 shrink-0 text-sm text-primary" />
+                <input
+                  id="room-password"
+                  aria-label="星球密码"
+                  type="password"
+                  value={password}
+                  minLength={2}
+                  maxLength={4}
+                  autoComplete="new-password"
+                  onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                  placeholder={isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位数字或字母'}
+                  className="min-w-0 flex-1 rounded-lg border-0 bg-input px-3 py-2 text-sm text-input-foreground outline-none placeholder:text-input-placeholder focus:bg-input-focus"
+                />
+              </div>
+            ) : (
+              <p className="text-xs text-foreground-muted">任何人都可以直接进入</p>
+            )}
+          </div>
         </div>
 
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{error}</p>}
 
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">
             取消
           </button>

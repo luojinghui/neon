@@ -1,26 +1,17 @@
 'use client';
 
-import { DeleteOutlined, EditOutlined, EllipsisOutlined, LockOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, DeleteOutlined, EditOutlined, EllipsisOutlined, LockOutlined } from '@ant-design/icons';
 import { Dropdown, type MenuProps } from 'antd';
 import type { ChatRoom } from './types';
-
-function handleCardKeyDown(e: React.KeyboardEvent, onClick?: () => void) {
-  if (!onClick) return;
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    onClick();
-  }
-}
 
 type Props = {
   room: ChatRoom;
   onClick?: () => void;
-  onPrimaryAction?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 };
 
-export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete }: Props) {
+export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
   const menuItems: MenuProps['items'] = [
     { key: 'edit', icon: <EditOutlined />, label: '编辑星球' },
     { type: 'divider' },
@@ -28,21 +19,17 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
   ];
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => handleCardKeyDown(e, onClick)}
-      className="group relative flex h-full min-h-[250px] flex-col rounded-lg border border-border p-4
-                 shadow-sm transition-all duration-300
-                 hover:shadow-md hover:-translate-y-1
-                 bg-surface backdrop-blur-sm
-                 hover:border-primary/50"
-      aria-label={`进入星球：${room.name}`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2">{room.name}</h3>
-        <div className="flex shrink-0 items-center gap-1">
+    <article className="group relative flex min-h-[166px] flex-col overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border-hover hover:shadow-md">
+      <button
+        type="button"
+        onClick={onClick}
+        className="absolute inset-0 z-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+        aria-label={`进入星球：${room.name}`}
+      />
+
+      <div className="pointer-events-none relative z-[1] flex flex-1 flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="line-clamp-1 min-w-0 text-base font-semibold leading-6 text-foreground">{room.name}</h3>
           {room.isOwner && (
             <Dropdown
               trigger={['click']}
@@ -58,8 +45,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
             >
               <button
                 type="button"
-                onClick={(event) => event.stopPropagation()}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground"
+                className="pointer-events-auto relative z-10 -mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground"
                 aria-label={`管理星球：${room.name}`}
               >
                 <EllipsisOutlined />
@@ -67,42 +53,31 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
             </Dropdown>
           )}
         </div>
-      </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-primary/15 bg-primary-soft px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider text-primary">ID · {room.code}</span>
-        {room.isPrivate && <span className="text-[11px] font-medium text-foreground-muted">私密</span>}
-        {room.hasPassword && <LockOutlined className="text-[11px] text-foreground-muted" aria-label="需要密码" />}
-      </div>
+        <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-foreground-secondary">{room.description || '来这里坐坐，随便聊点什么。'}</p>
 
-      {room.description ? (
-        <p className="mt-3 text-sm text-foreground-secondary leading-relaxed line-clamp-2 min-h-[2.5rem]">{room.description}</p>
-      ) : (
-        <p className="mt-3 text-sm text-foreground-secondary leading-relaxed line-clamp-2 min-h-[2.5rem]">暂无简介</p>
-      )}
+        {room.tags.length > 0 && (
+          <div className="mt-2.5 flex min-h-5 flex-wrap gap-1.5">
+            {room.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="inline-flex items-center rounded-md bg-background-secondary px-2 py-0.5 text-[11px] font-medium text-foreground-secondary">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
-      <div className="mt-3 flex min-h-6 flex-wrap gap-1.5">
-        {room.tags.slice(0, 3).map((tag) => (
-          <span key={tag} className="inline-flex items-center rounded-lg bg-primary-soft px-2 py-1 text-[11px] font-medium text-primary">
-            #{tag}
+        <div className="mt-auto flex items-center justify-between border-t border-border/70 pt-3 text-[11px] text-foreground-muted">
+          <div className="flex items-center gap-2">
+            {room.isPrivate && <span>私密</span>}
+            {room.hasPassword && <LockOutlined aria-label="需要密码" />}
+            <span className="font-mono tracking-wide opacity-70">#{room.code}</span>
+          </div>
+          <span className="inline-flex items-center gap-1 font-medium text-foreground-secondary transition-colors group-hover:text-primary">
+            进入
+            <ArrowRightOutlined className="text-[10px] transition-transform group-hover:translate-x-0.5" />
           </span>
-        ))}
+        </div>
       </div>
-
-      <div className="mt-auto pt-4">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrimaryAction?.();
-          }}
-          className="inline-flex w-full items-center justify-center rounded-lg px-3 py-2 text-xs font-medium
-                     bg-primary text-white hover:bg-primary-hover transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ring/40"
-        >
-          进入
-        </button>
-      </div>
-    </div>
+    </article>
   );
 }

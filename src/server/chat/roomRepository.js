@@ -18,9 +18,9 @@ const DEFAULT_ROOMS = [
   {
     id: 'soul-harbor',
     code: 'LH01',
-    name: '灵魂港湾',
-    description: '一个不赶时间的角落，聊聊今天的心情和此刻的想法。',
-    tags: ['日常', '倾听', '治愈'],
+    name: '随便聊聊',
+    description: '路过也好，常驻也好。聊聊近况，分享有趣的事，不必先想好主题。',
+    tags: ['日常', '闲聊'],
     ownerId: 'planet-system',
     isPrivate: false,
     isFixed: true,
@@ -29,26 +29,17 @@ const DEFAULT_ROOMS = [
   {
     id: 'starlight-camp',
     code: 'XL01',
-    name: '星光露营地',
-    description: '分享在路上的故事、喜欢的音乐，以及那些偶然遇见的微光。',
-    tags: ['故事', '音乐', '旅行'],
+    name: '灵感晾晒场',
+    description: '把刚冒头的点子放这儿晒晒，半成品也值得一个回声。',
+    tags: ['灵感', '脑洞', '创作'],
     ownerId: 'planet-system',
     isPrivate: false,
     isFixed: true,
     createdAt: '2026-01-01T00:01:00.000Z'
-  },
-  {
-    id: 'inspiration-orbit',
-    code: 'LG01',
-    name: '灵感轨道',
-    description: '让未成形的点子先在这里相遇，一起讨论创作、科技和未来。',
-    tags: ['灵感', '创作', '科技'],
-    ownerId: 'planet-system',
-    isPrivate: false,
-    isFixed: true,
-    createdAt: '2026-01-01T00:02:00.000Z'
   }
 ];
+
+const RETIRED_DEFAULT_ROOM_IDS = new Set(['inspiration-orbit']);
 
 const DEFAULT_MESSAGES = DEFAULT_ROOMS.map((room, index) => ({
   id: `welcome-${room.id}`,
@@ -57,9 +48,8 @@ const DEFAULT_MESSAGES = DEFAULT_ROOMS.map((room, index) => ({
   senderName: '星球向导',
   type: 'text',
   content: [
-    '欢迎来到灵魂港湾。放慢一点，从一句此刻的心情开始吧。',
-    '今晚的营火已经点亮，欢迎分享你最近收藏的一首歌或一段旅程。',
-    '灵感已进入轨道。把你的半成品想法丢进来，也许会收到意外的回声。'
+    '欢迎来坐坐。没有固定话题，想说什么就从什么开始。',
+    '先把点子放下，不急着把它讲完整。'
   ][index],
   timestamp: Date.parse(room.createdAt) + 10_000
 }));
@@ -82,8 +72,28 @@ class RoomRepository {
       let migrated = false;
       for (const storedRoom of Array.isArray(data.rooms) ? data.rooms : []) {
         if (!storedRoom?.id) continue;
+        if (RETIRED_DEFAULT_ROOM_IDS.has(storedRoom.id)) {
+          migrated = true;
+          continue;
+        }
         const existing = this.rooms.get(storedRoom.id) || {};
-        const room = { ...existing, ...storedRoom };
+        const room = existing.isFixed
+          ? {
+              ...storedRoom,
+              ...existing,
+              ...(storedRoom.lastMessageAt ? { lastMessageAt: storedRoom.lastMessageAt } : {}),
+              ...(storedRoom.updatedAt ? { updatedAt: storedRoom.updatedAt } : {})
+            }
+          : { ...existing, ...storedRoom };
+        if (
+          existing.isFixed &&
+          (storedRoom.name !== existing.name ||
+            storedRoom.description !== existing.description ||
+            storedRoom.code !== existing.code ||
+            JSON.stringify(storedRoom.tags) !== JSON.stringify(existing.tags))
+        ) {
+          migrated = true;
+        }
         if (!this.isRoomCode(room.code) || this.isCodeUsedByAnotherRoom(room.code, room.id)) {
           room.code = this.generateRoomCode();
           migrated = true;
