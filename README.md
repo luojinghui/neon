@@ -14,4 +14,5 @@ $ pnpm build
 
 ## 安全
 
-- 修复漏洞
+- GitHub Actions、服务器最小权限用户、SSH key 与 Secrets 配置见
+  [安全部署配置](docs/secure-deployment.md)。

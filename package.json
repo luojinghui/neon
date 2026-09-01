@@ -10,36 +10,42 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
     "@uiw/react-json-view": "2.0.0-alpha.39",
-    "next": "15.2.6",
+    "antd": "^6.3.3",
+    "clsx": "^2.1.1",
+    "express": "4.22.2",
+    "mongoose": "8.24.4",
+    "next": "15.5.24",
     "next-themes": "^0.4.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "socket.io": "4.8.3",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@ant-design/icons": "^6.1.0",
     "@types/node": "^20",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
-    "antd": "^6.3.3",
-    "clsx": "^2.1.1",
     "eslint": "^8",
-    "eslint-config-next": "15.1.6",
-    "express": "^4.19.2",
-    "mongoose": "^8.4.3",
+    "eslint-config-next": "15.5.24",
     "postcss": "^8",
-    "socket.io": "^4.7.5",
-    "socket.io-client": "^4.7.5",
     "tailwindcss": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"
   },
+  "packageManager": "pnpm@10.30.2",
   "pnpm": {
     "overrides": {
       "@types/react": "19.0.8",
-      "@types/react-dom": "19.0.3"
+      "@types/react-dom": "19.0.3",
+      "engine.io": "6.6.9",
+      "nanoid": "3.3.18",
+      "path-to-regexp": "0.1.13",
+      "postcss": "8.5.26",
+      "socket.io-parser": "4.2.7",
+      "ws": "8.21.0"
     }
   }
 }

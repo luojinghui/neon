@@ -9,7 +9,25 @@ const nextApp = next({ dev });
 const handle = nextApp.getRequestHandler();
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: true, path: '/im' });
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const io = new Server(server, {
+  path: '/im',
+  ...(allowedOrigins.length > 0 ? { cors: { origin: allowedOrigins } } : {})
+});
+const port = Number.parseInt(process.env.APP_PORT || '3000', 10);
+const host = process.env.APP_HOST || '127.0.0.1';
+
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  throw new Error('APP_PORT must be an integer between 1 and 65535');
+}
+
+server.on('error', (error) => {
+  console.error('Server failed:', error);
+  process.exit(1);
+});
 
 nextApp
   .prepare()
@@ -20,19 +38,13 @@ nextApp
     });
 
     app
+      .get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }))
       .use(express.static('public'))
       .use(express.static('static'))
       .all('*', (req, res) => handle(req, res));
 
-    server.listen(3000, (err) => {
-      console.log('========listen 3000');
-
-      if (err) {
-        console.error('start server err: ', err);
-        throw err;
-      }
-
-      console.log('> Ready on http://localhost:3000');
+    server.listen(port, host, () => {
+      console.log(`> Ready on http://${host}:${port}`);
     });
   })
   .catch((ex) => {

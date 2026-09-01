@@ -9,41 +9,40 @@
  */
 
 const mongoose = require('mongoose');
-const { db } = require('../../../config');
-const DB_HOST = db;
+
+let connectionPromise = null;
 
 /**
  * 连接数据库
  */
-const connectDB = () => {
-  return new Promise((resolve, reject) => {
-    mongoose.connect(DB_HOST, { authSource: 'admin' });
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return mongoose.connection;
 
-    // user是数据库名称
-    mongoose.connection.on('connected', function () {
-      console.log('MongoDB connected.');
+  const dbHost = process.env.MONGODB_URI;
+  if (!dbHost) throw new Error('MONGODB_URI is not configured');
 
-      resolve(true);
-    });
+  if (!connectionPromise) {
+    connectionPromise = mongoose
+      .connect(dbHost, { authSource: 'admin' })
+      .then(() => {
+        console.log('MongoDB connected.');
+        return mongoose.connection;
+      })
+      .catch((error) => {
+        connectionPromise = null;
+        console.error('MongoDB connection failed.');
+        throw error;
+      });
+  }
 
-    mongoose.connection.on('error', function () {
-      console.log('MongoDB failed.');
-
-      reject(false);
-    });
-
-    mongoose.connection.on('disconnected', function (e) {
-      console.log('MongoDB connected disconnected.', e);
-
-      reject(false);
-    });
-  });
+  return connectionPromise;
 };
 
 const disconnectDB = async () => {
   mongoose.connection.removeAllListeners();
 
   await mongoose.disconnect();
+  connectionPromise = null;
 };
 
 module.exports = {

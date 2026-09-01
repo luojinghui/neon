@@ -4,8 +4,6 @@ import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs/promises';
 
-connectDB();
-
 const UPLOAD_DIR = path.join(process.cwd(), 'upload');
 
 async function ensureUploadDir() {
@@ -20,6 +18,8 @@ async function getPassword() {
 }
 
 export async function GET(request: Request) {
+  await connectDB();
+
   const { searchParams } = new URL(request.url);
   const password = searchParams.get('password');
 
@@ -46,6 +46,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  await connectDB();
+
   const contentType = request.headers.get('content-type') || '';
 
   let text = '';

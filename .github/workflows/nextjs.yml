@@ -1,55 +1,216 @@
-name: Deploy Build Files
+name: Build and deploy Neon
 
 on:
   push:
     branches:
-      - main # 只在dev上push触发部署
-    paths-ignore: # 下列文件的变更不触发部署，可以自行添加
-      - README.md
-      - LICENSE
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-production
+  cancel-in-progress: false
+
 env:
-  TARGET_DEV_DIR: /home/server/neon/
+  NODE_VERSION: '24'
+  NEXT_TELEMETRY_DISABLED: '1'
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest # 使用ubuntu系统镜像运行自动化脚本
+    name: Build, transfer and activate release
+    if: github.repository == 'luojinghui/neon' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
 
-    steps: # 自动化步骤
-      - uses: actions/checkout@v5 # 第一步，下载代码仓库
-
-      - uses: actions/setup-node@v5
+    steps:
+      - name: Check out the exact commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          node-version: '20'
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: DEPLOY DEV
-        uses: yitianyigexiangfa/ssh-scp-ssh-pipelines@v1.1.5
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Install and build on the runner
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          corepack enable
+          corepack prepare pnpm@10.30.2 --activate
+          pnpm install --frozen-lockfile
+          pnpm audit --prod --audit-level high
+          NODE_OPTIONS='--max-old-space-size=1024' pnpm build
+
+      - name: Package production release
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          release_dir="${RUNNER_TEMP}/neon-release"
+          mkdir -p "${release_dir}"
+
+          cp -R .next public src "${release_dir}/"
+          rm -rf "${release_dir}/.next/cache"
+          cp package.json pnpm-lock.yaml next.config.mjs ecosystem.config.cjs "${release_dir}/"
+
+          cd "${release_dir}"
+          pnpm install --prod --frozen-lockfile --ignore-scripts
+          tar -czf "${GITHUB_WORKSPACE}/neon-release.tar.gz" .
+
+      - name: Transfer and activate release
+        shell: bash
         env:
-          WELCOME: 'Start Deploy'
-          LASTSSH: 'Done Deploy'
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          user: ${{ secrets.SSH_USERNAME }}
-          pass: ${{ secrets.SSH_PWD }}
-          connect_timeout: 30s
-          first_ssh: |-
-            pwd
-            ls -la
-            echo $WELCOME
-            cd $TARGET_DEV_DIR
-            pwd
-            ls -la
-            git checkout .
-            git fetch --all
-            git checkout main
-            git pull --force origin main
-          last_ssh: |-
-            cd $TARGET_DEV_DIR
-            whoami
-            export NVM_DIR=~/.nvm
-            source ~/.nvm/nvm.sh
-            pnpm install
-            rm -rf .next
-            NODE_OPTIONS="--max-old-space-size=512" pnpm build
-            pm2 delete all || true
-            pm2 start npm --name neon -- run start:prd
-            echo $LASTSSH
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PRIVATE_KEY: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -Eeuo pipefail
+
+          required=(
+            DEPLOY_HOST
+            DEPLOY_PORT
+            DEPLOY_USER
+            DEPLOY_PRIVATE_KEY
+            DEPLOY_KNOWN_HOSTS
+            DEPLOY_PATH
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing production secret: ${name}" >&2
+              exit 1
+            fi
+          done
+
+          [[ "${DEPLOY_HOST}" =~ ^[A-Za-z0-9.-]+$ ]] || { echo 'Invalid DEPLOY_HOST' >&2; exit 1; }
+          [[ "${DEPLOY_PORT}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid DEPLOY_PORT' >&2; exit 1; }
+          (( DEPLOY_PORT >= 1 && DEPLOY_PORT <= 65535 )) || { echo 'Invalid DEPLOY_PORT' >&2; exit 1; }
+          [[ "${DEPLOY_USER}" =~ ^[a-z_][a-z0-9_-]*$ ]] || { echo 'Invalid DEPLOY_USER' >&2; exit 1; }
+          [[ "${DEPLOY_PATH}" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo 'Invalid DEPLOY_PATH' >&2; exit 1; }
+
+          ssh_dir="${RUNNER_TEMP}/neon-ssh"
+          install -m 700 -d "${ssh_dir}"
+          printf '%s\n' "${DEPLOY_PRIVATE_KEY}" > "${ssh_dir}/deploy_key"
+          printf '%s\n' "${DEPLOY_KNOWN_HOSTS}" > "${ssh_dir}/known_hosts"
+          chmod 600 "${ssh_dir}/deploy_key" "${ssh_dir}/known_hosts"
+
+          ssh_options=(
+            -i "${ssh_dir}/deploy_key"
+            -p "${DEPLOY_PORT}"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${ssh_dir}/known_hosts"
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=2
+          )
+          scp_options=(
+            -i "${ssh_dir}/deploy_key"
+            -P "${DEPLOY_PORT}"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o "UserKnownHostsFile=${ssh_dir}/known_hosts"
+            -o ConnectTimeout=15
+          )
+
+          release_id="${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          remote_archive="${DEPLOY_PATH}/incoming/${release_id}.tar.gz"
+
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "mkdir -p -- '${DEPLOY_PATH}/incoming'"
+          scp "${scp_options[@]}" neon-release.tar.gz \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${remote_archive}"
+
+          ssh "${ssh_options[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "bash -s -- '${DEPLOY_PATH}' '${release_id}'" <<'REMOTE_SCRIPT'
+          set -Eeuo pipefail
+          umask 077
+
+          app_root="$1"
+          release_id="$2"
+          [[ "${app_root}" =~ ^/[A-Za-z0-9._/-]+$ ]] || { echo 'Invalid app root' >&2; exit 1; }
+          [[ "${release_id}" =~ ^[0-9a-f]{40}-[0-9]+-[0-9]+$ ]] || { echo 'Invalid release id' >&2; exit 1; }
+
+          archive="${app_root}/incoming/${release_id}.tar.gz"
+          release_dir="${app_root}/releases/${release_id}"
+          env_file="${app_root}/shared/app.env"
+
+          [[ -f "${archive}" ]] || { echo 'Release archive is missing' >&2; exit 1; }
+          [[ ! -e "${release_dir}" ]] || { echo 'Release directory already exists' >&2; exit 1; }
+          [[ -f "${env_file}" ]] || { echo "Missing ${env_file}" >&2; exit 1; }
+
+          mkdir -p "${app_root}/releases" "${app_root}/shared/upload" "${app_root}/shared/static"
+          mkdir "${release_dir}"
+          tar --extract --gzip --file "${archive}" --directory "${release_dir}" \
+            --no-same-owner --no-same-permissions
+          ln -s "${app_root}/shared/upload" "${release_dir}/upload"
+          ln -s "${app_root}/shared/static" "${release_dir}/static"
+
+          if [[ -s "${HOME}/.nvm/nvm.sh" ]]; then
+            # shellcheck disable=SC1091
+            . "${HOME}/.nvm/nvm.sh"
+          fi
+          command -v node >/dev/null || { echo 'Node.js is not available' >&2; exit 1; }
+          command -v pm2 >/dev/null || { echo 'PM2 is not available' >&2; exit 1; }
+
+          set -a
+          # shellcheck disable=SC1090
+          . "${env_file}"
+          set +a
+          app_port="${APP_PORT:-3000}"
+          [[ "${app_port}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid APP_PORT' >&2; exit 1; }
+
+          previous_target="$(readlink "${app_root}/current" 2>/dev/null || true)"
+          ln -sfn "${release_dir}" "${app_root}/current"
+          pm2 startOrReload "${app_root}/current/ecosystem.config.cjs" --update-env
+
+          healthy=false
+          for _ in $(seq 1 20); do
+            if curl --fail --silent --show-error \
+              "http://127.0.0.1:${app_port}/healthz" >/dev/null; then
+              healthy=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ "${healthy}" != true ]]; then
+            echo 'Health check failed; rolling back' >&2
+            if [[ -n "${previous_target}" && -d "${previous_target}" ]]; then
+              ln -sfn "${previous_target}" "${app_root}/current"
+              pm2 startOrReload "${app_root}/current/ecosystem.config.cjs" --update-env
+            else
+              pm2 delete neon || true
+            fi
+            exit 1
+          fi
+
+          pm2 save
+          rm -f "${archive}"
+
+          current_target="$(readlink -f "${app_root}/current")"
+          # shellcheck disable=SC2012
+          while IFS= read -r stale_release; do
+            stale_release="${stale_release%/}"
+            stale_name="${stale_release##*/}"
+            [[ "${stale_release}" == "${app_root}/releases/${stale_name}" ]] || continue
+            [[ "${stale_name}" =~ ^[0-9a-f]{40}-[0-9]+-[0-9]+$ ]] || continue
+            [[ "${stale_release}" == "${current_target}" ]] || rm -rf -- "${stale_release}"
+          done < <(ls -1dt -- "${app_root}"/releases/*/ | tail -n +6)
+
+          echo "Activated release ${release_id}"
+          REMOTE_SCRIPT

@@ -75,10 +75,6 @@ const cloudSchema = new Schema({
 // expireAfterSeconds: 0 表示一旦达到expireAt指定的时间，文档将被删除
 cloudSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
-// 为messageId字段创建索引以提高查询性能
-// 由于messageId字段被频繁查询且已设置为unique，索引可以加速查询操作
-cloudSchema.index({ messageId: 1 });
-
 if (mongoose.models.CloudMessage) {
   delete mongoose.models.CloudMessage;
 

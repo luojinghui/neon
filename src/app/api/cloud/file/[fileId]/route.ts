@@ -3,11 +3,11 @@ import { CloudMessage } from '@/server/models/cloud';
 import path from 'path';
 import fs from 'fs/promises';
 
-connectDB();
-
 const UPLOAD_DIR = path.join(process.cwd(), 'upload');
 
 export async function GET(_request: Request, { params }: { params: Promise<{ fileId: string }> }) {
+  await connectDB();
+
   const { fileId } = await params;
 
   const cloudMessage = await CloudMessage.findOne({ 'files.fileId': fileId });
