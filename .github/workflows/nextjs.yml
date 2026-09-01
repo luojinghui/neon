@@ -148,17 +148,33 @@ jobs:
           archive="${app_root}/incoming/${release_id}.tar.gz"
           release_dir="${app_root}/releases/${release_id}"
           env_file="${app_root}/shared/app.env"
+          previous_target="$(readlink -f "${app_root}/current" 2>/dev/null || true)"
 
           [[ -f "${archive}" ]] || { echo 'Release archive is missing' >&2; exit 1; }
           [[ ! -e "${release_dir}" ]] || { echo 'Release directory already exists' >&2; exit 1; }
           [[ -f "${env_file}" ]] || { echo "Missing ${env_file}" >&2; exit 1; }
 
-          mkdir -p "${app_root}/releases" "${app_root}/shared/upload" "${app_root}/shared/static"
+          mkdir -p \
+            "${app_root}/releases" \
+            "${app_root}/shared/upload" \
+            "${app_root}/shared/static" \
+            "${app_root}/shared/soul-data" \
+            "${app_root}/shared/soul-uploads/soul"
+          if [[ ! -f "${app_root}/shared/soul-data/soul-chat.json" && -f "${previous_target}/.data/soul-chat.json" ]]; then
+            cp "${previous_target}/.data/soul-chat.json" "${app_root}/shared/soul-data/soul-chat.json"
+          fi
+          previous_uploads="$(readlink -f "${previous_target}/public/uploads/soul" 2>/dev/null || true)"
+          shared_uploads="$(readlink -f "${app_root}/shared/soul-uploads/soul")"
+          if [[ -n "${previous_uploads}" && -d "${previous_uploads}" && "${previous_uploads}" != "${shared_uploads}" ]]; then
+            cp -an "${previous_uploads}/." "${shared_uploads}/"
+          fi
           mkdir "${release_dir}"
           tar --extract --gzip --file "${archive}" --directory "${release_dir}" \
             --no-same-owner --no-same-permissions
           ln -s "${app_root}/shared/upload" "${release_dir}/upload"
           ln -s "${app_root}/shared/static" "${release_dir}/static"
+          rm -rf -- "${release_dir}/public/uploads"
+          ln -s "${app_root}/shared/soul-uploads" "${release_dir}/public/uploads"
 
           if [[ -s "${HOME}/.nvm/nvm.sh" ]]; then
             # shellcheck disable=SC1091
@@ -171,28 +187,54 @@ jobs:
           # shellcheck disable=SC1090
           . "${env_file}"
           set +a
+          export SOUL_CHAT_DATA_FILE="${SOUL_CHAT_DATA_FILE:-${app_root}/shared/soul-data/soul-chat.json}"
           app_port="${APP_PORT:-3000}"
           [[ "${app_port}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid APP_PORT' >&2; exit 1; }
 
-          previous_target="$(readlink "${app_root}/current" 2>/dev/null || true)"
+          start_release() {
+            local target_dir="$1"
+            local target_id="$2"
+
+            export NEON_RELEASE_ID="${target_id}"
+            pm2 delete neon >/dev/null 2>&1 || true
+            pm2 start "${target_dir}/ecosystem.config.cjs" --update-env
+          }
+
           ln -sfn "${release_dir}" "${app_root}/current"
-          pm2 startOrReload "${app_root}/current/ecosystem.config.cjs" --update-env
 
           healthy=false
-          for _ in $(seq 1 20); do
-            if curl --fail --silent --show-error \
-              "http://127.0.0.1:${app_port}/healthz" >/dev/null; then
-              healthy=true
-              break
-            fi
-            sleep 2
-          done
+          if start_release "${release_dir}" "${release_id}"; then
+            for _ in $(seq 1 20); do
+              running_pid="$(pm2 pid neon 2>/dev/null || true)"
+              running_dir=''
+              if [[ "${running_pid}" =~ ^[0-9]+$ ]] && (( running_pid > 0 )); then
+                running_dir="$(readlink -f "/proc/${running_pid}/cwd" 2>/dev/null || true)"
+              fi
+
+              health_body="$(curl --fail --silent --show-error \
+                "http://127.0.0.1:${app_port}/healthz" 2>/dev/null || true)"
+              if [[ "${running_dir}" == "${release_dir}" ]] && \
+                node -e '
+                  const health = JSON.parse(process.argv[1]);
+                  process.exit(
+                    health.status === "ok" && health.releaseId === process.argv[2] ? 0 : 1
+                  );
+                ' "${health_body}" "${release_id}" 2>/dev/null; then
+                healthy=true
+                break
+              fi
+              sleep 2
+            done
+          fi
 
           if [[ "${healthy}" != true ]]; then
-            echo 'Health check failed; rolling back' >&2
+            echo "Release ${release_id} failed identity-aware health check; rolling back" >&2
             if [[ -n "${previous_target}" && -d "${previous_target}" ]]; then
               ln -sfn "${previous_target}" "${app_root}/current"
-              pm2 startOrReload "${app_root}/current/ecosystem.config.cjs" --update-env
+              previous_release_id="${previous_target%/}"
+              previous_release_id="${previous_release_id##*/}"
+              start_release "${previous_target}" "${previous_release_id}"
+              pm2 save
             else
               pm2 delete neon || true
             fi

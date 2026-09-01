@@ -19,6 +19,7 @@ const io = new Server(server, {
 });
 const port = Number.parseInt(process.env.APP_PORT || '3000', 10);
 const host = process.env.APP_HOST || '127.0.0.1';
+const releaseId = process.env.NEON_RELEASE_ID || 'development';
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('APP_PORT must be an integer between 1 and 65535');
@@ -38,7 +39,9 @@ nextApp
     });
 
     app
-      .get('/healthz', (_req, res) => res.status(200).json({ status: 'ok' }))
+      .get('/healthz', (_req, res) =>
+        res.status(200).json({ status: 'ok', releaseId })
+      )
       .use(express.static('public'))
       .use(express.static('static'))
       .all('*', (req, res) => handle(req, res));

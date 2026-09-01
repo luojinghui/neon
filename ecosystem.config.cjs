@@ -10,7 +10,8 @@ module.exports = {
       max_memory_restart: '512M',
       kill_timeout: 10000,
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        NEON_RELEASE_ID: process.env.NEON_RELEASE_ID || 'unknown'
       }
     }
   ]
