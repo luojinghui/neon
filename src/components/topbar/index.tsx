@@ -46,7 +46,7 @@ export function TopBar({ middle, right, fallbackHref = '/', className }: TopBarP
           <button
             type="button"
             onClick={handleBack}
-            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full transition-all duration-300 shadow-sm hover:shadow-md hover:bg-surface-active"
+            className="relative z-10 flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full shadow-sm transition-all duration-300 hover:bg-surface-active hover:shadow-md"
             aria-label="返回"
           >
             <LeftOutlined className="text-xl text-foreground" />
@@ -54,10 +54,10 @@ export function TopBar({ middle, right, fallbackHref = '/', className }: TopBarP
 
           {/* 始终居中：不受左右内容宽度影响 */}
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-[min(60%,_520px)] -translate-x-1/2 -translate-y-1/2 text-center text-foreground">
-            <div className="pointer-events-auto truncate">{middleNode}</div>
+            <div className="truncate">{middleNode}</div>
           </div>
 
-          <div className="shrink-0 flex items-center justify-end">{right}</div>
+          <div className="relative z-10 flex shrink-0 items-center justify-end [&_button]:touch-manipulation">{right}</div>
         </div>
       </div>
     </div>

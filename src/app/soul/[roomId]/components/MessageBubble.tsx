@@ -32,6 +32,7 @@ function MessageContent({
         <PreviewImage
           src={url}
           alt={message.attachment?.name || message.content || '图片'}
+          draggable={false}
           preview={{ mask: null }}
           classNames={{ popup: { root: 'soul-image-preview' } }}
           className="block max-h-72 w-auto max-w-full object-contain"
@@ -71,7 +72,7 @@ function MessageContent({
           onToggleActions(event);
         }
       }}
-      className={`max-w-[min(560px,70vw)] cursor-pointer select-text overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-base leading-relaxed ${
+      className={`soul-message-content max-w-[min(560px,70vw)] cursor-pointer overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-base leading-relaxed ${
         message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'
       }`}
     >
@@ -107,8 +108,8 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
   };
 
   return (
-    <div ref={rowRef} className={`flex gap-2 py-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
-      <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized className="mt-1 h-8 w-8 shrink-0 rounded-full bg-surface-hover" />
+    <div ref={rowRef} className={`flex gap-2 py-1.5 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+      <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="mt-1 h-8 w-8 shrink-0 rounded-full bg-surface-hover" />
 
       <div className={`flex min-w-0 max-w-[85%] flex-col ${isLocal ? 'items-end' : 'items-start'}`}>
         <div className={`mb-1 flex items-center gap-1 ${isLocal ? 'flex-row-reverse justify-end' : ''}`}>

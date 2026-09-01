@@ -24,9 +24,10 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   return (
     <Tooltip title={tooltipTitle} placement="bottom">
       <button
+        type="button"
         onClick={() => setTheme(nextMode)}
         className={`relative inline-flex h-8 w-8 items-center justify-center rounded-full
-          bg-surface hover:bg-surface-hover border border-border
+          touch-manipulation bg-surface hover:bg-surface-hover border border-border
           transition-all duration-300 ${className}`}
         aria-label={aria}
       >

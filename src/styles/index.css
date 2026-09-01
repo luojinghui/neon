@@ -264,7 +264,7 @@
 }
 
 .soul-image-preview .ant-image-preview-mask {
-  background: transparent !important;
+  background: rgb(0 0 0 / 0.78) !important;
 }
 
 .soul-image-preview .ant-image-preview-wrap,
@@ -286,6 +286,23 @@
 .soul-image-preview .ant-image-preview-actions,
 .soul-image-preview .ant-image-preview-close {
   overflow: hidden;
+}
+
+.soul-room-page,
+.soul-room-page :where(*:not(input):not(textarea):not([contenteditable="true"])) {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.soul-room-page img {
+  -webkit-user-drag: none;
+}
+
+.soul-room-page input,
+.soul-room-page textarea,
+.soul-room-page [contenteditable="true"] {
+  -webkit-touch-callout: default;
+  user-select: text;
 }
 
 .soul-file-preview-modal .ant-modal-content,

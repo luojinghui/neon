@@ -43,7 +43,6 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2">{room.name}</h3>
         <div className="flex shrink-0 items-center gap-1">
-          <span className="inline-flex items-center rounded-lg border border-success/20 bg-success-soft px-2 py-0.5 text-xs font-medium text-success">在线</span>
           {room.isOwner && (
             <Dropdown
               trigger={['click']}
@@ -75,8 +74,6 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
         {room.isPrivate && <span className="text-[11px] font-medium text-foreground-muted">私密</span>}
         {room.hasPassword && <LockOutlined className="text-[11px] text-foreground-muted" aria-label="需要密码" />}
       </div>
-
-      <div className="mt-2 text-xs text-foreground-muted">{room.onlineCount > 0 ? `${room.onlineCount} 人在线` : '等待旅人加入'}</div>
 
       {room.description ? (
         <p className="mt-3 text-sm text-foreground-secondary leading-relaxed line-clamp-2 min-h-[2.5rem]">{room.description}</p>

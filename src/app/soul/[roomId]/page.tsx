@@ -16,7 +16,6 @@ function ChatRoomPage() {
   const params = useParams<{ roomId: string }>();
   const router = useRouter();
   const roomName = useSoulStore((s) => s.roomName);
-  const connectionState = useSoulStore((s) => s.connectionState);
   const accessState = useSoulStore((s) => s.accessState);
 
   useEffect(() => {
@@ -32,18 +31,16 @@ function ChatRoomPage() {
   }, [accessState, router]);
 
   return (
-    <div className="h-screen w-full bg-background flex flex-col select-none">
+    <div
+      className="soul-room-page flex h-screen w-full select-none flex-col bg-background"
+      onContextMenu={(event) => {
+        const target = event.target as HTMLElement;
+        if (!target.closest('input, textarea, [contenteditable="true"]')) event.preventDefault();
+      }}
+    >
       <TopBar
         middle={
-          <div className="flex items-center justify-center gap-2">
-            <span className="truncate text-base font-medium">{roomName || '加载中...'}</span>
-            <span
-              className={`h-2 w-2 shrink-0 rounded-full ${
-                connectionState === 'connected' ? 'bg-success' : connectionState === 'connecting' ? 'animate-pulse bg-warning' : 'bg-danger'
-              }`}
-              title={connectionState === 'connected' ? '已连接' : connectionState === 'connecting' ? '连接中' : '已断开'}
-            />
-          </div>
+          <span className="truncate text-base font-medium">{roomName || '加载中...'}</span>
         }
         right={<ThemeToggle />}
         fallbackHref="/soul"
