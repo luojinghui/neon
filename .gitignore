@@ -45,3 +45,4 @@ config.js
 /static/
 
 .cache/
+.data/

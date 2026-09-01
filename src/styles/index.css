@@ -5,6 +5,8 @@
 @layer base {
   :root {
     --radius: 10px;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
     /* ─── Primary: 柔和橘色，温暖活泼 ─── */
     --primary: 24 85% 58%;
@@ -51,9 +53,9 @@
     --info-soft: 200 45% 93%;
 
     /* ─── Chat: 聊天气泡 ─── */
-    --chat-bubble-self: 24 75% 55%;
-    --chat-bubble-self-foreground: 0 0% 100%;
-    --chat-bubble-other: 33 18% 93%;
+    --chat-bubble-self: 27 88% 90%;
+    --chat-bubble-self-foreground: 24 55% 30%;
+    --chat-bubble-other: 35 30% 97%;
     --chat-bubble-other-foreground: 24 20% 18%;
 
     /* ─── Overlay ─── */
@@ -125,9 +127,9 @@
     --info-soft: 200 35% 16%;
 
     /* ─── Chat ─── */
-    --chat-bubble-self: 24 65% 45%;
+    --chat-bubble-self: 24 34% 27%;
     --chat-bubble-self-foreground: 0 0% 100%;
-    --chat-bubble-other: 24 10% 20%;
+    --chat-bubble-other: 24 10% 24%;
     --chat-bubble-other-foreground: 30 10% 90%;
 
     /* ─── Overlay ─── */
@@ -155,8 +157,16 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
   }
 }
 
@@ -199,4 +209,115 @@
 
 .send-btn:hover:not(:disabled) .send-icon {
   animation: rocket-launch 0.6s ease;
+}
+
+.chat-scrollbar {
+  scrollbar-color: hsl(var(--foreground-muted) / 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: hsl(var(--foreground-muted) / 0.22);
+}
+
+.chat-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground-muted) / 0.38);
+}
+
+.soul-message-image {
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: transparent;
+}
+
+.soul-message-image .ant-image {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.soul-message-image .ant-image-img {
+  display: block;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.soul-message-image .ant-image-mask {
+  display: none;
+}
+
+.soul-image-preview .ant-image-preview-mask {
+  background: transparent;
+}
+
+.soul-image-preview .ant-image-preview-wrap,
+.soul-image-preview .ant-image-preview-body {
+  overflow: hidden;
+}
+
+.soul-image-preview .ant-image-preview-img {
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.soul-image-preview .ant-image-preview-actions,
+.soul-image-preview .ant-image-preview-close {
+  overflow: hidden;
+}
+
+.soul-file-preview-modal .ant-modal-content,
+.soul-file-preview-modal .ant-modal-container {
+  overflow: hidden;
+  border-radius: calc(var(--radius) + 4px);
+}
+
+.soul-file-preview-modal .ant-modal-body {
+  overflow: hidden;
+}
+
+.docx-preview {
+  font-family: var(--font-sans);
+  line-height: 1.7;
+}
+
+.docx-preview h1,
+.docx-preview h2,
+.docx-preview h3 {
+  margin: 1.2em 0 0.55em;
+  font-weight: 600;
+}
+
+.docx-preview p,
+.docx-preview ul,
+.docx-preview ol,
+.docx-preview table {
+  margin: 0.65em 0;
+}
+
+.docx-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+.docx-preview table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.docx-preview td,
+.docx-preview th {
+  border: 1px solid #e5e7eb;
+  padding: 0.45rem 0.6rem;
 }

@@ -11,6 +11,8 @@ const PADDING_Y = 16;
 
 export function ChatInput() {
   const inputText = useSoulStore((s) => s.inputText);
+  const connectionState = useSoulStore((s) => s.connectionState);
+  const isSending = useSoulStore((s) => s.isSending);
   const editorRef = useRef<HTMLDivElement>(null);
   const hasContent = inputText.trim().length > 0;
 
@@ -29,16 +31,18 @@ export function ChatInput() {
     el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
   }, []);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const el = editorRef.current;
     if (!el) return;
 
     const text = el.innerText;
     if (!text.trim()) return;
 
-    soulChat.sendTextMessage(text);
-    el.innerText = '';
-    clampHeight();
+    const sent = await soulChat.sendTextMessage(text);
+    if (sent) {
+      el.innerText = '';
+      clampHeight();
+    }
   }, [clampHeight]);
 
   const handleKeyDown = useCallback(
@@ -87,9 +91,9 @@ export function ChatInput() {
       <button
         type="button"
         onClick={handleSend}
-        disabled={!hasContent}
+        disabled={!hasContent || isSending || connectionState !== 'connected'}
         className={`send-btn shrink-0 w-9 h-[38px] flex items-center justify-center rounded-lg transition-colors ${
-          hasContent ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-surface-hover text-foreground-muted cursor-not-allowed'
+          hasContent && !isSending && connectionState === 'connected' ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-surface-hover text-foreground-muted cursor-not-allowed'
         }`}
         aria-label="发送"
       >

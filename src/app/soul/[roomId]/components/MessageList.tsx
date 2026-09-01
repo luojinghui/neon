@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useSoulStore } from '../../store';
+import { soulChat } from '../../core';
 import { MessageBubble } from './MessageBubble';
 
 const SCROLL_THRESHOLD = 100;
@@ -13,6 +14,9 @@ type MessageListProps = {
 export function MessageList({ className = '' }: MessageListProps) {
   const messages = useSoulStore((s) => s.messages);
   const hasNewMessage = useSoulStore((s) => s.hasNewMessage);
+  const hasMoreHistory = useSoulStore((s) => s.hasMoreHistory);
+  const isLoadingHistory = useSoulStore((s) => s.isLoadingHistory);
+  const connectionState = useSoulStore((s) => s.connectionState);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
   const isNearBottomRef = useRef(true);
@@ -35,6 +39,17 @@ export function MessageList({ className = '' }: MessageListProps) {
     }
   }, []);
 
+  const handleLoadMore = useCallback(async () => {
+    const el = containerRef.current;
+    const previousHeight = el?.scrollHeight || 0;
+    await soulChat.loadMoreHistory();
+    window.requestAnimationFrame(() => {
+      if (!el) return;
+      el.scrollTop += el.scrollHeight - previousHeight;
+      useSoulStore.getState().setHasNewMessage(false);
+    });
+  }, []);
+
   useEffect(() => {
     if (messages.length === 0) return;
 
@@ -53,11 +68,31 @@ export function MessageList({ className = '' }: MessageListProps) {
   }, [scrollToBottom]);
 
   return (
-    <div className="relative flex-1 overflow-hidden">
-      <div ref={containerRef} className={`h-full overflow-y-auto pb-4 ${className}`} onScroll={handleScroll}>
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
-        ))}
+    <div className="relative w-full flex-1 overflow-hidden">
+      <div ref={containerRef} className="chat-scrollbar h-full overflow-y-auto" onScroll={handleScroll}>
+        <div className={`mx-auto flex min-h-full w-full max-w-screen-xl flex-col justify-end px-4 pb-4 ${className}`}>
+          {hasMoreHistory && (
+            <div className="flex justify-center pb-4">
+              <button
+                type="button"
+                onClick={() => void handleLoadMore()}
+                disabled={isLoadingHistory || connectionState !== 'connected'}
+                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground-secondary transition-colors hover:bg-surface-active disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoadingHistory ? '加载中...' : '加载更早消息'}
+              </button>
+            </div>
+          )}
+          {messages.length === 0 && connectionState === 'connected' && (
+            <div className="flex flex-1 flex-col items-center justify-center pb-20 text-center">
+              <div className="text-sm font-medium text-foreground">这里还很安静</div>
+              <div className="mt-1 text-xs text-foreground-muted">发送第一条消息，开启这个星球的话题。</div>
+            </div>
+          )}
+          {messages.map((msg) => (
+            <MessageBubble key={msg.id} message={msg} />
+          ))}
+        </div>
       </div>
 
       {hasNewMessage && (

@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning className={cn('font-sans antialiased bg-background text-foreground')}>
         <Suspense fallback={null}>
           <ClientThemeWrapper>{children}</ClientThemeWrapper>
