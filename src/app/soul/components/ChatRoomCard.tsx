@@ -22,9 +22,9 @@ type Props = {
 
 export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete }: Props) {
   const menuItems: MenuProps['items'] = [
-    { key: 'edit', icon: <EditOutlined />, label: '编辑聊天室' },
+    { key: 'edit', icon: <EditOutlined />, label: '编辑星球' },
     { type: 'divider' },
-    { key: 'delete', icon: <DeleteOutlined />, label: '删除聊天室', danger: true }
+    { key: 'delete', icon: <DeleteOutlined />, label: '删除星球', danger: true }
   ];
 
   return (
@@ -38,7 +38,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
                  hover:shadow-md hover:-translate-y-1
                  bg-surface backdrop-blur-sm
                  hover:border-primary/50"
-      aria-label={`进入聊天室：${room.name}`}
+      aria-label={`进入星球：${room.name}`}
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2">{room.name}</h3>
@@ -61,7 +61,7 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete 
                 type="button"
                 onClick={(event) => event.stopPropagation()}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground"
-                aria-label={`管理聊天室：${room.name}`}
+                aria-label={`管理星球：${room.name}`}
               >
                 <EllipsisOutlined />
               </button>

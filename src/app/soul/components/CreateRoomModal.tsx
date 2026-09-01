@@ -61,18 +61,18 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
   };
 
   return (
-    <Modal title={isEditing ? '编辑星球聊天室' : '创建星球聊天室'} open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={460}>
+    <Modal title={isEditing ? '编辑星球' : '创建星球'} open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={460}>
       <form className="space-y-3 pt-1" onSubmit={handleSubmit}>
         <div>
           <label htmlFor="room-name" className="mb-1 block text-sm font-medium text-foreground">
-            房间名
+            星球名
           </label>
           <input
             id="room-name"
             value={name}
             maxLength={32}
             onChange={(event) => setName(event.target.value)}
-            placeholder="给这个房间起个名字"
+            placeholder="给这个星球起个名字"
             className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
           />
         </div>
@@ -109,8 +109,8 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
         <div className="space-y-2 rounded-lg border border-border bg-surface-hover p-3">
           <Checkbox checked={isPrivate} onChange={(event) => setIsPrivate(event.target.checked)} className="w-full items-start">
               <span className="pl-1">
-                <span className="block text-sm font-medium text-foreground">私密聊天室</span>
-                <span className="mt-0.5 block text-xs text-foreground-muted">仅展示在私密列表，也可通过聊天室 ID 精确搜索。</span>
+                <span className="block text-sm font-medium text-foreground">私密星球</span>
+                <span className="mt-0.5 block text-xs text-foreground-muted">仅展示在私密列表，也可通过星球 ID 精确搜索。</span>
               </span>
           </Checkbox>
 
@@ -123,7 +123,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
 
           {passwordEnabled && (
             <input
-              aria-label="聊天室密码"
+              aria-label="星球密码"
               type="password"
               value={password}
               minLength={2}
@@ -147,7 +147,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             disabled={isSaving || !name.trim() || (passwordEnabled && (password ? !/^[A-Za-z0-9]{2,4}$/.test(password) : !room?.hasPassword))}
             className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSaving ? '保存中...' : isEditing ? '保存修改' : '创建并进入'}
+            {isSaving ? '保存中...' : isEditing ? '保存修改' : '创建星球'}
           </button>
         </div>
       </form>

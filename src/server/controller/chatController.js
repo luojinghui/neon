@@ -144,14 +144,14 @@ const onSocket = (socket, io) => {
 
   socket.on('chat:history', (payload, ack) => {
     respond(ack, () => {
-      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入聊天室');
+      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
       return repository.getHistory(payload.roomId, { before: payload?.before, limit: payload?.limit });
     });
   });
 
   socket.on('chat:send', (payload, ack) => {
     respond(ack, () => {
-      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入聊天室');
+      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
       const message = repository.addMessage(socket.data.roomId, requireUser(socket), payload);
       io.to(socket.data.roomId).emit('chat:message', message);
       broadcastRoomsChanged(io);
@@ -161,7 +161,7 @@ const onSocket = (socket, io) => {
 
   socket.on('chat:delete', (payload, ack) => {
     respond(ack, () => {
-      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入聊天室');
+      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
       const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, requireUser(socket));
       io.to(socket.data.roomId).emit('chat:deleted', { roomId: socket.data.roomId, messageId: message.id });
       broadcastRoomsChanged(io);

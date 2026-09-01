@@ -40,8 +40,8 @@ export function RoomAccessModal({ onBack }: Props) {
 
   if (accessState === 'error') {
     return (
-      <Modal title="无法进入聊天室" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
-        <p className="text-sm leading-relaxed text-foreground-secondary">{accessError || '聊天室不存在或暂时无法访问。'}</p>
+      <Modal title="无法进入星球" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
+        <p className="text-sm leading-relaxed text-foreground-secondary">{accessError || '星球不存在或暂时无法访问。'}</p>
         <div className="mt-5 flex justify-end">
           <button type="button" onClick={onBack} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover">
             返回星球列表
@@ -54,12 +54,12 @@ export function RoomAccessModal({ onBack }: Props) {
   if (accessState !== 'password-required') return null;
 
   return (
-    <Modal title="验证聊天室密码" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
+    <Modal title="验证星球密码" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
       <form onSubmit={handleSubmit}>
         <div className="mb-4 flex items-center gap-3 rounded-lg bg-primary-soft p-3 text-primary">
           <LockOutlined className="text-lg" />
           <div>
-            <div className="text-sm font-medium">该聊天室需要密码</div>
+            <div className="text-sm font-medium">该星球需要密码</div>
             <div className="mt-0.5 font-mono text-xs tracking-wider opacity-80">ID · {roomId}</div>
           </div>
         </div>

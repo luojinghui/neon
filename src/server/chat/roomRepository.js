@@ -130,7 +130,7 @@ class RoomRepository {
   }
 
   searchRoom(query) {
-    const normalized = this.requireText(query, '聊天室 ID', 80).toUpperCase();
+    const normalized = this.requireText(query, '星球 ID', 80).toUpperCase();
     return [...this.rooms.values()].find((room) => room.id.toUpperCase() === normalized || room.code.toUpperCase() === normalized) || null;
   }
 
@@ -140,7 +140,7 @@ class RoomRepository {
     const room = {
       id: code,
       code,
-      name: this.requireText(input.name, '房间名', 32),
+      name: this.requireText(input.name, '星球名', 32),
       description: this.optionalText(input.description, 200),
       tags: this.normalizeTags(input.tags),
       ownerId: owner.id,
@@ -161,7 +161,7 @@ class RoomRepository {
     const room = this.requireOwnedRoom(roomId, user);
     const updated = {
       ...room,
-      name: this.requireText(input.name, '房间名', 32),
+      name: this.requireText(input.name, '星球名', 32),
       description: this.optionalText(input.description, 200),
       tags: this.normalizeTags(input.tags),
       isPrivate: input.isPrivate === true,
@@ -184,20 +184,20 @@ class RoomRepository {
 
   verifyRoomAccess(roomId, password) {
     const room = this.rooms.get(roomId);
-    if (!room) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
+    if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     if (!room.passwordHash || !room.passwordSalt) return room;
-    if (!password) throw new RoomRepositoryError('请输入聊天室密码', 'ROOM_PASSWORD_REQUIRED');
+    if (!password) throw new RoomRepositoryError('请输入星球密码', 'ROOM_PASSWORD_REQUIRED');
     if (!PASSWORD_PATTERN.test(password)) throw new RoomRepositoryError('密码必须是 2-4 位数字或字母', 'ROOM_PASSWORD_INVALID');
     const actual = scryptSync(password, room.passwordSalt, 32);
     const expected = Buffer.from(room.passwordHash, 'hex');
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
-      throw new RoomRepositoryError('聊天室密码错误', 'ROOM_PASSWORD_INVALID');
+      throw new RoomRepositoryError('星球密码错误', 'ROOM_PASSWORD_INVALID');
     }
     return room;
   }
 
   getHistory(roomId, options = {}) {
-    if (!this.rooms.has(roomId)) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
+    if (!this.rooms.has(roomId)) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     const limit = Math.max(1, Math.min(Number(options.limit) || 50, 50));
     const before = Number(options.before) || Number.POSITIVE_INFINITY;
     const all = (this.messages.get(roomId) || []).filter((message) => message.timestamp < before).sort((a, b) => a.timestamp - b.timestamp);
@@ -206,7 +206,7 @@ class RoomRepository {
   }
 
   addMessage(roomId, user, input) {
-    if (!this.rooms.has(roomId)) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
+    if (!this.rooms.has(roomId)) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     const type = ['text', 'image', 'gif', 'file'].includes(input?.type) ? input.type : 'text';
     const content = type === 'text' ? this.requireText(input?.content, '消息', 4000) : this.optionalText(input?.content, 4000);
     const attachment = type === 'text' ? undefined : this.normalizeAttachment(input?.attachment, type);
@@ -295,8 +295,8 @@ class RoomRepository {
 
   requireOwnedRoom(roomId, user) {
     const room = this.rooms.get(roomId);
-    if (!room) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
-    if (room.isFixed || room.ownerId !== user?.id) throw new RoomRepositoryError('只有聊天室创建者可以执行此操作', 'ROOM_OWNER_REQUIRED');
+    if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    if (room.isFixed || room.ownerId !== user?.id) throw new RoomRepositoryError('只有星球创建者可以执行此操作', 'ROOM_OWNER_REQUIRED');
     return room;
   }
 
@@ -324,7 +324,7 @@ class RoomRepository {
       for (const byte of bytes) code += ROOM_CODE_ALPHABET[byte % ROOM_CODE_ALPHABET.length];
       if (!this.rooms.has(code) && !this.isCodeUsedByAnotherRoom(code)) return code;
     }
-    throw new Error('暂时无法生成聊天室 ID，请重试');
+    throw new Error('暂时无法生成星球 ID，请重试');
   }
 
   isRoomCode(value) {

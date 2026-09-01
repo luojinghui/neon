@@ -45,15 +45,15 @@ export function SearchRoomModal({ open, onClose, onJoin }: Props) {
   };
 
   return (
-    <Modal title="搜索星球聊天室" open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={480}>
+    <Modal title="搜索星球" open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={480}>
       <form className="flex gap-2 pt-1" onSubmit={handleSearch}>
         <input
           autoFocus
-          aria-label="聊天室 ID"
+          aria-label="星球 ID"
           value={query}
           maxLength={80}
           onChange={(event) => setQuery(event.target.value.replace(/\s/g, '').toUpperCase())}
-          placeholder="输入聊天室 ID，例如 AB3D"
+          placeholder="输入星球 ID，例如 AB3D"
           className="min-w-0 flex-1 rounded-lg border border-border bg-input px-3 py-2 text-sm uppercase text-input-foreground outline-none transition-colors placeholder:normal-case placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
         />
         <button
@@ -66,12 +66,12 @@ export function SearchRoomModal({ open, onClose, onJoin }: Props) {
         </button>
       </form>
 
-      <p className="mt-2 text-xs text-foreground-muted">支持精确查询公开或私密聊天室，私密聊天室不会出现在公共列表。</p>
+      <p className="mt-2 text-xs text-foreground-muted">支持精确查询公开或私密星球，私密星球不会出现在公共列表。</p>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
       {searched && !result && !error && (
-        <div className="mt-5 rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-foreground-muted">没有找到对应的聊天室，请检查 ID。</div>
+        <div className="mt-5 rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-foreground-muted">没有找到对应的星球，请检查 ID。</div>
       )}
 
       {result && (

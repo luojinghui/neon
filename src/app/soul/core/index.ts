@@ -102,7 +102,7 @@ export class SoulChat {
       passwordEnabled: input.passwordEnabled === true,
       password: input.password?.trim() || ''
     };
-    if (!normalized.name) throw new Error('请输入房间名');
+    if (!normalized.name) throw new Error('请输入星球名');
     this.validatePassword(normalized.passwordEnabled, normalized.password);
 
     const room = await this.transport.createRoom(normalized);
@@ -120,7 +120,7 @@ export class SoulChat {
       passwordEnabled: input.passwordEnabled === true,
       password: input.password?.trim() || ''
     };
-    if (!normalized.name) throw new Error('请输入房间名');
+    if (!normalized.name) throw new Error('请输入星球名');
     this.validatePassword(normalized.passwordEnabled, normalized.password, true);
     const room = await this.transport.updateRoom(normalized);
     await this.loadRooms(true);
@@ -135,7 +135,7 @@ export class SoulChat {
 
   public async searchRoom(query: string): Promise<ChatRoom | null> {
     const roomId = query.trim();
-    if (!roomId) throw new Error('请输入聊天室 ID');
+    if (!roomId) throw new Error('请输入星球 ID');
     return this.transport.searchRoom(roomId);
   }
 
@@ -292,7 +292,7 @@ export class SoulChat {
         const store = useSoulStore.getState();
         store.setMessages([]);
         store.setRoom(null);
-        store.setAccessState('deleted', '聊天室已被创建者删除');
+        store.setAccessState('deleted', '星球已被创建者删除');
       })
     );
   }

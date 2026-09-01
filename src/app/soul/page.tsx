@@ -51,9 +51,8 @@ function SoulPage() {
   };
 
   const handleRoomSaved = (room: ChatRoom) => {
-    const created = !editingRoom;
     closeRoomForm();
-    if (created) enterRoom(room);
+    setActiveTab(room.isPrivate ? 'private' : 'public');
   };
 
   const openDelete = (room: ChatRoom) => {
@@ -81,22 +80,22 @@ function SoulPage() {
         middle="星球"
         right={
           <div className="flex items-center gap-2">
-            <Tooltip title="搜索聊天室" placement="bottom">
+            <Tooltip title="搜索星球" placement="bottom">
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
-                aria-label="搜索聊天室"
+                aria-label="搜索星球"
               >
                 <SearchOutlined className="text-sm" />
               </button>
             </Tooltip>
-            <Tooltip title="创建聊天室" placement="bottom">
+            <Tooltip title="创建星球" placement="bottom">
               <button
                 type="button"
                 onClick={openCreate}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
-                aria-label="创建聊天室"
+                aria-label="创建星球"
               >
                 <PlusOutlined className="text-base" />
               </button>
@@ -108,11 +107,11 @@ function SoulPage() {
 
       <main className="w-full flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-20">
         <div className="mx-auto max-w-screen-xl px-4">
-          <div className="mb-5 inline-flex rounded-lg border border-border bg-surface p-1 shadow-sm" role="tablist" aria-label="聊天室类型">
+          <div className="mb-5 inline-flex rounded-lg border border-border bg-surface p-1 shadow-sm" role="tablist" aria-label="星球类型">
             {(
               [
-                ['public', `公共聊天室 ${publicRooms.length}`],
-                ['private', `私密聊天室 ${privateRooms.length}`]
+                ['public', `公共星球 ${publicRooms.length}`],
+                ['private', `私密星球 ${privateRooms.length}`]
               ] as const
             ).map(([tab, label]) => (
               <button
@@ -147,16 +146,16 @@ function SoulPage() {
             </div>
           ) : visibleRooms.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-foreground">
-              <div className="text-base font-medium">{activeTab === 'private' ? '暂无私密聊天室' : '暂无公共聊天室'}</div>
+              <div className="text-base font-medium">{activeTab === 'private' ? '暂无私密星球' : '暂无公共星球'}</div>
               <div className="mt-2 text-center text-sm text-foreground-secondary">
-                {activeTab === 'private' ? '创建私密聊天室后，会集中显示在这里。' : '成为第一个创建星球聊天室的人吧。'}
+                {activeTab === 'private' ? '创建私密星球后，会集中显示在这里。' : '成为第一个创建星球的人吧。'}
               </div>
               <button
                 type="button"
                 onClick={openCreate}
                 className="mt-6 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active"
               >
-                创建聊天室
+                创建星球
               </button>
             </div>
           ) : (
@@ -175,9 +174,9 @@ function SoulPage() {
         }}
       />
 
-      <Modal title="删除聊天室" open={Boolean(deletingRoom)} onCancel={() => setDeletingRoom(null)} footer={null} centered destroyOnHidden width={420}>
+      <Modal title="删除星球" open={Boolean(deletingRoom)} onCancel={() => setDeletingRoom(null)} footer={null} centered destroyOnHidden width={420}>
         <p className="text-sm leading-relaxed text-foreground-secondary">
-          确定删除“{deletingRoom?.name}”吗？聊天室和全部聊天记录都会被永久移除，当前在线成员也会同步退出。
+          确定删除“{deletingRoom?.name}”吗？星球和全部聊天记录都会被永久移除，当前在线成员也会同步退出。
         </p>
         {deleteError && <p className="mt-3 text-xs text-danger">{deleteError}</p>}
         <div className="mt-5 flex justify-end gap-2">
