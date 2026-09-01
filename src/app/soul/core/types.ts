@@ -1,4 +1,5 @@
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
+export type RoomAccessState = 'joining' | 'password-required' | 'granted' | 'error' | 'deleted';
 
 export interface ChatUser {
   id: string;
@@ -7,20 +8,32 @@ export interface ChatUser {
 
 export interface ChatRoom {
   id: string;
+  code: string;
   name: string;
   description: string;
   tags: string[];
   onlineCount: number;
   status: 'online';
+  isPrivate: boolean;
+  hasPassword: boolean;
+  isOwner: boolean;
   isFixed: boolean;
   createdAt: string;
   lastMessageAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CreateRoomInput {
   name: string;
   description: string;
   tags: string[];
+  isPrivate: boolean;
+  passwordEnabled: boolean;
+  password?: string;
+}
+
+export interface UpdateRoomInput extends CreateRoomInput {
+  roomId: string;
 }
 
 export type MessageType = 'text' | 'image' | 'gif' | 'video' | 'audio' | 'file' | 'link' | 'markdown' | 'music';
@@ -62,4 +75,13 @@ export interface HistoryPage {
 
 export interface JoinRoomResult extends HistoryPage {
   room: ChatRoom;
+}
+
+export interface MessageDeletedEvent {
+  roomId: string;
+  messageId: string;
+}
+
+export interface RoomDeletedEvent {
+  roomId: string;
 }

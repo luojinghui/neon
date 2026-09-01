@@ -53,9 +53,9 @@
     --info-soft: 200 45% 93%;
 
     /* ─── Chat: 聊天气泡 ─── */
-    --chat-bubble-self: 27 88% 90%;
+    --chat-bubble-self: 27 76% 92%;
     --chat-bubble-self-foreground: 24 55% 30%;
-    --chat-bubble-other: 35 30% 97%;
+    --chat-bubble-other: 32 24% 93%;
     --chat-bubble-other-foreground: 24 20% 18%;
 
     /* ─── Overlay ─── */
@@ -237,7 +237,9 @@
   isolation: isolate;
   overflow: hidden;
   border-radius: var(--radius);
-  background: transparent;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
 }
 
 .soul-message-image .ant-image {
@@ -245,13 +247,16 @@
   max-width: 100%;
   overflow: hidden;
   border-radius: inherit;
-  background: transparent;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
 }
 
 .soul-message-image .ant-image-img {
   display: block;
   border-radius: inherit;
-  background: transparent;
+  background: transparent !important;
+  box-shadow: none;
 }
 
 .soul-message-image .ant-image-mask {
@@ -259,17 +264,23 @@
 }
 
 .soul-image-preview .ant-image-preview-mask {
-  background: transparent;
+  background: transparent !important;
 }
 
 .soul-image-preview .ant-image-preview-wrap,
-.soul-image-preview .ant-image-preview-body {
+.soul-image-preview .ant-image-preview-body,
+.soul-image-preview .ant-image-preview-content,
+.soul-image-preview .ant-image-preview-img-wrapper {
   overflow: hidden;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .soul-image-preview .ant-image-preview-img {
   overflow: hidden;
   border-radius: var(--radius);
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .soul-image-preview .ant-image-preview-actions,

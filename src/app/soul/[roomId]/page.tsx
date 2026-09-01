@@ -2,7 +2,7 @@
 
 import '@/styles/index.css';
 import { useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { soulChat } from '../core';
@@ -10,11 +10,14 @@ import { useSoulStore } from '../store';
 import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { ChatToolbar } from './components/ChatToolbar';
+import { RoomAccessModal } from './components/RoomAccessModal';
 
 function ChatRoomPage() {
   const params = useParams<{ roomId: string }>();
+  const router = useRouter();
   const roomName = useSoulStore((s) => s.roomName);
   const connectionState = useSoulStore((s) => s.connectionState);
+  const accessState = useSoulStore((s) => s.accessState);
 
   useEffect(() => {
     void soulChat.initRoom(params.roomId);
@@ -23,6 +26,10 @@ function ChatRoomPage() {
       soulChat.destroy();
     };
   }, [params.roomId]);
+
+  useEffect(() => {
+    if (accessState === 'deleted') router.replace('/soul');
+  }, [accessState, router]);
 
   return (
     <div className="h-screen w-full bg-background flex flex-col select-none">
@@ -43,13 +50,17 @@ function ChatRoomPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <MessageList className="pt-20" />
+        {accessState === 'granted' ? <MessageList className="pt-20" /> : <div className="flex-1" />}
 
-        <div className="mx-auto w-full max-w-screen-xl shrink-0 px-4 pb-3 pt-3">
-          <ChatInput />
-          <ChatToolbar />
-        </div>
+        {accessState === 'granted' && (
+          <div className="mx-auto w-full max-w-screen-xl shrink-0 px-4 pb-3 pt-3">
+            <ChatInput />
+            <ChatToolbar />
+          </div>
+        )}
       </div>
+
+      <RoomAccessModal onBack={() => router.replace('/soul')} />
     </div>
   );
 }

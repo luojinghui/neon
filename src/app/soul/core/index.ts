@@ -1,6 +1,15 @@
 import { useSoulStore } from '../store';
-import { SocketChatTransport } from './socketTransport';
-import type { ChatAttachment, ChatMessage, ChatRoom, ChatUser, CreateRoomInput, OutgoingMessage, ServerChatMessage } from './types';
+import { SocketChatError, SocketChatTransport } from './socketTransport';
+import type {
+  ChatAttachment,
+  ChatMessage,
+  ChatRoom,
+  ChatUser,
+  CreateRoomInput,
+  OutgoingMessage,
+  ServerChatMessage,
+  UpdateRoomInput
+} from './types';
 
 const USER_STORAGE_KEY = 'soul:guest-user';
 const CACHE_PREFIX = 'soul:room-cache:';
@@ -13,6 +22,7 @@ export class SoulChat {
   private user: ChatUser | null = null;
   private mode: CoreMode = null;
   private roomId = '';
+  private roomPassword = '';
   private sessionId = 0;
   private unsubscribers: Array<() => void> = [];
 
@@ -26,7 +36,7 @@ export class SoulChat {
     store.setConnectionState('connecting');
 
     try {
-      await this.transport.connect();
+      await this.transport.connect(this.user);
       if (sessionId !== this.sessionId || this.mode !== 'list') return;
       this.bindCommonEvents();
       store.setConnectionState('connected');
@@ -43,24 +53,21 @@ export class SoulChat {
     const sessionId = ++this.sessionId;
     this.mode = 'room';
     this.roomId = roomId;
+    this.roomPassword = '';
     this.user = this.getOrCreateGuest();
     const store = useSoulStore.getState();
     store.prepareRoom(roomId);
     store.setConnectionState('connecting');
-    const cachedMessages = this.loadCachedMessages(roomId);
-    if (cachedMessages.length > 0) store.setMessages(cachedMessages);
-
     try {
-      await this.transport.connect();
+      await this.transport.connect(this.user);
       if (sessionId !== this.sessionId || this.mode !== 'room' || this.roomId !== roomId) return;
       this.bindCommonEvents();
-      this.unsubscribers.push(this.transport.onMessage((message) => this.handleIncomingMessage(message)));
+      this.bindRoomEvents();
       store.setConnectionState('connected');
       await this.joinRoom(roomId);
     } catch (error) {
       if (sessionId !== this.sessionId || this.mode !== 'room' || this.roomId !== roomId) return;
-      store.setConnectionState('error');
-      store.setChatError(this.getErrorMessage(error));
+      this.handleJoinError(error);
     }
   }
 
@@ -68,15 +75,16 @@ export class SoulChat {
     this.sessionId += 1;
     this.mode = null;
     this.roomId = '';
+    this.roomPassword = '';
     for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe();
     this.transport.leaveRoom().catch(() => undefined);
     this.transport.disconnect();
     useSoulStore.getState().reset();
   }
 
-  public async loadRooms(): Promise<void> {
+  public async loadRooms(silent = false): Promise<void> {
     const store = useSoulStore.getState();
-    store.setRoomsState('loading');
+    if (!silent) store.setRoomsState('loading');
     try {
       const rooms = await this.transport.listRooms();
       if (this.mode === 'list') store.setRooms(rooms);
@@ -89,13 +97,60 @@ export class SoulChat {
     const normalized = {
       name: input.name.trim(),
       description: input.description.trim(),
-      tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 5)
+      tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 5),
+      isPrivate: input.isPrivate === true,
+      passwordEnabled: input.passwordEnabled === true,
+      password: input.password?.trim() || ''
     };
     if (!normalized.name) throw new Error('请输入房间名');
+    this.validatePassword(normalized.passwordEnabled, normalized.password);
 
     const room = await this.transport.createRoom(normalized);
-    await this.loadRooms();
+    await this.loadRooms(true);
     return room;
+  }
+
+  public async updateRoom(input: UpdateRoomInput): Promise<ChatRoom> {
+    const normalized = {
+      roomId: input.roomId,
+      name: input.name.trim(),
+      description: input.description.trim(),
+      tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 5),
+      isPrivate: input.isPrivate === true,
+      passwordEnabled: input.passwordEnabled === true,
+      password: input.password?.trim() || ''
+    };
+    if (!normalized.name) throw new Error('请输入房间名');
+    this.validatePassword(normalized.passwordEnabled, normalized.password, true);
+    const room = await this.transport.updateRoom(normalized);
+    await this.loadRooms(true);
+    return room;
+  }
+
+  public async deleteRoom(roomId: string): Promise<void> {
+    await this.transport.deleteRoom(roomId);
+    this.removeRoomCache(roomId);
+    await this.loadRooms(true);
+  }
+
+  public async searchRoom(query: string): Promise<ChatRoom | null> {
+    const roomId = query.trim();
+    if (!roomId) throw new Error('请输入聊天室 ID');
+    return this.transport.searchRoom(roomId);
+  }
+
+  public async submitRoomPassword(password: string): Promise<boolean> {
+    const normalized = password.trim();
+    this.validatePassword(true, normalized);
+    this.roomPassword = normalized;
+    useSoulStore.getState().setAccessState('joining');
+    try {
+      await this.joinRoom(this.roomId);
+      return true;
+    } catch (error) {
+      this.handleJoinError(error);
+      return false;
+    }
   }
 
   public async sendTextMessage(text: string): Promise<boolean> {
@@ -196,6 +251,20 @@ export class SoulChat {
     void this.downloadAttachment(message.attachment);
   }
 
+  public async deleteMessage(messageId: string): Promise<boolean> {
+    if (!this.roomId || !messageId) return false;
+    const store = useSoulStore.getState();
+    store.setChatError('');
+    try {
+      await this.transport.deleteMessage(this.roomId, messageId);
+      this.handleDeletedMessage(this.roomId, messageId);
+      return true;
+    } catch (error) {
+      store.setChatError(this.getErrorMessage(error));
+      return false;
+    }
+  }
+
   private bindCommonEvents(): void {
     this.unsubscribers.push(
       this.transport.onConnectionChange((connected) => {
@@ -204,24 +273,39 @@ export class SoulChat {
         if (this.mode === 'list') void this.loadRooms();
         if (this.mode === 'room') void this.rejoinRoom();
       }),
-      this.transport.onRoomsChanged((rooms) => {
-        if (this.mode === 'list') useSoulStore.getState().setRooms(rooms);
-        if (this.mode === 'room') {
-          const currentRoom = rooms.find((room) => room.id === this.roomId);
-          if (currentRoom) useSoulStore.getState().setRoom(currentRoom);
-        }
+      this.transport.onRoomsChanged(() => {
+        if (this.mode === 'list') void this.loadRooms(true);
+      })
+    );
+  }
+
+  private bindRoomEvents(): void {
+    this.unsubscribers.push(
+      this.transport.onMessage((message) => this.handleIncomingMessage(message)),
+      this.transport.onMessageDeleted((event) => this.handleDeletedMessage(event.roomId, event.messageId)),
+      this.transport.onRoomUpdated((room) => {
+        if (this.mode === 'room' && room.id === this.roomId) useSoulStore.getState().setRoom(room);
+      }),
+      this.transport.onRoomDeleted((event) => {
+        if (this.mode !== 'room' || event.roomId !== this.roomId) return;
+        this.removeRoomCache(event.roomId);
+        const store = useSoulStore.getState();
+        store.setMessages([]);
+        store.setRoom(null);
+        store.setAccessState('deleted', '聊天室已被创建者删除');
       })
     );
   }
 
   private async joinRoom(roomId: string): Promise<void> {
     if (!this.user) return;
-    const result = await this.transport.joinRoom(roomId, this.user);
+    const result = await this.transport.joinRoom(roomId, this.roomPassword);
     if (this.mode !== 'room' || this.roomId !== roomId) return;
     const store = useSoulStore.getState();
     store.setRoom(result.room);
-    store.mergeMessages(this.toClientMessages(result.messages));
+    store.setMessages(this.toClientMessages(result.messages));
     store.setHistoryState(result.before, result.hasMore);
+    store.setAccessState('granted');
     this.cacheMessages(roomId, useSoulStore.getState().messages);
   }
 
@@ -230,7 +314,7 @@ export class SoulChat {
     try {
       await this.joinRoom(this.roomId);
     } catch (error) {
-      useSoulStore.getState().setChatError(this.getErrorMessage(error));
+      this.handleJoinError(error);
     }
   }
 
@@ -239,6 +323,13 @@ export class SoulChat {
     const clientMessage = this.toClientMessage(message);
     const store = useSoulStore.getState();
     store.mergeMessages([clientMessage]);
+    this.cacheMessages(this.roomId, useSoulStore.getState().messages);
+  }
+
+  private handleDeletedMessage(roomId: string, messageId: string): void {
+    if (this.mode !== 'room' || roomId !== this.roomId) return;
+    const store = useSoulStore.getState();
+    store.removeMessage(messageId);
     this.cacheMessages(this.roomId, useSoulStore.getState().messages);
   }
 
@@ -275,21 +366,38 @@ export class SoulChat {
     return user;
   }
 
-  private loadCachedMessages(roomId: string): ChatMessage[] {
-    try {
-      const cached = JSON.parse(localStorage.getItem(`${CACHE_PREFIX}${roomId}`) || '[]') as ChatMessage[];
-      return Array.isArray(cached) ? cached : [];
-    } catch {
-      return [];
-    }
-  }
-
   private cacheMessages(roomId: string, messages: ChatMessage[]): void {
     try {
       localStorage.setItem(`${CACHE_PREFIX}${roomId}`, JSON.stringify(messages.slice(-CACHE_LIMIT)));
     } catch {
       // Storage can be unavailable in private browsing; the socket history remains authoritative.
     }
+  }
+
+  private removeRoomCache(roomId: string): void {
+    try {
+      localStorage.removeItem(`${CACHE_PREFIX}${roomId}`);
+    } catch {
+      // The server remains authoritative when browser storage is unavailable.
+    }
+  }
+
+  private handleJoinError(error: unknown): void {
+    const store = useSoulStore.getState();
+    const message = this.getErrorMessage(error);
+    if (error instanceof SocketChatError && ['ROOM_PASSWORD_REQUIRED', 'ROOM_PASSWORD_INVALID'].includes(error.code)) {
+      this.roomPassword = '';
+      store.setAccessState('password-required', error.code === 'ROOM_PASSWORD_INVALID' ? message : '');
+      return;
+    }
+    store.setAccessState('error', message);
+    store.setChatError(message);
+  }
+
+  private validatePassword(enabled: boolean, password: string, allowBlank = false): void {
+    if (!enabled) return;
+    if (allowBlank && !password) return;
+    if (!/^[A-Za-z0-9]{2,4}$/.test(password)) throw new Error('密码必须是 2-4 位数字或字母');
   }
 
   private getErrorMessage(error: unknown): string {
@@ -313,4 +421,4 @@ export class SoulChat {
 }
 
 export const soulChat = new SoulChat();
-export type { ChatMessage, ChatRoom, CreateRoomInput } from './types';
+export type { ChatMessage, ChatRoom, CreateRoomInput, UpdateRoomInput } from './types';

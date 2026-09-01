@@ -32,7 +32,8 @@ function MessageContent({
         <PreviewImage
           src={url}
           alt={message.attachment?.name || message.content || '图片'}
-          preview={{ mask: null, rootClassName: 'soul-image-preview' }}
+          preview={{ mask: null }}
+          classNames={{ popup: { root: 'soul-image-preview' } }}
           className="block max-h-72 w-auto max-w-full object-contain"
           fallback="/source/index.png"
         />
@@ -70,9 +71,9 @@ function MessageContent({
           onToggleActions(event);
         }
       }}
-      className={`max-w-[min(560px,70vw)] cursor-pointer select-text whitespace-pre-wrap break-words rounded-lg px-3 py-2 leading-relaxed ${
-        message.content.length <= 4 ? 'text-2xl' : 'text-sm'
-      } ${message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'}`}
+      className={`max-w-[min(560px,70vw)] cursor-pointer select-text overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-base leading-relaxed ${
+        message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'
+      }`}
     >
       {message.content}
     </div>

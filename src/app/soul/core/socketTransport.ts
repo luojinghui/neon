@@ -1,16 +1,36 @@
 import { io, type Socket } from 'socket.io-client';
-import type { ChatRoom, ChatUser, CreateRoomInput, HistoryPage, JoinRoomResult, OutgoingMessage, ServerChatMessage } from './types';
+import type {
+  ChatRoom,
+  ChatUser,
+  CreateRoomInput,
+  HistoryPage,
+  JoinRoomResult,
+  MessageDeletedEvent,
+  OutgoingMessage,
+  RoomDeletedEvent,
+  ServerChatMessage,
+  UpdateRoomInput
+} from './types';
 
-type Ack<T> = { ok: true; data: T } | { ok: false; error: string };
+type Ack<T> = { ok: true; data: T } | { ok: false; error: string; code?: string };
 type Unsubscribe = () => void;
+
+export class SocketChatError extends Error {
+  constructor(message: string, public readonly code = '') {
+    super(message);
+    this.name = 'SocketChatError';
+  }
+}
 
 export class SocketChatTransport {
   private socket: Socket | null = null;
 
-  public connect(): Promise<void> {
+  public connect(user: ChatUser): Promise<void> {
     if (this.socket?.connected) return Promise.resolve();
     if (!this.socket) {
-      this.socket = io({ path: '/im', autoConnect: false, transports: ['websocket', 'polling'] });
+      this.socket = io({ path: '/im', autoConnect: false, transports: ['websocket', 'polling'], auth: { user } });
+    } else {
+      this.socket.auth = { user };
     }
 
     return new Promise((resolve, reject) => {
@@ -52,8 +72,20 @@ export class SocketChatTransport {
     return this.emitWithAck<ChatRoom>('rooms:create', input);
   }
 
-  public joinRoom(roomId: string, user: ChatUser): Promise<JoinRoomResult> {
-    return this.emitWithAck<JoinRoomResult>('room:join', { roomId, user });
+  public updateRoom(input: UpdateRoomInput): Promise<ChatRoom> {
+    return this.emitWithAck<ChatRoom>('rooms:update', input);
+  }
+
+  public deleteRoom(roomId: string): Promise<{ roomId: string }> {
+    return this.emitWithAck<{ roomId: string }>('rooms:delete', { roomId });
+  }
+
+  public searchRoom(query: string): Promise<ChatRoom | null> {
+    return this.emitWithAck<ChatRoom | null>('rooms:search', { query });
+  }
+
+  public joinRoom(roomId: string, password = ''): Promise<JoinRoomResult> {
+    return this.emitWithAck<JoinRoomResult>('room:join', { roomId, password });
   }
 
   public leaveRoom(): Promise<null> {
@@ -68,16 +100,38 @@ export class SocketChatTransport {
     return this.emitWithAck<ServerChatMessage>('chat:send', { roomId, ...message });
   }
 
+  public deleteMessage(roomId: string, messageId: string): Promise<MessageDeletedEvent> {
+    return this.emitWithAck<MessageDeletedEvent>('chat:delete', { roomId, messageId });
+  }
+
   public onMessage(listener: (message: ServerChatMessage) => void): Unsubscribe {
     const socket = this.requireSocket();
     socket.on('chat:message', listener);
     return () => socket.off('chat:message', listener);
   }
 
-  public onRoomsChanged(listener: (rooms: ChatRoom[]) => void): Unsubscribe {
+  public onMessageDeleted(listener: (event: MessageDeletedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('chat:deleted', listener);
+    return () => socket.off('chat:deleted', listener);
+  }
+
+  public onRoomsChanged(listener: () => void): Unsubscribe {
     const socket = this.requireSocket();
     socket.on('rooms:changed', listener);
     return () => socket.off('rooms:changed', listener);
+  }
+
+  public onRoomUpdated(listener: (room: ChatRoom) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:updated', listener);
+    return () => socket.off('room:updated', listener);
+  }
+
+  public onRoomDeleted(listener: (event: RoomDeletedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:deleted', listener);
+    return () => socket.off('room:deleted', listener);
   }
 
   public onConnectionChange(listener: (connected: boolean) => void): Unsubscribe {
@@ -101,7 +155,7 @@ export class SocketChatTransport {
       const ack = (response: Ack<T>) => {
         window.clearTimeout(timer);
         if (response?.ok) resolve(response.data);
-        else reject(new Error(response?.error || '请求失败'));
+        else reject(new SocketChatError(response?.error || '请求失败', response?.code));
       };
 
       if (payload === undefined) socket.emit(event, ack);

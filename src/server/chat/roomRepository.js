@@ -1,29 +1,50 @@
 const fs = require('fs');
 const path = require('path');
-const { randomUUID } = require('crypto');
+const { randomBytes, randomUUID, scryptSync, timingSafeEqual } = require('crypto');
+
+const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_LENGTH = 4;
+const PASSWORD_PATTERN = /^[A-Za-z0-9]{2,4}$/;
+
+class RoomRepositoryError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = 'RoomRepositoryError';
+    this.code = code;
+  }
+}
 
 const DEFAULT_ROOMS = [
   {
     id: 'soul-harbor',
+    code: 'LH01',
     name: '灵魂港湾',
     description: '一个不赶时间的角落，聊聊今天的心情和此刻的想法。',
     tags: ['日常', '倾听', '治愈'],
+    ownerId: 'planet-system',
+    isPrivate: false,
     isFixed: true,
     createdAt: '2026-01-01T00:00:00.000Z'
   },
   {
     id: 'starlight-camp',
+    code: 'XL01',
     name: '星光露营地',
     description: '分享在路上的故事、喜欢的音乐，以及那些偶然遇见的微光。',
     tags: ['故事', '音乐', '旅行'],
+    ownerId: 'planet-system',
+    isPrivate: false,
     isFixed: true,
     createdAt: '2026-01-01T00:01:00.000Z'
   },
   {
     id: 'inspiration-orbit',
+    code: 'LG01',
     name: '灵感轨道',
     description: '让未成形的点子先在这里相遇，一起讨论创作、科技和未来。',
     tags: ['灵感', '创作', '科技'],
+    ownerId: 'planet-system',
+    isPrivate: false,
     isFixed: true,
     createdAt: '2026-01-01T00:02:00.000Z'
   }
@@ -44,11 +65,13 @@ const DEFAULT_MESSAGES = DEFAULT_ROOMS.map((room, index) => ({
 }));
 
 class RoomRepository {
-  constructor() {
-    this.dataFile = process.env.SOUL_CHAT_DATA_FILE || path.join(process.cwd(), '.data', 'soul-chat.json');
+  constructor(options = {}) {
+    this.dataFile = options.dataFile || process.env.SOUL_CHAT_DATA_FILE || path.join(process.cwd(), '.data', 'soul-chat.json');
+    this.uploadDirectory = options.uploadDirectory || path.join(process.cwd(), 'public', 'uploads', 'soul');
     this.rooms = new Map(DEFAULT_ROOMS.map((room) => [room.id, room]));
     this.messages = new Map(DEFAULT_ROOMS.map((room) => [room.id, DEFAULT_MESSAGES.filter((message) => message.roomId === room.id)]));
     this.writeQueue = Promise.resolve();
+    this.cleanupQueue = Promise.resolve();
     this.load();
   }
 
@@ -56,8 +79,26 @@ class RoomRepository {
     try {
       if (!fs.existsSync(this.dataFile)) return;
       const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
-      for (const room of Array.isArray(data.rooms) ? data.rooms : []) {
-        if (room && room.id) this.rooms.set(room.id, room);
+      let migrated = false;
+      for (const storedRoom of Array.isArray(data.rooms) ? data.rooms : []) {
+        if (!storedRoom?.id) continue;
+        const existing = this.rooms.get(storedRoom.id) || {};
+        const room = { ...existing, ...storedRoom };
+        if (!this.isRoomCode(room.code) || this.isCodeUsedByAnotherRoom(room.code, room.id)) {
+          room.code = this.generateRoomCode();
+          migrated = true;
+        } else {
+          room.code = room.code.toUpperCase();
+        }
+        if (!room.ownerId) {
+          room.ownerId = room.isFixed ? 'planet-system' : 'legacy-owner';
+          migrated = true;
+        }
+        if (typeof room.isPrivate !== 'boolean') {
+          room.isPrivate = false;
+          migrated = true;
+        }
+        this.rooms.set(room.id, room);
       }
       for (const message of Array.isArray(data.messages) ? data.messages : []) {
         if (!message || !this.rooms.has(message.roomId)) continue;
@@ -65,13 +106,18 @@ class RoomRepository {
         if (!roomMessages.some((item) => item.id === message.id)) roomMessages.push(message);
         this.messages.set(message.roomId, roomMessages);
       }
+      if (migrated) this.persist();
     } catch (error) {
       console.error('Soul chat data could not be loaded:', error.message);
     }
   }
 
   listRooms() {
-    return [...this.rooms.values()].sort((a, b) => {
+    return this.sortRooms([...this.rooms.values()]);
+  }
+
+  sortRooms(rooms) {
+    return rooms.sort((a, b) => {
       if (a.isFixed !== b.isFixed) return a.isFixed ? -1 : 1;
       if (a.isFixed) return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       const activityDiff = new Date(b.lastMessageAt || b.createdAt).getTime() - new Date(a.lastMessageAt || a.createdAt).getTime();
@@ -83,19 +129,27 @@ class RoomRepository {
     return this.rooms.get(roomId) || null;
   }
 
-  createRoom(input) {
-    const name = this.requireText(input.name, '房间名', 32);
-    const description = this.optionalText(input.description, 200);
-    const tags = [...new Set((Array.isArray(input.tags) ? input.tags : []).map((tag) => this.optionalText(tag, 12)).filter(Boolean))].slice(0, 5);
+  searchRoom(query) {
+    const normalized = this.requireText(query, '聊天室 ID', 80).toUpperCase();
+    return [...this.rooms.values()].find((room) => room.id.toUpperCase() === normalized || room.code.toUpperCase() === normalized) || null;
+  }
+
+  createRoom(input, user) {
+    const owner = this.normalizeUser(user);
+    const code = this.generateRoomCode();
     const room = {
-      id: `room-${randomUUID()}`,
-      name,
-      description,
-      tags,
+      id: code,
+      code,
+      name: this.requireText(input.name, '房间名', 32),
+      description: this.optionalText(input.description, 200),
+      tags: this.normalizeTags(input.tags),
+      ownerId: owner.id,
+      isPrivate: input.isPrivate === true,
       isFixed: false,
       createdAt: new Date().toISOString(),
       lastMessageAt: null
     };
+    this.applyPassword(room, input.passwordEnabled === true, input.password);
 
     this.rooms.set(room.id, room);
     this.messages.set(room.id, []);
@@ -103,18 +157,56 @@ class RoomRepository {
     return room;
   }
 
+  updateRoom(roomId, input, user) {
+    const room = this.requireOwnedRoom(roomId, user);
+    const updated = {
+      ...room,
+      name: this.requireText(input.name, '房间名', 32),
+      description: this.optionalText(input.description, 200),
+      tags: this.normalizeTags(input.tags),
+      isPrivate: input.isPrivate === true,
+      updatedAt: new Date().toISOString()
+    };
+    this.applyPassword(updated, input.passwordEnabled === true, input.password);
+    this.rooms.set(room.id, updated);
+    this.persist();
+    return updated;
+  }
+
+  deleteRoom(roomId, user) {
+    const room = this.requireOwnedRoom(roomId, user);
+    for (const message of this.messages.get(room.id) || []) this.deleteStoredAttachment(message);
+    this.rooms.delete(room.id);
+    this.messages.delete(room.id);
+    this.persist();
+    return room;
+  }
+
+  verifyRoomAccess(roomId, password) {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
+    if (!room.passwordHash || !room.passwordSalt) return room;
+    if (!password) throw new RoomRepositoryError('请输入聊天室密码', 'ROOM_PASSWORD_REQUIRED');
+    if (!PASSWORD_PATTERN.test(password)) throw new RoomRepositoryError('密码必须是 2-4 位数字或字母', 'ROOM_PASSWORD_INVALID');
+    const actual = scryptSync(password, room.passwordSalt, 32);
+    const expected = Buffer.from(room.passwordHash, 'hex');
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+      throw new RoomRepositoryError('聊天室密码错误', 'ROOM_PASSWORD_INVALID');
+    }
+    return room;
+  }
+
   getHistory(roomId, options = {}) {
-    if (!this.rooms.has(roomId)) throw new Error('聊天室不存在');
+    if (!this.rooms.has(roomId)) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
     const limit = Math.max(1, Math.min(Number(options.limit) || 50, 50));
     const before = Number(options.before) || Number.POSITIVE_INFINITY;
     const all = (this.messages.get(roomId) || []).filter((message) => message.timestamp < before).sort((a, b) => a.timestamp - b.timestamp);
     const page = all.slice(-limit);
-
     return { messages: page, hasMore: all.length > page.length, before: page.length > 0 ? page[0].timestamp : null };
   }
 
   addMessage(roomId, user, input) {
-    if (!this.rooms.has(roomId)) throw new Error('聊天室不存在');
+    if (!this.rooms.has(roomId)) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
     const type = ['text', 'image', 'gif', 'file'].includes(input?.type) ? input.type : 'text';
     const content = type === 'text' ? this.requireText(input?.content, '消息', 4000) : this.optionalText(input?.content, 4000);
     const attachment = type === 'text' ? undefined : this.normalizeAttachment(input?.attachment, type);
@@ -135,6 +227,45 @@ class RoomRepository {
     this.rooms.set(roomId, { ...this.rooms.get(roomId), lastMessageAt: new Date(message.timestamp).toISOString() });
     this.persist();
     return message;
+  }
+
+  deleteMessage(roomId, messageId, user) {
+    const room = this.requireOwnedRoom(roomId, user);
+    const roomMessages = this.messages.get(room.id) || [];
+    const messageIndex = roomMessages.findIndex((message) => message.id === messageId);
+    if (messageIndex < 0) throw new RoomRepositoryError('消息不存在或已被删除', 'MESSAGE_NOT_FOUND');
+    const [message] = roomMessages.splice(messageIndex, 1);
+    const latestMessage = roomMessages[roomMessages.length - 1];
+    this.messages.set(room.id, roomMessages);
+    this.rooms.set(room.id, { ...room, lastMessageAt: latestMessage ? new Date(latestMessage.timestamp).toISOString() : null });
+    this.deleteStoredAttachment(message);
+    this.persist();
+    return message;
+  }
+
+  deleteStoredAttachment(message) {
+    const match = /^\/uploads\/soul\/([a-f0-9-]+\.(?:png|jpg|webp|gif|pdf|doc|docx|txt|md|json|csv|xls|xlsx|ppt|pptx|bin))$/.exec(message?.attachment?.url || '');
+    if (!match) return this.cleanupQueue;
+    this.cleanupQueue = this.cleanupQueue.then(() => fs.promises.unlink(path.join(this.uploadDirectory, match[1]))).catch((error) => {
+      if (error.code !== 'ENOENT') console.error('Soul chat attachment could not be deleted:', error.message);
+    });
+    return this.cleanupQueue;
+  }
+
+  toPublicRoom(room) {
+    return {
+      id: room.id,
+      code: room.code,
+      name: room.name,
+      description: room.description,
+      tags: room.tags,
+      isPrivate: room.isPrivate === true,
+      hasPassword: Boolean(room.passwordHash),
+      isFixed: room.isFixed === true,
+      createdAt: room.createdAt,
+      lastMessageAt: room.lastMessageAt || null,
+      updatedAt: room.updatedAt || null
+    };
   }
 
   normalizeAttachment(input, type) {
@@ -162,6 +293,50 @@ class RoomRepository {
     };
   }
 
+  requireOwnedRoom(roomId, user) {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new RoomRepositoryError('聊天室不存在', 'ROOM_NOT_FOUND');
+    if (room.isFixed || room.ownerId !== user?.id) throw new RoomRepositoryError('只有聊天室创建者可以执行此操作', 'ROOM_OWNER_REQUIRED');
+    return room;
+  }
+
+  applyPassword(room, enabled, password) {
+    if (!enabled) {
+      delete room.passwordHash;
+      delete room.passwordSalt;
+      return;
+    }
+    if (!password && room.passwordHash && room.passwordSalt) return;
+    if (!PASSWORD_PATTERN.test(password || '')) throw new RoomRepositoryError('密码必须是 2-4 位数字或字母', 'ROOM_PASSWORD_INVALID');
+    const salt = randomBytes(16).toString('hex');
+    room.passwordSalt = salt;
+    room.passwordHash = scryptSync(password, salt, 32).toString('hex');
+  }
+
+  normalizeTags(input) {
+    return [...new Set((Array.isArray(input) ? input : []).map((tag) => this.optionalText(tag, 12)).filter(Boolean))].slice(0, 5);
+  }
+
+  generateRoomCode() {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const bytes = randomBytes(ROOM_CODE_LENGTH);
+      let code = '';
+      for (const byte of bytes) code += ROOM_CODE_ALPHABET[byte % ROOM_CODE_ALPHABET.length];
+      if (!this.rooms.has(code) && !this.isCodeUsedByAnotherRoom(code)) return code;
+    }
+    throw new Error('暂时无法生成聊天室 ID，请重试');
+  }
+
+  isRoomCode(value) {
+    return typeof value === 'string' && /^[A-Za-z0-9]{2,4}$/.test(value);
+  }
+
+  isCodeUsedByAnotherRoom(code, roomId = '') {
+    if (!code) return false;
+    const normalized = code.toUpperCase();
+    return [...this.rooms.values()].some((room) => room.id !== roomId && room.code?.toUpperCase() === normalized);
+  }
+
   requireText(value, fieldName, maxLength) {
     const text = typeof value === 'string' ? value.trim() : '';
     if (!text) throw new Error(`${fieldName}不能为空`);
@@ -175,7 +350,7 @@ class RoomRepository {
   }
 
   persist() {
-    const snapshot = JSON.stringify({ rooms: this.listRooms(), messages: [...this.messages.values()].flat() }, null, 2);
+    const snapshot = JSON.stringify({ rooms: this.sortRooms([...this.rooms.values()]), messages: [...this.messages.values()].flat() }, null, 2);
     const tempFile = `${this.dataFile}.tmp`;
     this.writeQueue = this.writeQueue
       .then(async () => {
@@ -184,7 +359,8 @@ class RoomRepository {
         await fs.promises.rename(tempFile, this.dataFile);
       })
       .catch((error) => console.error('Soul chat data could not be saved:', error.message));
+    return this.writeQueue;
   }
 }
 
-module.exports = { RoomRepository };
+module.exports = { RoomRepository, RoomRepositoryError };

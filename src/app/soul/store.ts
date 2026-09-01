@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ChatMessage, ChatRoom, ConnectionState } from './core/types';
+import type { ChatMessage, ChatRoom, ConnectionState, RoomAccessState } from './core/types';
 
 type RoomsState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -10,6 +10,8 @@ interface SoulStore {
   roomId: string;
   room: ChatRoom | null;
   roomName: string;
+  accessState: RoomAccessState;
+  accessError: string;
   messages: ChatMessage[];
   inputText: string;
   connectionState: ConnectionState;
@@ -26,6 +28,8 @@ interface SoulStore {
   setRoom: (room: ChatRoom | null) => void;
   setMessages: (messages: ChatMessage[]) => void;
   mergeMessages: (messages: ChatMessage[]) => void;
+  removeMessage: (messageId: string) => void;
+  setAccessState: (state: RoomAccessState, error?: string) => void;
   setInputText: (text: string) => void;
   setConnectionState: (state: ConnectionState) => void;
   setHasNewMessage: (has: boolean) => void;
@@ -51,6 +55,8 @@ const initialState = {
   roomId: '',
   room: null as ChatRoom | null,
   roomName: '',
+  accessState: 'joining' as RoomAccessState,
+  accessError: '',
   messages: [] as ChatMessage[],
   inputText: '',
   connectionState: 'disconnected' as ConnectionState,
@@ -70,6 +76,8 @@ export const useSoulStore = create<SoulStore>((set) => ({
   setRoom: (room) => set({ room, roomId: room?.id || '', roomName: room?.name || '' }),
   setMessages: (messages) => set({ messages: mergeById([], messages) }),
   mergeMessages: (messages) => set((state) => ({ messages: mergeById(state.messages, messages) })),
+  removeMessage: (messageId) => set((state) => ({ messages: state.messages.filter((message) => message.id !== messageId) })),
+  setAccessState: (accessState, accessError = '') => set({ accessState, accessError }),
   setInputText: (inputText) => set({ inputText }),
   setConnectionState: (connectionState) => set({ connectionState }),
   setHasNewMessage: (hasNewMessage) => set({ hasNewMessage }),
@@ -83,6 +91,8 @@ export const useSoulStore = create<SoulStore>((set) => ({
       roomId,
       room: null,
       roomName: '',
+      accessState: 'joining',
+      accessError: '',
       messages: [],
       inputText: '',
       hasNewMessage: false,

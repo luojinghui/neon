@@ -1,5 +1,7 @@
 'use client';
 
+import { DeleteOutlined, EditOutlined, EllipsisOutlined, LockOutlined } from '@ant-design/icons';
+import { Dropdown, type MenuProps } from 'antd';
 import type { ChatRoom } from './types';
 
 function handleCardKeyDown(e: React.KeyboardEvent, onClick?: () => void) {
@@ -10,7 +12,21 @@ function handleCardKeyDown(e: React.KeyboardEvent, onClick?: () => void) {
   }
 }
 
-export function ChatRoomCard({ room, onClick, onPrimaryAction }: { room: ChatRoom; onClick?: () => void; onPrimaryAction?: () => void }) {
+type Props = {
+  room: ChatRoom;
+  onClick?: () => void;
+  onPrimaryAction?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+};
+
+export function ChatRoomCard({ room, onClick, onPrimaryAction, onEdit, onDelete }: Props) {
+  const menuItems: MenuProps['items'] = [
+    { key: 'edit', icon: <EditOutlined />, label: '编辑聊天室' },
+    { type: 'divider' },
+    { key: 'delete', icon: <DeleteOutlined />, label: '删除聊天室', danger: true }
+  ];
+
   return (
     <div
       role="button"
@@ -26,7 +42,38 @@ export function ChatRoomCard({ room, onClick, onPrimaryAction }: { room: ChatRoo
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2">{room.name}</h3>
-        <span className="shrink-0 inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-success-soft text-success border border-success/20">在线</span>
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="inline-flex items-center rounded-lg border border-success/20 bg-success-soft px-2 py-0.5 text-xs font-medium text-success">在线</span>
+          {room.isOwner && (
+            <Dropdown
+              trigger={['click']}
+              placement="bottomRight"
+              menu={{
+                items: menuItems,
+                onClick: ({ key, domEvent }) => {
+                  domEvent.stopPropagation();
+                  if (key === 'edit') onEdit?.();
+                  if (key === 'delete') onDelete?.();
+                }
+              }}
+            >
+              <button
+                type="button"
+                onClick={(event) => event.stopPropagation()}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground"
+                aria-label={`管理聊天室：${room.name}`}
+              >
+                <EllipsisOutlined />
+              </button>
+            </Dropdown>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="rounded-md border border-primary/15 bg-primary-soft px-2 py-0.5 font-mono text-[11px] font-semibold tracking-wider text-primary">ID · {room.code}</span>
+        {room.isPrivate && <span className="text-[11px] font-medium text-foreground-muted">私密</span>}
+        {room.hasPassword && <LockOutlined className="text-[11px] text-foreground-muted" aria-label="需要密码" />}
       </div>
 
       <div className="mt-2 text-xs text-foreground-muted">{room.onlineCount > 0 ? `${room.onlineCount} 人在线` : '等待旅人加入'}</div>
