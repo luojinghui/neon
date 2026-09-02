@@ -12,7 +12,7 @@ type Props = {
 
 export function ChatRoomGrid({ rooms, onRoomClick, onRoomEdit, onRoomDelete }: Props) {
   return (
-    <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4 xl:grid-cols-6">
       {rooms.map((room) => (
         <ChatRoomCard
           key={room.id}

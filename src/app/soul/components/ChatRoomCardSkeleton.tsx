@@ -4,7 +4,7 @@ export function ChatRoomCardSkeleton({ count = 8 }: { count?: number }) {
   const items = Array.from({ length: Math.max(0, count) });
 
   return (
-    <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4 xl:grid-cols-6">
       {items.map((_, idx) => (
         <div
           key={idx}

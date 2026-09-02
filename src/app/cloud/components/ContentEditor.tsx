@@ -170,7 +170,7 @@ export default function ContentEditor() {
           </Button>
         )}
         <Button icon={<PaperClipOutlined />} onClick={() => fileInputRef.current?.click()}>
-          选择文件
+          文件
         </Button>
         {textHistory.length > 0 && (
           <Button icon={<HistoryOutlined />} onClick={() => neonCloud.showHistoryModal()}>
