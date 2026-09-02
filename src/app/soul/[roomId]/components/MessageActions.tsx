@@ -1,6 +1,6 @@
 'use client';
 
-import { CopyOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Popconfirm } from 'antd';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
@@ -23,15 +23,8 @@ export function MessageActions({ messageId, messageType, visible, onRequestClose
     runClose();
   };
 
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    soulChat.downloadMessage(messageId);
-    runClose();
-  };
-
   const btnClass = 'w-7 h-7 flex items-center justify-center rounded-lg text-foreground-muted hover:text-foreground hover:bg-surface-active transition-colors';
   const canCopy = messageType === 'text';
-  const canDownload = messageType === 'image' || messageType === 'gif' || messageType === 'file';
 
   return (
     <div
@@ -41,11 +34,6 @@ export function MessageActions({ messageId, messageType, visible, onRequestClose
       {canCopy && (
         <button type="button" className={btnClass} onClick={handleCopy} aria-label="复制">
           <CopyOutlined className="text-xs" />
-        </button>
-      )}
-      {canDownload && (
-        <button type="button" className={btnClass} onClick={handleDownload} aria-label="下载">
-          <DownloadOutlined className="text-xs" />
         </button>
       )}
       {canDelete && (

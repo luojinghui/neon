@@ -1,9 +1,10 @@
 'use client';
 
-import { FileOutlined } from '@ant-design/icons';
+import { DownloadOutlined, FileOutlined, ShareAltOutlined } from '@ant-design/icons';
 import { Image as PreviewImage } from 'antd';
 import NextImage from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import { soulChat } from '../../core';
 import type { ChatMessage } from './types';
 import { formatTime, getAvatarUrl } from './types';
 import { MessageActions } from './MessageActions';
@@ -14,6 +15,13 @@ function formatFileSize(size = 0): string {
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
   return `${(size / 1024 / 1024 / 1024).toFixed(1)} GB`;
+}
+
+function getFileType(name = '', mimeType = ''): string {
+  const extension = name.split('.').pop()?.trim().toUpperCase();
+  if (extension && extension !== name.toUpperCase()) return extension;
+  const subtype = mimeType.split('/').pop()?.split(/[.+-]/)[0]?.trim().toUpperCase();
+  return subtype || '文件';
 }
 
 function MessageContent({
@@ -33,7 +41,32 @@ function MessageContent({
           src={url}
           alt={message.attachment?.name || message.content || '图片'}
           draggable={false}
-          preview={{ mask: null }}
+          preview={{
+            mask: null,
+            actionsRender: (originalNode) => (
+              <div className="soul-image-preview-action-group">
+                {originalNode}
+                <button
+                  type="button"
+                  className="soul-image-preview-custom-action"
+                  onClick={() => void soulChat.shareMessage(message.id)}
+                  aria-label="分享图片"
+                  title="分享"
+                >
+                  <ShareAltOutlined />
+                </button>
+                <button
+                  type="button"
+                  className="soul-image-preview-custom-action"
+                  onClick={() => soulChat.downloadMessage(message.id)}
+                  aria-label="下载图片"
+                  title="下载"
+                >
+                  <DownloadOutlined />
+                </button>
+              </div>
+            )
+          }}
           classNames={{ popup: { root: 'soul-image-preview' } }}
           className="block max-h-72 w-auto max-w-full object-contain"
           fallback="/source/index.png"
@@ -55,7 +88,9 @@ function MessageContent({
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-medium text-foreground">{message.attachment?.name || message.content}</div>
-          <div className="mt-0.5 text-xs text-foreground-muted">{formatFileSize(message.attachment?.size)}</div>
+          <div className="mt-0.5 text-xs text-foreground-muted">
+            {getFileType(message.attachment?.name || message.content, message.attachment?.mimeType)} · {formatFileSize(message.attachment?.size)}
+          </div>
         </div>
       </button>
     );
@@ -133,7 +168,15 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         </div>
       </div>
 
-      {message.type === 'file' && <FilePreviewModal attachment={message.attachment} open={filePreviewOpen} onClose={() => setFilePreviewOpen(false)} />}
+      {message.type === 'file' && (
+        <FilePreviewModal
+          attachment={message.attachment}
+          open={filePreviewOpen}
+          onClose={() => setFilePreviewOpen(false)}
+          onShare={() => void soulChat.shareMessage(message.id)}
+          onDownload={() => soulChat.downloadMessage(message.id)}
+        />
+      )}
     </div>
   );
 }

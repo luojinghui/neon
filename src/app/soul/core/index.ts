@@ -251,6 +251,27 @@ export class SoulChat {
     void this.downloadAttachment(message.attachment);
   }
 
+  public async shareMessage(messageId: string): Promise<boolean> {
+    const message = useSoulStore.getState().messages.find((item) => item.id === messageId);
+    if (!message?.attachment) return false;
+
+    const shareUrl = new URL(message.attachment.url, window.location.href).href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: message.attachment.name, url: shareUrl });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        throw new Error('当前浏览器不支持分享，请使用下载功能');
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return false;
+      useSoulStore.getState().setChatError(this.getErrorMessage(error));
+      return false;
+    }
+  }
+
   public async deleteMessage(messageId: string): Promise<boolean> {
     if (!this.roomId || !messageId) return false;
     const store = useSoulStore.getState();
@@ -406,6 +427,18 @@ export class SoulChat {
 
   private async downloadAttachment(attachment: ChatAttachment): Promise<void> {
     try {
+      const resolvedUrl = new URL(attachment.url, window.location.href);
+      if (resolvedUrl.origin === window.location.origin) {
+        const anchor = document.createElement('a');
+        anchor.href = resolvedUrl.href;
+        anchor.download = attachment.name;
+        anchor.rel = 'noopener';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        return;
+      }
+
       const response = await fetch(attachment.url);
       if (!response.ok) throw new Error('下载失败');
       const objectUrl = URL.createObjectURL(await response.blob());
