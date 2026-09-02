@@ -18,8 +18,10 @@ export function MessageList({ className = '' }: MessageListProps) {
   const isLoadingHistory = useSoulStore((s) => s.isLoadingHistory);
   const connectionState = useSoulStore((s) => s.connectionState);
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
   const isNearBottomRef = useRef(true);
+  const isRestoringHistoryRef = useRef(false);
 
   const scrollToBottom = useCallback((smooth = true) => {
     const el = containerRef.current;
@@ -42,20 +44,31 @@ export function MessageList({ className = '' }: MessageListProps) {
   const handleLoadMore = useCallback(async () => {
     const el = containerRef.current;
     const previousHeight = el?.scrollHeight || 0;
+    isRestoringHistoryRef.current = true;
     await soulChat.loadMoreHistory();
     window.requestAnimationFrame(() => {
-      if (!el) return;
-      el.scrollTop += el.scrollHeight - previousHeight;
+      if (el && containerRef.current === el) {
+        el.scrollTop += el.scrollHeight - previousHeight;
+      }
       useSoulStore.getState().setHasNewMessage(false);
+      window.requestAnimationFrame(() => {
+        isRestoringHistoryRef.current = false;
+        handleScroll();
+      });
     });
-  }, []);
+  }, [handleScroll]);
 
   useEffect(() => {
     if (messages.length === 0) return;
 
     if (messages.length !== prevCountRef.current) {
+      if (isRestoringHistoryRef.current) {
+        prevCountRef.current = messages.length;
+        return;
+      }
+
       if (isNearBottomRef.current) {
-        scrollToBottom(prevCountRef.current > 0);
+        scrollToBottom(false);
       } else if (messages.length > prevCountRef.current) {
         useSoulStore.getState().setHasNewMessage(true);
       }
@@ -67,10 +80,33 @@ export function MessageList({ className = '' }: MessageListProps) {
     scrollToBottom(false);
   }, [scrollToBottom]);
 
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content || typeof ResizeObserver === 'undefined') return;
+
+    let frame: number | null = null;
+    const observer = new ResizeObserver(() => {
+      if (!isNearBottomRef.current || isRestoringHistoryRef.current) return;
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        if (isNearBottomRef.current && !isRestoringHistoryRef.current) {
+          scrollToBottom(false);
+        }
+      });
+    });
+
+    observer.observe(content);
+    return () => {
+      observer.disconnect();
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, [scrollToBottom]);
+
   return (
     <div className="relative w-full flex-1 overflow-hidden">
       <div ref={containerRef} className="chat-scrollbar h-full overflow-y-auto" onScroll={handleScroll}>
-        <div className={`mx-auto flex min-h-full w-full max-w-screen-xl flex-col justify-end px-4 pb-4 ${className}`}>
+        <div ref={contentRef} className={`mx-auto flex min-h-full w-full max-w-screen-xl flex-col justify-end px-4 pb-4 ${className}`}>
           {hasMoreHistory && (
             <div className="flex justify-center pb-4">
               <button
