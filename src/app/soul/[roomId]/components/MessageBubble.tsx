@@ -40,7 +40,7 @@ function MessageContent({
         alt={message.attachment?.name || message.content || '图片'}
         draggable={false}
         preview={{
-          mask: null
+          cover: false
         }}
         classNames={{ root: 'soul-message-image max-w-[min(280px,70vw)]', popup: { root: 'soul-image-preview' } }}
         className="block max-h-72 w-auto max-w-full object-contain"

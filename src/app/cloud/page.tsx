@@ -40,7 +40,7 @@ function CloudPage() {
 
       {/* Content */}
       <div className="content w-full pt-20 pb-8 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="max-w-screen-xl mx-auto px-4 space-y-6">
+        <div className="mx-auto max-w-[1312px] space-y-6 px-4">
           <ContentEditor />
 
           <Show is={queryFilesCount > 0}>

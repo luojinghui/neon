@@ -65,7 +65,7 @@ function ChatRoomPage() {
         {accessState === 'granted' ? <MessageList className="pt-20" /> : <div className="flex-1" />}
 
         {accessState === 'granted' && (
-          <div className="mx-auto w-full max-w-screen-xl shrink-0 px-4 pb-3 pt-3">
+          <div className="mx-auto w-full max-w-[1312px] shrink-0 px-4 pb-3 pt-3">
             <ChatInput />
             <ChatToolbar />
           </div>

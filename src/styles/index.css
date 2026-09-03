@@ -258,10 +258,6 @@
   box-shadow: none;
 }
 
-.soul-message-image .ant-image-mask {
-  display: none;
-}
-
 .soul-image-preview .ant-image-preview-mask {
   background: transparent !important;
 }
