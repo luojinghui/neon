@@ -17,6 +17,11 @@ export default function Home() {
       title: '星球',
       description: '寻找属于自己的Soul星球',
       href: '/soul'
+    },
+    {
+      title: '漫游相机',
+      description: '把今天的表情，变成一张有称号的漫画涂鸦',
+      href: '/doodle'
     }
   ];
 

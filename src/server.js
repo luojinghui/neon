@@ -5,6 +5,8 @@ const { Server } = require('socket.io');
 const chatController = require('./server/controller/chatController');
 const { mountAdminController } = require('./server/controller/adminController');
 const { authenticateCookieHeader } = require('./server/admin/auth');
+const { doodleShareRepository } = require('./server/doodle/shareRepository');
+const { doodleReviewRepository } = require('./server/doodle/reviewRepository');
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -22,6 +24,11 @@ const io = new Server(server, {
 const port = Number.parseInt(process.env.APP_PORT || '3000', 10);
 const host = process.env.APP_HOST || '127.0.0.1';
 const releaseId = process.env.NEON_RELEASE_ID || 'development';
+const doodleCleanupTimer = setInterval(() => {
+  doodleShareRepository.cleanupExpired();
+  doodleReviewRepository.cleanupExpired();
+}, 60 * 60 * 1000);
+doodleCleanupTimer.unref();
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('APP_PORT must be an integer between 1 and 65535');

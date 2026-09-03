@@ -1,0 +1,115 @@
+.doodle-page {
+  --doodle-ink: #201a17;
+  background-image:
+    radial-gradient(circle at 10% 18%, rgba(255, 216, 77, 0.22) 0 5px, transparent 6px),
+    radial-gradient(circle at 91% 72%, rgba(255, 123, 168, 0.18) 0 6px, transparent 7px);
+  background-size: 64px 64px, 82px 82px;
+}
+
+.doodle-primary-button,
+.doodle-secondary-button {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 10px;
+  border: 3px solid var(--doodle-ink);
+  border-radius: 999px;
+  padding: 0 24px;
+  color: var(--doodle-ink);
+  font-weight: 900;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.doodle-primary-button {
+  background: #ff5d46;
+  color: white;
+  box-shadow: 5px 5px 0 var(--doodle-ink);
+}
+
+.doodle-secondary-button {
+  background: white;
+  box-shadow: 4px 4px 0 var(--doodle-ink);
+}
+
+.doodle-primary-button:hover,
+.doodle-secondary-button:hover {
+  transform: translate(-1px, -2px) rotate(-0.5deg);
+  box-shadow: 7px 7px 0 var(--doodle-ink);
+}
+
+.doodle-primary-button:active,
+.doodle-secondary-button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--doodle-ink);
+}
+
+.doodle-round-button {
+  display: inline-flex;
+  height: 56px;
+  width: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--doodle-ink);
+  border-radius: 999px;
+  background: white;
+  color: var(--doodle-ink);
+  font-size: 20px;
+  box-shadow: 4px 4px 0 var(--doodle-ink);
+}
+
+.doodle-shutter {
+  display: inline-flex;
+  height: 82px;
+  width: 82px;
+  align-items: center;
+  justify-content: center;
+  border: 5px solid var(--doodle-ink);
+  border-radius: 999px;
+  background: white;
+  box-shadow: 5px 5px 0 var(--doodle-ink);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.doodle-shutter span {
+  height: 58px;
+  width: 58px;
+  border-radius: 999px;
+  background: #ff5d46;
+}
+
+.doodle-shutter:active {
+  transform: translate(4px, 4px);
+  box-shadow: 1px 1px 0 var(--doodle-ink);
+}
+
+.doodle-result-image {
+  -webkit-touch-callout: default !important;
+  -webkit-user-drag: auto !important;
+  user-select: auto !important;
+}
+
+.doodle-processing-orbit {
+  display: flex;
+  height: 112px;
+  width: 112px;
+  align-items: center;
+  justify-content: center;
+  border: 5px solid var(--doodle-ink);
+  border-radius: 36% 64% 58% 42%;
+  background: linear-gradient(135deg, #ffd84d 0 50%, #ff7ba8 50%);
+  box-shadow: 8px 8px 0 var(--doodle-ink);
+  animation: doodle-wobble 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes doodle-wobble {
+  from { transform: rotate(-8deg) scale(0.96); }
+  to { transform: rotate(8deg) scale(1.04); }
+}
+
+@media (max-width: 640px) {
+  .doodle-primary-button,
+  .doodle-secondary-button {
+    min-height: 48px;
+    padding: 0 18px;
+  }
+}

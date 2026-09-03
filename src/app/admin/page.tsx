@@ -13,6 +13,7 @@ import {
   LoadingOutlined,
   LockOutlined,
   LogoutOutlined,
+  PictureOutlined,
   PlusOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
@@ -20,15 +21,15 @@ import {
   TeamOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
+import { Image, Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { AdminApiError, adminRequest } from './client';
-import type { AdminCloudItem, AdminIdentity, AdminProfileItem, AdminRoomAccessItem, AdminRoomItem } from './types';
+import type { AdminCloudItem, AdminDoodleItem, AdminIdentity, AdminProfileItem, AdminRoomAccessItem, AdminRoomItem } from './types';
 
 type Notice = { type: 'error' | 'success'; text: string } | null;
-type AdminTab = 'cloud' | 'rooms' | 'access' | 'users';
+type AdminTab = 'cloud' | 'rooms' | 'access' | 'users' | 'doodles';
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -621,6 +622,133 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
   );
 }
 
+const doodleTemplateNames: Record<string, string> = {
+  'comic-cover': '漫画封面',
+  'instant-film': '拍立得',
+  'hero-poster': '勇者海报',
+  'sticker-book': '贴纸手账'
+};
+
+const doodleThemeNames: Record<string, string> = {
+  'sun-pop': '日光波普',
+  'berry-zap': '莓果闪电',
+  'blue-hour': '蓝调出逃',
+  'mint-party': '薄荷派对',
+  'lemon-soda': '柠檬汽水',
+  'grape-dream': '葡萄梦境',
+  'peach-fizz': '蜜桃气泡',
+  'night-neon': '霓虹夜游'
+};
+
+function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableProps) {
+  const [items, setItems] = useState<AdminDoodleItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ total: 0, pending: 0 });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await adminRequest<{ items: AdminDoodleItem[]; stats: { total: number; pending: number } }>('/doodles');
+      setItems(result.items);
+      setStats(result.stats);
+    } catch (error) {
+      handleAuthError(error, onUnauthorized);
+      setNotice({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setLoading(false);
+    }
+  }, [onUnauthorized, setNotice]);
+
+  useEffect(() => {
+    void load();
+  }, [load, refreshToken]);
+
+  const remove = async (item: AdminDoodleItem) => {
+    try {
+      await adminRequest<void>(`/doodles/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+      setNotice({ type: 'success', text: `漫游作品“${item.title}”的原图、成品、审核记录及公开分享已删除` });
+      await load();
+    } catch (error) {
+      handleAuthError(error, onUnauthorized);
+      setNotice({ type: 'error', text: getErrorMessage(error) });
+    }
+  };
+
+  const moderate = async (item: AdminDoodleItem, action: 'approved' | 'rejected') => {
+    try {
+      await adminRequest(`/doodles/${encodeURIComponent(item.id)}`, { method: 'PATCH', body: JSON.stringify({ action }) });
+      setNotice({ type: 'success', text: action === 'approved' ? `漫游作品“${item.title}”已审核通过` : `漫游作品“${item.title}”已驳回，原图、成品及公开分享已撤销` });
+      await load();
+    } catch (error) {
+      handleAuthError(error, onUnauthorized);
+      setNotice({ type: 'error', text: getErrorMessage(error) });
+    }
+  };
+
+  const columns: TableColumnsType<AdminDoodleItem> = [
+    {
+      title: '原图 / 加工成品',
+      width: 190,
+      render: (_, item) => item.originalUrl && item.processedUrl
+        ? <div className="flex gap-2"><Image src={item.originalUrl} alt={`${item.title}原图`} width={64} height={86} className="rounded-md border border-border object-cover" /><Image src={item.processedUrl} alt={`${item.title}成品`} width={64} height={86} className="rounded-md border border-border object-cover" /></div>
+        : <div className="flex h-[86px] w-[136px] items-center justify-center rounded-md bg-surface-hover text-xs text-foreground-muted">图片已清理</div>
+    },
+    {
+      title: '角色卡',
+      width: 220,
+      render: (_, item) => (
+        <div>
+          <div className="font-medium text-foreground">{item.title}</div>
+          <div className="mt-1 text-xs text-foreground-muted">{doodleTemplateNames[item.template] || item.template} · {doodleThemeNames[item.style] || item.style}</div>
+          {item.shareId && <div className="mt-1 text-[11px] text-primary">含公开分享副本</div>}
+        </div>
+      )
+    },
+    {
+      title: '创建者',
+      width: 180,
+      render: (_, item) => <div><div className="text-foreground">{item.ownerName}</div><div className="font-mono text-xs text-foreground-muted">{item.ownerUserId ? `@${item.ownerUserId}` : item.ownerUuid}</div></div>
+    },
+    { title: '创建时间', dataIndex: 'createdAt', width: 174, render: formatDate },
+    { title: '有效期至', dataIndex: 'expiresAt', width: 174, render: formatDate },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 100,
+      render: (status: AdminDoodleItem['status']) => status === 'pending' ? <Tag color="processing">待审核</Tag> : status === 'approved' ? <Tag color="success">已通过</Tag> : status === 'rejected' ? <Tag color="error">已驳回</Tag> : status === 'expired' ? <Tag>已过期</Tag> : <Tag>已删除</Tag>
+    },
+    {
+      title: '操作',
+      fixed: 'right',
+      width: 150,
+      render: (_, item) => (
+        <div className="flex items-center gap-1">
+          <Tooltip title={item.status === 'approved' ? '已审核通过' : '审核通过'}><button type="button" disabled={!['pending'].includes(item.status)} onClick={() => void moderate(item, 'approved')} className="admin-icon-button hover:!text-success disabled:opacity-35"><CheckOutlined /></button></Tooltip>
+          <Popconfirm disabled={!['pending', 'approved'].includes(item.status)} title="驳回并删除这组图片？" description="原图、加工成品及关联的公开分享会立即删除。" okText="驳回删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void moderate(item, 'rejected')}>
+            <Tooltip title={['pending', 'approved'].includes(item.status) ? '驳回并删除图片' : '图片已清理'}><button type="button" disabled={!['pending', 'approved'].includes(item.status)} className="admin-icon-button hover:!text-danger disabled:opacity-35"><CloseOutlined /></button></Tooltip>
+          </Popconfirm>
+          <Popconfirm title="永久删除这条审核记录？" description="原图、成品及关联的公开分享会同时删除。" okText="永久删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(item)}>
+            <Tooltip title="永久删除"><button type="button" className="admin-icon-button hover:!text-danger"><DeleteOutlined /></button></Tooltip>
+          </Popconfirm>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <section>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">漫游作品审核</h2>
+          <p className="mt-1 text-xs text-foreground-muted">展示每次拍摄的原始图片与当前加工成品，默认保留 30 天，可审核通过、驳回删除或永久删除。</p>
+        </div>
+        <div className="flex gap-2 text-xs"><Tag color="processing">待审核 {stats.pending}</Tag><Tag>记录 {stats.total}</Tag></div>
+      </div>
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 1050 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
+    </section>
+  );
+}
+
 function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; onLogout: () => Promise<void>; onUnauthorized: () => void }) {
   const [tab, setTab] = useState<AdminTab>('cloud');
   const [refreshToken, setRefreshToken] = useState(0);
@@ -630,7 +758,8 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
     { key: 'cloud', label: '云传数据', icon: <CloudOutlined /> },
     { key: 'rooms', label: '聊天室', icon: <GlobalOutlined /> },
     { key: 'access', label: '访问申请', icon: <SolutionOutlined /> },
-    { key: 'users', label: '人员数据', icon: <TeamOutlined /> }
+    { key: 'users', label: '人员数据', icon: <TeamOutlined /> },
+    { key: 'doodles', label: '漫游作品', icon: <PictureOutlined /> }
   ];
 
   useEffect(() => {
@@ -696,6 +825,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
           {tab === 'rooms' && <RoomDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'access' && <RoomAccessTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'users' && <UserDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
+          {tab === 'doodles' && <DoodleDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
         </div>
       </div>
     </div>

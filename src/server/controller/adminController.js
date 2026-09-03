@@ -8,6 +8,8 @@ const { CloudMessage } = require('../models/cloud');
 const { AdminUser } = require('../models/admin');
 const { AdminAudit } = require('../models/adminAudit');
 const { profileRepository } = require('../user/profileRepository');
+const { doodleReviewRepository } = require('../doodle/reviewRepository');
+const { doodleShareRepository } = require('../doodle/shareRepository');
 const {
   ADMIN_SESSION_TTL_MS,
   authenticateCookieHeader,
@@ -160,10 +162,20 @@ function adminRoomRecords() {
 function adminError(error) {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
   const message = error instanceof Error ? error.message : '管理操作失败';
-  const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError'].includes(error?.name);
-  const status = code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' ? 404 : code === 'USER_ID_TAKEN' ? 409 : code || isValidationError ? 400 : 500;
+  const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError'].includes(error?.name);
+  const status = code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND' ? 404 : code === 'USER_ID_TAKEN' ? 409 : code || isValidationError ? 400 : 500;
   if (status === 500) console.error('Admin operation failed:', error);
   return { status, body: { error: message, code } };
+}
+
+async function revokeDoodleShare(review) {
+  if (review?.reviewKey) await doodleShareRepository.adminDeleteByReviewKey(review.reviewKey);
+  if (!review?.shareId) return;
+  try {
+    await doodleShareRepository.adminDeleteShare(review.shareId);
+  } catch (error) {
+    if (error?.code !== 'SHARE_NOT_FOUND') throw error;
+  }
 }
 
 function mountAdminController(app, io) {
@@ -304,6 +316,69 @@ function mountAdminController(app, io) {
       );
       await audit(req, 'cloud.delete', 'cloud', document.messageId, { fileCount: document.files?.length || 0 });
       return res.status(204).end();
+    })
+  );
+
+  router.get('/doodles', (_req, res) => {
+    const items = doodleReviewRepository.listAdminReviews().map((review) => {
+      const owner = profileRepository.getByUuid(review.ownerUuid);
+      return {
+        ...review,
+        ownerName: owner?.name || '未知人员',
+        ownerUserId: owner?.userId || ''
+      };
+    });
+    return res.json({
+      items,
+      stats: {
+        total: items.length,
+        pending: items.filter((item) => item.status === 'pending').length
+      }
+    });
+  });
+
+  router.get('/doodles/:id/image/:kind', (req, res, next) => {
+    try {
+      const image = doodleReviewRepository.getAdminImage(req.params.id, req.params.kind);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.type(path.extname(image.fileName));
+      return res.sendFile(image.filePath, (error) => {
+        if (error && !res.headersSent) next(error);
+      });
+    } catch (error) {
+      const response = adminError(error);
+      return res.status(response.status).json(response.body);
+    }
+  });
+
+  router.patch(
+    '/doodles/:id',
+    asyncRoute(async (req, res) => {
+      try {
+        const action = req.body?.action;
+        const review = await doodleReviewRepository.moderateReview(req.params.id, action, req.admin.id);
+        if (action === 'rejected') await revokeDoodleShare(review);
+        await audit(req, `doodle.${action}`, 'doodle-review', review.id, { ownerUuid: review.ownerUuid, title: review.title });
+        return res.json({ item: review });
+      } catch (error) {
+        const response = adminError(error);
+        return res.status(response.status).json(response.body);
+      }
+    })
+  );
+
+  router.delete(
+    '/doodles/:id',
+    asyncRoute(async (req, res) => {
+      try {
+        const review = await doodleReviewRepository.deleteReview(req.params.id, req.admin.id);
+        await revokeDoodleShare(review);
+        await audit(req, 'doodle.delete', 'doodle-review', review.id, { ownerUuid: review.ownerUuid, title: review.title });
+        return res.status(204).end();
+      } catch (error) {
+        const response = adminError(error);
+        return res.status(response.status).json(response.body);
+      }
     })
   );
 

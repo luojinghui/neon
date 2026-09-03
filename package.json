@@ -12,10 +12,12 @@
     "verify:admin-db": "node scripts/verify-admin-db.js",
     "test:admin": "node --test src/server/admin/auth.test.js",
     "test:soul": "node --test src/server/chat/roomRepository.test.js",
-    "test:profile": "node --test src/server/user/profileRepository.test.js"
+    "test:profile": "node --test src/server/user/profileRepository.test.js",
+    "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
+    "@mediapipe/tasks-vision": "^0.10.35",
     "@uiw/react-json-view": "2.0.0-alpha.39",
     "antd": "^6.3.3",
     "clsx": "^2.1.1",

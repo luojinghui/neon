@@ -76,3 +76,22 @@ export type AdminProfileItem = {
   updatedAt: string;
   isSystem: boolean;
 };
+
+export type AdminDoodleItem = {
+  id: string;
+  title: string;
+  style: string;
+  template: string;
+  shareId: string;
+  originalUrl: string;
+  processedUrl: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'deleted';
+  reviewedAt: string;
+  reviewedBy: string;
+  ownerUuid: string;
+  ownerUserId: string;
+  ownerName: string;
+};
