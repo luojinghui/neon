@@ -59,7 +59,7 @@ jobs:
           release_dir="${RUNNER_TEMP}/neon-release"
           mkdir -p "${release_dir}"
 
-          cp -R .next public src "${release_dir}/"
+          cp -R .next public scripts src "${release_dir}/"
           rm -rf "${release_dir}/.next/cache"
           cp package.json pnpm-lock.yaml next.config.mjs ecosystem.config.cjs "${release_dir}/"
 

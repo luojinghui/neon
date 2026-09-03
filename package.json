@@ -8,6 +8,9 @@
     "start:prd": "NODE_ENV=production node ./src/server.js",
     "build": "next build",
     "lint": "next lint",
+    "seed:admin": "node scripts/seed-admin.js",
+    "verify:admin-db": "node scripts/verify-admin-db.js",
+    "test:admin": "node --test src/server/admin/auth.test.js",
     "test:soul": "node --test src/server/chat/roomRepository.test.js",
     "test:profile": "node --test src/server/user/profileRepository.test.js"
   },

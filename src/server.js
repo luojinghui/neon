@@ -3,6 +3,8 @@ const http = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
 const chatController = require('./server/controller/chatController');
+const { mountAdminController } = require('./server/controller/adminController');
+const { authenticateCookieHeader } = require('./server/admin/auth');
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -33,10 +35,22 @@ server.on('error', (error) => {
 nextApp
   .prepare()
   .then(() => {
+    io.use(async (socket, nextSocket) => {
+      try {
+        socket.data.admin = await authenticateCookieHeader(socket.handshake.headers.cookie || '');
+      } catch (error) {
+        socket.data.admin = null;
+        console.error('Socket admin session could not be verified:', error.message);
+      }
+      nextSocket();
+    });
+
     // wss服务
     io.on('connection', (socket) => {
       chatController.onSocket(socket, io);
     });
+
+    mountAdminController(app, io);
 
     app
       .get('/healthz', (_req, res) =>

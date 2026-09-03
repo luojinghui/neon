@@ -206,6 +206,16 @@ class RoomRepository {
 
   updateRoom(roomId, input, user) {
     const room = this.requireOwnedRoom(roomId, user);
+    return this.updateRoomRecord(room, input);
+  }
+
+  updateRoomAsAdmin(roomId, input) {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    return this.updateRoomRecord(room, input);
+  }
+
+  updateRoomRecord(room, input) {
     const updated = {
       ...room,
       name: this.requireText(input.name, '星球名', 32),
@@ -222,6 +232,16 @@ class RoomRepository {
 
   deleteRoom(roomId, user) {
     const room = this.requireOwnedRoom(roomId, user);
+    return this.deleteRoomRecord(room);
+  }
+
+  deleteRoomAsAdmin(roomId) {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    return this.deleteRoomRecord(room);
+  }
+
+  deleteRoomRecord(room) {
     for (const message of this.messages.get(room.id) || []) this.deleteStoredAttachment(message);
     this.rooms.delete(room.id);
     this.messages.delete(room.id);
@@ -229,9 +249,10 @@ class RoomRepository {
     return room;
   }
 
-  verifyRoomAccess(roomId, password) {
+  verifyRoomAccess(roomId, password, options = {}) {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    if (options.bypassPassword === true) return room;
     if (!room.passwordHash || !room.passwordSalt) return room;
     if (!password) throw new RoomRepositoryError('请输入星球密码', 'ROOM_PASSWORD_REQUIRED');
     if (!PASSWORD_PATTERN.test(password)) throw new RoomRepositoryError('密码必须是 2-4 位数字或字母', 'ROOM_PASSWORD_INVALID');
@@ -278,8 +299,8 @@ class RoomRepository {
     return message;
   }
 
-  deleteMessage(roomId, messageId, user) {
-    const room = this.requireOwnedRoom(roomId, user);
+  deleteMessage(roomId, messageId, user, options = {}) {
+    const room = options.isAdmin === true ? this.getRoomOrThrow(roomId) : this.requireOwnedRoom(roomId, user);
     const roomMessages = this.messages.get(room.id) || [];
     const messageIndex = roomMessages.findIndex((message) => message.id === messageId);
     if (messageIndex < 0) throw new RoomRepositoryError('消息不存在或已被删除', 'MESSAGE_NOT_FOUND');
@@ -290,6 +311,48 @@ class RoomRepository {
     this.deleteStoredAttachment(message);
     this.persist();
     return message;
+  }
+
+  getAdminRooms() {
+    return this.sortRooms([...this.rooms.values()]).map((room) => {
+      const messages = this.messages.get(room.id) || [];
+      const attachments = messages.map((message) => message.attachment).filter(Boolean);
+      return {
+        ...this.toPublicRoom(room),
+        ownerId: room.ownerId,
+        messageCount: messages.length,
+        attachmentCount: attachments.length,
+        attachmentBytes: attachments.reduce((total, attachment) => total + (Number(attachment.size) || 0), 0)
+      };
+    });
+  }
+
+  deleteUserData(profile) {
+    const deletedRooms = [];
+    const deletedMessages = [];
+    const ownerId = profile?.uuid ? `guest-${profile.uuid}` : '';
+    for (const room of [...this.rooms.values()]) {
+      if (ownerId && room.ownerId === ownerId) {
+        deletedRooms.push(this.deleteRoomRecord(room));
+        continue;
+      }
+      const roomMessages = this.messages.get(room.id) || [];
+      const retained = [];
+      for (const message of roomMessages) {
+        if (message.senderKey === profile?.publicKey || message.senderId === profile?.userId) {
+          this.deleteStoredAttachment(message);
+          deletedMessages.push(message);
+        } else {
+          retained.push(message);
+        }
+      }
+      if (retained.length === roomMessages.length) continue;
+      const latestMessage = retained[retained.length - 1];
+      this.messages.set(room.id, retained);
+      this.rooms.set(room.id, { ...room, lastMessageAt: latestMessage ? new Date(latestMessage.timestamp).toISOString() : null });
+    }
+    if (deletedRooms.length > 0 || deletedMessages.length > 0) this.persist();
+    return { deletedRooms, deletedMessages };
   }
 
   deleteStoredAttachment(message) {
@@ -379,6 +442,12 @@ class RoomRepository {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     if (room.isFixed || room.ownerId !== user?.id) throw new RoomRepositoryError('只有星球创建者可以执行此操作', 'ROOM_OWNER_REQUIRED');
+    return room;
+  }
+
+  getRoomOrThrow(roomId) {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     return room;
   }
 

@@ -45,17 +45,21 @@ function requireUser(socket) {
   return socket.data.user;
 }
 
-function presentRoom(room, user) {
+function isSuperAdmin(socket) {
+  return socket.data.admin?.role === 'super_admin';
+}
+
+function presentRoom(room, user, admin = false) {
   return {
     ...repository.toPublicRoom(room),
     onlineCount: roomMembers.get(room.id)?.size || 0,
     status: 'online',
-    isOwner: !room.isFixed && room.ownerId === user?.id
+    isOwner: admin || (!room.isFixed && room.ownerId === user?.id)
   };
 }
 
-function getRooms(user) {
-  return repository.listRooms(user).map((room) => presentRoom(room, user));
+function getRooms(user, admin = false) {
+  return repository.listRooms(user).map((room) => presentRoom(room, user, admin));
 }
 
 function broadcastRoomsChanged(io) {
@@ -66,7 +70,7 @@ function broadcastRoomUpdated(io, room) {
   const members = roomMembers.get(room.id) || new Set();
   for (const socketId of members) {
     const memberSocket = io.sockets.sockets.get(socketId);
-    if (memberSocket) memberSocket.emit('room:updated', presentRoom(room, memberSocket.data.user));
+    if (memberSocket) memberSocket.emit('room:updated', presentRoom(room, memberSocket.data.user, isSuperAdmin(memberSocket)));
   }
 }
 
@@ -101,13 +105,13 @@ const onSocket = (socket, io) => {
     socket.data.identityError = error instanceof Error ? error.message : '用户身份无效';
   }
 
-  socket.on('rooms:list', (ack) => respond(ack, () => getRooms(requireUser(socket))));
+  socket.on('rooms:list', (ack) => respond(ack, () => getRooms(requireUser(socket), isSuperAdmin(socket))));
 
   socket.on('rooms:search', (payload, ack) => {
     respond(ack, () => {
       const user = requireUser(socket);
       const room = repository.searchRoom(payload?.query);
-      return room ? presentRoom(room, user) : null;
+      return room ? presentRoom(room, user, isSuperAdmin(socket)) : null;
     });
   });
 
@@ -116,24 +120,26 @@ const onSocket = (socket, io) => {
       const user = requireUser(socket);
       const room = repository.createRoom(payload || {}, user);
       broadcastRoomsChanged(io);
-      return presentRoom(room, user);
+      return presentRoom(room, user, isSuperAdmin(socket));
     });
   });
 
   socket.on('rooms:update', (payload, ack) => {
     respond(ack, () => {
       const user = requireUser(socket);
-      const room = repository.updateRoom(payload?.roomId, payload || {}, user);
+      const room = isSuperAdmin(socket)
+        ? repository.updateRoomAsAdmin(payload?.roomId, payload || {})
+        : repository.updateRoom(payload?.roomId, payload || {}, user);
       broadcastRoomUpdated(io, room);
       broadcastRoomsChanged(io);
-      return presentRoom(room, user);
+      return presentRoom(room, user, isSuperAdmin(socket));
     });
   });
 
   socket.on('rooms:delete', (payload, ack) => {
     respond(ack, () => {
       const user = requireUser(socket);
-      const room = repository.deleteRoom(payload?.roomId, user);
+      const room = isSuperAdmin(socket) ? repository.deleteRoomAsAdmin(payload?.roomId) : repository.deleteRoom(payload?.roomId, user);
       io.to(room.id).emit('room:deleted', { roomId: room.id });
       removeDeletedRoomMembers(room.id, io);
       broadcastRoomsChanged(io);
@@ -144,7 +150,7 @@ const onSocket = (socket, io) => {
   socket.on('room:join', (payload, ack) => {
     respond(ack, () => {
       const user = requireUser(socket);
-      const room = repository.verifyRoomAccess(payload?.roomId, payload?.password);
+      const room = repository.verifyRoomAccess(payload?.roomId, payload?.password, { bypassPassword: isSuperAdmin(socket) });
 
       leaveCurrentRoom(socket, io);
       socket.join(room.id);
@@ -155,7 +161,7 @@ const onSocket = (socket, io) => {
       const history = repository.getHistory(room.id, { limit: 50 });
       broadcastRoomsChanged(io);
 
-      return { room: presentRoom(room, user), ...history };
+      return { room: presentRoom(room, user, isSuperAdmin(socket)), ...history };
     });
   });
 
@@ -184,7 +190,7 @@ const onSocket = (socket, io) => {
   socket.on('chat:delete', (payload, ack) => {
     respond(ack, () => {
       if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
-      const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, requireUser(socket));
+      const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, requireUser(socket), { isAdmin: isSuperAdmin(socket) });
       io.to(socket.data.roomId).emit('chat:deleted', { roomId: socket.data.roomId, messageId: message.id });
       broadcastRoomsChanged(io);
       return { roomId: socket.data.roomId, messageId: message.id };
@@ -194,4 +200,36 @@ const onSocket = (socket, io) => {
   socket.on('disconnect', () => leaveCurrentRoom(socket, io));
 };
 
-module.exports = { onSocket };
+function adminListRooms() {
+  return repository.getAdminRooms().map((room) => ({ ...room, onlineCount: roomMembers.get(room.id)?.size || 0 }));
+}
+
+function adminUpdateRoom(roomId, input, io) {
+  const room = repository.updateRoomAsAdmin(roomId, input);
+  broadcastRoomUpdated(io, room);
+  broadcastRoomsChanged(io);
+  return { ...repository.getAdminRooms().find((item) => item.id === room.id), onlineCount: roomMembers.get(room.id)?.size || 0 };
+}
+
+function adminDeleteRoom(roomId, io) {
+  const room = repository.deleteRoomAsAdmin(roomId);
+  io.to(room.id).emit('room:deleted', { roomId: room.id });
+  removeDeletedRoomMembers(room.id, io);
+  broadcastRoomsChanged(io);
+  return room;
+}
+
+function adminDeleteUserData(profile, io) {
+  const result = repository.deleteUserData(profile);
+  for (const room of result.deletedRooms) {
+    io.to(room.id).emit('room:deleted', { roomId: room.id });
+    removeDeletedRoomMembers(room.id, io);
+  }
+  for (const message of result.deletedMessages) {
+    io.to(message.roomId).emit('chat:deleted', { roomId: message.roomId, messageId: message.id });
+  }
+  if (result.deletedRooms.length > 0 || result.deletedMessages.length > 0) broadcastRoomsChanged(io);
+  return result;
+}
+
+module.exports = { adminDeleteRoom, adminDeleteUserData, adminListRooms, adminUpdateRoom, onSocket };

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const password = searchParams.get('password');
 
-  const cloudMessage = await CloudMessage.findOne({ password });
+  const cloudMessage = await CloudMessage.findOne({ password, expireAt: { $gt: new Date() } });
 
   if (!cloudMessage) {
     return Response.json({ message: '未找到内容', state: 404, data: null });

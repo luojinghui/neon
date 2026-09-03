@@ -13,6 +13,7 @@ function createFixture() {
 
 async function cleanupFixture(fixture) {
   await fixture.repository.writeQueue;
+  await fixture.repository.cleanupQueue;
   fs.rmSync(fixture.directory, { recursive: true, force: true });
 }
 
@@ -68,6 +69,37 @@ test('rejects duplicate userIds case-insensitively', async () => {
         }),
       { code: 'USER_ID_TAKEN' }
     );
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
+test('super admin profile CRUD keeps indexes consistent', async () => {
+  const fixture = createFixture();
+  try {
+    const created = fixture.repository.createProfile({
+      userId: 'ManagedUser',
+      name: '受管人员',
+      bio: '由管理员维护',
+      avatarUrl: '',
+      banner: { type: 'preset', value: 'aurora' }
+    });
+    assert.equal(fixture.repository.listProfiles().some((profile) => profile.uuid === created.uuid), true);
+    assert.equal(fixture.repository.toAdmin(created).uuid, created.uuid);
+
+    const updated = fixture.repository.updateProfile(created.uuid, {
+      userId: 'ManagedUser2',
+      name: '已更新人员',
+      bio: '',
+      avatarUrl: '',
+      banner: { type: 'preset', value: 'coral' }
+    });
+    assert.equal(fixture.repository.getByUserId('manageduser2').uuid, created.uuid);
+    assert.equal(updated.name, '已更新人员');
+
+    fixture.repository.deleteProfile(created.uuid);
+    assert.equal(fixture.repository.getByUuid(created.uuid), null);
+    assert.equal(fixture.repository.getByUserId('ManagedUser2'), null);
   } finally {
     await cleanupFixture(fixture);
   }

@@ -214,6 +214,33 @@ test('private password room is owner-bound, searchable and does not expose passw
   }
 });
 
+test('super admin can bypass room passwords and manage any non-owned room', async () => {
+  const fixture = createFixture();
+  try {
+    const room = fixture.repository.createRoom(
+      { name: '管理员检查房间', description: '私密内容', tags: ['私密'], isPrivate: true, passwordEnabled: true, password: 'A12' },
+      fixture.owner
+    );
+    const message = fixture.repository.addMessage(room.id, fixture.owner, { type: 'text', content: '待检查消息' });
+
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { bypassPassword: true }).id, room.id);
+    const updated = fixture.repository.updateRoomAsAdmin(room.id, {
+      name: '已检查房间',
+      description: '管理员已更新',
+      tags: ['审计'],
+      isPrivate: true,
+      passwordEnabled: true,
+      password: ''
+    });
+    assert.equal(updated.name, '已检查房间');
+    assert.equal(fixture.repository.getAdminRooms().find((item) => item.id === room.id).messageCount, 1);
+    assert.equal(fixture.repository.deleteMessage(room.id, message.id, fixture.visitor, { isAdmin: true }).id, message.id);
+    assert.equal(fixture.repository.deleteRoomAsAdmin(room.id).id, room.id);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test('only the creator can update or delete a room', async () => {
   const fixture = createFixture();
   try {

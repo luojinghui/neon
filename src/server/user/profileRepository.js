@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { createHash } = require('crypto');
+const { createHash, randomUUID } = require('crypto');
 
 const USER_ID_PATTERN = /^[A-Za-z0-9]{3,20}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -41,6 +41,7 @@ class ProfileRepository {
     this.userIds = new Map();
     this.publicKeys = new Map();
     this.writeQueue = Promise.resolve();
+    this.cleanupQueue = Promise.resolve();
     this.lastLoadedMtime = -1;
     this.load(true);
   }
@@ -149,13 +150,65 @@ class ProfileRepository {
     this.userIds.set(userId.toLowerCase(), uuid);
     this.profiles.set(uuid, updated);
     this.persist();
+    const retainedMedia = new Set([updated.avatarUrl, updated.banner.type === 'image' ? updated.banner.value : ''].filter(Boolean));
+    for (const oldMedia of [profile.avatarUrl, profile.banner.type === 'image' ? profile.banner.value : '']) {
+      if (oldMedia && !retainedMedia.has(oldMedia)) this.deleteStoredMedia(oldMedia);
+    }
     return updated;
+  }
+
+  listProfiles() {
+    this.load();
+    return [...SYSTEM_PROFILES, ...this.profiles.values()].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  createProfile(input) {
+    this.load();
+    const uuid = randomUUID();
+    const userId = this.requireUserId(input?.userId);
+    if (!this.isUserIdAvailable(userId)) throw new ProfileRepositoryError('这个 userId 已经被使用', 'USER_ID_TAKEN');
+    const now = new Date().toISOString();
+    const profile = {
+      uuid,
+      publicKey: createPublicKey(uuid),
+      userId,
+      name: this.requireText(input?.name, '个人名称', 32),
+      bio: this.optionalText(input?.bio, 160),
+      avatarUrl: this.normalizeAvatar(input?.avatarUrl),
+      banner: this.normalizeBanner(input?.banner),
+      createdAt: now,
+      updatedAt: now,
+      isSystem: false
+    };
+    this.profiles.set(uuid, profile);
+    this.userIds.set(userId.toLowerCase(), uuid);
+    this.publicKeys.set(profile.publicKey, uuid);
+    this.persist();
+    return profile;
+  }
+
+  deleteProfile(uuidValue) {
+    this.load();
+    const uuid = this.requireUuid(uuidValue);
+    const profile = this.profiles.get(uuid);
+    if (!profile) throw new ProfileRepositoryError('个人资料不存在', 'PROFILE_NOT_FOUND');
+    this.profiles.delete(uuid);
+    this.userIds.delete(profile.userId.toLowerCase());
+    this.publicKeys.delete(profile.publicKey);
+    this.persist();
+    this.deleteStoredMedia(profile.avatarUrl);
+    if (profile.banner.type === 'image') this.deleteStoredMedia(profile.banner.value);
+    return profile;
   }
 
   toPublic(profile) {
     if (!profile) return null;
     const { uuid: _uuid, ...publicProfile } = profile;
     return publicProfile;
+  }
+
+  toAdmin(profile) {
+    return profile ? { ...profile } : null;
   }
 
   isUserIdAvailable(userId) {
@@ -229,6 +282,16 @@ class ProfileRepository {
   optionalText(value, maxLength) {
     const text = typeof value === 'string' ? value.trim() : '';
     return text.slice(0, maxLength);
+  }
+
+  deleteStoredMedia(value) {
+    const match = /^\/uploads\/profile\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/.exec(value || '');
+    if (!match) return this.cleanupQueue;
+    const filePath = path.join(process.cwd(), 'public', 'uploads', 'profile', match[1]);
+    this.cleanupQueue = this.cleanupQueue.then(() => fs.promises.unlink(filePath)).catch((error) => {
+      if (error.code !== 'ENOENT') console.error('Profile media could not be deleted:', error.message);
+    });
+    return this.cleanupQueue;
   }
 
   persist() {
