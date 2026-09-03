@@ -3,7 +3,9 @@
 import '@/styles/index.css';
 import './admin.css';
 import {
+  CheckOutlined,
   CloudOutlined,
+  CloseOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -14,17 +16,19 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
-  TeamOutlined
+  SolutionOutlined,
+  TeamOutlined,
+  UserDeleteOutlined
 } from '@ant-design/icons';
 import { Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { AdminApiError, adminRequest } from './client';
-import type { AdminCloudItem, AdminIdentity, AdminProfileItem, AdminRoomItem } from './types';
+import type { AdminCloudItem, AdminIdentity, AdminProfileItem, AdminRoomAccessItem, AdminRoomItem } from './types';
 
 type Notice = { type: 'error' | 'success'; text: string } | null;
-type AdminTab = 'cloud' | 'rooms' | 'users';
+type AdminTab = 'cloud' | 'rooms' | 'access' | 'users';
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -308,6 +312,76 @@ type DataTableProps = {
   setNotice: (notice: Notice) => void;
 };
 
+function RoomAccessTable({ refreshToken, onUnauthorized, setNotice }: DataTableProps) {
+  const [items, setItems] = useState<AdminRoomAccessItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actingId, setActingId] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await adminRequest<{ items: AdminRoomAccessItem[] }>('/room-access');
+      setItems(result.items);
+    } catch (error) {
+      handleAuthError(error, onUnauthorized);
+      setNotice({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setLoading(false);
+    }
+  }, [onUnauthorized, setNotice]);
+
+  useEffect(() => {
+    void load();
+  }, [load, refreshToken]);
+
+  const changeAccess = async (item: AdminRoomAccessItem, action: 'approved' | 'rejected' | 'revoked') => {
+    setActingId(item.id);
+    try {
+      await adminRequest(`/rooms/${encodeURIComponent(item.roomId)}/access/${encodeURIComponent(item.requesterId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action })
+      });
+      setNotice({ type: 'success', text: action === 'approved' ? '已同意访问申请' : action === 'rejected' ? '已拒绝访问申请' : '已删除访问授权' });
+      await load();
+    } catch (error) {
+      handleAuthError(error, onUnauthorized);
+      setNotice({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setActingId('');
+    }
+  };
+
+  const columns: TableColumnsType<AdminRoomAccessItem> = [
+    { title: '星球', width: 190, render: (_, item) => <div><div className="font-medium text-foreground">{item.roomName}</div><div className="font-mono text-[11px] text-foreground-muted">#{item.roomCode}</div></div> },
+    { title: '申请人', width: 190, render: (_, item) => <div><div className="text-sm text-foreground">{item.requesterName}</div><div className="font-mono text-[11px] text-foreground-muted">@{item.requesterUserId}</div></div> },
+    {
+      title: '状态', dataIndex: 'status', width: 110,
+      render: (status, item) => status === 'pending' ? <Tag color="gold">待处理</Tag> : status === 'approved' ? <Tag color={item.source === 'invite' ? 'blue' : 'green'}>{item.source === 'invite' ? '邀请加入' : '已同意'}</Tag> : status === 'rejected' ? <Tag color="red">{item.attemptCount >= 5 ? '已达上限' : '已拒绝'}</Tag> : <Tag>已撤权</Tag>
+    },
+    { title: '申请次数', dataIndex: 'attemptCount', width: 96, render: (value) => `${value} / 5` },
+    { title: '更新时间', dataIndex: 'updatedAt', width: 174, render: formatDate },
+    {
+      title: '操作', fixed: 'right', width: 140,
+      render: (_, item) => (
+        <div className="flex items-center gap-1">
+          {item.status === 'pending' && <><Tooltip title="同意"><button type="button" disabled={actingId === item.id} onClick={() => void changeAccess(item, 'approved')} className="admin-icon-button !text-success"><CheckOutlined /></button></Tooltip><Tooltip title="拒绝"><button type="button" disabled={actingId === item.id} onClick={() => void changeAccess(item, 'rejected')} className="admin-icon-button !text-danger"><CloseOutlined /></button></Tooltip></>}
+          {item.status === 'approved' && <Popconfirm title="删除该用户的访问权限？" description="用户如果正在聊天室中将被立即移出。" okText="删除授权" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void changeAccess(item, 'revoked')}><Tooltip title="删除授权"><button type="button" disabled={actingId === item.id} className="admin-icon-button !text-danger"><UserDeleteOutlined /></button></Tooltip></Popconfirm>}
+          {!['pending', 'approved'].includes(item.status) && <span className="px-2 text-xs text-foreground-muted">无操作</span>}
+        </div>
+      )
+    }
+  ];
+
+  const pendingCount = items.filter((item) => item.status === 'pending').length;
+  const memberCount = items.filter((item) => item.status === 'approved').length;
+  return (
+    <section>
+      <div className="mb-4"><h2 className="text-lg font-semibold text-foreground">私密星球访问</h2><p className="mt-1 text-xs text-foreground-muted">待处理 {pendingCount} 条 · 已授权 {memberCount} 人 · 共 {items.length} 条记录</p></div>
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
+    </section>
+  );
+}
+
 type RoomDraft = {
   name: string;
   description: string;
@@ -415,9 +489,10 @@ function RoomDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
           <label className="grid gap-1.5"><span className="text-sm font-medium">星球名称</span><Input value={draft.name} maxLength={32} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} /></label>
           <label className="grid gap-1.5"><span className="text-sm font-medium">描述</span><Input.TextArea value={draft.description} rows={3} maxLength={200} showCount onChange={(event) => setDraft((value) => ({ ...value, description: event.target.value }))} /></label>
           <label className="grid gap-1.5"><span className="text-sm font-medium">标签（逗号分隔）</span><Input value={draft.tags} onChange={(event) => setDraft((value) => ({ ...value, tags: event.target.value }))} /></label>
-          <div className="flex items-center justify-between rounded-lg bg-background-secondary px-3 py-2.5"><span className="text-sm">私密星球</span><Switch checked={draft.isPrivate} onChange={(checked) => setDraft((value) => ({ ...value, isPrivate: checked }))} /></div>
-          <div className="flex items-center justify-between rounded-lg bg-background-secondary px-3 py-2.5"><span className="text-sm">启用密码</span><Switch checked={draft.passwordEnabled} onChange={(checked) => setDraft((value) => ({ ...value, passwordEnabled: checked, password: checked ? value.password : '' }))} /></div>
-          {draft.passwordEnabled && <label className="grid gap-1.5"><span className="text-sm font-medium">新密码</span><Input.Password value={draft.password} maxLength={4} placeholder="留空则保留原密码" onChange={(event) => setDraft((value) => ({ ...value, password: event.target.value.replace(/[^A-Za-z0-9]/g, '') }))} /></label>}
+          <div className="flex items-center justify-between rounded-lg bg-background-secondary px-3 py-2.5"><span className="text-sm">私密星球</span><Switch checked={draft.isPrivate} onChange={(checked) => setDraft((value) => ({ ...value, isPrivate: checked, passwordEnabled: checked ? false : value.passwordEnabled, password: checked ? '' : value.password }))} /></div>
+          {!draft.isPrivate && <div className="flex items-center justify-between rounded-lg bg-background-secondary px-3 py-2.5"><span className="text-sm">启用密码</span><Switch checked={draft.passwordEnabled} onChange={(checked) => setDraft((value) => ({ ...value, passwordEnabled: checked, password: checked ? value.password : '' }))} /></div>}
+          {!draft.isPrivate && draft.passwordEnabled && <label className="grid gap-1.5"><span className="text-sm font-medium">新密码</span><Input.Password value={draft.password} maxLength={4} placeholder="留空则保留原密码" onChange={(event) => setDraft((value) => ({ ...value, password: event.target.value.replace(/[^A-Za-z0-9]/g, '') }))} /></label>}
+          {draft.isPrivate && <p className="rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">私密星球仅创建者、已授权成员和超管可进入，无需密码。</p>}
         </div>
       </Modal>
     </section>
@@ -554,6 +629,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
   const tabs: Array<{ key: AdminTab; label: string; icon: React.ReactNode }> = [
     { key: 'cloud', label: '云传数据', icon: <CloudOutlined /> },
     { key: 'rooms', label: '聊天室', icon: <GlobalOutlined /> },
+    { key: 'access', label: '访问申请', icon: <SolutionOutlined /> },
     { key: 'users', label: '人员数据', icon: <TeamOutlined /> }
   ];
 
@@ -618,6 +694,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
         <div className="overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5">
           {tab === 'cloud' && <CloudDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'rooms' && <RoomDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
+          {tab === 'access' && <RoomAccessTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'users' && <UserDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
         </div>
       </div>

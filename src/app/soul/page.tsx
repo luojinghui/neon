@@ -17,7 +17,7 @@ import { soulChat } from './core';
 import { useSoulStore } from './store';
 import type { ChatRoom } from './components/types';
 
-type RoomTab = 'public' | 'private';
+type RoomTab = 'public' | 'owned' | 'joined';
 
 function SoulPage() {
   const router = useRouter();
@@ -33,8 +33,9 @@ function SoulPage() {
   const roomsState = useSoulStore((state) => state.roomsState);
   const roomsError = useSoulStore((state) => state.roomsError);
   const publicRooms = useMemo(() => rooms.filter((room) => !room.isPrivate), [rooms]);
-  const privateRooms = useMemo(() => rooms.filter((room) => room.isPrivate), [rooms]);
-  const visibleRooms = activeTab === 'public' ? publicRooms : privateRooms;
+  const ownedRooms = useMemo(() => rooms.filter((room) => room.isPrivate && ['owner', 'admin'].includes(room.membership)), [rooms]);
+  const joinedRooms = useMemo(() => rooms.filter((room) => room.isPrivate && room.membership === 'approved'), [rooms]);
+  const visibleRooms = activeTab === 'public' ? publicRooms : activeTab === 'owned' ? ownedRooms : joinedRooms;
 
   useEffect(() => {
     void soulChat.initList();
@@ -55,7 +56,7 @@ function SoulPage() {
 
   const handleRoomSaved = (room: ChatRoom) => {
     closeRoomForm();
-    setActiveTab(room.isPrivate ? 'private' : 'public');
+    setActiveTab(room.isPrivate ? 'owned' : 'public');
   };
 
   const openDelete = (room: ChatRoom) => {
@@ -150,7 +151,8 @@ function SoulPage() {
             {(
               [
                 ['public', `公共星球 ${publicRooms.length}`],
-                ['private', `私密星球 ${privateRooms.length}`]
+                ['owned', `我的 ${ownedRooms.length}`],
+                ['joined', `已加入 ${joinedRooms.length}`]
               ] as const
             ).map(([tab, label]) => (
               <button
@@ -185,17 +187,13 @@ function SoulPage() {
             </div>
           ) : visibleRooms.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-foreground">
-              <div className="text-base font-medium">{activeTab === 'private' ? '暂无私密星球' : '暂无公共星球'}</div>
+              <div className="text-base font-medium">{activeTab === 'owned' ? '暂无我的私密星球' : activeTab === 'joined' ? '暂无已加入的星球' : '暂无公共星球'}</div>
               <div className="mt-2 text-center text-sm text-foreground-secondary">
-                {activeTab === 'private' ? '创建私密星球后，会集中显示在这里。' : '成为第一个创建星球的人吧。'}
+                {activeTab === 'owned' ? '你创建的私密星球会显示在这里。' : activeTab === 'joined' ? '申请通过或使用邀请链接后会显示在这里。' : '成为第一个创建星球的人吧。'}
               </div>
-              <button
-                type="button"
-                onClick={openCreate}
-                className="mt-6 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active"
-              >
-                创建星球
-              </button>
+              {activeTab !== 'joined' && (
+                <button type="button" onClick={openCreate} className="mt-6 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">创建星球</button>
+              )}
             </div>
           ) : (
             <ChatRoomGrid rooms={visibleRooms} onRoomClick={enterRoom} onRoomEdit={setEditingRoom} onRoomDelete={openDelete} />

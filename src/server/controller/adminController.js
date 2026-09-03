@@ -309,6 +309,26 @@ function mountAdminController(app, io) {
 
   router.get('/rooms', (_req, res) => res.json({ items: adminRoomRecords() }));
 
+  router.get('/room-access', (_req, res) => res.json({ items: chatController.adminListRoomAccess() }));
+
+  router.patch(
+    '/rooms/:roomId/access/:requesterId',
+    asyncRoute(async (req, res) => {
+      try {
+        const action = req.body?.action;
+        if (!['approved', 'rejected', 'revoked'].includes(action)) {
+          return res.status(400).json({ error: '访问申请操作无效', code: 'ROOM_ACCESS_DECISION_INVALID' });
+        }
+        const item = chatController.adminChangeRoomAccess(req.params.roomId, req.params.requesterId, action, req.admin.id, io);
+        await audit(req, `room.access.${action}`, 'room', req.params.roomId, { requesterId: req.params.requesterId });
+        return res.json({ item });
+      } catch (error) {
+        const response = adminError(error);
+        return res.status(response.status).json(response.body);
+      }
+    })
+  );
+
   router.patch(
     '/rooms/:roomId',
     asyncRoute(async (req, res) => {
@@ -381,7 +401,8 @@ function mountAdminController(app, io) {
         await audit(req, 'user.delete', 'user', profile.uuid, {
           userId: profile.userId,
           deletedRoomCount: related.deletedRooms.length,
-          deletedMessageCount: related.deletedMessages.length
+          deletedMessageCount: related.deletedMessages.length,
+          deletedAccessCount: related.deletedAccessCount
         });
         return res.status(204).end();
       } catch (error) {

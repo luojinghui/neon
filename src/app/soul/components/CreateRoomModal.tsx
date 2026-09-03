@@ -127,7 +127,11 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             <button
               type="button"
               aria-pressed={isPrivate}
-              onClick={() => setIsPrivate(true)}
+              onClick={() => {
+                setIsPrivate(true);
+                setPasswordEnabled(false);
+                setPassword('');
+              }}
               className={`flex items-start gap-2.5 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
                 isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-border bg-surface text-foreground-secondary hover:border-border-hover hover:bg-surface-hover'
               }`}
@@ -135,40 +139,44 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
               <LockOutlined className={`mt-0.5 text-sm ${isPrivate ? 'text-primary' : 'text-foreground-muted'}`} />
               <span>
                 <span className="block text-sm font-medium">私密</span>
-                <span className="mt-0.5 block text-xs text-foreground-muted">收进私密列表</span>
+                <span className="mt-0.5 block text-xs text-foreground-muted">授权后可加入</span>
               </span>
             </button>
           </div>
         </fieldset>
 
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor="room-password" className="text-sm font-medium text-foreground">
-              进入密码 <span className="font-normal text-foreground-muted">· 可选</span>
-            </label>
-            <Switch
-              checked={passwordEnabled}
-              aria-label="开启进入密码"
-              onChange={setPasswordEnabled}
-              className="shrink-0"
-              style={{ backgroundColor: passwordEnabled ? 'hsl(var(--primary))' : 'hsl(var(--background-tertiary))' }}
+        {!isPrivate ? (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label htmlFor="room-password" className="text-sm font-medium text-foreground">
+                进入密码 <span className="font-normal text-foreground-muted">· 可选</span>
+              </label>
+              <Switch
+                checked={passwordEnabled}
+                aria-label="开启进入密码"
+                onChange={setPasswordEnabled}
+                className="shrink-0"
+                style={{ backgroundColor: passwordEnabled ? 'hsl(var(--primary))' : 'hsl(var(--background-tertiary))' }}
+              />
+            </div>
+
+            <input
+              id="room-password"
+              aria-label="星球密码"
+              type="password"
+              value={password}
+              minLength={2}
+              maxLength={4}
+              autoComplete="new-password"
+              disabled={!passwordEnabled}
+              onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+              placeholder={!passwordEnabled ? '任何人都可以直接进入' : isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位数字或字母'}
+              className="w-full max-w-xs rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus disabled:cursor-not-allowed"
             />
           </div>
-
-          <input
-            id="room-password"
-            aria-label="星球密码"
-            type="password"
-            value={password}
-            minLength={2}
-            maxLength={4}
-            autoComplete="new-password"
-            disabled={!passwordEnabled}
-            onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
-            placeholder={!passwordEnabled ? '任何人都可以直接进入' : isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位数字或字母'}
-            className="w-full max-w-xs rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus disabled:cursor-not-allowed"
-          />
-        </div>
+        ) : (
+          <p className="rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">私密星球仅你、已授权成员和超管可进入，无需密码。</p>
+        )}
 
         {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{error}</p>}
 
@@ -178,7 +186,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
           </button>
           <button
             type="submit"
-            disabled={isSaving || !name.trim() || (passwordEnabled && (password ? !/^[A-Za-z0-9]{2,4}$/.test(password) : !room?.hasPassword))}
+            disabled={isSaving || !name.trim() || (!isPrivate && passwordEnabled && (password ? !/^[A-Za-z0-9]{2,4}$/.test(password) : !room?.hasPassword))}
             className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? '保存中...' : isEditing ? '保存修改' : '创建星球'}

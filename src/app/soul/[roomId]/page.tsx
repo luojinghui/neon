@@ -3,7 +3,7 @@
 import '@/styles/index.css';
 import { useEffect, useState } from 'react';
 import { InfoCircleOutlined, UserOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { Badge, Tooltip } from 'antd';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
@@ -26,7 +26,8 @@ function ChatRoomPage() {
   const [roomInfoOpen, setRoomInfoOpen] = useState(false);
 
   useEffect(() => {
-    void soulChat.initRoom(params.roomId);
+    const inviteToken = new URLSearchParams(window.location.search).get('invite') || '';
+    void soulChat.initRoom(params.roomId, inviteToken);
 
     return () => {
       soulChat.destroy();
@@ -56,7 +57,9 @@ function ChatRoomPage() {
               aria-label={`查看${roomName || '星球'}信息`}
             >
               <span className="truncate">{roomName || '加载中...'}</span>
-              <InfoCircleOutlined className="shrink-0 text-sm text-foreground-muted" aria-hidden />
+              <Badge dot={Boolean(room?.pendingRequestCount)} offset={[2, -2]}>
+                <InfoCircleOutlined className="block shrink-0 text-sm text-foreground-muted" aria-hidden />
+              </Badge>
             </button>
           </Tooltip>
         }

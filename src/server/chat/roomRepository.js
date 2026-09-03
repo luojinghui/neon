@@ -5,13 +5,15 @@ const { randomBytes, randomUUID, scryptSync, timingSafeEqual } = require('crypto
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 4;
 const PASSWORD_PATTERN = /^[A-Za-z0-9]{2,4}$/;
+const ROOM_ACCESS_MAX_ATTEMPTS = 5;
 const CHAT_DATA_VERSION = 2;
 
 class RoomRepositoryError extends Error {
-  constructor(message, code) {
+  constructor(message, code, data) {
     super(message);
     this.name = 'RoomRepositoryError';
     this.code = code;
+    if (data !== undefined) this.data = data;
   }
 }
 
@@ -63,6 +65,7 @@ class RoomRepository {
     this.resolveProfile = typeof options.resolveProfile === 'function' ? options.resolveProfile : null;
     this.rooms = new Map(DEFAULT_ROOMS.map((room) => [room.id, room]));
     this.messages = new Map(DEFAULT_ROOMS.map((room) => [room.id, DEFAULT_MESSAGES.filter((message) => message.roomId === room.id)]));
+    this.roomAccess = new Map();
     this.writeQueue = Promise.resolve();
     this.cleanupQueue = Promise.resolve();
     this.load();
@@ -118,11 +121,43 @@ class RoomRepository {
           room.isPrivate = false;
           migrated = true;
         }
+        if (room.isPrivate && (room.passwordHash || room.passwordSalt)) {
+          delete room.passwordHash;
+          delete room.passwordSalt;
+          migrated = true;
+        }
+        if (room.isPrivate && !this.isInviteToken(room.inviteToken)) {
+          room.inviteToken = this.generateInviteToken();
+          migrated = true;
+        }
+        if (!room.isPrivate && room.inviteToken) {
+          delete room.inviteToken;
+          migrated = true;
+        }
         if (!room.isFixed && this.resolveProfile && !this.resolveRoomOwner(room)) {
           migrated = true;
           continue;
         }
         this.rooms.set(room.id, room);
+      }
+      for (const storedAccess of Array.isArray(data.roomAccess) ? data.roomAccess : []) {
+        const room = this.rooms.get(storedAccess?.roomId);
+        if (!room?.isPrivate || !storedAccess?.requesterId || room.ownerId === storedAccess.requesterId) {
+          migrated = true;
+          continue;
+        }
+        const profile = this.resolveAccessProfile(storedAccess);
+        if (this.resolveProfile && !profile) {
+          migrated = true;
+          continue;
+        }
+        const record = this.normalizeStoredAccess(storedAccess, profile);
+        if (!record) {
+          migrated = true;
+          continue;
+        }
+        if (JSON.stringify(record) !== JSON.stringify(storedAccess)) migrated = true;
+        this.roomAccess.set(this.accessKey(record.roomId, record.requesterId), record);
       }
       for (const message of storedMessages) {
         if (!message || !this.rooms.has(message.roomId)) {
@@ -159,8 +194,8 @@ class RoomRepository {
     }
   }
 
-  listRooms() {
-    return this.sortRooms([...this.rooms.values()]);
+  listRooms(user, options = {}) {
+    return this.sortRooms([...this.rooms.values()].filter((room) => this.canViewRoom(room, user, options.isAdmin === true)));
   }
 
   sortRooms(rooms) {
@@ -178,7 +213,7 @@ class RoomRepository {
 
   searchRoom(query) {
     const normalized = this.requireText(query, '星球 ID', 80).toUpperCase();
-    return [...this.rooms.values()].find((room) => room.id.toUpperCase() === normalized || room.code.toUpperCase() === normalized) || null;
+    return [...this.rooms.values()].find((item) => item.id.toUpperCase() === normalized || item.code.toUpperCase() === normalized) || null;
   }
 
   createRoom(input, user) {
@@ -192,11 +227,12 @@ class RoomRepository {
       tags: this.normalizeTags(input.tags),
       ownerId: owner.id,
       isPrivate: input.isPrivate === true,
+      ...(input.isPrivate === true ? { inviteToken: this.generateInviteToken() } : {}),
       isFixed: false,
       createdAt: new Date().toISOString(),
       lastMessageAt: null
     };
-    this.applyPassword(room, input.passwordEnabled === true, input.password);
+    this.applyPassword(room, !room.isPrivate && input.passwordEnabled === true, input.password);
 
     this.rooms.set(room.id, room);
     this.messages.set(room.id, []);
@@ -216,6 +252,7 @@ class RoomRepository {
   }
 
   updateRoomRecord(room, input) {
+    const wasPrivate = room.isPrivate === true;
     const updated = {
       ...room,
       name: this.requireText(input.name, '星球名', 32),
@@ -224,7 +261,10 @@ class RoomRepository {
       isPrivate: input.isPrivate === true,
       updatedAt: new Date().toISOString()
     };
-    this.applyPassword(updated, input.passwordEnabled === true, input.password);
+    if (updated.isPrivate && !wasPrivate) updated.inviteToken = this.generateInviteToken();
+    if (!updated.isPrivate) delete updated.inviteToken;
+    this.applyPassword(updated, !updated.isPrivate && input.passwordEnabled === true, input.password);
+    if (wasPrivate !== updated.isPrivate) this.deleteRoomAccessRecords(room.id);
     this.rooms.set(room.id, updated);
     this.persist();
     return updated;
@@ -245,6 +285,7 @@ class RoomRepository {
     for (const message of this.messages.get(room.id) || []) this.deleteStoredAttachment(message);
     this.rooms.delete(room.id);
     this.messages.delete(room.id);
+    this.deleteRoomAccessRecords(room.id);
     this.persist();
     return room;
   }
@@ -252,7 +293,23 @@ class RoomRepository {
   verifyRoomAccess(roomId, password, options = {}) {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
-    if (options.bypassPassword === true) return room;
+    if (room.isPrivate) {
+      if (!this.canViewRoom(room, options.user, options.isAdmin === true) && this.isValidInviteToken(room, options.inviteToken)) {
+        this.grantRoomAccessByInvite(room, options.user);
+      }
+      if (!this.canViewRoom(room, options.user, options.isAdmin === true)) {
+        const access = this.getRoomAccessState(room.id, options.user);
+        const messages = {
+          pending: ['访问申请正在等待创建人处理', 'ROOM_ACCESS_PENDING'],
+          rejected: ['访问申请未通过，可以重新申请', 'ROOM_ACCESS_REJECTED'],
+          exhausted: ['已达到 5 次申请上限', 'ROOM_ACCESS_EXHAUSTED']
+        };
+        const [message, code] = messages[access.status] || ['该私密星球需要申请后访问', 'ROOM_ACCESS_REQUIRED'];
+        throw new RoomRepositoryError(message, code, { access });
+      }
+      return room;
+    }
+    if (options.isAdmin === true) return room;
     if (!room.passwordHash || !room.passwordSalt) return room;
     if (!password) throw new RoomRepositoryError('请输入星球密码', 'ROOM_PASSWORD_REQUIRED');
     if (!PASSWORD_PATTERN.test(password)) throw new RoomRepositoryError('密码必须是 2-4 位数字或字母', 'ROOM_PASSWORD_INVALID');
@@ -262,6 +319,114 @@ class RoomRepository {
       throw new RoomRepositoryError('星球密码错误', 'ROOM_PASSWORD_INVALID');
     }
     return room;
+  }
+
+  getRoomAccessState(roomId, user) {
+    const record = user?.id ? this.roomAccess.get(this.accessKey(roomId, user.id)) : null;
+    const attemptCount = Math.max(0, Math.min(ROOM_ACCESS_MAX_ATTEMPTS, Number(record?.attemptCount) || 0));
+    let status = record?.status || 'none';
+    if (status === 'rejected' && attemptCount >= ROOM_ACCESS_MAX_ATTEMPTS) status = 'exhausted';
+    if (status === 'revoked') status = 'none';
+    return { status, attemptCount, remainingAttempts: Math.max(0, ROOM_ACCESS_MAX_ATTEMPTS - attemptCount) };
+  }
+
+  requestRoomAccess(roomId, user) {
+    const room = this.getRoomOrThrow(roomId);
+    const requester = this.normalizeUser(user);
+    if (!room.isPrivate) throw new RoomRepositoryError('公开星球无需申请', 'ROOM_ACCESS_NOT_REQUIRED');
+    if (room.ownerId === requester.id || this.hasApprovedAccess(room.id, requester.id)) {
+      throw new RoomRepositoryError('你已经拥有该星球的访问权限', 'ROOM_ACCESS_ALREADY_GRANTED');
+    }
+
+    const key = this.accessKey(room.id, requester.id);
+    const current = this.roomAccess.get(key);
+    if (current?.status === 'pending') throw new RoomRepositoryError('访问申请正在等待处理', 'ROOM_ACCESS_PENDING', { access: this.getRoomAccessState(room.id, requester) });
+    const previousAttempts = current?.status === 'revoked' ? 0 : Number(current?.attemptCount) || 0;
+    if (previousAttempts >= ROOM_ACCESS_MAX_ATTEMPTS) {
+      throw new RoomRepositoryError('已达到 5 次申请上限', 'ROOM_ACCESS_EXHAUSTED', { access: this.getRoomAccessState(room.id, requester) });
+    }
+
+    const now = new Date().toISOString();
+    const record = {
+      id: current?.id || `access-${randomUUID()}`,
+      roomId: room.id,
+      requesterId: requester.id,
+      requesterUserId: requester.userId,
+      requesterPublicKey: requester.publicKey,
+      requesterName: requester.name,
+      requesterAvatarUrl: requester.avatarUrl,
+      status: 'pending',
+      source: 'request',
+      attemptCount: previousAttempts + 1,
+      createdAt: current?.createdAt || now,
+      requestedAt: now,
+      updatedAt: now
+    };
+    delete record.decidedAt;
+    delete record.decidedBy;
+    this.roomAccess.set(key, record);
+    this.persist();
+    return record;
+  }
+
+  decideRoomAccess(roomId, requesterId, decision, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    if (!['approved', 'rejected'].includes(decision)) throw new RoomRepositoryError('申请处理操作无效', 'ROOM_ACCESS_DECISION_INVALID');
+    const key = this.accessKey(room.id, requesterId);
+    const current = this.roomAccess.get(key);
+    if (!current || current.status !== 'pending') throw new RoomRepositoryError('待处理的申请不存在', 'ROOM_ACCESS_REQUEST_NOT_FOUND');
+    const now = new Date().toISOString();
+    const updated = {
+      ...current,
+      status: decision,
+      source: 'request',
+      decidedAt: now,
+      decidedBy: options.isAdmin === true ? `admin:${options.adminId || 'super'}` : actor.id,
+      updatedAt: now
+    };
+    this.roomAccess.set(key, updated);
+    this.persist();
+    return { room, record: updated };
+  }
+
+  revokeRoomAccess(roomId, requesterId, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    const key = this.accessKey(room.id, requesterId);
+    const current = this.roomAccess.get(key);
+    if (!current || current.status !== 'approved') throw new RoomRepositoryError('已授权成员不存在', 'ROOM_ACCESS_MEMBER_NOT_FOUND');
+    const now = new Date().toISOString();
+    const updated = { ...current, status: 'revoked', attemptCount: 0, decidedAt: now, decidedBy: options.isAdmin === true ? `admin:${options.adminId || 'super'}` : actor.id, updatedAt: now };
+    this.roomAccess.set(key, updated);
+    this.persist();
+    return { room, record: updated };
+  }
+
+  getRoomAccessManagement(roomId, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    const records = this.getRoomAccessRecords(room.id).map((record) => this.toPublicAccessRecord(record));
+    return {
+      roomId: room.id,
+      ...(room.isPrivate ? { inviteToken: room.inviteToken } : {}),
+      applications: records.filter((record) => record.status !== 'approved'),
+      members: records.filter((record) => record.status === 'approved'),
+      pendingCount: records.filter((record) => record.status === 'pending').length
+    };
+  }
+
+  rotateInviteToken(roomId, user) {
+    const room = this.requireOwnedRoom(roomId, user);
+    if (!room.isPrivate) throw new RoomRepositoryError('只有私密星球需要邀请链接', 'ROOM_INVITE_NOT_REQUIRED');
+    const updated = { ...room, inviteToken: this.generateInviteToken(), updatedAt: new Date().toISOString() };
+    this.rooms.set(room.id, updated);
+    this.persist();
+    return updated.inviteToken;
+  }
+
+  listAllRoomAccess() {
+    return [...this.roomAccess.values()]
+      .filter((record) => this.rooms.has(record.roomId))
+      .map((record) => ({ ...this.toPublicAccessRecord(record), room: this.toPublicRoom(this.rooms.get(record.roomId)) }))
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   getHistory(roomId, options = {}) {
@@ -322,7 +487,9 @@ class RoomRepository {
         ownerId: room.ownerId,
         messageCount: messages.length,
         attachmentCount: attachments.length,
-        attachmentBytes: attachments.reduce((total, attachment) => total + (Number(attachment.size) || 0), 0)
+        attachmentBytes: attachments.reduce((total, attachment) => total + (Number(attachment.size) || 0), 0),
+        pendingRequestCount: this.getRoomAccessRecords(room.id).filter((record) => record.status === 'pending').length,
+        authorizedMemberCount: this.getRoomAccessRecords(room.id).filter((record) => record.status === 'approved').length
       };
     });
   }
@@ -331,6 +498,7 @@ class RoomRepository {
     const deletedRooms = [];
     const deletedMessages = [];
     const ownerId = profile?.uuid ? `guest-${profile.uuid}` : '';
+    let deletedAccessCount = 0;
     for (const room of [...this.rooms.values()]) {
       if (ownerId && room.ownerId === ownerId) {
         deletedRooms.push(this.deleteRoomRecord(room));
@@ -351,8 +519,14 @@ class RoomRepository {
       this.messages.set(room.id, retained);
       this.rooms.set(room.id, { ...room, lastMessageAt: latestMessage ? new Date(latestMessage.timestamp).toISOString() : null });
     }
-    if (deletedRooms.length > 0 || deletedMessages.length > 0) this.persist();
-    return { deletedRooms, deletedMessages };
+    for (const [key, record] of this.roomAccess) {
+      if ((ownerId && record.requesterId === ownerId) || record.requesterPublicKey === profile?.publicKey || record.requesterUserId === profile?.userId) {
+        this.roomAccess.delete(key);
+        deletedAccessCount += 1;
+      }
+    }
+    if (deletedRooms.length > 0 || deletedMessages.length > 0 || deletedAccessCount > 0) this.persist();
+    return { deletedRooms, deletedMessages, deletedAccessCount };
   }
 
   deleteStoredAttachment(message) {
@@ -406,6 +580,153 @@ class RoomRepository {
       name: this.requireText(input?.name, '用户名', 32),
       avatarUrl: this.optionalText(input?.avatarUrl, 300)
     };
+  }
+
+  canViewRoom(room, user, isAdmin = false) {
+    return Boolean(room) && (!room.isPrivate || isAdmin || room.ownerId === user?.id || this.hasApprovedAccess(room.id, user?.id));
+  }
+
+  hasApprovedAccess(roomId, requesterId) {
+    return Boolean(requesterId) && this.roomAccess.get(this.accessKey(roomId, requesterId))?.status === 'approved';
+  }
+
+  getRoomAccessRecords(roomId) {
+    return [...this.roomAccess.values()]
+      .filter((record) => record.roomId === roomId)
+      .sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
+  }
+
+  accessKey(roomId, requesterId) {
+    return `${roomId}:${requesterId}`;
+  }
+
+  deleteRoomAccessRecords(roomId) {
+    for (const [key, record] of this.roomAccess) {
+      if (record.roomId === roomId) this.roomAccess.delete(key);
+    }
+  }
+
+  requireManagedRoom(roomId, actor, isAdmin = false) {
+    const room = this.getRoomOrThrow(roomId);
+    if (!isAdmin && (room.isFixed || room.ownerId !== actor?.id)) {
+      throw new RoomRepositoryError('只有星球创建者或超管可以管理访问权限', 'ROOM_OWNER_REQUIRED');
+    }
+    return room;
+  }
+
+  grantRoomAccessByInvite(room, user) {
+    const requester = this.normalizeUser(user);
+    const key = this.accessKey(room.id, requester.id);
+    const current = this.roomAccess.get(key);
+    const now = new Date().toISOString();
+    const record = {
+      id: current?.id || `access-${randomUUID()}`,
+      roomId: room.id,
+      requesterId: requester.id,
+      requesterUserId: requester.userId,
+      requesterPublicKey: requester.publicKey,
+      requesterName: requester.name,
+      requesterAvatarUrl: requester.avatarUrl,
+      status: 'approved',
+      source: 'invite',
+      attemptCount: Number(current?.attemptCount) || 0,
+      createdAt: current?.createdAt || now,
+      requestedAt: current?.requestedAt || now,
+      decidedAt: now,
+      decidedBy: room.ownerId,
+      updatedAt: now
+    };
+    this.roomAccess.set(key, record);
+    this.persist();
+    return record;
+  }
+
+  toPublicAccessRecord(record) {
+    return {
+      id: record.id,
+      roomId: record.roomId,
+      requesterId: record.requesterId,
+      requesterUserId: record.requesterUserId,
+      requesterName: record.requesterName,
+      requesterAvatarUrl: record.requesterAvatarUrl || '',
+      status: record.status,
+      source: record.source,
+      attemptCount: Number(record.attemptCount) || 0,
+      createdAt: record.createdAt,
+      requestedAt: record.requestedAt,
+      decidedAt: record.decidedAt || null,
+      updatedAt: record.updatedAt
+    };
+  }
+
+  normalizeStoredAccess(input, profile) {
+    if (!['pending', 'approved', 'rejected', 'revoked'].includes(input?.status)) return null;
+    const requester = profile
+      ? {
+          id: input.requesterId,
+          userId: profile.userId,
+          publicKey: profile.publicKey,
+          name: profile.name,
+          avatarUrl: profile.avatarUrl || ''
+        }
+      : {
+          id: input.requesterId,
+          userId: input.requesterUserId,
+          publicKey: input.requesterPublicKey,
+          name: input.requesterName,
+          avatarUrl: input.requesterAvatarUrl || ''
+        };
+    try {
+      const normalized = this.normalizeUser(requester);
+      const now = new Date().toISOString();
+      return {
+        id: typeof input.id === 'string' && input.id ? input.id : `access-${randomUUID()}`,
+        roomId: input.roomId,
+        requesterId: normalized.id,
+        requesterUserId: normalized.userId,
+        requesterPublicKey: normalized.publicKey,
+        requesterName: normalized.name,
+        requesterAvatarUrl: normalized.avatarUrl,
+        status: input.status,
+        source: input.source === 'invite' ? 'invite' : 'request',
+        attemptCount: input.status === 'revoked' ? 0 : Math.max(0, Math.min(ROOM_ACCESS_MAX_ATTEMPTS, Number(input.attemptCount) || 0)),
+        createdAt: input.createdAt || now,
+        requestedAt: input.requestedAt || input.createdAt || now,
+        ...(input.decidedAt ? { decidedAt: input.decidedAt } : {}),
+        ...(input.decidedBy ? { decidedBy: input.decidedBy } : {}),
+        updatedAt: input.updatedAt || input.requestedAt || input.createdAt || now
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  resolveAccessProfile(record) {
+    if (!this.resolveProfile) return null;
+    const uuid = /^guest-([0-9a-f-]{36})$/i.exec(record?.requesterId || '')?.[1] || '';
+    if (uuid) return this.resolveProfile({ uuid, publicKey: '', userId: '' });
+    if (record?.requesterPublicKey) return this.resolveProfile({ uuid: '', publicKey: record.requesterPublicKey, userId: '' });
+    if (record?.requesterUserId) return this.resolveProfile({ uuid: '', publicKey: '', userId: record.requesterUserId });
+    return null;
+  }
+
+  generateInviteToken() {
+    return randomBytes(24).toString('base64url');
+  }
+
+  isInviteToken(value) {
+    return typeof value === 'string' && /^[A-Za-z0-9_-]{32}$/.test(value);
+  }
+
+  isValidInviteToken(room, candidate) {
+    if (!this.isInviteToken(room?.inviteToken) || !this.isInviteToken(candidate)) return false;
+    const actual = Buffer.from(candidate);
+    const expected = Buffer.from(room.inviteToken);
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
   }
 
   resolveRoomOwner(room) {
@@ -501,7 +822,16 @@ class RoomRepository {
   }
 
   persist() {
-    const snapshot = JSON.stringify({ version: CHAT_DATA_VERSION, rooms: this.sortRooms([...this.rooms.values()]), messages: [...this.messages.values()].flat() }, null, 2);
+    const snapshot = JSON.stringify(
+      {
+        version: CHAT_DATA_VERSION,
+        rooms: this.sortRooms([...this.rooms.values()]),
+        messages: [...this.messages.values()].flat(),
+        roomAccess: [...this.roomAccess.values()]
+      },
+      null,
+      2
+    );
     const tempFile = `${this.dataFile}.tmp`;
     this.writeQueue = this.writeQueue
       .then(async () => {
@@ -514,4 +844,4 @@ class RoomRepository {
   }
 }
 
-module.exports = { CHAT_DATA_VERSION, RoomRepository, RoomRepositoryError };
+module.exports = { CHAT_DATA_VERSION, ROOM_ACCESS_MAX_ATTEMPTS, RoomRepository, RoomRepositoryError };

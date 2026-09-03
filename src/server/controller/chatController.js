@@ -34,7 +34,8 @@ function respond(ack, action) {
       ack({
         ok: false,
         error: error instanceof Error ? error.message : '请求失败',
-        ...(error?.code ? { code: error.code } : {})
+        ...(error?.code ? { code: error.code } : {}),
+        ...(error?.data ? { data: error.data } : {})
       });
     }
   }
@@ -49,29 +50,104 @@ function isSuperAdmin(socket) {
   return socket.data.admin?.role === 'super_admin';
 }
 
+function getRoomOwner(room) {
+  const ownerUuid = /^guest-([0-9a-f-]{36})$/i.exec(room?.ownerId || '')?.[1] || '';
+  const owner = ownerUuid ? profileRepository.getByUuid(ownerUuid) : null;
+  return owner
+    ? { userId: owner.userId, name: owner.name, avatarUrl: owner.avatarUrl || '' }
+    : { userId: '', name: room?.ownerId === 'planet-system' ? '星球系统' : '未知人员', avatarUrl: '' };
+}
+
+function getMembership(room, user, admin = false) {
+  if (admin) return 'admin';
+  if (!room.isPrivate) return 'public';
+  if (room.ownerId === user?.id) return 'owner';
+  if (repository.hasApprovedAccess(room.id, user?.id)) return 'approved';
+  return 'none';
+}
+
 function presentRoom(room, user, admin = false) {
+  const isCreator = !room.isFixed && room.ownerId === user?.id;
   return {
     ...repository.toPublicRoom(room),
     onlineCount: roomMembers.get(room.id)?.size || 0,
     status: 'online',
-    isOwner: admin || (!room.isFixed && room.ownerId === user?.id)
+    isOwner: admin || isCreator,
+    isCreator,
+    membership: getMembership(room, user, admin),
+    owner: getRoomOwner(room),
+    pendingRequestCount: isCreator || admin ? repository.getRoomAccessRecords(room.id).filter((record) => record.status === 'pending').length : 0
+  };
+}
+
+function presentRoomPreview(room, user) {
+  const presented = repository.toPublicRoom(room);
+  delete presented.lastMessageAt;
+  delete presented.updatedAt;
+  return {
+    ...presented,
+    status: 'online',
+    isOwner: false,
+    isCreator: false,
+    membership: 'none',
+    owner: getRoomOwner(room),
+    pendingRequestCount: 0,
+    access: repository.getRoomAccessState(room.id, user)
   };
 }
 
 function getRooms(user, admin = false) {
-  return repository.listRooms(user).map((room) => presentRoom(room, user, admin));
+  return repository.listRooms(user, { isAdmin: admin }).map((room) => presentRoom(room, user, admin));
 }
 
 function broadcastRoomsChanged(io) {
   io.emit('rooms:changed');
 }
 
+function emitToUser(io, userId, event, payload) {
+  for (const targetSocket of io.sockets.sockets.values()) {
+    if (targetSocket.data.user?.id === userId) targetSocket.emit(event, payload);
+  }
+}
+
+function notifyRoomAccessChanged(io, room, requesterId, requested = false) {
+  const access = repository.getRoomAccessState(room.id, { id: requesterId });
+  const pendingRequestCount = repository.getRoomAccessRecords(room.id).filter((record) => record.status === 'pending').length;
+  emitToUser(io, room.ownerId, requested ? 'room:access:requested' : 'room:access:changed', { roomId: room.id, pendingRequestCount });
+  emitToUser(io, requesterId, 'room:access:changed', { roomId: room.id, access });
+  broadcastRoomsChanged(io);
+}
+
+function evictRoomUser(io, roomId, userId) {
+  const members = roomMembers.get(roomId);
+  for (const targetSocket of io.sockets.sockets.values()) {
+    if (targetSocket.data.user?.id !== userId || targetSocket.data.roomId !== roomId) continue;
+    targetSocket.leave(roomId);
+    targetSocket.data.roomId = null;
+    members?.delete(targetSocket.id);
+  }
+  if (members?.size === 0) roomMembers.delete(roomId);
+}
+
 function broadcastRoomUpdated(io, room) {
   const members = roomMembers.get(room.id) || new Set();
   for (const socketId of members) {
     const memberSocket = io.sockets.sockets.get(socketId);
-    if (memberSocket) memberSocket.emit('room:updated', presentRoom(room, memberSocket.data.user, isSuperAdmin(memberSocket)));
+    if (!memberSocket) continue;
+    const admin = isSuperAdmin(memberSocket);
+    if (!repository.canViewRoom(room, memberSocket.data.user, admin)) {
+      memberSocket.leave(room.id);
+      memberSocket.data.roomId = null;
+      members.delete(socketId);
+      memberSocket.emit('room:access:changed', {
+        roomId: room.id,
+        access: repository.getRoomAccessState(room.id, memberSocket.data.user)
+      });
+      continue;
+    }
+    memberSocket.emit('room:updated', presentRoom(room, memberSocket.data.user, admin));
   }
+  if (members.size === 0) roomMembers.delete(room.id);
 }
 
 function leaveCurrentRoom(socket, io) {
@@ -110,8 +186,10 @@ const onSocket = (socket, io) => {
   socket.on('rooms:search', (payload, ack) => {
     respond(ack, () => {
       const user = requireUser(socket);
+      const admin = isSuperAdmin(socket);
       const room = repository.searchRoom(payload?.query);
-      return room ? presentRoom(room, user, isSuperAdmin(socket)) : null;
+      if (!room) return null;
+      return repository.canViewRoom(room, user, admin) ? presentRoom(room, user, admin) : presentRoomPreview(room, user);
     });
   });
 
@@ -150,7 +228,25 @@ const onSocket = (socket, io) => {
   socket.on('room:join', (payload, ack) => {
     respond(ack, () => {
       const user = requireUser(socket);
-      const room = repository.verifyRoomAccess(payload?.roomId, payload?.password, { bypassPassword: isSuperAdmin(socket) });
+      const admin = isSuperAdmin(socket);
+      const existingRoom = repository.getRoom(payload?.roomId);
+      const hadAccess = repository.canViewRoom(existingRoom, user, admin);
+      let room;
+      try {
+        room = repository.verifyRoomAccess(payload?.roomId, payload?.password, {
+          user,
+          isAdmin: admin,
+          inviteToken: payload?.inviteToken
+        });
+      } catch (error) {
+        if (error?.code?.startsWith('ROOM_ACCESS_') && existingRoom) {
+          error.data = { ...(error.data || {}), room: presentRoomPreview(existingRoom, user) };
+        }
+        throw error;
+      }
+      if (room.isPrivate && !hadAccess && repository.canViewRoom(room, user, admin)) {
+        notifyRoomAccessChanged(io, room, user.id);
+      }
 
       leaveCurrentRoom(socket, io);
       socket.join(room.id);
@@ -161,7 +257,48 @@ const onSocket = (socket, io) => {
       const history = repository.getHistory(room.id, { limit: 50 });
       broadcastRoomsChanged(io);
 
-      return { room: presentRoom(room, user, isSuperAdmin(socket)), ...history };
+      return { room: presentRoom(room, user, admin), ...history };
+    });
+  });
+
+  socket.on('room:access:request', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireUser(socket);
+      const record = repository.requestRoomAccess(payload?.roomId, user);
+      const room = repository.getRoom(record.roomId);
+      notifyRoomAccessChanged(io, room, record.requesterId, true);
+      return { access: repository.getRoomAccessState(room.id, user) };
+    });
+  });
+
+  socket.on('room:access:list', (payload, ack) => {
+    respond(ack, () => repository.getRoomAccessManagement(payload?.roomId, requireUser(socket), { isAdmin: isSuperAdmin(socket) }));
+  });
+
+  socket.on('room:access:decide', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireUser(socket);
+      const result = repository.decideRoomAccess(payload?.roomId, payload?.requesterId, payload?.decision, user, { isAdmin: isSuperAdmin(socket) });
+      notifyRoomAccessChanged(io, result.room, result.record.requesterId);
+      return repository.getRoomAccessManagement(result.room.id, user, { isAdmin: isSuperAdmin(socket) });
+    });
+  });
+
+  socket.on('room:access:revoke', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireUser(socket);
+      const result = repository.revokeRoomAccess(payload?.roomId, payload?.requesterId, user, { isAdmin: isSuperAdmin(socket) });
+      evictRoomUser(io, result.room.id, result.record.requesterId);
+      notifyRoomAccessChanged(io, result.room, result.record.requesterId);
+      return repository.getRoomAccessManagement(result.room.id, user, { isAdmin: isSuperAdmin(socket) });
+    });
+  });
+
+  socket.on('room:invite:rotate', (payload, ack) => {
+    respond(ack, () => {
+      const roomId = payload?.roomId;
+      const inviteToken = repository.rotateInviteToken(roomId, requireUser(socket));
+      return { roomId, inviteToken };
     });
   });
 
@@ -204,6 +341,24 @@ function adminListRooms() {
   return repository.getAdminRooms().map((room) => ({ ...room, onlineCount: roomMembers.get(room.id)?.size || 0 }));
 }
 
+function adminListRoomAccess() {
+  return repository.listAllRoomAccess().map((record) => ({
+    ...record,
+    roomName: record.room.name,
+    roomCode: record.room.code
+  }));
+}
+
+function adminChangeRoomAccess(roomId, requesterId, action, adminId, io) {
+  const options = { isAdmin: true, adminId };
+  const result = action === 'revoked'
+    ? repository.revokeRoomAccess(roomId, requesterId, null, options)
+    : repository.decideRoomAccess(roomId, requesterId, action, null, options);
+  if (action === 'revoked') evictRoomUser(io, roomId, requesterId);
+  notifyRoomAccessChanged(io, result.room, result.record.requesterId);
+  return repository.toPublicAccessRecord(result.record);
+}
+
 function adminUpdateRoom(roomId, input, io) {
   const room = repository.updateRoomAsAdmin(roomId, input);
   broadcastRoomUpdated(io, room);
@@ -220,6 +375,7 @@ function adminDeleteRoom(roomId, io) {
 }
 
 function adminDeleteUserData(profile, io) {
+  const deletedUserId = profile?.uuid ? `guest-${profile.uuid}` : '';
   const result = repository.deleteUserData(profile);
   for (const room of result.deletedRooms) {
     io.to(room.id).emit('room:deleted', { roomId: room.id });
@@ -228,8 +384,19 @@ function adminDeleteUserData(profile, io) {
   for (const message of result.deletedMessages) {
     io.to(message.roomId).emit('chat:deleted', { roomId: message.roomId, messageId: message.id });
   }
-  if (result.deletedRooms.length > 0 || result.deletedMessages.length > 0) broadcastRoomsChanged(io);
+  if (deletedUserId) {
+    for (const roomId of [...roomMembers.keys()]) evictRoomUser(io, roomId, deletedUserId);
+  }
+  if (result.deletedRooms.length > 0 || result.deletedMessages.length > 0 || result.deletedAccessCount > 0) broadcastRoomsChanged(io);
   return result;
 }
 
-module.exports = { adminDeleteRoom, adminDeleteUserData, adminListRooms, adminUpdateRoom, onSocket };
+module.exports = {
+  adminChangeRoomAccess,
+  adminDeleteRoom,
+  adminDeleteUserData,
+  adminListRoomAccess,
+  adminListRooms,
+  adminUpdateRoom,
+  onSocket
+};

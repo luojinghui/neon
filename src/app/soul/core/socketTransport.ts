@@ -7,16 +7,19 @@ import type {
   JoinRoomResult,
   MessageDeletedEvent,
   OutgoingMessage,
+  RoomAccessChangedEvent,
+  RoomAccessManagement,
+  RoomAccessSummary,
   RoomDeletedEvent,
   ServerChatMessage,
   UpdateRoomInput
 } from './types';
 
-type Ack<T> = { ok: true; data: T } | { ok: false; error: string; code?: string };
+type Ack<T> = { ok: true; data: T } | { ok: false; error: string; code?: string; data?: unknown };
 type Unsubscribe = () => void;
 
 export class SocketChatError extends Error {
-  constructor(message: string, public readonly code = '') {
+  constructor(message: string, public readonly code = '', public readonly data?: unknown) {
     super(message);
     this.name = 'SocketChatError';
   }
@@ -84,8 +87,28 @@ export class SocketChatTransport {
     return this.emitWithAck<ChatRoom | null>('rooms:search', { query });
   }
 
-  public joinRoom(roomId: string, password = ''): Promise<JoinRoomResult> {
-    return this.emitWithAck<JoinRoomResult>('room:join', { roomId, password });
+  public joinRoom(roomId: string, password = '', inviteToken = ''): Promise<JoinRoomResult> {
+    return this.emitWithAck<JoinRoomResult>('room:join', { roomId, password, inviteToken });
+  }
+
+  public requestRoomAccess(roomId: string): Promise<{ access: RoomAccessSummary }> {
+    return this.emitWithAck<{ access: RoomAccessSummary }>('room:access:request', { roomId });
+  }
+
+  public getRoomAccessManagement(roomId: string): Promise<RoomAccessManagement> {
+    return this.emitWithAck<RoomAccessManagement>('room:access:list', { roomId });
+  }
+
+  public decideRoomAccess(roomId: string, requesterId: string, decision: 'approved' | 'rejected'): Promise<RoomAccessManagement> {
+    return this.emitWithAck<RoomAccessManagement>('room:access:decide', { roomId, requesterId, decision });
+  }
+
+  public revokeRoomAccess(roomId: string, requesterId: string): Promise<RoomAccessManagement> {
+    return this.emitWithAck<RoomAccessManagement>('room:access:revoke', { roomId, requesterId });
+  }
+
+  public rotateRoomInvite(roomId: string): Promise<{ roomId: string; inviteToken: string }> {
+    return this.emitWithAck<{ roomId: string; inviteToken: string }>('room:invite:rotate', { roomId });
   }
 
   public leaveRoom(): Promise<null> {
@@ -134,6 +157,18 @@ export class SocketChatTransport {
     return () => socket.off('room:deleted', listener);
   }
 
+  public onRoomAccessChanged(listener: (event: RoomAccessChangedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:access:changed', listener);
+    return () => socket.off('room:access:changed', listener);
+  }
+
+  public onRoomAccessRequested(listener: (event: RoomAccessChangedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:access:requested', listener);
+    return () => socket.off('room:access:requested', listener);
+  }
+
   public onConnectionChange(listener: (connected: boolean) => void): Unsubscribe {
     const socket = this.requireSocket();
     const onConnect = () => listener(true);
@@ -155,7 +190,7 @@ export class SocketChatTransport {
       const ack = (response: Ack<T>) => {
         window.clearTimeout(timer);
         if (response?.ok) resolve(response.data);
-        else reject(new SocketChatError(response?.error || '请求失败', response?.code));
+        else reject(new SocketChatError(response?.error || '请求失败', response?.code, response?.data));
       };
 
       if (payload === undefined) socket.emit(event, ack);

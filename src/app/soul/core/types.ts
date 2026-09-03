@@ -1,5 +1,46 @@
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
-export type RoomAccessState = 'joining' | 'password-required' | 'granted' | 'error' | 'deleted';
+export type RoomAccessState =
+  | 'joining'
+  | 'password-required'
+  | 'application-required'
+  | 'application-pending'
+  | 'application-rejected'
+  | 'application-exhausted'
+  | 'granted'
+  | 'error'
+  | 'deleted';
+export type RoomMembership = 'public' | 'owner' | 'approved' | 'admin' | 'none';
+export type RoomApplicationStatus = 'pending' | 'approved' | 'rejected' | 'revoked';
+
+export interface RoomAccessSummary {
+  status: 'none' | 'pending' | 'approved' | 'rejected' | 'exhausted';
+  attemptCount: number;
+  remainingAttempts: number;
+}
+
+export interface RoomAccessRecord {
+  id: string;
+  roomId: string;
+  requesterId: string;
+  requesterUserId: string;
+  requesterName: string;
+  requesterAvatarUrl: string;
+  status: RoomApplicationStatus;
+  source: 'request' | 'invite';
+  attemptCount: number;
+  createdAt: string;
+  requestedAt: string;
+  decidedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface RoomAccessManagement {
+  roomId: string;
+  inviteToken?: string;
+  applications: RoomAccessRecord[];
+  members: RoomAccessRecord[];
+  pendingCount: number;
+}
 
 export interface ChatUser {
   uuid: string;
@@ -15,11 +56,16 @@ export interface ChatRoom {
   name: string;
   description: string;
   tags: string[];
-  onlineCount: number;
+  onlineCount?: number;
   status: 'online';
   isPrivate: boolean;
   hasPassword: boolean;
   isOwner: boolean;
+  isCreator: boolean;
+  membership: RoomMembership;
+  owner: { userId: string; name: string; avatarUrl: string };
+  pendingRequestCount: number;
+  access?: RoomAccessSummary;
   isFixed: boolean;
   createdAt: string;
   lastMessageAt?: string | null;
@@ -88,4 +134,15 @@ export interface MessageDeletedEvent {
 
 export interface RoomDeletedEvent {
   roomId: string;
+}
+
+export interface RoomAccessChangedEvent {
+  roomId: string;
+  access?: RoomAccessSummary;
+  pendingRequestCount?: number;
+}
+
+export interface RoomAccessGateData {
+  room: ChatRoom;
+  access: RoomAccessSummary;
 }

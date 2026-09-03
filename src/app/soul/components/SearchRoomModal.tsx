@@ -66,7 +66,7 @@ export function SearchRoomModal({ open, onClose, onJoin }: Props) {
         </button>
       </form>
 
-      <p className="mt-2 text-xs text-foreground-muted">支持精确查询公开或私密星球，私密星球不会出现在公共列表。</p>
+      <p className="mt-2 text-xs text-foreground-muted">支持精确查询星球 ID；私密星球需申请或通过邀请链接访问。</p>
 
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
@@ -91,7 +91,7 @@ export function SearchRoomModal({ open, onClose, onJoin }: Props) {
               onClick={() => onJoin(result)}
               className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover"
             >
-              去加入
+              {result.isPrivate && result.membership === 'none' ? '申请访问' : '进入'}
             </button>
           </div>
         </div>

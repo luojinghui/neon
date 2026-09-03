@@ -38,12 +38,30 @@ export type AdminRoomItem = {
   messageCount: number;
   attachmentCount: number;
   attachmentBytes: number;
+  pendingRequestCount: number;
+  authorizedMemberCount: number;
   isPrivate: boolean;
   hasPassword: boolean;
   isFixed: boolean;
   createdAt: string;
   lastMessageAt?: string | null;
   updatedAt?: string | null;
+};
+
+export type AdminRoomAccessItem = {
+  id: string;
+  roomId: string;
+  roomName: string;
+  roomCode: string;
+  requesterId: string;
+  requesterUserId: string;
+  requesterName: string;
+  requesterAvatarUrl: string;
+  status: 'pending' | 'approved' | 'rejected' | 'revoked';
+  source: 'request' | 'invite';
+  attemptCount: number;
+  requestedAt: string;
+  updatedAt: string;
 };
 
 export type AdminProfileItem = {
