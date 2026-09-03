@@ -44,6 +44,7 @@ export default function JsonModal() {
                 value={jsonObject}
                 displayDataTypes={false}
                 enableClipboard={true}
+                beforeCopy={(copyText, _keyName, value) => (typeof value === 'string' ? value : copyText)}
                 collapsed={false}
                 shortenTextAfterLength={99999}
                 displayObjectSize={true}
