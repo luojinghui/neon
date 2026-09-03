@@ -1,7 +1,7 @@
 'use client';
 
 import { GlobalOutlined, LockOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Modal, Switch } from 'antd';
 import { useEffect, useState } from 'react';
 import { soulChat, type ChatRoom, type CreateRoomInput } from '../core';
 
@@ -143,46 +143,31 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor={passwordEnabled ? 'room-password' : undefined} className="text-sm font-medium text-foreground">
+            <label htmlFor="room-password" className="text-sm font-medium text-foreground">
               进入密码 <span className="font-normal text-foreground-muted">· 可选</span>
             </label>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={passwordEnabled}
+            <Switch
+              checked={passwordEnabled}
               aria-label="开启进入密码"
-              onClick={() => setPasswordEnabled((enabled) => !enabled)}
-              className={`relative h-6 w-11 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
-                passwordEnabled ? 'bg-primary' : 'bg-background-tertiary'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${passwordEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
-              />
-            </button>
+              onChange={setPasswordEnabled}
+              className="shrink-0"
+              style={{ backgroundColor: passwordEnabled ? 'hsl(var(--primary))' : 'hsl(var(--background-tertiary))' }}
+            />
           </div>
 
-          <div className={`rounded-xl border transition-colors ${passwordEnabled ? 'border-border bg-surface p-2' : 'border-border bg-surface-hover px-3.5 py-3'}`}>
-            {passwordEnabled ? (
-              <div className="flex items-center gap-2.5">
-                <LockOutlined className="ml-1 shrink-0 text-sm text-primary" />
-                <input
-                  id="room-password"
-                  aria-label="星球密码"
-                  type="password"
-                  value={password}
-                  minLength={2}
-                  maxLength={4}
-                  autoComplete="new-password"
-                  onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
-                  placeholder={isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位数字或字母'}
-                  className="min-w-0 flex-1 rounded-lg border-0 bg-input px-3 py-2 text-sm text-input-foreground outline-none placeholder:text-input-placeholder focus:bg-input-focus"
-                />
-              </div>
-            ) : (
-              <p className="text-xs text-foreground-muted">任何人都可以直接进入</p>
-            )}
-          </div>
+          <input
+            id="room-password"
+            aria-label="星球密码"
+            type="password"
+            value={password}
+            minLength={2}
+            maxLength={4}
+            autoComplete="new-password"
+            disabled={!passwordEnabled}
+            onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+            placeholder={!passwordEnabled ? '任何人都可以直接进入' : isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位数字或字母'}
+            className="w-full max-w-xs rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus disabled:cursor-not-allowed"
+          />
         </div>
 
         {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{error}</p>}
