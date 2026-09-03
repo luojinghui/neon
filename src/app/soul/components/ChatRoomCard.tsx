@@ -19,7 +19,7 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
   ];
 
   return (
-    <article className="group relative flex min-h-[166px] flex-col overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border-hover hover:shadow-md">
+    <article className="group relative flex min-h-[166px] flex-col overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border-hover hover:shadow-md">
       <button
         type="button"
         onClick={onClick}
@@ -66,16 +66,18 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
           </div>
         )}
 
-        <div className="mt-auto flex items-center justify-between border-t border-border/70 pt-3 text-[11px] text-foreground-muted">
-          <div className="flex items-center gap-2">
-            {room.isPrivate && <span>私密</span>}
-            {room.hasPassword && <LockOutlined aria-label="需要密码" />}
-            <span className="font-mono tracking-wide opacity-70">#{room.code}</span>
+        <div className="mt-auto pt-3">
+          <div className="flex items-center justify-between border-t border-border/70 pt-3 text-[11px] text-foreground-muted">
+            <div className="flex items-center gap-2">
+              {room.isPrivate && <span>私密</span>}
+              {room.hasPassword && <LockOutlined aria-label="需要密码" />}
+              <span className="font-mono tracking-wide opacity-70">#{room.code}</span>
+            </div>
+            <span className="inline-flex items-center gap-1 font-medium text-foreground-secondary transition-colors group-hover:text-primary">
+              进入
+              <ArrowRightOutlined className="text-[10px]" />
+            </span>
           </div>
-          <span className="inline-flex items-center gap-1 font-medium text-foreground-secondary transition-colors group-hover:text-primary">
-            进入
-            <ArrowRightOutlined className="text-[10px] transition-transform group-hover:translate-x-0.5" />
-          </span>
         </div>
       </div>
     </article>

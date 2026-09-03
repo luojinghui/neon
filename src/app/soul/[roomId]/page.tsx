@@ -1,8 +1,9 @@
 'use client';
 
 import '@/styles/index.css';
-import { useEffect } from 'react';
-import { UserOutlined } from '@ant-design/icons';
+import { useEffect, useState } from 'react';
+import { InfoCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
@@ -14,12 +15,15 @@ import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { ChatToolbar } from './components/ChatToolbar';
 import { RoomAccessModal } from './components/RoomAccessModal';
+import { RoomInfoModal } from './components/RoomInfoModal';
 
 function ChatRoomPage() {
   const params = useParams<{ roomId: string }>();
   const router = useRouter();
+  const room = useSoulStore((s) => s.room);
   const roomName = useSoulStore((s) => s.roomName);
   const accessState = useSoulStore((s) => s.accessState);
+  const [roomInfoOpen, setRoomInfoOpen] = useState(false);
 
   useEffect(() => {
     void soulChat.initRoom(params.roomId);
@@ -47,6 +51,17 @@ function ChatRoomPage() {
         }
         right={
           <div className="flex items-center gap-2">
+            <Tooltip title="星球信息" placement="bottom">
+              <button
+                type="button"
+                onClick={() => setRoomInfoOpen(true)}
+                disabled={!room || accessState !== 'granted'}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="星球信息"
+              >
+                <InfoCircleOutlined className="text-sm" />
+              </button>
+            </Tooltip>
             <Link
               href={createProfileHref('', { returnTo: `/soul/${params.roomId}` })}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"
@@ -73,6 +88,7 @@ function ChatRoomPage() {
       </div>
 
       <RoomAccessModal onBack={() => router.replace('/soul')} />
+      <RoomInfoModal room={room} open={roomInfoOpen} onClose={() => setRoomInfoOpen(false)} />
     </div>
   );
 }
