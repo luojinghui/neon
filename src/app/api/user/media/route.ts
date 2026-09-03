@@ -26,9 +26,9 @@ export async function POST(request: Request) {
     const extension = IMAGE_EXTENSIONS[mimeType];
     if (!extension) return NextResponse.json({ error: '仅支持 PNG、JPG、WebP 或 GIF 图片' }, { status: 415 });
 
-    const sizeLimit = kind === 'avatar' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+    const sizeLimit = kind === 'avatar' ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
     const declaredSize = Number(request.headers.get('content-length') || 0);
-    if (declaredSize > sizeLimit) return NextResponse.json({ error: kind === 'avatar' ? '头像不能超过 5MB' : '背景图不能超过 10MB' }, { status: 413 });
+    if (declaredSize > sizeLimit) return NextResponse.json({ error: kind === 'avatar' ? '头像不能超过 20MB' : '背景图不能超过 10MB' }, { status: 413 });
 
     const storedName = `${randomUUID()}.${extension}`;
     const uploadDirectory = path.join(process.cwd(), 'public', 'uploads', 'profile');
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         if (done) break;
         if (!value?.byteLength) continue;
         size += value.byteLength;
-        if (size > sizeLimit) throw Object.assign(new Error(kind === 'avatar' ? '头像不能超过 5MB' : '背景图不能超过 10MB'), { code: 'FILE_TOO_LARGE' });
+        if (size > sizeLimit) throw Object.assign(new Error(kind === 'avatar' ? '头像不能超过 20MB' : '背景图不能超过 10MB'), { code: 'FILE_TOO_LARGE' });
         await fileHandle.write(value);
       }
     } finally {

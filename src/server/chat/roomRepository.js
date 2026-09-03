@@ -5,6 +5,7 @@ const { randomBytes, randomUUID, scryptSync, timingSafeEqual } = require('crypto
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 4;
 const PASSWORD_PATTERN = /^[A-Za-z0-9]{2,4}$/;
+const CHAT_DATA_VERSION = 2;
 
 class RoomRepositoryError extends Error {
   constructor(message, code) {
@@ -59,6 +60,7 @@ class RoomRepository {
   constructor(options = {}) {
     this.dataFile = options.dataFile || process.env.SOUL_CHAT_DATA_FILE || path.join(process.cwd(), '.data', 'soul-chat.json');
     this.uploadDirectory = options.uploadDirectory || path.join(process.cwd(), 'public', 'uploads', 'soul');
+    this.resolveProfile = typeof options.resolveProfile === 'function' ? options.resolveProfile : null;
     this.rooms = new Map(DEFAULT_ROOMS.map((room) => [room.id, room]));
     this.messages = new Map(DEFAULT_ROOMS.map((room) => [room.id, DEFAULT_MESSAGES.filter((message) => message.roomId === room.id)]));
     this.writeQueue = Promise.resolve();
@@ -70,6 +72,13 @@ class RoomRepository {
     try {
       if (!fs.existsSync(this.dataFile)) return;
       const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      const storedMessages = Array.isArray(data.messages) ? data.messages : [];
+      if (data.version !== CHAT_DATA_VERSION) {
+        for (const message of storedMessages) this.deleteStoredAttachment(message);
+        this.persist();
+        return;
+      }
+
       let migrated = false;
       for (const storedRoom of Array.isArray(data.rooms) ? data.rooms : []) {
         if (!storedRoom?.id) continue;
@@ -109,13 +118,40 @@ class RoomRepository {
           room.isPrivate = false;
           migrated = true;
         }
+        if (!room.isFixed && this.resolveProfile && !this.resolveRoomOwner(room)) {
+          migrated = true;
+          continue;
+        }
         this.rooms.set(room.id, room);
       }
-      for (const message of Array.isArray(data.messages) ? data.messages : []) {
-        if (!message || !this.rooms.has(message.roomId)) continue;
+      for (const message of storedMessages) {
+        if (!message || !this.rooms.has(message.roomId)) {
+          this.deleteStoredAttachment(message);
+          migrated = true;
+          continue;
+        }
+        const profile = this.resolveProfile ? this.resolveMessageProfile(message) : null;
+        if (this.resolveProfile && !profile) {
+          this.deleteStoredAttachment(message);
+          migrated = true;
+          continue;
+        }
+        const normalizedMessage = profile ? this.applyProfileToMessage(message, profile) : message;
+        if (normalizedMessage !== message) migrated = true;
         const roomMessages = this.messages.get(message.roomId) || [];
-        if (!roomMessages.some((item) => item.id === message.id)) roomMessages.push(message);
+        if (!roomMessages.some((item) => item.id === message.id)) roomMessages.push(normalizedMessage);
         this.messages.set(message.roomId, roomMessages);
+      }
+      for (const room of this.rooms.values()) {
+        const latestMessage = (this.messages.get(room.id) || []).reduce(
+          (latest, message) => (!latest || Number(message.timestamp) > Number(latest.timestamp) ? message : latest),
+          null
+        );
+        const lastMessageAt = latestMessage && !String(latestMessage.id).startsWith('welcome-') ? new Date(latestMessage.timestamp).toISOString() : null;
+        if ((room.lastMessageAt || null) !== lastMessageAt) {
+          this.rooms.set(room.id, { ...room, lastMessageAt });
+          migrated = true;
+        }
       }
       if (migrated) this.persist();
     } catch (error) {
@@ -309,6 +345,36 @@ class RoomRepository {
     };
   }
 
+  resolveRoomOwner(room) {
+    const match = /^guest-([0-9a-f-]{36})$/i.exec(room?.ownerId || '');
+    return match ? this.resolveProfile({ uuid: match[1], publicKey: '', userId: '' }) : null;
+  }
+
+  resolveMessageProfile(message) {
+    return this.resolveProfile({ uuid: '', publicKey: message?.senderKey || '', userId: message?.senderId || '' });
+  }
+
+  applyProfileToMessage(message, profile) {
+    const avatarUrl = profile.avatarUrl || '';
+    if (
+      message.senderId === profile.userId &&
+      message.senderKey === profile.publicKey &&
+      message.senderName === profile.name &&
+      (message.senderAvatar || '') === avatarUrl
+    ) {
+      return message;
+    }
+    const normalized = {
+      ...message,
+      senderId: profile.userId,
+      senderKey: profile.publicKey,
+      senderName: profile.name
+    };
+    if (avatarUrl) normalized.senderAvatar = avatarUrl;
+    else delete normalized.senderAvatar;
+    return normalized;
+  }
+
   requireOwnedRoom(roomId, user) {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
@@ -366,7 +432,7 @@ class RoomRepository {
   }
 
   persist() {
-    const snapshot = JSON.stringify({ rooms: this.sortRooms([...this.rooms.values()]), messages: [...this.messages.values()].flat() }, null, 2);
+    const snapshot = JSON.stringify({ version: CHAT_DATA_VERSION, rooms: this.sortRooms([...this.rooms.values()]), messages: [...this.messages.values()].flat() }, null, 2);
     const tempFile = `${this.dataFile}.tmp`;
     this.writeQueue = this.writeQueue
       .then(async () => {
@@ -379,4 +445,4 @@ class RoomRepository {
   }
 }
 
-module.exports = { RoomRepository, RoomRepositoryError };
+module.exports = { CHAT_DATA_VERSION, RoomRepository, RoomRepositoryError };

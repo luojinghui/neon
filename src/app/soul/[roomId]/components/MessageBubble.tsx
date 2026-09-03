@@ -5,6 +5,7 @@ import { Image as PreviewImage } from 'antd';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { createProfileHref } from '@/app/profile/navigation';
 import type { ChatMessage } from './types';
 import { formatTime, getAvatarUrl } from './types';
 import { MessageActions } from './MessageActions';
@@ -84,7 +85,7 @@ function MessageContent({
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
   const avatarUrl = getAvatarUrl(message.senderId, message.senderAvatar, message.senderKey);
-  const profileHref = `/profile/${encodeURIComponent(message.senderId)}${message.senderKey ? `?key=${encodeURIComponent(message.senderKey)}` : ''}`;
+  const profileHref = createProfileHref(message.senderId, { publicKey: message.senderKey, returnTo: `/soul/${message.roomId}` });
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
 
   return (

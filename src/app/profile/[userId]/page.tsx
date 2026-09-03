@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckOutlined, CopyOutlined, EditOutlined, ReloadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { CheckOutlined, CopyOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -11,6 +11,7 @@ import { ensureCurrentProfile, getPublicProfile } from '../client';
 import { ProfileBannerView } from '../components/ProfileBanner';
 import { ProfileEditor } from '../components/ProfileEditor';
 import { getProfileAvatar, type PublicProfile } from '../types';
+import { createProfileHref, getProfileBackLabel, sanitizeProfileReturnTo } from '../navigation';
 
 function formatJoinedDate(value: string): string {
   const date = new Date(value);
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const userId = decodeURIComponent(params.userId || '');
   const publicKey = searchParams.get('key') || '';
+  const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
 
   useEffect(() => {
     let active = true;
@@ -47,7 +49,7 @@ export default function ProfilePage() {
           if (active) setUuid(current.uuid);
         }
         if (result.profile.userId.toLowerCase() !== userId.toLowerCase()) {
-          router.replace(`/profile/${encodeURIComponent(result.profile.userId)}`);
+          router.replace(createProfileHref(result.profile.userId, { returnTo }));
         }
       })
       .catch((profileError) => {
@@ -58,11 +60,11 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [publicKey, router, userId]);
+  }, [publicKey, returnTo, router, userId]);
 
   const copyProfileLink = async () => {
     if (!profile) return;
-    const url = new URL(`/profile/${encodeURIComponent(profile.userId)}`, window.location.origin).href;
+    const url = new URL(createProfileHref(profile.userId, { publicKey: profile.publicKey }), window.location.origin).href;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
@@ -72,6 +74,8 @@ export default function ProfilePage() {
     <div className="flex h-screen w-full flex-col bg-background">
       <TopBar
         middle="个人主页"
+        backHref={returnTo}
+        backLabel={getProfileBackLabel(returnTo)}
         right={
           <div className="flex items-center gap-2">
             {profile && !loading && (
@@ -90,9 +94,9 @@ export default function ProfilePage() {
         }
       />
 
-      <main className="chat-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-4 pb-12 pt-20 sm:px-6 sm:pt-24">
+      <main className="chat-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-4 pb-12 pt-20 sm:pt-24">
         {loading ? (
-          <div className="mx-auto max-w-5xl animate-pulse overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <div className="mx-auto max-w-screen-xl animate-pulse overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
             <div className="h-48 bg-background-tertiary sm:h-64" />
             <div className="px-5 pb-8 sm:px-8">
               <div className="-mt-12 h-28 w-28 rounded-full border-4 border-surface bg-background-tertiary" />
@@ -116,7 +120,7 @@ export default function ProfilePage() {
             </div>
           </div>
         ) : (
-          <article className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-border bg-surface shadow-lg">
+          <article className="mx-auto max-w-screen-xl overflow-hidden rounded-2xl border border-border bg-surface shadow-lg">
             <ProfileBannerView banner={profile.banner} className="h-48 sm:h-64 lg:h-72" />
 
             <div className="relative px-5 pb-7 sm:px-8 sm:pb-9">
@@ -156,19 +160,8 @@ export default function ProfilePage() {
                 </p>
               </div>
 
-              <div className="mt-8 grid gap-3 border-t border-border pt-6 sm:grid-cols-2">
-                <div className="flex items-start gap-3 rounded-xl bg-background-secondary px-4 py-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                    <SafetyCertificateOutlined />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">唯一身份</div>
-                    <div className="mt-1 text-xs leading-relaxed text-foreground-muted">
-                      {isOwner ? 'UUID 已安全保存在当前浏览器，userId 可以随时修改。' : '由浏览器唯一身份创建，不需要注册或登录。'}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 rounded-xl bg-background-secondary px-4 py-4">
+              <div className="mt-8 border-t border-border pt-6">
+                <div className="flex max-w-sm items-start gap-3 rounded-xl bg-background-secondary px-4 py-4">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">✦</div>
                   <div>
                     <div className="text-sm font-medium text-foreground">星球旅程</div>
@@ -190,7 +183,7 @@ export default function ProfilePage() {
           onSaved={(updated) => {
             setProfile(updated);
             setEditorOpen(false);
-            if (updated.userId !== userId) router.replace(`/profile/${encodeURIComponent(updated.userId)}`);
+            if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo }));
           }}
         />
       )}

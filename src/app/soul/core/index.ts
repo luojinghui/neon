@@ -14,6 +14,8 @@ import type {
 
 const CACHE_PREFIX = 'soul:room-cache:';
 const CACHE_LIMIT = 100;
+const CACHE_VERSION_KEY = 'soul:room-cache-version';
+const CACHE_VERSION = '2';
 
 type CoreMode = 'list' | 'room' | null;
 
@@ -24,9 +26,11 @@ export class SoulChat {
   private roomId = '';
   private roomPassword = '';
   private sessionId = 0;
+  private cachePrepared = false;
   private unsubscribers: Array<() => void> = [];
 
   public async initList(): Promise<void> {
+    this.prepareBrowserCache();
     const sessionId = ++this.sessionId;
     this.mode = 'list';
     this.roomId = '';
@@ -51,6 +55,7 @@ export class SoulChat {
   }
 
   public async initRoom(roomId: string): Promise<void> {
+    this.prepareBrowserCache();
     const sessionId = ++this.sessionId;
     this.mode = 'room';
     this.roomId = roomId;
@@ -372,6 +377,23 @@ export class SoulChat {
       localStorage.setItem(`${CACHE_PREFIX}${roomId}`, JSON.stringify(messages.slice(-CACHE_LIMIT)));
     } catch {
       // Storage can be unavailable in private browsing; the socket history remains authoritative.
+    }
+  }
+
+  private prepareBrowserCache(): void {
+    if (this.cachePrepared) return;
+    this.cachePrepared = true;
+    try {
+      if (localStorage.getItem(CACHE_VERSION_KEY) === CACHE_VERSION) return;
+      const staleKeys: string[] = [];
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (key?.startsWith(CACHE_PREFIX)) staleKeys.push(key);
+      }
+      for (const key of staleKeys) localStorage.removeItem(key);
+      localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+    } catch {
+      // The server remains authoritative when browser storage is unavailable.
     }
   }
 

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { RoomRepository } = require('./roomRepository');
+const { CHAT_DATA_VERSION, RoomRepository } = require('./roomRepository');
 
 function createFixture() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neon-room-repository-'));
@@ -21,11 +21,13 @@ async function cleanupFixture(fixture) {
   fs.rmSync(fixture.directory, { recursive: true, force: true });
 }
 
-test('ships two relaxed default rooms and migrates retired fixed rooms out of stored data', async () => {
+test('ships two relaxed default rooms and clears all pre-profile chat history once', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neon-room-defaults-'));
   const dataFile = path.join(directory, 'soul-chat.json');
   const uploadDirectory = path.join(directory, 'uploads');
   fs.mkdirSync(uploadDirectory);
+  const legacyFileName = '33333333-3333-4333-8333-333333333333.txt';
+  fs.writeFileSync(path.join(uploadDirectory, legacyFileName), 'legacy attachment');
   fs.writeFileSync(
     dataFile,
     JSON.stringify({
@@ -51,9 +53,31 @@ test('ships two relaxed default rooms and migrates retired fixed rooms out of st
           isPrivate: false,
           isFixed: true,
           createdAt: '2026-01-01T00:02:00.000Z'
+        },
+        {
+          id: 'OLD1',
+          code: 'OLD1',
+          name: '旧星球',
+          description: '应被清理',
+          tags: [],
+          ownerId: 'legacy-owner',
+          isPrivate: false,
+          isFixed: false,
+          createdAt: '2025-01-01T00:00:00.000Z'
         }
       ],
-      messages: []
+      messages: [
+        {
+          id: 'legacy-message',
+          roomId: 'OLD1',
+          senderId: 'legacy-user',
+          senderName: '旧用户',
+          type: 'file',
+          content: '旧文件',
+          timestamp: Date.now(),
+          attachment: { url: `/uploads/soul/${legacyFileName}`, name: '旧文件.txt', size: 17, mimeType: 'text/plain' }
+        }
+      ]
     })
   );
   const repository = new RoomRepository({ dataFile, uploadDirectory });
@@ -65,10 +89,95 @@ test('ships two relaxed default rooms and migrates retired fixed rooms out of st
       ['随便聊聊', '灵感晾晒场']
     );
     assert.equal(repository.getRoom('inspiration-orbit'), null);
+    assert.equal(repository.getRoom('OLD1'), null);
     assert.deepEqual(repository.getRoom('soul-harbor').tags, ['日常', '闲聊']);
+    await repository.cleanupQueue;
+    assert.equal(fs.existsSync(path.join(uploadDirectory, legacyFileName)), false);
+    await repository.writeQueue;
+    assert.equal(JSON.parse(fs.readFileSync(dataFile, 'utf8')).version, CHAT_DATA_VERSION);
   } finally {
     await repository.writeQueue;
     fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('removes rooms and messages without a current profile and refreshes known sender data', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neon-room-profile-cleanup-'));
+  const dataFile = path.join(directory, 'soul-chat.json');
+  const uploadDirectory = path.join(directory, 'uploads');
+  fs.mkdirSync(uploadDirectory);
+  const ownerUuid = 'd9428888-122b-4a8b-8a4b-0d2b0f4f3552';
+  const profile = { uuid: ownerUuid, publicKey: 'known-public-key', userId: 'CurrentUser', name: '当前用户', avatarUrl: '' };
+  fs.writeFileSync(
+    dataFile,
+    JSON.stringify({
+      version: CHAT_DATA_VERSION,
+      rooms: [
+        {
+          id: 'KEEP',
+          code: 'KEEP',
+          name: '保留星球',
+          description: '',
+          tags: [],
+          ownerId: `guest-${ownerUuid}`,
+          isPrivate: false,
+          isFixed: false,
+          createdAt: '2026-01-02T00:00:00.000Z'
+        },
+        {
+          id: 'DROP',
+          code: 'DROP',
+          name: '无主星球',
+          description: '',
+          tags: [],
+          ownerId: 'legacy-owner',
+          isPrivate: false,
+          isFixed: false,
+          createdAt: '2026-01-02T00:00:00.000Z'
+        }
+      ],
+      messages: [
+        {
+          id: 'known-message',
+          roomId: 'KEEP',
+          senderId: 'OldUserId',
+          senderKey: profile.publicKey,
+          senderName: '旧名称',
+          type: 'text',
+          content: '保留消息',
+          timestamp: Date.parse('2026-01-02T00:01:00.000Z')
+        },
+        {
+          id: 'unknown-message',
+          roomId: 'KEEP',
+          senderId: 'MissingUser',
+          senderKey: 'missing-public-key',
+          senderName: '不存在的人',
+          type: 'text',
+          content: '应被清理',
+          timestamp: Date.parse('2026-01-02T00:02:00.000Z')
+        }
+      ]
+    })
+  );
+
+  const repository = new RoomRepository({
+    dataFile,
+    uploadDirectory,
+    resolveProfile({ uuid, publicKey }) {
+      return uuid === profile.uuid || publicKey === profile.publicKey ? profile : null;
+    }
+  });
+
+  try {
+    assert.ok(repository.getRoom('KEEP'));
+    assert.equal(repository.getRoom('DROP'), null);
+    const history = repository.getHistory('KEEP').messages;
+    assert.deepEqual(history.map((message) => message.id), ['known-message']);
+    assert.equal(history[0].senderId, profile.userId);
+    assert.equal(history[0].senderName, profile.name);
+  } finally {
+    await cleanupFixture({ directory, uploadDirectory, repository });
   }
 });
 

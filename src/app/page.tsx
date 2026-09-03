@@ -4,6 +4,7 @@ import '@/styles/index.css';
 import { Footer } from '@/components/footer';
 import { Card } from '@/components/card';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { ProfileShortcut } from './profile/components/ProfileShortcut';
 
 export default function Home() {
   const cards = [
@@ -16,17 +17,13 @@ export default function Home() {
       title: '星球',
       description: '寻找属于自己的Soul星球',
       href: '/soul'
-    },
-    {
-      title: '个人中心',
-      description: '留下你的名字、头像与这一刻的自我介绍',
-      href: '/profile'
     }
   ];
 
   return (
     <div className="h-screen w-full overflow-y-auto bg-background">
-      <div className="fixed top-4 right-4 z-20">
+      <div className="fixed right-4 top-4 z-20 flex items-center gap-2">
+        <ProfileShortcut returnTo="/" />
         <ThemeToggle />
       </div>
 

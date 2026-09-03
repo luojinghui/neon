@@ -1,19 +1,22 @@
 'use client';
 
 import { LoadingOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ensureCurrentProfile } from './client';
+import { createProfileHref, sanitizeProfileReturnTo } from './navigation';
 
 export default function MyProfileRedirectPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState('');
+  const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
 
   useEffect(() => {
     let active = true;
     ensureCurrentProfile()
       .then((profile) => {
-        if (active) router.replace(`/profile/${encodeURIComponent(profile.userId)}`);
+        if (active) router.replace(createProfileHref(profile.userId, { returnTo }));
       })
       .catch((profileError) => {
         if (active) setError(profileError instanceof Error ? profileError.message : '个人资料加载失败');
@@ -21,7 +24,7 @@ export default function MyProfileRedirectPage() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [returnTo, router]);
 
   return (
     <main className="flex h-screen items-center justify-center bg-background px-5 text-center">

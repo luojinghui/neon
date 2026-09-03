@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { createProfileHref } from '../profile/navigation';
 import { ChatRoomGrid } from './components/ChatRoomGrid';
 import { ChatRoomCardSkeleton } from './components/ChatRoomCardSkeleton';
 import { CreateRoomModal } from './components/CreateRoomModal';
@@ -79,6 +80,8 @@ function SoulPage() {
     <div className="flex h-screen w-full select-none flex-col bg-background">
       <TopBar
         middle="星球"
+        backHref="/"
+        backLabel="首页"
         right={
           <div className="flex items-center gap-2">
             <Tooltip title="搜索星球" placement="bottom">
@@ -103,7 +106,7 @@ function SoulPage() {
             </Tooltip>
             <Tooltip title="个人中心" placement="bottom">
               <Link
-                href="/profile"
+                href={createProfileHref('', { returnTo: '/soul' })}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
                 aria-label="个人中心"
               >

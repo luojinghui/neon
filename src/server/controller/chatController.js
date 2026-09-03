@@ -1,7 +1,14 @@
 const { RoomRepository } = require('../chat/roomRepository');
 const { profileRepository } = require('../user/profileRepository');
 
-const repository = new RoomRepository();
+const repository = new RoomRepository({
+  resolveProfile({ uuid, publicKey, userId }) {
+    if (uuid) return profileRepository.getByUuid(uuid);
+    if (publicKey) return profileRepository.getByPublicKey(publicKey);
+    if (userId) return profileRepository.getByUserId(userId);
+    return null;
+  }
+});
 const roomMembers = new Map();
 
 function normalizeSocketUser(input) {

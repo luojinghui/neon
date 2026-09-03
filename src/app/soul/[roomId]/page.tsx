@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { createProfileHref } from '@/app/profile/navigation';
 import { soulChat } from '../core';
 import { useSoulStore } from '../store';
 import { MessageList } from './components/MessageList';
@@ -47,7 +48,7 @@ function ChatRoomPage() {
         right={
           <div className="flex items-center gap-2">
             <Link
-              href="/profile"
+              href={createProfileHref('', { returnTo: `/soul/${params.roomId}` })}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"
               aria-label="个人中心"
             >
@@ -56,7 +57,8 @@ function ChatRoomPage() {
             <ThemeToggle />
           </div>
         }
-        fallbackHref="/soul"
+        backHref="/soul"
+        backLabel="星球"
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

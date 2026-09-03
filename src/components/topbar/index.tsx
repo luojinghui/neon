@@ -1,7 +1,7 @@
 'use client';
 
 import { LeftOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 type TopBarProps = {
@@ -13,44 +13,29 @@ type TopBarProps = {
   middle?: string | ReactNode;
   /** 右侧区域：按钮/开关/业务操作区 */
   right?: ReactNode;
-  /** 无法回退时的兜底跳转，默认首页 */
-  fallbackHref?: string;
+  /** 返回按钮的明确去向，不依赖浏览器历史栈 */
+  backHref?: string;
+  /** 返回目的地名称 */
+  backLabel?: string;
   className?: string;
 };
 
-export function TopBar({ middle, right, fallbackHref = '/', className }: TopBarProps) {
-  const router = useRouter();
-
+export function TopBar({ middle, right, backHref = '/', backLabel = '首页', className }: TopBarProps) {
   const middleNode = typeof middle === 'string' ? <span className="text-lg font-medium">{middle}</span> : middle ?? <span className="text-lg font-medium">标题</span>;
 
-  const handleBack = () => {
-    if (typeof window === 'undefined') return;
-    // 判断是否可以回退：
-    // 1. history.length > 2: 说明有多次跳转历史
-    // 2. document.referrer 存在且是站内页面：刷新后也能正常返回
-    const referrerUrl = new URL(document.referrer, window.location.origin);
-    const isInternalReferrer = referrerUrl.origin === window.location.origin && referrerUrl.pathname !== '/';
-    const hasHistory = window.history.length > 2;
-    
-    if (hasHistory || isInternalReferrer) {
-      router.back();
-    } else {
-      router.push(fallbackHref);
-    }
-  };
-
   return (
-    <div className={`fixed top-0 left-0 w-full z-10 ${className || ''}`}>
-      <div className="max-w-screen-xl mx-auto px-4 h-14 m-3">
-        <div className="relative flex items-center justify-between gap-2 bg-surface/90 backdrop-blur-sm p-2 rounded-lg border border-border">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="relative z-10 flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full shadow-sm transition-all duration-300 hover:bg-surface-active hover:shadow-md"
-            aria-label="返回"
+    <div className={`fixed left-0 top-0 z-10 w-full ${className || ''}`}>
+      <div className="mx-auto max-w-[1312px] px-4 pt-3">
+        <div className="relative flex items-center justify-between gap-2 rounded-lg border border-border bg-surface/90 p-2 backdrop-blur-sm">
+          <Link
+            href={backHref}
+            replace
+            className="relative z-10 inline-flex h-8 shrink-0 touch-manipulation items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 text-xs font-medium text-foreground-secondary shadow-sm transition-colors hover:bg-surface-active hover:text-primary"
+            aria-label={`返回${backLabel}`}
           >
-            <LeftOutlined className="text-xl text-foreground" />
-          </button>
+            <LeftOutlined className="text-xs" />
+            <span>{backLabel}</span>
+          </Link>
 
           {/* 始终居中：不受左右内容宽度影响 */}
           <div className="pointer-events-none absolute left-1/2 top-1/2 w-[min(60%,_520px)] -translate-x-1/2 -translate-y-1/2 text-center text-foreground">
