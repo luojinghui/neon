@@ -86,8 +86,7 @@ export async function POST(request: Request) {
       },
       image
     );
-    const shareUrl = new URL(`/doodle/s/${share.id}`, request.url).toString();
-    return NextResponse.json({ share: doodleShareRepository.toPublic(share), shareUrl }, { status: 201 });
+    return NextResponse.json({ share: doodleShareRepository.toPublic(share) }, { status: 201 });
   } catch (error) {
     return errorResponse(error);
   }

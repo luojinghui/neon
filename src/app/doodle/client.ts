@@ -5,7 +5,6 @@ import type { DoodleShare, DoodleTemplateId, DoodleThemeId } from './types';
 
 type ShareResponse = {
   share?: DoodleShare;
-  shareUrl?: string;
   error?: string;
 };
 
@@ -22,7 +21,8 @@ function throwReviewError(result: ReviewResponse, fallback: string): never {
 async function parseShareResponse(response: Response): Promise<{ share: DoodleShare; shareUrl: string }> {
   const result = (await response.json()) as ShareResponse;
   if (!response.ok || !result.share) throw new Error(result.error || '分享失败，请稍后重试');
-  return { share: result.share, shareUrl: result.shareUrl || `${window.location.origin}/doodle/s/${result.share.id}` };
+  const shareUrl = new URL(`/doodle/s/${encodeURIComponent(result.share.id)}`, window.location.origin).toString();
+  return { share: result.share, shareUrl };
 }
 
 function imageHeaders(uuid: string, blob: Blob, title: string, style: DoodleThemeId, template: DoodleTemplateId) {

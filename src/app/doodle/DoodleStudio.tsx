@@ -669,25 +669,31 @@ export default function DoodleStudio() {
 
             <aside className="space-y-5 lg:sticky lg:top-24">
               <div className="rounded-[26px] border-4 border-[#201a17] bg-white p-5 text-[#201a17] shadow-[7px_7px_0_#ff7ba8]">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#7a675d]">YOUR SOUL ROLE</p>
-                <h1 className="mt-2 text-3xl font-black leading-tight">{title}</h1>
-                <button onClick={changeTitle} disabled={busy} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#fff0b8] px-4 py-2 text-sm font-black transition hover:rotate-[-1deg] hover:bg-[#ffe47d] disabled:opacity-50">
-                  <ReloadOutlined /> 换个称号
-                </button>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#7a675d]">DESIGN YOUR CARD</p>
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[#fff0b8] px-4 py-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black text-[#806f65]">当前称号</span>
+                    <p className="truncate text-base font-black">{title}</p>
+                  </div>
+                  <button onClick={changeTitle} disabled={busy} aria-label="换个称号" title="换个称号" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#201a17] bg-white text-base transition hover:-rotate-12 hover:bg-[#ffe47d] disabled:opacity-50">
+                    <ReloadOutlined />
+                  </button>
+                </div>
 
                 <div className="mt-6 border-t-2 border-dashed border-[#201a17]/30 pt-5">
                   <p className="mb-3 text-sm font-black">选择卡片模板</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {DOODLE_TEMPLATES.map((template) => (
+                    {DOODLE_TEMPLATES.map((template, index) => (
                       <button
                         key={template.id}
                         type="button"
                         onClick={() => changeTemplate(template.id)}
                         disabled={busy}
-                        className={`rounded-xl border-2 px-3 py-2 text-left transition hover:-translate-y-0.5 disabled:opacity-50 ${templateId === template.id ? 'border-[#201a17] bg-[#fff0b8] shadow-[2px_2px_0_#201a17]' : 'border-[#201a17]/20 bg-[#fffaf0]'}`}
+                        className={`group relative min-h-[68px] overflow-hidden rounded-xl border-2 px-3 py-2 text-left transition hover:-translate-y-0.5 disabled:opacity-50 ${templateId === template.id ? 'border-[#201a17] bg-[#fff0b8] shadow-[2px_2px_0_#201a17]' : 'border-[#201a17]/20 bg-[#fffaf0]'}`}
                       >
+                        <span className="absolute right-2 top-1 text-lg font-black text-[#201a17]/10 transition group-hover:rotate-6 group-hover:text-[#201a17]/20">{String(index + 1).padStart(2, '0')}</span>
                         <span className="block text-sm font-black">{template.name}</span>
-                        <span className="mt-0.5 block text-[10px] font-bold text-[#806f65]">{template.description}</span>
+                        <span className="mt-1 block max-w-[85%] text-[10px] font-bold leading-4 text-[#806f65]">{template.description}</span>
                       </button>
                     ))}
                   </div>

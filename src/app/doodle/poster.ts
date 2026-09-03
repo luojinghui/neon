@@ -2,6 +2,7 @@ import type { DoodleTemplate, DoodleTemplateId, DoodleTheme, DoodleThemeId } fro
 
 export const POSTER_WIDTH = 1080;
 export const POSTER_HEIGHT = 1440;
+const PHOTO_WHITENING = 0.045;
 
 export const DOODLE_THEMES: DoodleTheme[] = [
   { id: 'sun-pop', name: '日光波普', primary: '#FFD84D', secondary: '#FF7BA8', ink: '#1F1A17', accent: '#FFF9E8' },
@@ -15,10 +16,14 @@ export const DOODLE_THEMES: DoodleTheme[] = [
 ];
 
 export const DOODLE_TEMPLATES: DoodleTemplate[] = [
-  { id: 'comic-cover', name: '漫画封面', description: '粗线条与经典猫耳' },
-  { id: 'instant-film', name: '拍立得', description: '留白相纸与随手贴纸' },
-  { id: 'hero-poster', name: '勇者海报', description: '大画幅与强力视觉' },
-  { id: 'sticker-book', name: '贴纸手账', description: '圆角头像与元气装饰' }
+  { id: 'comic-cover', name: '气泡漫画', description: '对白气泡压住画面' },
+  { id: 'instant-film', name: '斜拍胶片', description: '倾斜相纸与手写感' },
+  { id: 'hero-poster', name: '主角海报', description: '全幅肖像与巨型标题' },
+  { id: 'sticker-book', name: '贴纸派对', description: '圆形头像与胶带标签' },
+  { id: 'magazine-pop', name: '潮流杂志', description: '封面排版与撞色标题' },
+  { id: 'split-zine', name: '拼贴小志', description: '左右分栏大胆留白' },
+  { id: 'orbit-badge', name: '星轨徽章', description: '圆形肖像与环绕轨道' },
+  { id: 'arcade-ticket', name: '电玩票根', description: '像素棋盘与玩家铭牌' }
 ];
 
 export const DOODLE_TITLES = [
@@ -91,39 +96,91 @@ function drawCover(
   context.drawImage(source, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
 }
 
-function cartoonize(source: CanvasImageSource, sourceWidth: number, sourceHeight: number) {
+function clampByte(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+function blendCartoonChannel(
+  channel: number,
+  originalChannel: number,
+  luminance: number,
+  saturation: number,
+  luminanceShift: number,
+  edgeStrength: number,
+  ink: number
+) {
+  const detailed = channel * 0.82 + originalChannel * 0.18;
+  const toned = luminance + (detailed - luminance) * saturation + luminanceShift;
+  const lightlyWhitened = toned * (1 - PHOTO_WHITENING) + 255 * PHOTO_WHITENING;
+  return clampByte(lightlyWhitened * (1 - edgeStrength) + ink * edgeStrength);
+}
+
+function cartoonize(
+  source: CanvasImageSource,
+  sourceWidth: number,
+  sourceHeight: number,
+  targetWidth: number,
+  targetHeight: number
+) {
   const canvas = document.createElement('canvas');
-  canvas.width = 540;
-  canvas.height = 570;
+  const processScale = 620 / Math.max(targetWidth, targetHeight);
+  canvas.width = Math.max(1, Math.round(targetWidth * processScale));
+  canvas.height = Math.max(1, Math.round(targetHeight * processScale));
   const context = canvas.getContext('2d', { willReadFrequently: true });
   if (!context) throw new Error('当前浏览器无法处理图片');
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
   drawCover(context, source, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
 
-  const image = context.getImageData(0, 0, canvas.width, canvas.height);
+  const original = context.getImageData(0, 0, canvas.width, canvas.height);
+  const smoothCanvas = document.createElement('canvas');
+  smoothCanvas.width = canvas.width;
+  smoothCanvas.height = canvas.height;
+  const smoothContext = smoothCanvas.getContext('2d', { willReadFrequently: true });
+  if (!smoothContext) throw new Error('当前浏览器无法处理图片');
+  smoothContext.imageSmoothingEnabled = true;
+  smoothContext.imageSmoothingQuality = 'high';
+  smoothContext.filter = 'blur(1.25px) saturate(1.04) contrast(1.03)';
+  smoothContext.drawImage(canvas, 0, 0);
+
+  const image = smoothContext.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = image.data;
-  const luma = new Uint8Array(canvas.width * canvas.height);
+  const originalPixels = original.data;
+  const luma = new Float32Array(canvas.width * canvas.height);
   for (let index = 0, pixel = 0; index < pixels.length; index += 4, pixel += 1) {
-    luma[pixel] = Math.round(pixels[index] * 0.299 + pixels[index + 1] * 0.587 + pixels[index + 2] * 0.114);
+    luma[pixel] = pixels[index] * 0.2126 + pixels[index + 1] * 0.7152 + pixels[index + 2] * 0.0722;
   }
 
   for (let y = 0; y < canvas.height; y += 1) {
     for (let x = 0; x < canvas.width; x += 1) {
       const pixel = y * canvas.width + x;
       const index = pixel * 4;
-      const right = luma[y * canvas.width + Math.min(x + 1, canvas.width - 1)];
-      const down = luma[Math.min(y + 1, canvas.height - 1) * canvas.width + x];
-      const edge = Math.abs(luma[pixel] - right) + Math.abs(luma[pixel] - down);
-      if (edge > 38) {
-        pixels[index] = 27;
-        pixels[index + 1] = 24;
-        pixels[index + 2] = 22;
-      } else {
-        const average = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
-        const posterize = (value: number) => Math.max(0, Math.min(255, Math.round((average + (value - average) * 1.35) / 48) * 48));
-        pixels[index] = posterize(pixels[index]);
-        pixels[index + 1] = posterize(pixels[index + 1]);
-        pixels[index + 2] = posterize(pixels[index + 2]);
-      }
+      const left = Math.max(0, x - 1);
+      const right = Math.min(canvas.width - 1, x + 1);
+      const top = Math.max(0, y - 1);
+      const bottom = Math.min(canvas.height - 1, y + 1);
+      const topLeft = luma[top * canvas.width + left];
+      const topCenter = luma[top * canvas.width + x];
+      const topRight = luma[top * canvas.width + right];
+      const middleLeft = luma[y * canvas.width + left];
+      const middleRight = luma[y * canvas.width + right];
+      const bottomLeft = luma[bottom * canvas.width + left];
+      const bottomCenter = luma[bottom * canvas.width + x];
+      const bottomRight = luma[bottom * canvas.width + right];
+      const gradientX = -topLeft + topRight - 2 * middleLeft + 2 * middleRight - bottomLeft + bottomRight;
+      const gradientY = -topLeft - 2 * topCenter - topRight + bottomLeft + 2 * bottomCenter + bottomRight;
+      const gradient = Math.hypot(gradientX, gradientY);
+      const edgeStrength = Math.min(0.72, Math.max(0, (gradient - 105) / 280));
+
+      const luminance = luma[pixel];
+      const liftedLuminance = 255 * Math.pow(luminance / 255, 0.92);
+      const quantizedLuminance = Math.round(liftedLuminance / 24) * 24;
+      const luminanceShift = quantizedLuminance - luminance;
+      const saturation = luminance < 52 ? 0.94 : 1.08;
+
+      pixels[index] = blendCartoonChannel(pixels[index], originalPixels[index], luminance, saturation, luminanceShift, edgeStrength, 31);
+      pixels[index + 1] = blendCartoonChannel(pixels[index + 1], originalPixels[index + 1], luminance, saturation, luminanceShift, edgeStrength, 26);
+      pixels[index + 2] = blendCartoonChannel(pixels[index + 2], originalPixels[index + 2], luminance, saturation, luminanceShift, edgeStrength, 23);
     }
   }
   context.putImageData(image, 0, 0);
@@ -170,18 +227,245 @@ function drawLightning(context: CanvasRenderingContext2D, x: number, y: number, 
   context.restore();
 }
 
-function fitTitle(context: CanvasRenderingContext2D, title: string, maxWidth: number) {
-  let size = 76;
-  while (size > 46) {
-    context.font = `900 ${size}px var(--font-sans), "PingFang SC", sans-serif`;
-    if (context.measureText(title).width <= maxWidth) return size;
-    size -= 4;
-  }
-  return size;
-}
-
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(date).replaceAll('/', '.');
+}
+
+type PosterFrame = { x: number; y: number; width: number; height: number; radius: number; rotation?: number };
+
+type TitleBlockOptions = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  align?: CanvasTextAlign;
+  maxSize?: number;
+  minSize?: number;
+  maxLines?: number;
+  rotation?: number;
+};
+
+function withRotation(context: CanvasRenderingContext2D, centerX: number, centerY: number, rotation: number, draw: () => void) {
+  context.save();
+  context.translate(centerX, centerY);
+  context.rotate(rotation);
+  context.translate(-centerX, -centerY);
+  draw();
+  context.restore();
+}
+
+function drawPanel(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fill: string,
+  stroke = '',
+  lineWidth = 0,
+  shadow = ''
+) {
+  context.save();
+  if (shadow) {
+    context.shadowColor = shadow;
+    context.shadowBlur = 0;
+    context.shadowOffsetX = 12;
+    context.shadowOffsetY = 14;
+  }
+  roundedRect(context, x, y, width, height, radius);
+  context.fillStyle = fill;
+  context.fill();
+  context.shadowColor = 'transparent';
+  if (stroke && lineWidth > 0) {
+    context.lineWidth = lineWidth;
+    context.strokeStyle = stroke;
+    context.stroke();
+  }
+  context.restore();
+}
+
+function splitTitle(title: string, maxLines: number) {
+  const characters = Array.from(title.trim());
+  if (characters.length <= 7 || maxLines === 1) return [characters.join('')];
+  const lineCount = Math.min(maxLines, characters.length > 14 ? 3 : 2);
+  const perLine = Math.ceil(characters.length / lineCount);
+  const lines: string[] = [];
+  for (let index = 0; index < characters.length; index += perLine) lines.push(characters.slice(index, index + perLine).join(''));
+  return lines.slice(0, maxLines);
+}
+
+function drawTitleBlock(context: CanvasRenderingContext2D, title: string, options: TitleBlockOptions) {
+  const lines = splitTitle(title, options.maxLines || 2);
+  const maxSize = options.maxSize || 84;
+  const minSize = options.minSize || 36;
+  const lineHeightRatio = 1.04;
+  let fontSize = maxSize;
+  while (fontSize > minSize) {
+    context.font = `900 ${fontSize}px "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif`;
+    const widest = Math.max(...lines.map((line) => context.measureText(line).width));
+    if (widest <= options.width && lines.length * fontSize * lineHeightRatio <= options.height) break;
+    fontSize -= 2;
+  }
+  const align = options.align || 'left';
+  const textX = align === 'center' ? options.x + options.width / 2 : align === 'right' ? options.x + options.width : options.x;
+  const totalHeight = lines.length * fontSize * lineHeightRatio;
+  withRotation(context, options.x + options.width / 2, options.y + options.height / 2, options.rotation || 0, () => {
+    context.fillStyle = options.color;
+    context.font = `900 ${fontSize}px "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif`;
+    context.textAlign = align;
+    context.textBaseline = 'top';
+    lines.forEach((line, index) => context.fillText(line, textX, options.y + (options.height - totalHeight) / 2 + index * fontSize * lineHeightRatio, options.width));
+  });
+}
+
+function drawBrand(context: CanvasRenderingContext2D, x: number, y: number, fill: string, color: string, rotation = -0.055) {
+  withRotation(context, x + 122, y + 37, rotation, () => {
+    drawPanel(context, x, y, 244, 74, 37, fill);
+    context.fillStyle = color;
+    context.font = '900 34px Arial, sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('NEON · 漫游', x + 122, y + 39, 214);
+  });
+}
+
+function drawMeta(context: CanvasRenderingContext2D, date: Date, x: number, y: number, color: string, align: CanvasTextAlign = 'left') {
+  context.save();
+  context.fillStyle = color;
+  context.font = '800 24px Arial, sans-serif';
+  context.textAlign = align;
+  context.textBaseline = 'alphabetic';
+  context.letterSpacing = '2px';
+  context.fillText(`TODAY'S SOUL ROLE  /  ${formatDate(date)}`, x, y);
+  context.restore();
+}
+
+function drawQrCard(
+  context: CanvasRenderingContext2D,
+  qrSource: CanvasImageSource | null | undefined,
+  x: number,
+  y: number,
+  ink: string,
+  rotation = 0
+) {
+  withRotation(context, x + 98, y + 109, rotation, () => {
+    if (!qrSource) {
+      drawPanel(context, x + 8, y + 152, 180, 54, 27, 'rgba(255,255,255,0.88)', ink, 5);
+      context.fillStyle = ink;
+      context.font = '900 20px Arial, sans-serif';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('NEON CAMERA', x + 98, y + 180, 150);
+      return;
+    }
+    drawPanel(context, x, y, 196, 218, 24, '#FFFFFF', ink, 7, 'rgba(0,0,0,0.18)');
+    context.drawImage(qrSource, x + 25, y + 17, 146, 146);
+    context.fillStyle = ink;
+    context.font = '800 18px "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'alphabetic';
+    context.fillText('扫码查看', x + 98, y + 196, 158);
+  });
+}
+
+function drawPhotoFrame(
+  context: CanvasRenderingContext2D,
+  cartoon: HTMLCanvasElement,
+  frame: PosterFrame,
+  theme: DoodleTheme,
+  borderWidth = 14
+) {
+  const rotation = frame.rotation || 0;
+  withRotation(context, frame.x + frame.width / 2, frame.y + frame.height / 2, rotation, () => {
+    context.save();
+    roundedRect(context, frame.x, frame.y, frame.width, frame.height, frame.radius);
+    context.clip();
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(cartoon, frame.x, frame.y, frame.width, frame.height);
+    context.globalCompositeOperation = 'soft-light';
+    context.globalAlpha = 0.06;
+    context.fillStyle = theme.secondary;
+    context.fillRect(frame.x, frame.y, frame.width, frame.height);
+    context.restore();
+    if (borderWidth > 0) {
+      roundedRect(context, frame.x, frame.y, frame.width, frame.height, frame.radius);
+      context.lineWidth = borderWidth;
+      context.strokeStyle = theme.ink;
+      context.stroke();
+    }
+  });
+}
+
+function drawDots(context: CanvasRenderingContext2D, color: string, spacing = 40, alpha = 0.15) {
+  context.save();
+  context.globalAlpha = alpha;
+  context.fillStyle = color;
+  for (let y = 24; y < POSTER_HEIGHT; y += spacing) {
+    for (let x = 22 + ((y / spacing) % 2) * 12; x < POSTER_WIDTH; x += spacing) {
+      context.beginPath();
+      context.arc(x, y, 3.6, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+  context.restore();
+}
+
+function drawChecker(context: CanvasRenderingContext2D, y: number, height: number, colorA: string, colorB: string, size = 54) {
+  for (let row = 0; row * size < height; row += 1) {
+    for (let column = 0; column * size < POSTER_WIDTH; column += 1) {
+      context.fillStyle = (row + column) % 2 === 0 ? colorA : colorB;
+      context.fillRect(column * size, y + row * size, size, Math.min(size, height - row * size));
+    }
+  }
+}
+
+function readableText(background: string, darkText: string) {
+  const match = /^#([0-9a-f]{6})$/i.exec(background);
+  if (!match) return darkText;
+  const value = Number.parseInt(match[1], 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (red * 0.2126 + green * 0.7152 + blue * 0.0722) / 255;
+  return luminance < 0.42 ? '#FFFFFF' : darkText;
+}
+
+function drawCatDetails(context: CanvasRenderingContext2D, frame: PosterFrame, theme: DoodleTheme) {
+  const left = frame.x + frame.width * 0.3;
+  const right = frame.x + frame.width * 0.7;
+  const top = frame.y - 60;
+  context.fillStyle = theme.primary;
+  context.strokeStyle = theme.ink;
+  context.lineWidth = 14;
+  context.lineJoin = 'round';
+  context.beginPath();
+  context.moveTo(left - 70, frame.y + 20);
+  context.lineTo(left, top);
+  context.lineTo(left + 78, frame.y + 18);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.beginPath();
+  context.moveTo(right - 78, frame.y + 18);
+  context.lineTo(right, top);
+  context.lineTo(right + 70, frame.y + 20);
+  context.closePath();
+  context.fill();
+  context.stroke();
+
+  context.save();
+  context.globalAlpha = 0.42;
+  context.fillStyle = '#FF7398';
+  context.beginPath();
+  context.ellipse(frame.x + frame.width * 0.28, frame.y + frame.height * 0.69, 64, 28, -0.1, 0, Math.PI * 2);
+  context.fill();
+  context.beginPath();
+  context.ellipse(frame.x + frame.width * 0.72, frame.y + frame.height * 0.69, 64, 28, 0.1, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
 }
 
 export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: number, sourceHeight: number, options: PosterOptions) {
@@ -192,184 +476,223 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
   if (!context) throw new Error('当前浏览器无法生成涂鸦');
   const theme = DOODLE_THEMES.find((item) => item.id === options.themeId) || DOODLE_THEMES[0];
   const template = DOODLE_TEMPLATES.find((item) => item.id === options.templateId) || DOODLE_TEMPLATES[0];
+  const createdAt = options.createdAt || new Date();
+  const primaryText = readableText(theme.primary, theme.ink);
+  const secondaryText = readableText(theme.secondary, theme.ink);
+  const accentText = readableText(theme.accent, theme.ink);
+  const frames: Record<DoodleTemplateId, PosterFrame> = {
+    'comic-cover': { x: 72, y: 112, width: 936, height: 1010, radius: 58 },
+    'instant-film': { x: 145, y: 142, width: 790, height: 720, radius: 16, rotation: -0.045 },
+    'hero-poster': { x: 0, y: 0, width: 1080, height: 1138, radius: 0 },
+    'sticker-book': { x: 160, y: 154, width: 760, height: 760, radius: 380 },
+    'magazine-pop': { x: 86, y: 112, width: 908, height: 1110, radius: 8 },
+    'split-zine': { x: 406, y: 138, width: 634, height: 1030, radius: 42 },
+    'orbit-badge': { x: 150, y: 168, width: 780, height: 780, radius: 390 },
+    'arcade-ticket': { x: 110, y: 330, width: 860, height: 720, radius: 26 }
+  };
+  const frame = frames[template.id];
+  const cartoon = cartoonize(source, sourceWidth, sourceHeight, frame.width, frame.height);
 
-  context.fillStyle = theme.primary;
-  context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
-  if (template.id === 'hero-poster') {
+  if (template.id === 'comic-cover') {
+    context.fillStyle = theme.primary;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
     context.fillStyle = theme.secondary;
-    context.fillRect(0, 0, 150, POSTER_HEIGHT);
-    context.fillRect(930, 0, 150, POSTER_HEIGHT);
+    context.beginPath();
+    context.moveTo(650, 0);
+    context.lineTo(1080, 0);
+    context.lineTo(1080, 700);
+    context.closePath();
+    context.fill();
+    drawDots(context, theme.ink, 38, 0.14);
+    drawPhotoFrame(context, cartoon, frame, theme, 18);
+    drawCatDetails(context, frame, theme);
+    drawPanel(context, 108, 866, 770, 184, 50, '#FFFFFF', theme.ink, 12, 'rgba(0,0,0,0.2)');
+    context.fillStyle = '#FFFFFF';
+    context.beginPath();
+    context.moveTo(220, 1034);
+    context.lineTo(178, 1100);
+    context.lineTo(306, 1046);
+    context.fill();
+    context.strokeStyle = theme.ink;
+    context.lineWidth = 12;
+    context.stroke();
+    drawTitleBlock(context, options.title, { x: 150, y: 888, width: 686, height: 136, color: theme.ink, maxSize: 70, maxLines: 2, align: 'center' });
+    drawBrand(context, 68, 58, theme.ink, '#FFFFFF');
+    drawStar(context, 962, 168, 50, 20, theme.accent, 0.2);
+    drawLightning(context, 914, 870, 0.72, theme.accent);
+    drawMeta(context, createdAt, 72, 1344, primaryText);
+    drawQrCard(context, options.qrSource, 820, 1172, theme.ink, 0.025);
+  } else if (template.id === 'instant-film') {
+    context.fillStyle = theme.accent;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    context.fillStyle = theme.secondary;
+    context.beginPath();
+    context.arc(130, 160, 210, 0, Math.PI * 2);
+    context.arc(970, 1160, 290, 0, Math.PI * 2);
+    context.fill();
+    drawDots(context, theme.ink, 48, 0.11);
+    withRotation(context, 540, 580, -0.045, () => {
+      drawPanel(context, 92, 72, 896, 1050, 30, '#FFFDF7', theme.ink, 16, 'rgba(0,0,0,0.22)');
+    });
+    drawPhotoFrame(context, cartoon, frame, theme, 10);
+    drawTitleBlock(context, options.title, { x: 166, y: 886, width: 730, height: 164, color: theme.ink, maxSize: 68, maxLines: 2, align: 'center', rotation: -0.045 });
+    withRotation(context, 540, 66, -0.08, () => drawPanel(context, 420, 34, 240, 64, 8, theme.primary));
+    drawBrand(context, 66, 1140, theme.ink, '#FFFFFF', 0.035);
+    drawMeta(context, createdAt, 72, 1350, theme.ink);
+    drawStar(context, 94, 1060, 46, 18, theme.primary, -0.2);
+    drawQrCard(context, options.qrSource, 820, 1170, theme.ink, -0.018);
+  } else if (template.id === 'hero-poster') {
+    context.fillStyle = theme.ink;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    drawPhotoFrame(context, cartoon, frame, theme, 0);
+    const gradient = context.createLinearGradient(0, 560, 0, 1160);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(0.62, 'rgba(0,0,0,0.42)');
+    gradient.addColorStop(1, theme.ink);
+    context.fillStyle = gradient;
+    context.fillRect(0, 520, POSTER_WIDTH, 650);
+    context.fillStyle = theme.secondary;
+    context.fillRect(0, 0, 32, 1138);
+    drawBrand(context, 62, 54, theme.primary, primaryText, -0.02);
+    context.fillStyle = theme.accent;
+    context.font = '900 24px Arial, sans-serif';
+    context.textAlign = 'left';
+    context.fillText('MAIN CHARACTER ENERGY', 68, 730);
+    drawTitleBlock(context, options.title, { x: 64, y: 754, width: 760, height: 270, color: '#FFFFFF', maxSize: 100, minSize: 52, maxLines: 2 });
+    context.fillStyle = theme.primary;
+    context.beginPath();
+    context.moveTo(0, 1110);
+    context.lineTo(1080, 1030);
+    context.lineTo(1080, 1440);
+    context.lineTo(0, 1440);
+    context.closePath();
+    context.fill();
+    drawLightning(context, 900, 840, 1.05, theme.accent);
+    drawMeta(context, createdAt, 66, 1348, primaryText);
+    drawQrCard(context, options.qrSource, 820, 1172, theme.ink, 0.018);
   } else if (template.id === 'sticker-book') {
+    context.fillStyle = theme.primary;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
     context.fillStyle = theme.secondary;
     for (let index = 0; index < 9; index += 1) {
       context.beginPath();
-      context.arc(30 + index * 140, 100 + (index % 2) * 110, 88, 0, Math.PI * 2);
+      context.arc(30 + index * 140, 90 + (index % 2) * 92, 92, 0, Math.PI * 2);
       context.fill();
     }
-  } else {
-    context.save();
-    context.translate(POSTER_WIDTH, 0);
-    context.rotate(template.id === 'instant-film' ? Math.PI / 3.4 : Math.PI / 4);
-    context.fillStyle = theme.secondary;
-    context.fillRect(-260, -400, 900, 1800);
-    context.restore();
-  }
-
-  context.globalAlpha = 0.18;
-  context.fillStyle = theme.ink;
-  for (let y = 28; y < POSTER_HEIGHT; y += 38) {
-    for (let x = 24 + ((y / 38) % 2) * 14; x < POSTER_WIDTH; x += 38) {
-      context.beginPath();
-      context.arc(x, y, 3.8, 0, Math.PI * 2);
-      context.fill();
-    }
-  }
-  context.globalAlpha = 1;
-
-  const frame =
-    template.id === 'instant-film'
-      ? { x: 112, y: 138, width: 856, height: 790, radius: 18 }
-      : template.id === 'hero-poster'
-        ? { x: 52, y: 82, width: 976, height: 1018, radius: 22 }
-        : template.id === 'sticker-book'
-          ? { x: 138, y: 160, width: 804, height: 846, radius: 180 }
-          : { x: 78, y: 142, width: 924, height: 930, radius: 56 };
-
-  if (template.id === 'instant-film') {
-    roundedRect(context, 68, 94, 944, 970, 30);
-    context.fillStyle = '#FFFDF7';
-    context.fill();
-    context.lineWidth = 16;
-    context.strokeStyle = theme.ink;
-    context.stroke();
-    context.save();
-    context.translate(80, 54);
-    context.rotate(-0.12);
+    drawDots(context, theme.ink, 42, 0.12);
+    drawPanel(context, 116, 110, 848, 848, 424, '#FFFDF7', theme.ink, 14, 'rgba(0,0,0,0.18)');
+    drawPhotoFrame(context, cartoon, frame, theme, 14);
+    drawCatDetails(context, frame, theme);
+    withRotation(context, 540, 920, -0.045, () => {
+      drawPanel(context, 126, 844, 828, 170, 28, theme.accent, theme.ink, 12, 'rgba(0,0,0,0.18)');
+    });
+    drawTitleBlock(context, options.title, { x: 170, y: 866, width: 740, height: 126, color: accentText, maxSize: 68, maxLines: 2, align: 'center', rotation: -0.045 });
+    drawBrand(context, 68, 70, theme.ink, '#FFFFFF');
+    drawStar(context, 974, 610, 42, 17, theme.accent, 0.3);
+    drawStar(context, 98, 1020, 44, 18, '#FFFFFF', -0.2);
+    drawMeta(context, createdAt, 72, 1348, primaryText);
+    drawQrCard(context, options.qrSource, 820, 1170, theme.ink, 0.02);
+  } else if (template.id === 'magazine-pop') {
     context.fillStyle = theme.accent;
-    context.fillRect(0, 0, 210, 58);
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    context.fillStyle = theme.secondary;
+    context.fillRect(0, 0, 1080, 72);
+    context.fillRect(0, 1260, 1080, 180);
+    drawPhotoFrame(context, cartoon, frame, theme, 12);
+    context.fillStyle = theme.secondary;
+    context.fillRect(42, 170, 162, 650);
+    context.save();
+    context.translate(122, 748);
+    context.rotate(-Math.PI / 2);
+    context.fillStyle = theme.ink;
+    context.font = '900 34px Arial, sans-serif';
+    context.textAlign = 'left';
+    context.letterSpacing = '5px';
+    context.fillText('NEON / ISSUE 08 / SOUL PEOPLE', 0, 0);
     context.restore();
-  }
-  if (template.id === 'sticker-book') {
-    roundedRect(context, 106, 128, 868, 910, 205);
-    context.fillStyle = '#FFFDF7';
-    context.fill();
-    context.lineWidth = 12;
-    context.strokeStyle = theme.ink;
-    context.stroke();
-  }
-
-  context.save();
-  roundedRect(context, frame.x, frame.y, frame.width, frame.height, frame.radius);
-  context.clip();
-  const cartoon = cartoonize(source, sourceWidth, sourceHeight);
-  context.imageSmoothingEnabled = true;
-  context.drawImage(cartoon, frame.x, frame.y, frame.width, frame.height);
-  context.globalCompositeOperation = 'soft-light';
-  context.globalAlpha = 0.18;
-  context.fillStyle = theme.secondary;
-  context.fillRect(frame.x, frame.y, frame.width, frame.height);
-  context.restore();
-
-  roundedRect(context, frame.x, frame.y, frame.width, frame.height, frame.radius);
-  context.lineWidth = template.id === 'instant-film' ? 10 : 18;
-  context.strokeStyle = theme.ink;
-  context.stroke();
-
-  // Cat ears and blush deliberately sit on a fixed portrait guide: playful, not biometric inference.
-  context.fillStyle = theme.primary;
-  context.strokeStyle = theme.ink;
-  context.lineWidth = 15;
-  context.lineJoin = 'round';
-  const earTop = template.id === 'hero-poster' ? 22 : template.id === 'sticker-book' ? 98 : 76;
-  context.beginPath();
-  context.moveTo(310, frame.y + 24);
-  context.lineTo(356, earTop);
-  context.lineTo(432, frame.y + 12);
-  context.closePath();
-  context.fill();
-  context.stroke();
-  context.beginPath();
-  context.moveTo(650, frame.y + 12);
-  context.lineTo(724, earTop);
-  context.lineTo(774, frame.y + 26);
-  context.closePath();
-  context.fill();
-  context.stroke();
-
-  context.save();
-  context.globalAlpha = 0.52;
-  context.fillStyle = '#FF6F91';
-  context.beginPath();
-  const blushY = template.id === 'hero-poster' ? 748 : template.id === 'instant-film' ? 650 : 720;
-  context.ellipse(330, blushY, 70, 32, -0.12, 0, Math.PI * 2);
-  context.fill();
-  context.beginPath();
-  context.ellipse(750, blushY, 70, 32, 0.12, 0, Math.PI * 2);
-  context.fill();
-  context.restore();
-
-  drawStar(context, template.id === 'sticker-book' ? 940 : 938, template.id === 'hero-poster' ? 210 : 170, 54, 22, theme.accent, 0.2);
-  drawStar(context, 96, template.id === 'instant-film' ? 1010 : 1030, 43, 18, '#FFFFFF', -0.2);
-  drawLightning(context, template.id === 'hero-poster' ? 900 : 935, template.id === 'sticker-book' ? 900 : 860, template.id === 'hero-poster' ? 1.05 : 0.78, theme.accent);
-
-  if (template.id === 'sticker-book') {
-    drawStar(context, 120, 300, 34, 14, theme.secondary, -0.35);
-    drawStar(context, 972, 650, 32, 13, theme.primary, 0.4);
-  }
-
-  if (template.id === 'hero-poster') {
-    roundedRect(context, 40, 1080, 1000, 190, 24);
-    context.fillStyle = theme.primary;
-    context.fill();
-    context.lineWidth = 16;
-    context.strokeStyle = theme.ink;
-    context.stroke();
-  }
-
-  context.save();
-  context.translate(template.id === 'hero-poster' ? 68 : 64, template.id === 'hero-poster' ? 36 : 82);
-  context.rotate(-0.055);
-  roundedRect(context, 0, 0, 244, 74, 37);
-  context.fillStyle = theme.ink;
-  context.fill();
-  context.fillStyle = '#FFFFFF';
-  context.font = '900 38px Arial, sans-serif';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText('NEON · 漫游', 122, 39);
-  context.restore();
-
-  context.fillStyle = theme.ink;
-  context.textAlign = 'left';
-  context.textBaseline = 'alphabetic';
-  const titleSize = fitTitle(context, options.title, options.qrSource ? 720 : 920);
-  context.font = `900 ${titleSize}px var(--font-sans), "PingFang SC", sans-serif`;
-  context.fillText(options.title, 72, 1174);
-  context.font = '700 28px Arial, sans-serif';
-  context.letterSpacing = '3px';
-  context.fillText(`TODAY'S SOUL ROLE  /  ${formatDate(options.createdAt || new Date())}`, 76, 1230);
-  context.letterSpacing = '0px';
-
-  if (options.qrSource) {
-    roundedRect(context, 796, 1110, 222, 250, 26);
+    drawPanel(context, 176, 742, 738, 238, 0, theme.primary, theme.ink, 10);
+    drawTitleBlock(context, options.title, { x: 214, y: 766, width: 662, height: 188, color: primaryText, maxSize: 82, maxLines: 2 });
     context.fillStyle = '#FFFFFF';
+    context.font = '900 64px Arial, sans-serif';
+    context.textAlign = 'right';
+    context.fillText('SOUL!', 960, 178);
+    drawBrand(context, 68, 78, theme.ink, '#FFFFFF', 0);
+    drawMeta(context, createdAt, 68, 1360, secondaryText);
+    drawQrCard(context, options.qrSource, 820, 1168, theme.ink, 0);
+  } else if (template.id === 'split-zine') {
+    context.fillStyle = theme.primary;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    drawPanel(context, 38, 94, 422, 1160, 42, theme.accent, theme.ink, 12, 'rgba(0,0,0,0.2)');
+    context.fillStyle = theme.secondary;
+    context.beginPath();
+    context.moveTo(320, 0);
+    context.lineTo(1080, 0);
+    context.lineTo(1080, 520);
+    context.lineTo(420, 760);
+    context.closePath();
     context.fill();
-    context.lineWidth = 8;
-    context.strokeStyle = theme.ink;
+    drawPhotoFrame(context, cartoon, frame, theme, 14);
+    context.fillStyle = theme.ink;
+    context.font = '900 24px Arial, sans-serif';
+    context.textAlign = 'left';
+    context.fillText('A LITTLE ZINE ABOUT', 76, 214);
+    drawTitleBlock(context, options.title, { x: 76, y: 250, width: 330, height: 540, color: accentText, maxSize: 78, minSize: 42, maxLines: 3 });
+    drawBrand(context, 720, 62, theme.ink, '#FFFFFF', 0.02);
+    drawStar(context, 364, 870, 50, 20, theme.secondary, 0.1);
+    drawMeta(context, createdAt, 1008, 1350, primaryText, 'right');
+    drawQrCard(context, options.qrSource, 90, 1166, theme.ink, -0.02);
+  } else if (template.id === 'orbit-badge') {
+    context.fillStyle = theme.ink;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    drawDots(context, theme.accent, 62, 0.2);
+    context.save();
+    context.strokeStyle = theme.secondary;
+    context.lineWidth = 16;
+    context.beginPath();
+    context.ellipse(540, 558, 500, 268, -0.35, 0, Math.PI * 2);
     context.stroke();
-    context.drawImage(options.qrSource, 824, 1134, 166, 166);
-    context.fillStyle = theme.ink;
-    context.font = '800 23px var(--font-sans), sans-serif';
-    context.textAlign = 'center';
-    context.fillText('扫码查收今日角色', 907, 1335);
+    context.strokeStyle = theme.primary;
+    context.lineWidth = 8;
+    context.beginPath();
+    context.ellipse(540, 558, 320, 516, 0.7, 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
+    drawPanel(context, 126, 144, 828, 828, 414, theme.accent, theme.primary, 18, 'rgba(0,0,0,0.35)');
+    drawPhotoFrame(context, cartoon, frame, theme, 14);
+    drawPanel(context, 92, 856, 896, 186, 93, theme.primary, theme.accent, 10, 'rgba(0,0,0,0.3)');
+    drawTitleBlock(context, options.title, { x: 150, y: 884, width: 780, height: 130, color: primaryText, maxSize: 70, maxLines: 2, align: 'center' });
+    drawBrand(context, 418, 56, theme.accent, theme.ink, 0);
+    drawStar(context, 956, 236, 48, 18, theme.accent, 0.15);
+    drawStar(context, 116, 772, 40, 16, theme.secondary, -0.2);
+    drawMeta(context, createdAt, 66, 1354, '#FFFFFF');
+    drawQrCard(context, options.qrSource, 820, 1170, theme.ink, 0.02);
   } else {
-    roundedRect(context, 72, 1290, 472, 74, 37);
-    context.fillStyle = 'rgba(255,255,255,0.82)';
-    context.fill();
+    context.fillStyle = theme.primary;
+    context.fillRect(0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+    drawChecker(context, 0, 216, theme.ink, theme.secondary, 54);
+    drawChecker(context, 1080, 360, theme.secondary, theme.accent, 54);
+    drawPanel(context, 64, 58, 952, 206, 28, theme.ink, theme.accent, 10, 'rgba(0,0,0,0.22)');
+    context.fillStyle = theme.secondary;
+    for (let x = 102; x <= 978; x += 73) {
+      context.beginPath();
+      context.arc(x, 88, 9, 0, Math.PI * 2);
+      context.fill();
+    }
+    drawTitleBlock(context, options.title, { x: 110, y: 105, width: 860, height: 120, color: theme.accent, maxSize: 72, maxLines: 2, align: 'center' });
+    drawPhotoFrame(context, cartoon, frame, theme, 16);
+    context.save();
+    context.globalAlpha = 0.16;
+    context.fillStyle = '#FFFFFF';
+    for (let y = frame.y + 18; y < frame.y + frame.height; y += 24) context.fillRect(frame.x, y, frame.width, 5);
+    context.restore();
+    drawPanel(context, 64, 1082, 952, 284, 32, theme.accent, theme.ink, 12);
     context.fillStyle = theme.ink;
-    context.font = '800 27px var(--font-sans), sans-serif';
-    context.textAlign = 'center';
-    context.fillText('NEON · 漫游相机', 308, 1338);
+    context.font = '900 30px Arial, sans-serif';
+    context.textAlign = 'left';
+    context.fillText('PLAYER 01  /  CHARACTER UNLOCKED', 94, 1152);
+    drawBrand(context, 82, 1238, theme.ink, '#FFFFFF', -0.02);
+    drawMeta(context, createdAt, 92, 1210, theme.ink);
+    drawQrCard(context, options.qrSource, 804, 1154, theme.ink, 0.018);
   }
 
   return canvas;

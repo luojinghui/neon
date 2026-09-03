@@ -91,7 +91,7 @@ export async function PUT(request: Request, context: RouteContext) {
       },
       image
     );
-    return NextResponse.json({ share: doodleShareRepository.toPublic(share), shareUrl: new URL(`/doodle/s/${share.id}`, request.url).toString() });
+    return NextResponse.json({ share: doodleShareRepository.toPublic(share) });
   } catch (error) {
     return errorResponse(error);
   }

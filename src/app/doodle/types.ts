@@ -8,7 +8,15 @@ export type DoodleThemeId =
   | 'peach-fizz'
   | 'night-neon';
 
-export type DoodleTemplateId = 'comic-cover' | 'instant-film' | 'hero-poster' | 'sticker-book';
+export type DoodleTemplateId =
+  | 'comic-cover'
+  | 'instant-film'
+  | 'hero-poster'
+  | 'sticker-book'
+  | 'magazine-pop'
+  | 'split-zine'
+  | 'orbit-badge'
+  | 'arcade-ticket';
 
 export type DoodleShareState = 'active' | 'expired' | 'deleted';
 

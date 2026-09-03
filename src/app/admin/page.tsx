@@ -623,10 +623,14 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
 }
 
 const doodleTemplateNames: Record<string, string> = {
-  'comic-cover': '漫画封面',
-  'instant-film': '拍立得',
-  'hero-poster': '勇者海报',
-  'sticker-book': '贴纸手账'
+  'comic-cover': '气泡漫画',
+  'instant-film': '斜拍胶片',
+  'hero-poster': '主角海报',
+  'sticker-book': '贴纸派对',
+  'magazine-pop': '潮流杂志',
+  'split-zine': '拼贴小志',
+  'orbit-badge': '星轨徽章',
+  'arcade-ticket': '电玩票根'
 };
 
 const doodleThemeNames: Record<string, string> = {

@@ -51,8 +51,7 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
 
   const createdAt = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(share.createdAt));
   const expiresAt = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(share.expiresAt));
-  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || '';
-  const pageUrl = configuredOrigin ? `${configuredOrigin}/doodle/s/${share.id}` : `/doodle/s/${share.id}`;
+  const pageUrl = `/doodle/s/${share.id}`;
 
   return (
     <main className="doodle-page min-h-screen overflow-y-auto bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
