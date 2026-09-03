@@ -369,7 +369,7 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     context.fillStyle = theme.ink;
     context.font = '800 27px var(--font-sans), sans-serif';
     context.textAlign = 'center';
-    context.fillText('端侧生成 · 内容合规审核', 308, 1338);
+    context.fillText('NEON · 漫游相机', 308, 1338);
   }
 
   return canvas;

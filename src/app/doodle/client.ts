@@ -93,7 +93,7 @@ export async function createDoodleReview(
     body
   });
   const result = (await response.json()) as ReviewResponse;
-  if (!response.ok || !result.review) throwReviewError(result, '审核图片提交失败，请重试');
+  if (!response.ok || !result.review) throwReviewError(result, '作品同步失败，请重试');
   return result.review;
 }
 
@@ -114,6 +114,6 @@ export async function updateDoodleReview(
     body: processed
   });
   const result = (await response.json()) as ReviewResponse;
-  if (!response.ok || !result.review) throwReviewError(result, '审核图片更新失败，请重试');
+  if (!response.ok || !result.review) throwReviewError(result, '作品更新失败，请重试');
   return result.review;
 }

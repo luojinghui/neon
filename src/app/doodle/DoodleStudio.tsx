@@ -567,8 +567,8 @@ export default function DoodleStudio() {
   return (
     <main className="doodle-page min-h-screen overflow-y-auto bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
       <header className="sticky top-0 z-30 border-b-4 border-[#201a17] bg-[#fffaf0]/95 backdrop-blur dark:border-[#fff2df] dark:bg-[#17110f]/95">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/" className="inline-flex items-center gap-2 rounded-full px-3 py-2 font-black transition hover:bg-black/5 dark:hover:bg-white/10">
+        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3 sm:px-6">
+          <Link href="/" className="inline-flex items-center gap-2 justify-self-start rounded-full px-3 py-2 font-black transition hover:bg-black/5 dark:hover:bg-white/10">
             <ArrowLeftOutlined />
             返回星球
           </Link>
@@ -578,7 +578,7 @@ export default function DoodleStudio() {
             </span>
             漫游相机
           </div>
-          <span className="hidden rounded-full border-2 border-[#201a17] bg-[#79e7c2] px-3 py-1 text-xs font-black text-[#201a17] sm:inline">端侧生成 · 合规审核</span>
+          <span aria-hidden="true" />
         </div>
       </header>
 
@@ -594,7 +594,7 @@ export default function DoodleStudio() {
                 <span className="relative mx-2 inline-block -rotate-2 text-[#ff5d46] dark:text-[#ff8b78]">什么角色？</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#554943] dark:text-[#d9c8bd]">
-                拍一张自拍，把表情变成带猫耳、闪电和随机称号的漫画涂鸦。效果在本机生成，拍摄原图与生成成品会按隐私政策上传用于内容合规审核。
+                拍一张自拍，把表情变成带猫耳、闪电和随机称号的漫画涂鸦。所有漫画效果都会在当前设备上完成。
               </p>
               {cameraError && <div className="mt-5 rounded-2xl border-2 border-[#201a17] bg-[#fff0c9] p-4 font-bold text-[#8a3f21]">{cameraError}</div>}
               <div className="mt-8 flex flex-wrap gap-3">
@@ -604,9 +604,8 @@ export default function DoodleStudio() {
               </div>
               <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold text-[#665750] dark:text-[#ccb9ad]">
                 <span><CheckCircleFilled className="mr-2 text-[#15966a]" />端侧漫画处理</span>
-                <span><CheckCircleFilled className="mr-2 text-[#15966a]" />原图与成品合规审核</span>
                 <span><CheckCircleFilled className="mr-2 text-[#15966a]" />一键保存海报</span>
-                <span><CheckCircleFilled className="mr-2 text-[#15966a]" />分享 30 天可销毁</span>
+                <span><CheckCircleFilled className="mr-2 text-[#15966a]" />分享可随时销毁</span>
               </div>
             </div>
 
