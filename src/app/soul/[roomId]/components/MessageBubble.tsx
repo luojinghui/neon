@@ -42,8 +42,8 @@ function MessageContent({
         preview={{
           cover: false
         }}
-        classNames={{ root: 'soul-message-image max-w-[min(280px,70vw)]', popup: { root: 'soul-image-preview' } }}
-        className="block max-h-72 w-auto max-w-full object-contain"
+        classNames={{ root: 'soul-message-image max-w-[min(280px,70vw)] overflow-hidden rounded-xl', popup: { root: 'soul-image-preview' } }}
+        className="block max-h-72 w-auto max-w-full rounded-xl object-contain"
         fallback="/source/index.png"
       />
     );

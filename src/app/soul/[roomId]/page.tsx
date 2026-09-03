@@ -47,21 +47,21 @@ function ChatRoomPage() {
     >
       <TopBar
         middle={
-          <span className="truncate text-base font-medium">{roomName || '加载中...'}</span>
+          <Tooltip title="星球信息" placement="bottom">
+            <button
+              type="button"
+              onClick={() => setRoomInfoOpen(true)}
+              disabled={!room || accessState !== 'granted'}
+              className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-base font-medium transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-default disabled:opacity-60"
+              aria-label={`查看${roomName || '星球'}信息`}
+            >
+              <span className="truncate">{roomName || '加载中...'}</span>
+              <InfoCircleOutlined className="shrink-0 text-sm text-foreground-muted" aria-hidden />
+            </button>
+          </Tooltip>
         }
         right={
           <div className="flex items-center gap-2">
-            <Tooltip title="星球信息" placement="bottom">
-              <button
-                type="button"
-                onClick={() => setRoomInfoOpen(true)}
-                disabled={!room || accessState !== 'granted'}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary disabled:cursor-not-allowed disabled:opacity-45"
-                aria-label="星球信息"
-              >
-                <InfoCircleOutlined className="text-sm" />
-              </button>
-            </Tooltip>
             <Link
               href={createProfileHref('', { returnTo: `/soul/${params.roomId}` })}
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"

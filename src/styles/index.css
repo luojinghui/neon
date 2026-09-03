@@ -162,6 +162,23 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  body,
+  body :where(*) {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  body :where(input, textarea, [contenteditable="true"], [contenteditable="true"] *) {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  body img {
+    -webkit-user-drag: none;
+  }
+
   button,
   input,
   textarea,
