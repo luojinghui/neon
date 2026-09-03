@@ -159,9 +159,14 @@ jobs:
             "${app_root}/shared/upload" \
             "${app_root}/shared/static" \
             "${app_root}/shared/soul-data" \
-            "${app_root}/shared/soul-uploads/soul"
+            "${app_root}/shared/soul-uploads/soul" \
+            "${app_root}/shared/soul-uploads/profile" \
+            "${app_root}/shared/user-data"
           if [[ ! -f "${app_root}/shared/soul-data/soul-chat.json" && -f "${previous_target}/.data/soul-chat.json" ]]; then
             cp "${previous_target}/.data/soul-chat.json" "${app_root}/shared/soul-data/soul-chat.json"
+          fi
+          if [[ ! -f "${app_root}/shared/user-data/user-profiles.json" && -f "${previous_target}/.data/user-profiles.json" ]]; then
+            cp "${previous_target}/.data/user-profiles.json" "${app_root}/shared/user-data/user-profiles.json"
           fi
           previous_uploads="$(readlink -f "${previous_target}/public/uploads/soul" 2>/dev/null || true)"
           shared_uploads="$(readlink -f "${app_root}/shared/soul-uploads/soul")"
@@ -188,6 +193,7 @@ jobs:
           . "${env_file}"
           set +a
           export SOUL_CHAT_DATA_FILE="${SOUL_CHAT_DATA_FILE:-${app_root}/shared/soul-data/soul-chat.json}"
+          export USER_PROFILE_DATA_FILE="${USER_PROFILE_DATA_FILE:-${app_root}/shared/user-data/user-profiles.json}"
           app_port="${APP_PORT:-3000}"
           [[ "${app_port}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid APP_PORT' >&2; exit 1; }
 

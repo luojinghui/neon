@@ -1,4 +1,5 @@
 import { useSoulStore } from '../store';
+import { ensureCurrentProfile } from '../../profile/client';
 import { SocketChatError, SocketChatTransport } from './socketTransport';
 import type {
   ChatAttachment,
@@ -11,7 +12,6 @@ import type {
   UpdateRoomInput
 } from './types';
 
-const USER_STORAGE_KEY = 'soul:guest-user';
 const CACHE_PREFIX = 'soul:room-cache:';
 const CACHE_LIMIT = 100;
 
@@ -30,12 +30,13 @@ export class SoulChat {
     const sessionId = ++this.sessionId;
     this.mode = 'list';
     this.roomId = '';
-    this.user = this.getOrCreateGuest();
     const store = useSoulStore.getState();
     store.setRoomsState('loading');
     store.setConnectionState('connecting');
 
     try {
+      this.user = await ensureCurrentProfile();
+      if (sessionId !== this.sessionId || this.mode !== 'list') return;
       await this.transport.connect(this.user);
       if (sessionId !== this.sessionId || this.mode !== 'list') return;
       this.bindCommonEvents();
@@ -54,11 +55,12 @@ export class SoulChat {
     this.mode = 'room';
     this.roomId = roomId;
     this.roomPassword = '';
-    this.user = this.getOrCreateGuest();
     const store = useSoulStore.getState();
     store.prepareRoom(roomId);
     store.setConnectionState('connecting');
     try {
+      this.user = await ensureCurrentProfile();
+      if (sessionId !== this.sessionId || this.mode !== 'room' || this.roomId !== roomId) return;
       await this.transport.connect(this.user);
       if (sessionId !== this.sessionId || this.mode !== 'room' || this.roomId !== roomId) return;
       this.bindCommonEvents();
@@ -359,32 +361,10 @@ export class SoulChat {
   }
 
   private toClientMessage(message: ServerChatMessage): ChatMessage {
-    return { ...message, isLocal: message.senderId === this.user?.id };
-  }
-
-  private getOrCreateGuest(): ChatUser {
-    try {
-      const stored = localStorage.getItem(USER_STORAGE_KEY);
-      if (stored) {
-        const user = JSON.parse(stored) as ChatUser;
-        if (user.id && user.name) return user;
-      }
-    } catch {
-      try {
-        localStorage.removeItem(USER_STORAGE_KEY);
-      } catch {
-        // Continue with an in-memory guest when browser storage is unavailable.
-      }
-    }
-
-    const id = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const user = { id: `guest-${id}`, name: `星球旅人-${id.slice(0, 4).toUpperCase()}` };
-    try {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-    } catch {
-      // The user can still chat for this page lifecycle without persistent storage.
-    }
-    return user;
+    return {
+      ...message,
+      isLocal: message.senderKey ? message.senderKey === this.user?.publicKey : message.senderId === this.user?.userId
+    };
   }
 
   private cacheMessages(roomId: string, messages: ChatMessage[]): void {

@@ -53,6 +53,8 @@ sudo chmod 600 /home/neon-deploy/.ssh/authorized_keys
 MONGODB_URI='mongodb://APP_USER:URL_ENCODED_PASSWORD@127.0.0.1:27017/APP_DB?authSource=admin'
 APP_HOST=127.0.0.1
 APP_PORT=3000
+SOUL_CHAT_DATA_FILE=/home/neon-deploy/apps/neon/shared/soul-data/soul-chat.json
+USER_PROFILE_DATA_FILE=/home/neon-deploy/apps/neon/shared/user-data/user-profiles.json
 ALLOWED_ORIGINS='https://your-domain.example'
 ```
 

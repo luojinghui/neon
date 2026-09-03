@@ -44,7 +44,8 @@ const RETIRED_DEFAULT_ROOM_IDS = new Set(['inspiration-orbit']);
 const DEFAULT_MESSAGES = DEFAULT_ROOMS.map((room, index) => ({
   id: `welcome-${room.id}`,
   roomId: room.id,
-  senderId: 'planet-guide',
+  senderId: 'planetguide',
+  senderKey: 'planetguide',
   senderName: '星球向导',
   type: 'text',
   content: [
@@ -223,8 +224,10 @@ class RoomRepository {
     const message = {
       id: `msg-${randomUUID()}`,
       roomId,
-      senderId: user.id,
+      senderId: user.userId,
+      senderKey: user.publicKey,
       senderName: user.name,
+      ...(user.avatarUrl ? { senderAvatar: user.avatarUrl } : {}),
       type,
       content,
       ...(attachment ? { attachment } : {}),
@@ -298,8 +301,11 @@ class RoomRepository {
 
   normalizeUser(input) {
     return {
-      id: this.requireText(input?.id, '用户 ID', 80),
-      name: this.requireText(input?.name, '用户名', 32)
+      id: this.requireText(input?.id, '用户身份', 80),
+      userId: this.requireText(input?.userId || input?.id, '用户 ID', 20),
+      publicKey: this.requireText(input?.publicKey || input?.userId || input?.id, '用户身份标识', 80),
+      name: this.requireText(input?.name, '用户名', 32),
+      avatarUrl: this.optionalText(input?.avatarUrl, 300)
     };
   }
 

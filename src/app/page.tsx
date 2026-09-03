@@ -16,11 +16,16 @@ export default function Home() {
       title: '星球',
       description: '寻找属于自己的Soul星球',
       href: '/soul'
+    },
+    {
+      title: '个人中心',
+      description: '留下你的名字、头像与这一刻的自我介绍',
+      href: '/profile'
     }
   ];
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <div className="h-screen w-full overflow-y-auto bg-background">
       <div className="fixed top-4 right-4 z-20">
         <ThemeToggle />
       </div>

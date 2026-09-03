@@ -288,40 +288,6 @@
   overflow: hidden;
 }
 
-.soul-image-preview-action-group {
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.62);
-  color: #fff;
-  backdrop-filter: blur(10px);
-}
-
-.soul-image-preview-action-group .ant-image-preview-actions {
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.soul-image-preview-custom-action {
-  display: inline-flex;
-  width: 40px;
-  height: 40px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-
-.soul-image-preview-custom-action:hover {
-  background: rgb(255 255 255 / 0.16);
-}
-
 .soul-room-page,
 .soul-room-page :where(*:not(input):not(textarea):not([contenteditable="true"])) {
   -webkit-touch-callout: none;
@@ -365,51 +331,6 @@
   white-space: nowrap;
 }
 
-.soul-file-preview-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.soul-file-preview-action {
-  display: inline-flex;
-  min-width: 96px;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border-radius: var(--radius);
-  border: 1px solid transparent;
-  padding: 0 18px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    border-color 150ms ease,
-    background-color 150ms ease,
-    color 150ms ease;
-}
-
-.soul-file-preview-action-secondary {
-  border-color: hsl(var(--border));
-  background: hsl(var(--surface));
-  color: hsl(var(--foreground));
-}
-
-.soul-file-preview-action-secondary:hover {
-  border-color: hsl(var(--border-hover));
-  background: hsl(var(--surface-hover));
-}
-
-.soul-file-preview-action-primary {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-
-.soul-file-preview-action-primary:hover {
-  background: hsl(var(--primary-hover));
-}
-
 @media (max-width: 640px) {
   .soul-image-preview .ant-image-preview-close {
     top: max(12px, env(safe-area-inset-top));
@@ -419,16 +340,6 @@
   .soul-image-preview .ant-image-preview-footer {
     bottom: max(16px, env(safe-area-inset-bottom));
     max-width: calc(100vw - 24px);
-  }
-
-  .soul-image-preview-action-group {
-    max-width: calc(100vw - 24px);
-    overflow-x: auto;
-  }
-
-  .soul-image-preview-custom-action {
-    width: 44px;
-    height: 44px;
   }
 
   .soul-file-preview-modal .ant-modal-wrap {
@@ -474,14 +385,6 @@
     flex: 1;
   }
 
-  .soul-file-preview-actions {
-    width: 100%;
-  }
-
-  .soul-file-preview-action {
-    min-width: 0;
-    flex: 1;
-  }
 }
 
 .docx-preview {

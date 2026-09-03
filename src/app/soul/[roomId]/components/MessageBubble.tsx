@@ -1,10 +1,10 @@
 'use client';
 
-import { DownloadOutlined, FileOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { FileOutlined } from '@ant-design/icons';
 import { Image as PreviewImage } from 'antd';
 import NextImage from 'next/image';
-import { useEffect, useRef, useState } from 'react';
-import { soulChat } from '../../core';
+import Link from 'next/link';
+import { useState } from 'react';
 import type { ChatMessage } from './types';
 import { formatTime, getAvatarUrl } from './types';
 import { MessageActions } from './MessageActions';
@@ -26,11 +26,9 @@ function getFileType(name = '', mimeType = ''): string {
 
 function MessageContent({
   message,
-  onToggleActions,
   onPreviewFile
 }: {
   message: ChatMessage;
-  onToggleActions: (event: React.SyntheticEvent) => void;
   onPreviewFile: () => void;
 }) {
   if (message.type === 'image' || message.type === 'gif') {
@@ -42,30 +40,7 @@ function MessageContent({
           alt={message.attachment?.name || message.content || '图片'}
           draggable={false}
           preview={{
-            mask: null,
-            actionsRender: (originalNode) => (
-              <div className="soul-image-preview-action-group">
-                {originalNode}
-                <button
-                  type="button"
-                  className="soul-image-preview-custom-action"
-                  onClick={() => void soulChat.shareMessage(message.id)}
-                  aria-label="分享图片"
-                  title="分享"
-                >
-                  <ShareAltOutlined />
-                </button>
-                <button
-                  type="button"
-                  className="soul-image-preview-custom-action"
-                  onClick={() => soulChat.downloadMessage(message.id)}
-                  aria-label="下载图片"
-                  title="下载"
-                >
-                  <DownloadOutlined />
-                </button>
-              </div>
-            )
+            mask: null
           }}
           classNames={{ popup: { root: 'soul-image-preview' } }}
           className="block max-h-72 w-auto max-w-full object-contain"
@@ -98,16 +73,7 @@ function MessageContent({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onToggleActions}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onToggleActions(event);
-        }
-      }}
-      className={`soul-message-content max-w-[min(560px,70vw)] cursor-pointer overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-base leading-relaxed ${
+      className={`soul-message-content inline-block max-w-[min(680px,100%)] overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-left text-base leading-relaxed ${
         message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'
       }`}
     >
@@ -117,66 +83,37 @@ function MessageContent({
 }
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
-  const isLocal = message.isLocal;
-  const avatarUrl = getAvatarUrl(message.senderId);
-  const [actionsOpen, setActionsOpen] = useState(false);
+  const avatarUrl = getAvatarUrl(message.senderId, message.senderAvatar, message.senderKey);
+  const profileHref = `/profile/${encodeURIComponent(message.senderId)}${message.senderKey ? `?key=${encodeURIComponent(message.senderKey)}` : ''}`;
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
-  const rowRef = useRef<HTMLDivElement>(null);
-  const isAttachment = message.type === 'image' || message.type === 'gif' || message.type === 'file';
-
-  useEffect(() => {
-    if (!actionsOpen) return;
-    const close = (event: MouseEvent | TouchEvent) => {
-      if (rowRef.current && !rowRef.current.contains(event.target as Node)) setActionsOpen(false);
-    };
-    document.addEventListener('mousedown', close, true);
-    document.addEventListener('touchstart', close, true);
-    return () => {
-      document.removeEventListener('mousedown', close, true);
-      document.removeEventListener('touchstart', close, true);
-    };
-  }, [actionsOpen]);
-
-  const toggleFromBubble = (event: React.SyntheticEvent) => {
-    event.stopPropagation();
-    setActionsOpen((open) => !open);
-  };
 
   return (
-    <div ref={rowRef} className={`flex gap-2 py-1.5 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
-      <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="mt-1 h-8 w-8 shrink-0 rounded-full bg-surface-hover" />
-
-      <div className={`flex min-w-0 max-w-[85%] flex-col ${isLocal ? 'items-end' : 'items-start'}`}>
-        <div className={`mb-1 flex items-center gap-1 ${isLocal ? 'flex-row-reverse justify-end' : ''}`}>
-          <span className="text-sm font-medium text-foreground">{message.senderName}</span>
+    <article className="w-full py-2">
+      <div className="flex h-8 w-full items-center gap-2">
+        <Link href={profileHref} className="h-8 w-8 shrink-0 rounded-full outline-none ring-primary/30 transition hover:ring-2 focus-visible:ring-2" aria-label={`查看${message.senderName}的个人主页`}>
+          <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="h-8 w-8 rounded-full bg-surface-hover object-cover" />
+        </Link>
+        <div className="flex min-w-0 items-center gap-1.5 leading-none">
+          <Link href={profileHref} className="max-w-[min(52vw,320px)] truncate rounded-sm text-sm font-medium text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/30">
+            {message.senderName}
+          </Link>
           <span className="text-xs text-foreground-muted">·</span>
-          <span className="text-xs text-foreground-muted">{formatTime(message.timestamp)}</span>
+          <time className="whitespace-nowrap text-xs text-foreground-muted" dateTime={new Date(message.timestamp).toISOString()}>
+            {formatTime(message.timestamp)}
+          </time>
         </div>
-
-        <div className="relative flex items-center gap-1">
-          <div className={isLocal ? 'order-2' : 'order-1'}>
-            <MessageContent message={message} onToggleActions={toggleFromBubble} onPreviewFile={() => setFilePreviewOpen(true)} />
-          </div>
-          <div className={isLocal ? 'order-1' : 'order-2'}>
-            <MessageActions
-              messageId={message.id}
-              messageType={message.type}
-              visible={isAttachment || actionsOpen}
-              onRequestClose={() => setActionsOpen(false)}
-            />
-          </div>
+        <div className="ml-auto">
+          <MessageActions messageId={message.id} messageType={message.type} hasAttachment={Boolean(message.attachment)} />
         </div>
       </div>
 
+      <div className="mt-1.5 w-full pl-10 text-left">
+        <MessageContent message={message} onPreviewFile={() => setFilePreviewOpen(true)} />
+      </div>
+
       {message.type === 'file' && (
-        <FilePreviewModal
-          attachment={message.attachment}
-          open={filePreviewOpen}
-          onClose={() => setFilePreviewOpen(false)}
-          onShare={() => void soulChat.shareMessage(message.id)}
-          onDownload={() => soulChat.downloadMessage(message.id)}
-        />
+        <FilePreviewModal attachment={message.attachment} open={filePreviewOpen} onClose={() => setFilePreviewOpen(false)} />
       )}
-    </div>
+    </article>
   );
 }

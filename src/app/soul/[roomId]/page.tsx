@@ -2,6 +2,8 @@
 
 import '@/styles/index.css';
 import { useEffect } from 'react';
+import { UserOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -42,7 +44,18 @@ function ChatRoomPage() {
         middle={
           <span className="truncate text-base font-medium">{roomName || '加载中...'}</span>
         }
-        right={<ThemeToggle />}
+        right={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/profile"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"
+              aria-label="个人中心"
+            >
+              <UserOutlined className="text-sm" />
+            </Link>
+            <ThemeToggle />
+          </div>
+        }
         fallbackHref="/soul"
       />
 

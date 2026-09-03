@@ -8,7 +8,8 @@
     "start:prd": "NODE_ENV=production node ./src/server.js",
     "build": "next build",
     "lint": "next lint",
-    "test:soul": "node --test src/server/chat/roomRepository.test.js"
+    "test:soul": "node --test src/server/chat/roomRepository.test.js",
+    "test:profile": "node --test src/server/user/profileRepository.test.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",

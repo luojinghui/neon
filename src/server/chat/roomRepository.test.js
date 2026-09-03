@@ -10,8 +10,8 @@ function createFixture() {
   const uploadDirectory = path.join(directory, 'uploads');
   fs.mkdirSync(uploadDirectory);
   const repository = new RoomRepository({ dataFile: path.join(directory, 'soul-chat.json'), uploadDirectory });
-  const owner = { id: 'guest-owner', name: '房主' };
-  const visitor = { id: 'guest-visitor', name: '访客' };
+  const owner = { id: 'guest-owner', userId: 'Owner01', publicKey: 'owner-public-key', name: '房主', avatarUrl: '' };
+  const visitor = { id: 'guest-visitor', userId: 'Visitor01', publicKey: 'visitor-public-key', name: '访客', avatarUrl: '' };
   return { directory, uploadDirectory, repository, owner, visitor };
 }
 
@@ -134,6 +134,25 @@ test('only the creator can update or delete a room', async () => {
   }
 });
 
+test('changing public userId keeps room ownership bound to the stable browser identity', async () => {
+  const fixture = createFixture();
+  try {
+    const room = fixture.repository.createRoom(
+      { name: '身份测试', description: '', tags: [], isPrivate: false, passwordEnabled: false },
+      fixture.owner
+    );
+    const renamedOwner = { ...fixture.owner, userId: 'RenamedOwner' };
+    const updated = fixture.repository.updateRoom(
+      room.id,
+      { name: '仍然属于我', description: '', tags: [], isPrivate: false, passwordEnabled: false },
+      renamedOwner
+    );
+    assert.equal(updated.name, '仍然属于我');
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test('room creator can delete any message and room deletion removes all history', async () => {
   const fixture = createFixture();
   try {
@@ -142,6 +161,8 @@ test('room creator can delete any message and room deletion removes all history'
       fixture.owner
     );
     const visitorMessage = fixture.repository.addMessage(room.id, fixture.visitor, { type: 'text', content: '访客消息' });
+    assert.equal(visitorMessage.senderId, fixture.visitor.userId);
+    assert.equal(visitorMessage.senderKey, fixture.visitor.publicKey);
 
     assert.throws(() => fixture.repository.deleteMessage(room.id, visitorMessage.id, fixture.visitor), { code: 'ROOM_OWNER_REQUIRED' });
     fixture.repository.deleteMessage(room.id, visitorMessage.id, fixture.owner);

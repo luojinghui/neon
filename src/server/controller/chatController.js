@@ -1,7 +1,22 @@
 const { RoomRepository } = require('../chat/roomRepository');
+const { profileRepository } = require('../user/profileRepository');
 
 const repository = new RoomRepository();
 const roomMembers = new Map();
+
+function normalizeSocketUser(input) {
+  const uuid = typeof input?.uuid === 'string' ? input.uuid.trim().toLowerCase() : '';
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(uuid)) throw new Error('浏览器身份无效，请刷新页面重试');
+  const profile = profileRepository.getByUuid(uuid);
+  if (!profile) throw new Error('个人资料不存在，请刷新页面重试');
+  return {
+    id: `guest-${uuid}`,
+    userId: profile.userId,
+    publicKey: profile.publicKey,
+    name: profile.name,
+    avatarUrl: profile.avatarUrl
+  };
+}
 
 function respond(ack, action) {
   try {
@@ -73,7 +88,7 @@ function removeDeletedRoomMembers(roomId, io) {
 
 const onSocket = (socket, io) => {
   try {
-    socket.data.user = repository.normalizeUser(socket.handshake.auth?.user);
+    socket.data.user = repository.normalizeUser(normalizeSocketUser(socket.handshake.auth?.user));
   } catch (error) {
     socket.data.user = null;
     socket.data.identityError = error instanceof Error ? error.message : '用户身份无效';

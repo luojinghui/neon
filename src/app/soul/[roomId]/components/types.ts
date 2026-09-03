@@ -1,7 +1,7 @@
 export type { ChatMessage, MessageType } from '../../core/types';
 
-export function getAvatarUrl(userId: string): string {
-  return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(userId)}`;
+export function getAvatarUrl(userId: string, avatarUrl = '', publicKey = ''): string {
+  return avatarUrl || `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(publicKey || userId)}`;
 }
 
 export function formatTime(timestamp: number): string {

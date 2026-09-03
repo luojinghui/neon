@@ -2,8 +2,11 @@ export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'err
 export type RoomAccessState = 'joining' | 'password-required' | 'granted' | 'error' | 'deleted';
 
 export interface ChatUser {
-  id: string;
+  uuid: string;
+  publicKey: string;
+  userId: string;
   name: string;
+  avatarUrl: string;
 }
 
 export interface ChatRoom {
@@ -55,6 +58,7 @@ export interface ServerChatMessage {
   id: string;
   roomId: string;
   senderId: string;
+  senderKey?: string;
   senderName: string;
   senderAvatar?: string;
   type: MessageType;

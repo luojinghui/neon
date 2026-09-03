@@ -1,6 +1,6 @@
 'use client';
 
-import { DownloadOutlined, FileTextOutlined, LoadingOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { FileTextOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Modal } from 'antd';
 import mammoth from 'mammoth';
 import { useEffect, useMemo, useState } from 'react';
@@ -45,11 +45,9 @@ interface FilePreviewModalProps {
   attachment?: ChatAttachment;
   open: boolean;
   onClose: () => void;
-  onShare: () => void;
-  onDownload: () => void;
 }
 
-export function FilePreviewModal({ attachment, open, onClose, onShare, onDownload }: FilePreviewModalProps) {
+export function FilePreviewModal({ attachment, open, onClose }: FilePreviewModalProps) {
   const kind = useMemo(() => (attachment ? getPreviewKind(attachment) : 'unsupported'), [attachment]);
   const previewTitle = attachment?.name || '文件预览';
   const [loading, setLoading] = useState(false);
@@ -71,7 +69,7 @@ export function FilePreviewModal({ attachment, open, onClose, onShare, onDownloa
 
     const loadPreview = async () => {
       try {
-        if (kind === 'unsupported') throw new Error('该文件类型暂不支持在线预览，可使用下方操作打开或保存');
+        if (kind === 'unsupported') throw new Error('该文件类型暂不支持在线预览，可通过消息右侧的更多菜单下载');
 
         const response = await fetch(attachment.url);
         if (!response.ok) throw new Error('文件读取失败，请稍后重试');
@@ -111,20 +109,7 @@ export function FilePreviewModal({ attachment, open, onClose, onShare, onDownloa
       }
       open={open}
       onCancel={onClose}
-      footer={
-        attachment ? (
-          <div className="soul-file-preview-actions">
-            <button type="button" className="soul-file-preview-action soul-file-preview-action-secondary" onClick={onShare}>
-              <ShareAltOutlined />
-              <span>分享</span>
-            </button>
-            <button type="button" className="soul-file-preview-action soul-file-preview-action-primary" onClick={onDownload}>
-              <DownloadOutlined />
-              <span>下载</span>
-            </button>
-          </div>
-        ) : null
-      }
+      footer={null}
       centered
       width={900}
       destroyOnHidden

@@ -1,8 +1,9 @@
 'use client';
 
 import '@/styles/index.css';
-import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
 import { Modal, Tooltip } from 'antd';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
@@ -99,6 +100,15 @@ function SoulPage() {
               >
                 <PlusOutlined className="text-base" />
               </button>
+            </Tooltip>
+            <Tooltip title="个人中心" placement="bottom">
+              <Link
+                href="/profile"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
+                aria-label="个人中心"
+              >
+                <UserOutlined className="text-sm" />
+              </Link>
             </Tooltip>
             <ThemeToggle />
           </div>
