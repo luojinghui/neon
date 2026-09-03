@@ -1,8 +1,8 @@
 'use client';
 
 import '@/styles/index.css';
-import { PlusOutlined, ReloadOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
-import { Modal, Tooltip } from 'antd';
+import { MoreOutlined, PlusOutlined, ReloadOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
+import { Dropdown, Modal, Tooltip } from 'antd';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,7 @@ function SoulPage() {
   const [activeTab, setActiveTab] = useState<RoomTab>('public');
   const [createOpen, setCreateOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<ChatRoom | null>(null);
   const [deletingRoom, setDeletingRoom] = useState<ChatRoom | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -77,23 +78,13 @@ function SoulPage() {
   };
 
   return (
-    <div className="flex h-screen w-full select-none flex-col bg-background">
+    <div className="soul-page flex h-screen w-full select-none flex-col bg-background">
       <TopBar
         middle="星球"
         backHref="/"
         backLabel="首页"
         right={
           <div className="flex items-center gap-2">
-            <Tooltip title="搜索星球" placement="bottom">
-              <button
-                type="button"
-                onClick={() => setSearchOpen(true)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
-                aria-label="搜索星球"
-              >
-                <SearchOutlined className="text-sm" />
-              </button>
-            </Tooltip>
             <Tooltip title="创建星球" placement="bottom">
               <button
                 type="button"
@@ -104,16 +95,51 @@ function SoulPage() {
                 <PlusOutlined className="text-base" />
               </button>
             </Tooltip>
-            <Tooltip title="个人中心" placement="bottom">
-              <Link
-                href={createProfileHref('', { returnTo: '/soul' })}
+            <Tooltip title="搜索星球" placement="bottom">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
-                aria-label="个人中心"
+                aria-label="搜索星球"
               >
-                <UserOutlined className="text-sm" />
-              </Link>
+                <SearchOutlined className="text-sm" />
+              </button>
             </Tooltip>
-            <ThemeToggle />
+            <Tooltip title="更多" placement="bottom">
+              <Dropdown
+                open={moreOpen}
+                onOpenChange={setMoreOpen}
+                trigger={['click']}
+                placement="bottomRight"
+                arrow={false}
+                dropdownRender={() => (
+                  <div className="w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
+                    <Link
+                      href={createProfileHref('', { returnTo: '/soul' })}
+                      onClick={() => setMoreOpen(false)}
+                      className="flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm text-foreground-secondary transition-colors hover:bg-surface-active hover:text-foreground"
+                    >
+                      <UserOutlined />
+                      <span>个人中心</span>
+                    </Link>
+                    <div className="flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 text-sm text-foreground-secondary">
+                      <span>主题模式</span>
+                      <ThemeToggle />
+                    </div>
+                  </div>
+                )}
+              >
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
+                  aria-label="更多操作"
+                  aria-haspopup="menu"
+                  aria-expanded={moreOpen}
+                >
+                  <MoreOutlined className="text-base" />
+                </button>
+              </Dropdown>
+            </Tooltip>
           </div>
         }
       />

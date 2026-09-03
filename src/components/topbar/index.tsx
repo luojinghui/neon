@@ -30,11 +30,11 @@ export function TopBar({ middle, right, backHref = '/', backLabel = '首页', cl
           <Link
             href={backHref}
             replace
-            className="relative z-10 inline-flex h-8 shrink-0 touch-manipulation items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 text-xs font-medium text-foreground-secondary shadow-sm transition-colors hover:bg-surface-active hover:text-primary"
+            className="relative z-10 inline-flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary shadow-sm transition-colors hover:bg-surface-active hover:text-primary"
             aria-label={`返回${backLabel}`}
+            title={`返回${backLabel}`}
           >
-            <LeftOutlined className="text-xs" />
-            <span>{backLabel}</span>
+            <LeftOutlined className="text-sm" />
           </Link>
 
           {/* 始终居中：不受左右内容宽度影响 */}

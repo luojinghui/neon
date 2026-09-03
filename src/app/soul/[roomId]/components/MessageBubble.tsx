@@ -35,19 +35,17 @@ function MessageContent({
   if (message.type === 'image' || message.type === 'gif') {
     const url = message.attachment?.url || message.content;
     return (
-      <div className="soul-message-image max-w-[min(280px,70vw)]">
-        <PreviewImage
-          src={url}
-          alt={message.attachment?.name || message.content || '图片'}
-          draggable={false}
-          preview={{
-            mask: null
-          }}
-          classNames={{ popup: { root: 'soul-image-preview' } }}
-          className="block max-h-72 w-auto max-w-full object-contain"
-          fallback="/source/index.png"
-        />
-      </div>
+      <PreviewImage
+        src={url}
+        alt={message.attachment?.name || message.content || '图片'}
+        draggable={false}
+        preview={{
+          mask: null
+        }}
+        classNames={{ root: 'soul-message-image max-w-[min(280px,70vw)]', popup: { root: 'soul-image-preview' } }}
+        className="block max-h-72 w-auto max-w-full object-contain"
+        fallback="/source/index.png"
+      />
     );
   }
 
@@ -84,17 +82,19 @@ function MessageContent({
 }
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
+  const isLocal = message.isLocal;
   const avatarUrl = getAvatarUrl(message.senderId, message.senderAvatar, message.senderKey);
   const profileHref = createProfileHref(message.senderId, { publicKey: message.senderKey, returnTo: `/soul/${message.roomId}` });
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
 
   return (
-    <article className="w-full py-2">
-      <div className="flex h-8 w-full items-center gap-2">
-        <Link href={profileHref} className="h-8 w-8 shrink-0 rounded-full outline-none ring-primary/30 transition hover:ring-2 focus-visible:ring-2" aria-label={`查看${message.senderName}的个人主页`}>
-          <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="h-8 w-8 rounded-full bg-surface-hover object-cover" />
-        </Link>
-        <div className="flex min-w-0 items-center gap-1.5 leading-none">
+    <article className={`flex w-full gap-2 py-2 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+      <Link href={profileHref} className="h-8 w-8 shrink-0 rounded-full outline-none ring-primary/30 transition hover:ring-2 focus-visible:ring-2" aria-label={`查看${message.senderName}的个人主页`}>
+        <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="h-8 w-8 rounded-full bg-surface-hover object-cover" />
+      </Link>
+
+      <div className={`flex min-w-0 max-w-[85%] flex-col ${isLocal ? 'items-end' : 'items-start'}`}>
+        <div className={`flex max-w-full items-center gap-1.5 leading-none ${isLocal ? 'flex-row-reverse' : ''}`}>
           <Link href={profileHref} className="max-w-[min(52vw,320px)] truncate rounded-sm text-sm font-medium text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/30">
             {message.senderName}
           </Link>
@@ -103,13 +103,11 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
             {formatTime(message.timestamp)}
           </time>
         </div>
-        <div className="ml-auto">
+
+        <div className={`mt-1.5 flex max-w-full items-start gap-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+          <MessageContent message={message} onPreviewFile={() => setFilePreviewOpen(true)} />
           <MessageActions messageId={message.id} messageType={message.type} hasAttachment={Boolean(message.attachment)} />
         </div>
-      </div>
-
-      <div className="mt-1.5 w-full pl-10 text-left">
-        <MessageContent message={message} onPreviewFile={() => setFilePreviewOpen(true)} />
       </div>
 
       {message.type === 'file' && (

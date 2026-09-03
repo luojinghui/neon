@@ -7,7 +7,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
-import { ensureCurrentProfile, getPublicProfile } from '../client';
+import { getPublicProfile } from '../client';
 import { ProfileBannerView } from '../components/ProfileBanner';
 import { ProfileEditor } from '../components/ProfileEditor';
 import { getProfileAvatar, type PublicProfile } from '../types';
@@ -25,7 +25,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isOwner, setIsOwner] = useState(false);
-  const [uuid, setUuid] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
@@ -39,15 +38,11 @@ export default function ProfilePage() {
     setLoading(true);
     setError('');
     getPublicProfile(userId, publicKey)
-      .then(async (result) => {
+      .then((result) => {
         if (!active) return;
         setProfile(result.profile);
         setIsOwner(result.isOwner);
         setLoading(false);
-        if (result.isOwner) {
-          const current = await ensureCurrentProfile();
-          if (active) setUuid(current.uuid);
-        }
         if (result.profile.userId.toLowerCase() !== userId.toLowerCase()) {
           router.replace(createProfileHref(result.profile.userId, { returnTo }));
         }
@@ -178,7 +173,6 @@ export default function ProfilePage() {
         <ProfileEditor
           open={editorOpen}
           profile={profile}
-          uuid={uuid}
           onClose={() => setEditorOpen(false)}
           onSaved={(updated) => {
             setProfile(updated);

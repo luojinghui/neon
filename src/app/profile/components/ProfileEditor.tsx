@@ -11,12 +11,11 @@ import { ProfileBannerView } from './ProfileBanner';
 type ProfileEditorProps = {
   open: boolean;
   profile: PublicProfile;
-  uuid: string;
   onClose: () => void;
   onSaved: (profile: PublicProfile) => void;
 };
 
-export function ProfileEditor({ open, profile, uuid, onClose, onSaved }: ProfileEditorProps) {
+export function ProfileEditor({ open, profile, onClose, onSaved }: ProfileEditorProps) {
   const [draft, setDraft] = useState<ProfileUpdateInput>({ ...profile });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -53,7 +52,7 @@ export function ProfileEditor({ open, profile, uuid, onClose, onSaved }: Profile
     const userId = draft.userId.trim();
     const name = draft.name.trim();
     if (!/^[A-Za-z0-9]{3,20}$/.test(userId)) {
-      setError('userId 需为 3-20 位数字或字母');
+      setError('专属ID需为 3-20 位数字或字母');
       return;
     }
     if (!name) {
@@ -71,8 +70,6 @@ export function ProfileEditor({ open, profile, uuid, onClose, onSaved }: Profile
       setSaving(false);
     }
   };
-
-  const compactUuid = uuid ? `${uuid.slice(0, 8)} ···· ${uuid.slice(-8)}` : '读取中…';
 
   return (
     <Modal open={open} onCancel={onClose} footer={null} centered destroyOnHidden width={680} title={null} styles={{ body: { padding: 0 } }}>
@@ -127,7 +124,7 @@ export function ProfileEditor({ open, profile, uuid, onClose, onSaved }: Profile
 
             <label className="grid gap-1.5">
               <span className="flex items-center justify-between gap-3 text-sm font-medium text-foreground">
-                <span>userId</span>
+                <span>专属ID</span>
                 <span className="text-xs font-normal text-foreground-muted">3-20 位，仅数字或字母</span>
               </span>
               <div className="flex h-10 items-center rounded-lg border border-border bg-input px-3 transition focus-within:border-border-focus focus-within:bg-input-focus focus-within:ring-2 focus-within:ring-ring/15">
@@ -178,14 +175,6 @@ export function ProfileEditor({ open, profile, uuid, onClose, onSaved }: Profile
                   );
                 })}
               </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background-secondary px-3 py-2.5">
-              <div className="min-w-0">
-                <div className="text-xs font-medium text-foreground">浏览器 UUID</div>
-                <div className="mt-0.5 truncate font-mono text-xs text-foreground-muted">{compactUuid}</div>
-              </div>
-              <span className="shrink-0 rounded-full bg-success-soft px-2 py-1 text-[11px] font-medium text-success">永久绑定</span>
             </div>
           </div>
 

@@ -13,14 +13,9 @@ export function ChatInput() {
   const inputText = useSoulStore((s) => s.inputText);
   const connectionState = useSoulStore((s) => s.connectionState);
   const isSending = useSoulStore((s) => s.isSending);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const isComposingRef = useRef(false);
   const hasContent = inputText.trim().length > 0;
-
-  const syncText = useCallback(() => {
-    const el = editorRef.current;
-    if (!el) return;
-    useSoulStore.getState().setInputText(el.innerText);
-  }, []);
 
   const clampHeight = useCallback(() => {
     const el = editorRef.current;
@@ -32,58 +27,46 @@ export function ChatInput() {
   }, []);
 
   const handleSend = useCallback(async () => {
-    const el = editorRef.current;
-    if (!el) return;
-
-    const text = el.innerText;
-    if (!text.trim()) return;
-
-    const sent = await soulChat.sendTextMessage(text);
-    if (sent) {
-      el.innerText = '';
-      clampHeight();
-    }
-  }, [clampHeight]);
+    if (isComposingRef.current || !inputText.trim()) return;
+    await soulChat.sendTextMessage(inputText);
+  }, [inputText]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (isComposingRef.current || e.nativeEvent.isComposing || e.keyCode === 229) return;
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSend();
+        void handleSend();
       }
     },
     [handleSend]
   );
 
-  const handleInput = useCallback(() => {
-    syncText();
-    clampHeight();
-  }, [syncText, clampHeight]);
-
   useEffect(() => {
-    const el = editorRef.current;
-    if (!el) return;
-    if (inputText === '' && el.innerText !== '') {
-      el.innerText = '';
-      clampHeight();
-    }
+    clampHeight();
   }, [inputText, clampHeight]);
 
   return (
     <div className="flex items-end gap-2">
       <div className="relative flex-1 min-w-0">
-        <div
+        <textarea
           ref={editorRef}
-          contentEditable
-          role="textbox"
           aria-label="输入消息"
-          className="w-full min-h-[38px] px-3 py-2 rounded-lg text-sm leading-[22px]
+          value={inputText}
+          rows={1}
+          className="block w-full min-h-[38px] resize-none px-3 py-2 rounded-lg text-sm leading-[22px]
                      bg-input text-input-foreground
                      border border-border focus:border-border-focus focus:outline-none
-                     empty:before:content-[attr(data-placeholder)] empty:before:text-input-placeholder
+                     placeholder:text-input-placeholder
                      overflow-hidden break-words whitespace-pre-wrap transition-colors"
-          data-placeholder="输入消息..."
-          onInput={handleInput}
+          placeholder="输入消息..."
+          onChange={(event) => useSoulStore.getState().setInputText(event.currentTarget.value)}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={() => {
+            isComposingRef.current = false;
+          }}
           onKeyDown={handleKeyDown}
         />
       </div>

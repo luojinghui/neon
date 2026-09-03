@@ -35,7 +35,7 @@ function ChatRoomPage() {
 
   return (
     <div
-      className="soul-room-page flex h-screen w-full select-none flex-col bg-background"
+      className="soul-page soul-room-page flex h-screen w-full select-none flex-col bg-background"
       onContextMenu={(event) => {
         const target = event.target as HTMLElement;
         if (!target.closest('input, textarea, [contenteditable="true"]')) event.preventDefault();
