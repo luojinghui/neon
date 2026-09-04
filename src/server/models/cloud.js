@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
+const CLOUD_MESSAGE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * 定义云传递数据模型
@@ -9,7 +10,7 @@ const Schema = mongoose.Schema;
  * 3. 消息内容，长度较大
  * 4. 关联用户ID，可能为空
  * 5. 消息解析密码，最大4位数
- * 6. 消息过期时间，最长1天
+ * 6. 消息过期时间，最长7天
  * 7. 消息创建时间
  */
 const fileInfoSchema = new Schema(
@@ -58,10 +59,9 @@ const cloudSchema = new Schema({
     required: true,
     validate: {
       validator: function (v) {
-        const oneDay = 24 * 60 * 60 * 1000;
-        return v - this.createdAt <= oneDay;
+        return v - this.createdAt <= CLOUD_MESSAGE_LIFETIME_MS;
       },
-      message: '过期时间不能超过1天'
+      message: '过期时间不能超过7天'
     }
   },
   createdAt: {
@@ -82,4 +82,4 @@ if (mongoose.models.CloudMessage) {
 }
 const CloudMessage = mongoose.model('CloudMessage', cloudSchema);
 
-module.exports = { CloudMessage };
+module.exports = { CloudMessage, CLOUD_MESSAGE_LIFETIME_MS };

@@ -1,5 +1,5 @@
 import { connectDB } from '@/server/models/index';
-import { CloudMessage } from '@/server/models/cloud';
+import { CloudMessage, CLOUD_MESSAGE_LIFETIME_MS } from '@/server/models/cloud';
 import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs/promises';
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   }
 
   const messageId = new mongoose.Types.ObjectId().toString();
-  const expireAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const expireAt = new Date(Date.now() + CLOUD_MESSAGE_LIFETIME_MS);
   const password = await getPassword();
 
   let messageType: 'text' | 'file' | 'mixed' = 'text';
