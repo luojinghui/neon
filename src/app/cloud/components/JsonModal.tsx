@@ -39,7 +39,7 @@ export default function JsonModal() {
       <div className="max-h-[70vh] overflow-y-auto">
         {jsonObject && (
           <div className="space-y-4">
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+            <div className="select-text border border-gray-200 rounded-lg p-4 bg-white [&_*]:select-text">
               <JsonView
                 value={jsonObject}
                 displayDataTypes={false}
