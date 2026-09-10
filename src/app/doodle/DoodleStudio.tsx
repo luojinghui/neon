@@ -8,6 +8,7 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   LoadingOutlined,
+  PictureOutlined,
   QrcodeOutlined,
   ReloadOutlined,
   ShareAltOutlined,
@@ -161,6 +162,37 @@ function waitForPaint() {
   return new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
+async function imageFileToCanvas(file: File) {
+  if (!file.size || (file.type && !file.type.startsWith('image/'))) {
+    throw new Error('请选择有效的图片文件');
+  }
+
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.decoding = 'async';
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('这张图片无法读取，请换一张重试'));
+      image.src = sourceUrl;
+    });
+
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error('这张图片没有有效内容');
+
+    const raw = document.createElement('canvas');
+    raw.width = 720;
+    raw.height = 960;
+    const context = raw.getContext('2d');
+    if (!context) throw new Error('当前浏览器无法处理相册图片');
+    context.fillStyle = '#fffaf0';
+    context.fillRect(0, 0, raw.width, raw.height);
+    drawCover(context, image, image.naturalWidth, image.naturalHeight, raw.width, raw.height);
+    return raw;
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 async function readQrImage(holder: HTMLDivElement | null) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const svg = holder?.querySelector('svg');
@@ -196,8 +228,10 @@ export default function DoodleStudio() {
   const [shareInfo, setShareInfo] = useState<ShareInfo | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const albumInputRef = useRef<HTMLInputElement>(null);
   const qrHolderRef = useRef<HTMLDivElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const cameraRequestRef = useRef(0);
   const detectorRef = useRef<SmileDetector | null>(null);
   const rawCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const resultUrlRef = useRef('');
@@ -223,6 +257,7 @@ export default function DoodleStudio() {
   }, []);
 
   const stopCamera = useCallback(() => {
+    cameraRequestRef.current += 1;
     detectingRef.current = false;
     countdownTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     countdownTimersRef.current = [];
@@ -274,16 +309,18 @@ export default function DoodleStudio() {
   );
 
   const enterResult = useCallback(
-    async (rawCanvas: HTMLCanvasElement) => {
+    async (rawCanvas: HTMLCanvasElement, fallbackMode: StudioMode = 'welcome', replaceSession = false) => {
+      const previousRawCanvas = rawCanvasRef.current;
       rawCanvasRef.current = rawCanvas;
       setMode('processing');
       setBusy(true);
       try {
-        const processed = await renderResult(title, themeId, templateId);
+        const key = window.crypto.randomUUID();
         const original = await canvasToBlob(rawCanvas, 0.92);
+        const processed = await renderResult(title, themeId, templateId);
         const reviewContext: ReviewContext = {
           id: '',
-          key: window.crypto.randomUUID(),
+          key,
           original,
           latest: { blob: processed, title, themeId, templateId, shareId: '', version: 0 },
           syncedVersion: -1,
@@ -291,13 +328,16 @@ export default function DoodleStudio() {
           syncing: false,
           stopped: false
         };
+        if (replaceSession) setShareInfo(null);
         reviewContextRef.current = reviewContext;
         setMode('result');
         createReviewContext(reviewContext);
+        return true;
       } catch (error) {
-        rawCanvasRef.current = null;
+        rawCanvasRef.current = fallbackMode === 'result' ? previousRawCanvas : null;
         message.error(error instanceof Error ? error.message : '生成失败，请重试');
-        setMode('welcome');
+        setMode(fallbackMode);
+        return false;
       } finally {
         captureLockRef.current = false;
         setBusy(false);
@@ -396,6 +436,7 @@ export default function DoodleStudio() {
   const startCamera = useCallback(async () => {
     setCameraError('');
     stopCamera();
+    const requestId = cameraRequestRef.current;
     if (!navigator.mediaDevices?.getUserMedia) {
       setCameraError('当前浏览器不支持摄像头，请更换支持摄像头的浏览器');
       setMode('welcome');
@@ -406,20 +447,57 @@ export default function DoodleStudio() {
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1280 } },
         audio: false
       });
+      if (cameraRequestRef.current !== requestId) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       mediaStreamRef.current = stream;
       setMode('camera');
       await waitForPaint();
+      if (cameraRequestRef.current !== requestId) return;
       if (!videoRef.current) throw new Error('相机预览初始化失败');
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
+      if (cameraRequestRef.current !== requestId) return;
       void startDetection();
     } catch (error) {
+      if (cameraRequestRef.current !== requestId) return;
       stopCamera();
       setMode('welcome');
       const denied = error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError');
       setCameraError(denied ? '没有获得摄像头权限，请在浏览器设置中允许后重试' : '摄像头暂时无法使用，请稍后重试');
     }
   }, [startDetection, stopCamera]);
+
+  const openAlbum = useCallback(() => {
+    if (busy || !albumInputRef.current) return;
+    albumInputRef.current.value = '';
+    albumInputRef.current.click();
+  }, [busy]);
+
+  const selectAlbumImage = useCallback(
+    async (file: File | undefined) => {
+      if (!file || busy) return;
+      const fallbackMode: StudioMode = mode === 'result' && resultUrlRef.current ? 'result' : 'welcome';
+      stopCamera();
+      setCountdown(0);
+      setCameraError('');
+      setMode('processing');
+      setBusy(true);
+      try {
+        const raw = await imageFileToCanvas(file);
+        await enterResult(raw, fallbackMode, true);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '相册图片读取失败，请换一张重试';
+        setCameraError(errorMessage);
+        setMode(fallbackMode);
+        message.error(errorMessage);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, enterResult, message, mode, stopCamera]
+  );
 
   const rerender = useCallback(
     async (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId) => {
@@ -566,6 +644,18 @@ export default function DoodleStudio() {
 
   return (
     <main className="doodle-page min-h-screen overflow-y-auto bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
+      <input
+        ref={albumInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(event) => {
+          const input = event.currentTarget;
+          void selectAlbumImage(input.files?.[0]).finally(() => {
+            input.value = '';
+          });
+        }}
+      />
       <header className="sticky top-0 z-30 border-b-4 border-[#201a17] bg-[#fffaf0]/95 backdrop-blur dark:border-[#fff2df] dark:bg-[#17110f]/95">
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3 sm:px-6">
           <Link href="/" className="inline-flex items-center gap-2 justify-self-start rounded-full px-3 py-2 font-black transition hover:bg-black/5 dark:hover:bg-white/10">
@@ -594,12 +684,15 @@ export default function DoodleStudio() {
                 <span className="relative mx-2 inline-block -rotate-2 text-[#ff5d46] dark:text-[#ff8b78]">什么角色？</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#554943] dark:text-[#d9c8bd]">
-                拍一张自拍，把表情变成带猫耳、闪电和随机称号的漫画涂鸦。所有漫画效果都会在当前设备上完成。
+                拍一张自拍，或从相册选一张照片，把表情变成带猫耳、闪电和随机称号的漫画涂鸦。所有漫画效果都会在当前设备上完成。
               </p>
               {cameraError && <div className="mt-5 rounded-2xl border-2 border-[#201a17] bg-[#fff0c9] p-4 font-bold text-[#8a3f21]">{cameraError}</div>}
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={() => void startCamera()} className="doodle-primary-button">
                   <CameraOutlined /> 打开相机
+                </button>
+                <button type="button" onClick={openAlbum} className="doodle-secondary-button">
+                  <PictureOutlined /> 从相册选择
                 </button>
               </div>
               <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-bold text-[#665750] dark:text-[#ccb9ad]">
@@ -751,7 +844,10 @@ export default function DoodleStudio() {
                 )}
               </div>
 
-              <button onClick={retake} className="doodle-secondary-button w-full justify-center"><CameraOutlined /> 重新拍一张</button>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button onClick={retake} className="doodle-secondary-button w-full justify-center"><CameraOutlined /> 重新拍一张</button>
+                <button type="button" onClick={openAlbum} disabled={busy} className="doodle-secondary-button w-full justify-center disabled:opacity-50"><PictureOutlined /> 从相册换一张</button>
+              </div>
             </aside>
           </section>
         )}
