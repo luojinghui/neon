@@ -10,6 +10,7 @@ import type { ChatMessage } from './types';
 import { formatTime, getAvatarUrl } from './types';
 import { MessageActions } from './MessageActions';
 import { FilePreviewModal } from './FilePreviewModal';
+import { MessageText } from './MessageText';
 
 function formatFileSize(size = 0): string {
   if (size < 1024) return `${size} B`;
@@ -76,7 +77,7 @@ function MessageContent({
         message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'
       }`}
     >
-      {message.content}
+      <MessageText content={message.content} />
     </div>
   );
 }
