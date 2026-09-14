@@ -444,6 +444,16 @@ const onSocket = (socket, io) => {
     });
   });
 
+  socket.on('chat:recall', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const message = repository.recallMessage(socket.data.roomId, payload?.messageId, user);
+      io.to(socket.data.roomId).emit('chat:recalled', { roomId: socket.data.roomId, messageId: message.id });
+      broadcastRoomsChanged(io);
+      return { roomId: socket.data.roomId, messageId: message.id };
+    });
+  });
+
   socket.on('disconnect', () => leaveCurrentRoom(socket, io));
 };
 

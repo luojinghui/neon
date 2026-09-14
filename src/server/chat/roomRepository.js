@@ -908,6 +908,24 @@ class RoomRepository {
     const roomMessages = this.messages.get(room.id) || [];
     const messageIndex = roomMessages.findIndex((message) => message.id === messageId);
     if (messageIndex < 0) throw new RoomRepositoryError('消息不存在或已被删除', 'MESSAGE_NOT_FOUND');
+    return this.removeMessageAt(room, roomMessages, messageIndex);
+  }
+
+  recallMessage(roomId, messageId, user) {
+    const room = this.getRoomOrThrow(roomId);
+    const actor = this.normalizeUser(user);
+    const roomMessages = this.messages.get(room.id) || [];
+    const messageIndex = roomMessages.findIndex((message) => message.id === messageId);
+    if (messageIndex < 0) throw new RoomRepositoryError('消息不存在或已被撤回', 'MESSAGE_NOT_FOUND');
+    const message = roomMessages[messageIndex];
+    const isSender = message.senderKey
+      ? message.senderKey === actor.publicKey
+      : message.senderId === actor.userId;
+    if (!isSender) throw new RoomRepositoryError('只能撤回自己发送的消息', 'MESSAGE_SENDER_REQUIRED');
+    return this.removeMessageAt(room, roomMessages, messageIndex);
+  }
+
+  removeMessageAt(room, roomMessages, messageIndex) {
     const [message] = roomMessages.splice(messageIndex, 1);
     const latestMessage = roomMessages[roomMessages.length - 1];
     this.messages.set(room.id, roomMessages);

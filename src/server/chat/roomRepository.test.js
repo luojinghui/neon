@@ -464,6 +464,27 @@ test('room creator can delete any message and room deletion removes all history'
   }
 });
 
+test('message sender can recall their own message but other members cannot', async () => {
+  const fixture = createFixture();
+  try {
+    const room = fixture.repository.createRoom(
+      { name: '撤回消息', description: '', tags: [], isPrivate: false, passwordEnabled: false },
+      fixture.owner
+    );
+    const ownerMessage = fixture.repository.addMessage(room.id, fixture.owner, { type: 'text', content: '房主的消息' });
+    const visitorMessage = fixture.repository.addMessage(room.id, fixture.visitor, { type: 'text', content: '访客的消息' });
+
+    assert.throws(() => fixture.repository.recallMessage(room.id, ownerMessage.id, fixture.visitor), { code: 'MESSAGE_SENDER_REQUIRED' });
+    assert.throws(() => fixture.repository.recallMessage(room.id, visitorMessage.id, fixture.owner), { code: 'MESSAGE_SENDER_REQUIRED' });
+
+    const renamedVisitor = { ...fixture.visitor, userId: 'VisitorRenamed', name: '改名后的访客' };
+    assert.equal(fixture.repository.recallMessage(room.id, visitorMessage.id, renamedVisitor).id, visitorMessage.id);
+    assert.deepEqual(fixture.repository.getHistory(room.id).messages.map((message) => message.id), [ownerMessage.id]);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test('deleting an attachment message or room removes its stored upload', async () => {
   const fixture = createFixture();
   try {
@@ -489,7 +510,7 @@ test('deleting an attachment message or room removes its stored upload', async (
       attachment: { url: `/uploads/soul/${secondFileName}`, name: '资料.pdf', size: 14, mimeType: 'application/pdf' }
     });
 
-    fixture.repository.deleteMessage(room.id, firstMessage.id, fixture.owner);
+    fixture.repository.recallMessage(room.id, firstMessage.id, fixture.visitor);
     await fixture.repository.cleanupQueue;
     assert.equal(fs.existsSync(firstPath), false);
     assert.equal(fs.existsSync(secondPath), true);

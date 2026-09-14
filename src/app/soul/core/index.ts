@@ -414,6 +414,20 @@ export class SoulChat {
     }
   }
 
+  public async recallMessage(messageId: string): Promise<boolean> {
+    if (!this.roomId || !messageId) return false;
+    const store = useSoulStore.getState();
+    store.setChatError('');
+    try {
+      await this.transport.recallMessage(this.roomId, messageId);
+      this.handleDeletedMessage(this.roomId, messageId);
+      return true;
+    } catch (error) {
+      store.setChatError(this.getErrorMessage(error));
+      return false;
+    }
+  }
+
   private bindCommonEvents(): void {
     this.unsubscribers.push(
       this.transport.onConnectionChange((connected) => {
@@ -432,6 +446,7 @@ export class SoulChat {
     this.unsubscribers.push(
       this.transport.onMessage((message) => this.handleIncomingMessage(message)),
       this.transport.onMessageDeleted((event) => this.handleDeletedMessage(event.roomId, event.messageId)),
+      this.transport.onMessageRecalled((event) => this.handleDeletedMessage(event.roomId, event.messageId)),
       this.transport.onRoomUpdated((room) => {
         if (this.mode === 'room' && room.id === this.roomId) useSoulStore.getState().setRoom(room);
       }),

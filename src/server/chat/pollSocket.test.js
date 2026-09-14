@@ -70,6 +70,22 @@ function waitForMessage(socket, predicate, timeout = 3000) {
   });
 }
 
+function waitForEvent(socket, event, predicate, timeout = 3000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      socket.off(event, onEvent);
+      reject(new Error(`Timed out waiting for ${event}`));
+    }, timeout);
+    function onEvent(payload) {
+      if (!predicate(payload)) return;
+      clearTimeout(timer);
+      socket.off(event, onEvent);
+      resolve(payload);
+    }
+    socket.on(event, onEvent);
+  });
+}
+
 async function fixture(t, options = {}) {
   const ownsDirectory = !options.directory;
   const directory = options.directory || fs.mkdtempSync(path.join(os.tmpdir(), 'neon-poll-sockets-'));
@@ -170,6 +186,25 @@ async function fixture(t, options = {}) {
 const join = (socket, roomId = 'soul-harbor') => accepted(socket, 'room:join', { roomId });
 const createPoll = (socket, input = {}) => accepted(socket, 'poll:create', {
   roomId: 'soul-harbor', question: '周末去哪儿？', options: ['公园', '博物馆'], ...input
+});
+
+test('message recall is limited to the sender and broadcasts to every room member', { timeout: 10000 }, async (t) => {
+  const { connect } = await fixture(t);
+  const sender = await connect();
+  const other = await connect(profiles[1]);
+  await Promise.all([join(sender), join(other)]);
+  const message = await accepted(sender, 'chat:send', { roomId: 'soul-harbor', type: 'text', content: '待撤回的消息' });
+
+  await rejected(other, 'chat:recall', { roomId: message.roomId, messageId: message.id }, 'MESSAGE_SENDER_REQUIRED');
+  const senderEvent = waitForEvent(sender, 'chat:recalled', (event) => event.messageId === message.id);
+  const otherEvent = waitForEvent(other, 'chat:recalled', (event) => event.messageId === message.id);
+  const recalled = await accepted(sender, 'chat:recall', { roomId: message.roomId, messageId: message.id });
+
+  assert.deepEqual(recalled, { roomId: message.roomId, messageId: message.id });
+  assert.deepEqual(await senderEvent, recalled);
+  assert.deepEqual(await otherEvent, recalled);
+  const history = await accepted(other, 'chat:history', { roomId: message.roomId });
+  assert.equal(history.messages.some((entry) => entry.id === message.id), false);
 });
 
 test('poll socket operations enforce joined-room access and only the initiator can close', { timeout: 10000 }, async (t) => {

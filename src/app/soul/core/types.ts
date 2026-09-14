@@ -202,6 +202,11 @@ export interface MessageDeletedEvent {
   messageId: string;
 }
 
+export interface MessageRecalledEvent {
+  roomId: string;
+  messageId: string;
+}
+
 export interface RoomDeletedEvent {
   roomId: string;
 }

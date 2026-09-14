@@ -8,6 +8,7 @@ import type {
   HistoryPage,
   JoinRoomResult,
   MessageDeletedEvent,
+  MessageRecalledEvent,
   OutgoingMessage,
   PollCreateInput,
   RoomAccessChangedEvent,
@@ -154,6 +155,10 @@ export class SocketChatTransport {
     return this.emitWithAck<MessageDeletedEvent>('chat:delete', { roomId, messageId });
   }
 
+  public recallMessage(roomId: string, messageId: string): Promise<MessageRecalledEvent> {
+    return this.emitWithAck<MessageRecalledEvent>('chat:recall', { roomId, messageId });
+  }
+
   public onMessage(listener: (message: ServerChatMessage) => void): Unsubscribe {
     const socket = this.requireSocket();
     socket.on('chat:message', listener);
@@ -164,6 +169,12 @@ export class SocketChatTransport {
     const socket = this.requireSocket();
     socket.on('chat:deleted', listener);
     return () => socket.off('chat:deleted', listener);
+  }
+
+  public onMessageRecalled(listener: (event: MessageRecalledEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('chat:recalled', listener);
+    return () => socket.off('chat:recalled', listener);
   }
 
   public onRoomsChanged(listener: () => void): Unsubscribe {

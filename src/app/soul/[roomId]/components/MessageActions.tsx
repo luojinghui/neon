@@ -1,6 +1,6 @@
 'use client';
 
-import { CopyOutlined, DeleteOutlined, DownloadOutlined, EllipsisOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, DownloadOutlined, EllipsisOutlined, RollbackOutlined, ShareAltOutlined } from '@ant-design/icons';
 import { Popconfirm, Popover } from 'antd';
 import { useRef, useState } from 'react';
 import { soulChat } from '../../core';
@@ -29,6 +29,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
   const isSending = useSoulStore((state) => state.isSending);
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [recallConfirmOpen, setRecallConfirmOpen] = useState(false);
   const [replyPending, setReplyPending] = useState(false);
   const [replyError, setReplyError] = useState('');
   const replyPendingRef = useRef(false);
@@ -40,6 +41,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
 
   const close = () => {
     setDeleteConfirmOpen(false);
+    setRecallConfirmOpen(false);
     setOpen(false);
   };
 
@@ -130,7 +132,32 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
           <span>分享</span>
         </button>
       )}
-      {canDelete && (
+      {isLocal && (
+        <>
+          {(canCopy || canDownload || canShare) && <div className="my-1 border-t border-border" />}
+          <Popconfirm
+            open={recallConfirmOpen}
+            title="撤回这条消息？"
+            description="撤回后，所有成员都会同步移除。"
+            okText="撤回"
+            cancelText="取消"
+            placement="left"
+            okButtonProps={{ danger: true }}
+            onOpenChange={setRecallConfirmOpen}
+            onConfirm={() => {
+              void soulChat.recallMessage(messageId);
+              close();
+            }}
+            onCancel={() => setRecallConfirmOpen(false)}
+          >
+            <button type="button" className={`${actionClass} hover:bg-danger-soft hover:text-danger`} onClick={() => setRecallConfirmOpen(true)}>
+              <RollbackOutlined />
+              <span>撤回</span>
+            </button>
+          </Popconfirm>
+        </>
+      )}
+      {canDelete && !isLocal && (
         <>
           {(canCopy || canDownload || canShare) && <div className="my-1 border-t border-border" />}
           <Popconfirm
@@ -158,15 +185,16 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
     </div>
   );
 
-  if (isLocal && !canCopy && !canDownload && !canShare && !canDelete) return null;
-
   return (
     <Popover
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
         if (nextOpen) setReplyError('');
-        if (!nextOpen) setDeleteConfirmOpen(false);
+        if (!nextOpen) {
+          setDeleteConfirmOpen(false);
+          setRecallConfirmOpen(false);
+        }
       }}
       content={content}
       trigger="click"
