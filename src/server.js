@@ -7,6 +7,7 @@ const { mountAdminController } = require('./server/controller/adminController');
 const { authenticateCookieHeader } = require('./server/admin/auth');
 const { doodleShareRepository } = require('./server/doodle/shareRepository');
 const { doodleReviewRepository } = require('./server/doodle/reviewRepository');
+const { momentRepository } = require('./server/moment/momentRepository');
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -69,6 +70,7 @@ nextApp
       .get('/healthz', (_req, res) =>
         res.status(200).json({ status: 'ok', releaseId })
       )
+      .use('/uploads/moments', express.static(momentRepository.uploadDirectory, { fallthrough: true, maxAge: '1h' }))
       .use(express.static('public'))
       .use(express.static('static'))
       .all('*', (req, res) => handle(req, res));

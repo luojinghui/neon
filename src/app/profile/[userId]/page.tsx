@@ -1,12 +1,17 @@
 'use client';
 
-import { CheckOutlined, CopyOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, CheckOutlined, CopyOutlined, EditOutlined, PlusOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
+import { getAllMomentsForOwner } from '@/app/moments/client';
+import { MomentComposer } from '@/app/moments/components/MomentComposer';
+import { MomentGallery } from '@/app/moments/components/MomentGallery';
+import type { Moment } from '@/app/moments/types';
+import '@/app/moments/moments.css';
 import { getPublicProfile } from '../client';
 import { ProfileBannerView } from '../components/ProfileBanner';
 import { ProfileEditor } from '../components/ProfileEditor';
@@ -28,7 +33,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [activeSection, setActiveSection] = useState<'profile' | 'moments'>('profile');
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [momentsLoading, setMomentsLoading] = useState(false);
+  const [momentsLoaded, setMomentsLoaded] = useState(false);
+  const [momentsError, setMomentsError] = useState('');
   const userId = decodeURIComponent(params.userId || '');
   const publicKey = searchParams.get('key') || '';
   const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
@@ -37,6 +48,10 @@ export default function ProfilePage() {
     let active = true;
     setLoading(true);
     setError('');
+    setActiveSection('profile');
+    setMoments([]);
+    setMomentsLoaded(false);
+    setMomentsError('');
     getPublicProfile(userId, publicKey)
       .then((result) => {
         if (!active) return;
@@ -64,6 +79,24 @@ export default function ProfilePage() {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
+
+  const loadMoments = useCallback(async () => {
+    if (!profile) return;
+    setMomentsLoading(true);
+    setMomentsError('');
+    try {
+      setMoments(await getAllMomentsForOwner(profile.userId));
+      setMomentsLoaded(true);
+    } catch (momentError) {
+      setMomentsError(momentError instanceof Error ? momentError.message : '心迹加载失败');
+    } finally {
+      setMomentsLoading(false);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (activeSection === 'moments' && profile && !momentsLoaded) void loadMoments();
+  }, [activeSection, loadMoments, momentsLoaded, profile]);
 
   return (
     <div className="app-screen flex w-full flex-col bg-background">
@@ -134,13 +167,14 @@ export default function ProfilePage() {
                 </div>
 
                 {isOwner && !profile.isSystem && (
-                  <button
-                    type="button"
-                    onClick={() => setEditorOpen(true)}
-                    className="mb-1 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-md"
-                  >
-                    <EditOutlined /> 编辑资料
-                  </button>
+                  <div className="mb-1 flex flex-wrap justify-end gap-2">
+                    <button type="button" onClick={() => setEditorOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-surface-hover">
+                      <EditOutlined /> 编辑资料
+                    </button>
+                    <button type="button" onClick={() => setComposerOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-md">
+                      <PlusOutlined /> 发布心迹
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -155,14 +189,39 @@ export default function ProfilePage() {
                 </p>
               </div>
 
-              <div className="mt-8 border-t border-border pt-6">
-                <div className="flex max-w-sm items-start gap-3 rounded-xl bg-background-secondary px-4 py-4">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">✦</div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">星球旅程</div>
-                    <div className="mt-1 text-xs leading-relaxed text-foreground-muted">{formatJoinedDate(profile.createdAt)}</div>
-                  </div>
+              <div className="mt-8 border-t border-border pt-2">
+                <div className="flex justify-center gap-8 border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection('profile')}
+                    className={`relative inline-flex h-12 items-center gap-2 px-2 text-sm transition-colors ${activeSection === 'profile' ? 'font-medium text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-primary' : 'text-foreground-muted hover:text-foreground'}`}
+                  >
+                    <UserOutlined /> 资料
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection('moments')}
+                    className={`relative inline-flex h-12 items-center gap-2 px-2 text-sm transition-colors ${activeSection === 'moments' ? 'font-medium text-foreground after:absolute after:bottom-[-1px] after:left-0 after:right-0 after:h-0.5 after:bg-primary' : 'text-foreground-muted hover:text-foreground'}`}
+                  >
+                    <AppstoreOutlined /> 心迹
+                    {momentsLoaded && <span className="text-xs text-foreground-muted">{moments.length}</span>}
+                  </button>
                 </div>
+
+                {activeSection === 'profile' ? (
+                  <div className="grid gap-3 py-6 sm:grid-cols-2">
+                    <div className="flex items-start gap-3 rounded-xl bg-background-secondary px-4 py-4">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">✦</div>
+                      <div><div className="text-sm font-medium text-foreground">星球旅程</div><div className="mt-1 text-xs leading-relaxed text-foreground-muted">{formatJoinedDate(profile.createdAt)}</div></div>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-xl bg-background-secondary px-4 py-4">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">@</div>
+                      <div><div className="text-sm font-medium text-foreground">专属 ID</div><div className="mt-1 font-mono text-xs leading-relaxed text-foreground-muted">@{profile.userId}</div></div>
+                    </div>
+                  </div>
+                ) : (
+                  <MomentGallery moments={moments} loading={momentsLoading} error={momentsError} onDeleted={(id) => setMoments((current) => current.filter((moment) => moment.id !== id))} />
+                )}
               </div>
             </div>
           </article>
@@ -170,16 +229,27 @@ export default function ProfilePage() {
       </main>
 
       {profile && isOwner && !profile.isSystem && (
-        <ProfileEditor
-          open={editorOpen}
-          profile={profile}
-          onClose={() => setEditorOpen(false)}
-          onSaved={(updated) => {
-            setProfile(updated);
-            setEditorOpen(false);
-            if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo }));
-          }}
-        />
+        <>
+          <ProfileEditor
+            open={editorOpen}
+            profile={profile}
+            onClose={() => setEditorOpen(false)}
+            onSaved={(updated) => {
+              setProfile(updated);
+              setEditorOpen(false);
+              if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo }));
+            }}
+          />
+          <MomentComposer
+            open={composerOpen}
+            onClose={() => setComposerOpen(false)}
+            onPublished={(moment) => {
+              setMoments((current) => [moment, ...current]);
+              setMomentsLoaded(true);
+              setActiveSection('moments');
+            }}
+          />
+        </>
       )}
     </div>
   );

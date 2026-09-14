@@ -13,6 +13,7 @@
     "test:admin": "node --test src/server/admin/auth.test.js",
     "test:soul": "node --test src/server/chat/roomRepository.test.js src/server/chat/games.test.js src/server/chat/polls.test.js src/server/chat/pollSocket.test.js",
     "test:profile": "node --test src/server/user/profileRepository.test.js",
+    "test:moments": "node --test src/server/moment/momentRepository.test.js",
     "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js"
   },
   "dependencies": {

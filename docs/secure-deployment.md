@@ -59,6 +59,8 @@ DOODLE_REVIEW_DATA_FILE=/home/neon-deploy/apps/neon/shared/doodle-data/doodle-re
 DOODLE_REVIEW_UPLOAD_DIRECTORY=/home/neon-deploy/apps/neon/shared/doodle-review-images
 DOODLE_SHARE_DATA_FILE=/home/neon-deploy/apps/neon/shared/doodle-data/doodle-shares.json
 DOODLE_UPLOAD_DIRECTORY=/home/neon-deploy/apps/neon/shared/soul-uploads/doodle
+MOMENT_DATA_FILE=/home/neon-deploy/apps/neon/shared/moment-data/moments.json
+MOMENT_UPLOAD_DIRECTORY=/home/neon-deploy/apps/neon/shared/soul-uploads/moments
 ALLOWED_ORIGINS='https://your-domain.example'
 ```
 

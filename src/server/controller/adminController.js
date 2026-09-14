@@ -10,6 +10,7 @@ const { AdminAudit } = require('../models/adminAudit');
 const { profileRepository } = require('../user/profileRepository');
 const { doodleReviewRepository } = require('../doodle/reviewRepository');
 const { doodleShareRepository } = require('../doodle/shareRepository');
+const { momentRepository } = require('../moment/momentRepository');
 const {
   ADMIN_SESSION_TTL_MS,
   authenticateCookieHeader,
@@ -162,13 +163,13 @@ function adminRoomRecords() {
 function adminError(error) {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
   const message = error instanceof Error ? error.message : '管理操作失败';
-  const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError'].includes(error?.name);
+  const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError', 'MomentRepositoryError'].includes(error?.name);
   const status =
     code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND'
       ? 404
       : code === 'USER_ID_TAKEN'
         ? 409
-        : code === 'REVIEW_STORAGE_UNAVAILABLE' || code === 'REVIEW_IMAGE_MISSING' || code === 'SHARE_STORAGE_UNAVAILABLE'
+        : code === 'REVIEW_STORAGE_UNAVAILABLE' || code === 'REVIEW_IMAGE_MISSING' || code === 'SHARE_STORAGE_UNAVAILABLE' || code === 'MOMENT_STORAGE_UNAVAILABLE'
           ? 503
           : code || isValidationError
             ? 400
@@ -489,13 +490,16 @@ function mountAdminController(app, io) {
         const profile = profileRepository.getByUuid(req.params.uuid);
         if (!profile) return res.status(404).json({ error: '个人资料不存在', code: 'PROFILE_NOT_FOUND' });
         const related = chatController.adminDeleteUserData(profile, io);
+        const relatedMoments = await momentRepository.deleteByOwner(profile.uuid);
         profileRepository.deleteProfile(profile.uuid);
         await Promise.all([profileRepository.writeQueue, profileRepository.cleanupQueue]);
         await audit(req, 'user.delete', 'user', profile.uuid, {
           userId: profile.userId,
           deletedRoomCount: related.deletedRooms.length,
           deletedMessageCount: related.deletedMessages.length,
-          deletedAccessCount: related.deletedAccessCount
+          deletedAccessCount: related.deletedAccessCount,
+          deletedMomentCount: relatedMoments.count,
+          deletedMomentCommentCount: relatedMoments.commentCount
         });
         return res.status(204).end();
       } catch (error) {

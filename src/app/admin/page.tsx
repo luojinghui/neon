@@ -593,7 +593,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
       render: (_, profile) => (
         <div className="flex items-center gap-1">
           <Tooltip title={profile.isSystem ? '系统账户不可编辑' : '编辑'}><button type="button" disabled={profile.isSystem} onClick={() => openEdit(profile)} className="admin-icon-button disabled:opacity-35"><EditOutlined /></button></Tooltip>
-          <Popconfirm disabled={profile.isSystem} title="删除这个人员？" description="其创建的星球、发送的消息和媒体文件也会被删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(profile)}>
+          <Popconfirm disabled={profile.isSystem} title="删除这个人员？" description="其创建的星球、心迹、评论和媒体文件也会被删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(profile)}>
             <Tooltip title={profile.isSystem ? '系统账户不可删除' : '删除'}><button type="button" disabled={profile.isSystem} className="admin-icon-button hover:!text-danger disabled:opacity-35"><DeleteOutlined /></button></Tooltip>
           </Popconfirm>
         </div>

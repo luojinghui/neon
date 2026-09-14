@@ -19,6 +19,11 @@ export default function Home() {
       href: '/soul'
     },
     {
+      title: '心迹',
+      description: '记录此刻心情，遇见真实的彼此',
+      href: '/moments'
+    },
+    {
       title: '漫游相机',
       description: '把今天的表情，变成一张有称号的漫画涂鸦',
       href: '/doodle'

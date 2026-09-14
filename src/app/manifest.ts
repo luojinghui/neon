@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: '/',
     name: PWA_NAME,
     short_name: PWA_NAME,
-    description: '云传、星球聊天与漫游相机，你的轻量生活空间。',
+    description: '云传、星球聊天、心迹与漫游相机，你的轻量生活空间。',
     lang: 'zh-CN',
     start_url: '/',
     scope: '/',
@@ -22,6 +22,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: '云传', url: '/cloud', description: '传输文字和文件' },
       { name: '星球', url: '/soul', description: '进入你的聊天星球' },
+      { name: '心迹', url: '/moments', description: '分享此刻的心情动态' },
       { name: '漫游相机', url: '/doodle', description: '创作漫画涂鸦' }
     ]
   };

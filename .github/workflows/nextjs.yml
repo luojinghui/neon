@@ -162,19 +162,29 @@ jobs:
             "${app_root}/shared/soul-uploads/soul" \
             "${app_root}/shared/soul-uploads/profile" \
             "${app_root}/shared/soul-uploads/doodle" \
+            "${app_root}/shared/soul-uploads/moments" \
             "${app_root}/shared/user-data" \
             "${app_root}/shared/doodle-data" \
-            "${app_root}/shared/doodle-review-images"
+            "${app_root}/shared/doodle-review-images" \
+            "${app_root}/shared/moment-data"
           if [[ ! -f "${app_root}/shared/soul-data/soul-chat.json" && -f "${previous_target}/.data/soul-chat.json" ]]; then
             cp "${previous_target}/.data/soul-chat.json" "${app_root}/shared/soul-data/soul-chat.json"
           fi
           if [[ ! -f "${app_root}/shared/user-data/user-profiles.json" && -f "${previous_target}/.data/user-profiles.json" ]]; then
             cp "${previous_target}/.data/user-profiles.json" "${app_root}/shared/user-data/user-profiles.json"
           fi
+          if [[ ! -f "${app_root}/shared/moment-data/moments.json" && -f "${previous_target}/.data/moments.json" ]]; then
+            cp "${previous_target}/.data/moments.json" "${app_root}/shared/moment-data/moments.json"
+          fi
           previous_uploads="$(readlink -f "${previous_target}/public/uploads/soul" 2>/dev/null || true)"
           shared_uploads="$(readlink -f "${app_root}/shared/soul-uploads/soul")"
           if [[ -n "${previous_uploads}" && -d "${previous_uploads}" && "${previous_uploads}" != "${shared_uploads}" ]]; then
             cp -an "${previous_uploads}/." "${shared_uploads}/"
+          fi
+          previous_moment_uploads="$(readlink -f "${previous_target}/public/uploads/moments" 2>/dev/null || true)"
+          shared_moment_uploads="$(readlink -f "${app_root}/shared/soul-uploads/moments")"
+          if [[ -n "${previous_moment_uploads}" && -d "${previous_moment_uploads}" && "${previous_moment_uploads}" != "${shared_moment_uploads}" ]]; then
+            cp -an "${previous_moment_uploads}/." "${shared_moment_uploads}/"
           fi
           mkdir "${release_dir}"
           tar --extract --gzip --file "${archive}" --directory "${release_dir}" \
@@ -201,6 +211,8 @@ jobs:
           export DOODLE_REVIEW_UPLOAD_DIRECTORY="${DOODLE_REVIEW_UPLOAD_DIRECTORY:-${app_root}/shared/doodle-review-images}"
           export DOODLE_SHARE_DATA_FILE="${DOODLE_SHARE_DATA_FILE:-${app_root}/shared/doodle-data/doodle-shares.json}"
           export DOODLE_UPLOAD_DIRECTORY="${DOODLE_UPLOAD_DIRECTORY:-${app_root}/shared/soul-uploads/doodle}"
+          export MOMENT_DATA_FILE="${MOMENT_DATA_FILE:-${app_root}/shared/moment-data/moments.json}"
+          export MOMENT_UPLOAD_DIRECTORY="${MOMENT_UPLOAD_DIRECTORY:-${app_root}/shared/soul-uploads/moments}"
           app_port="${APP_PORT:-3000}"
           [[ "${app_port}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid APP_PORT' >&2; exit 1; }
 
