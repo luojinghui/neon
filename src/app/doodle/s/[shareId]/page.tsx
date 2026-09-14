@@ -36,7 +36,7 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
 
   if (!share || isGone) {
     return (
-      <main className="doodle-page flex min-h-screen items-center justify-center overflow-y-auto bg-[#fffaf0] px-5 py-12 text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
+      <main className="app-page doodle-page flex items-center justify-center bg-[#fffaf0] px-5 py-12 text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
         <div className="w-full max-w-xl text-center">
           <div className="mx-auto flex h-28 w-28 rotate-6 items-center justify-center rounded-[36px] border-[5px] border-[#201a17] bg-[#ff7ba8] text-5xl text-[#201a17] shadow-[8px_8px_0_#201a17]">
             <StarFilled />
@@ -54,7 +54,7 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
   const pageUrl = `/doodle/s/${share.id}`;
 
   return (
-    <main className="doodle-page min-h-screen overflow-y-auto bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
+    <main className="app-page doodle-page bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
       <header className="border-b-4 border-[#201a17] bg-[#fffaf0]/95 dark:border-[#fff2df] dark:bg-[#17110f]/95">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href="/" className="inline-flex items-center gap-2 rounded-full px-3 py-2 font-black hover:bg-black/5 dark:hover:bg-white/10"><ArrowLeftOutlined />返回星球</Link>

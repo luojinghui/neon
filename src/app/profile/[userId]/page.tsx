@@ -66,7 +66,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col bg-background">
+    <div className="app-screen flex w-full flex-col bg-background">
       <TopBar
         middle="个人主页"
         backHref={returnTo}

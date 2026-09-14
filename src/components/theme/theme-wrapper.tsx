@@ -2,6 +2,7 @@
 
 import { ThemeProvider, useTheme } from 'next-themes';
 import { ConfigProvider, theme as antdTheme } from 'antd';
+import { BrowserThemeSync } from './browser-theme-sync';
 
 function AntdThemeSync({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
@@ -36,6 +37,7 @@ function AntdThemeSync({ children }: { children: React.ReactNode }) {
 export default function ClientThemeWrapper({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <BrowserThemeSync />
       <AntdThemeSync>{children}</AntdThemeSync>
     </ThemeProvider>
   );

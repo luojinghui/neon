@@ -78,7 +78,7 @@ function LoginScreen({ onLogin }: { onLogin: (admin: AdminIdentity) => void }) {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+    <main className="app-page relative flex items-center justify-center overflow-hidden bg-background px-4 py-10">
       <div className="pointer-events-none absolute -left-24 top-[-7rem] h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-28 right-[-5rem] h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
       <div className="absolute right-4 top-4">
@@ -788,8 +788,8 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
   }, [onUnauthorized]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur-lg">
+    <div className="app-page bg-background">
+      <header className="app-sticky-header sticky z-20 border-b border-border bg-surface/90 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary"><SafetyCertificateOutlined /></div>
@@ -856,7 +856,7 @@ export default function AdminPage() {
   };
 
   if (checking) {
-    return <main className="flex min-h-screen items-center justify-center bg-background text-foreground-secondary"><div className="inline-flex items-center gap-2 text-sm"><LoadingOutlined className="text-primary" /> 正在验证管理员身份...</div></main>;
+    return <main className="app-page flex items-center justify-center bg-background text-foreground-secondary"><div className="inline-flex items-center gap-2 text-sm"><LoadingOutlined className="text-primary" /> 正在验证管理员身份...</div></main>;
   }
 
   if (!admin) return <LoginScreen onLogin={setAdmin} />;

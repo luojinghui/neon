@@ -643,7 +643,7 @@ export default function DoodleStudio() {
     : '';
 
   return (
-    <main className="doodle-page min-h-screen overflow-y-auto bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
+    <main className="app-page doodle-page bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
       <input
         ref={albumInputRef}
         type="file"
@@ -656,7 +656,7 @@ export default function DoodleStudio() {
           });
         }}
       />
-      <header className="sticky top-0 z-30 border-b-4 border-[#201a17] bg-[#fffaf0]/95 backdrop-blur dark:border-[#fff2df] dark:bg-[#17110f]/95">
+      <header className="app-sticky-header sticky z-30 border-b-4 border-[#201a17] bg-[#fffaf0]/95 backdrop-blur dark:border-[#fff2df] dark:bg-[#17110f]/95">
         <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3 sm:px-6">
           <Link href="/" className="inline-flex items-center gap-2 justify-self-start rounded-full px-3 py-2 font-black transition hover:bg-black/5 dark:hover:bg-white/10">
             <ArrowLeftOutlined />

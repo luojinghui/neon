@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Soul 星球 — maskable</title>
+  <desc>Opaque full-bleed tile; the entire planet and orbit fit inside the central 40 percent radius safe circle.</desc>
+  <rect width="512" height="512" fill="#30221c"/>
+  <g transform="translate(256 256) rotate(-25)">
+    <ellipse rx="170" ry="54" fill="none" stroke="#fff1d9" stroke-width="24"/>
+    <circle r="108" fill="#ef8b5f"/>
+    <path d="M-60-48 A77 77 0 0 1 4-77" fill="none" stroke="#ffba82" stroke-width="18" stroke-linecap="round"/>
+    <path d="M-170 0 A170 54 0 0 0 170 0" fill="none" stroke="#30221c" stroke-width="40"/>
+    <path d="M-170 0 A170 54 0 0 0 170 0" fill="none" stroke="#fff1d9" stroke-width="24" stroke-linecap="round"/>
+  </g>
+</svg>

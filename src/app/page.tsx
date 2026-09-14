@@ -26,8 +26,8 @@ export default function Home() {
   ];
 
   return (
-    <div className="h-screen w-full overflow-y-auto bg-background">
-      <div className="fixed right-4 top-4 z-20 flex items-center gap-2">
+    <div className="app-screen w-full overflow-y-auto bg-background">
+      <div className="app-home-actions fixed z-20 flex items-center gap-2">
         <ProfileShortcut returnTo="/" />
         <ThemeToggle />
       </div>

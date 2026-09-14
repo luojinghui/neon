@@ -79,7 +79,7 @@ function SoulPage() {
   };
 
   return (
-    <div className="soul-page flex h-screen w-full select-none flex-col bg-background">
+    <div className="app-screen soul-page flex w-full select-none flex-col bg-background">
       <TopBar
         middle="星球"
         backHref="/"

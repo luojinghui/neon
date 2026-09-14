@@ -24,7 +24,7 @@ export function TopBar({ middle, right, backHref = '/', backLabel = '首页', cl
   const middleNode = typeof middle === 'string' ? <span className="text-lg font-medium">{middle}</span> : middle ?? <span className="text-lg font-medium">标题</span>;
 
   return (
-    <div className={`fixed left-0 top-0 z-10 w-full ${className || ''}`}>
+    <div className={`app-topbar fixed z-10 ${className || ''}`}>
       <div className="mx-auto max-w-[1312px] px-4 pt-3">
         <div className="relative flex items-center justify-between gap-2 rounded-lg border border-border bg-surface/90 p-2 backdrop-blur-sm">
           <Link

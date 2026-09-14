@@ -27,7 +27,7 @@ export default function MyProfileRedirectPage() {
   }, [returnTo, router]);
 
   return (
-    <main className="flex h-screen items-center justify-center bg-background px-5 text-center">
+    <main className="app-screen flex items-center justify-center bg-background px-5 text-center">
       <div>
         {error ? (
           <>

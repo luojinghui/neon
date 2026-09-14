@@ -35,7 +35,7 @@ function CloudPage() {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-background flex flex-col select-none">
+    <div className="app-screen w-full bg-background flex flex-col select-none">
       <TopBar middle="云传" backHref="/" backLabel="首页" right={<ThemeToggle />} />
 
       {/* Content */}
