@@ -1,12 +1,15 @@
 const fs = require('fs');
 const path = require('path');
-const { randomBytes, randomUUID, scryptSync, timingSafeEqual } = require('crypto');
+const { randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } = require('crypto');
 
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 4;
 const PASSWORD_PATTERN = /^[A-Za-z0-9]{2,4}$/;
 const ROOM_ACCESS_MAX_ATTEMPTS = 5;
 const CHAT_DATA_VERSION = 2;
+const RPS_CHOICES = ['rock', 'paper', 'scissors'];
+const GAME_CREATE_INTERVAL_MS = 700;
+const GAME_GUESS_INTERVAL_MS = 800;
 
 class RoomRepositoryError extends Error {
   constructor(message, code, data) {
@@ -66,6 +69,7 @@ class RoomRepository {
     this.rooms = new Map(DEFAULT_ROOMS.map((room) => [room.id, room]));
     this.messages = new Map(DEFAULT_ROOMS.map((room) => [room.id, DEFAULT_MESSAGES.filter((message) => message.roomId === room.id)]));
     this.roomAccess = new Map();
+    this.gameActivity = new Map();
     this.writeQueue = Promise.resolve();
     this.cleanupQueue = Promise.resolve();
     this.load();
@@ -435,33 +439,269 @@ class RoomRepository {
     const before = Number(options.before) || Number.POSITIVE_INFINITY;
     const all = (this.messages.get(roomId) || []).filter((message) => message.timestamp < before).sort((a, b) => a.timestamp - b.timestamp);
     const page = all.slice(-limit);
-    return { messages: page, hasMore: all.length > page.length, before: page.length > 0 ? page[0].timestamp : null };
+    return { messages: page.map((message) => this.toPublicMessage(message)), hasMore: all.length > page.length, before: page.length > 0 ? page[0].timestamp : null };
   }
 
   addMessage(roomId, user, input) {
     if (!this.rooms.has(roomId)) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    if (input?.type === 'game') throw new RoomRepositoryError('请通过小游戏入口发起游戏', 'GAME_CREATE_REQUIRED');
+    const sender = this.normalizeUser(user);
     const type = ['text', 'image', 'gif', 'file'].includes(input?.type) ? input.type : 'text';
     const content = type === 'text' ? this.requireText(input?.content, '消息', 4000) : this.optionalText(input?.content, 4000);
     const attachment = type === 'text' ? undefined : this.normalizeAttachment(input?.attachment, type);
+    const replyTo = this.resolveReplyTo(roomId, sender, input?.replyToId);
     const message = {
       id: `msg-${randomUUID()}`,
       roomId,
-      senderId: user.userId,
-      senderKey: user.publicKey,
-      senderName: user.name,
-      ...(user.avatarUrl ? { senderAvatar: user.avatarUrl } : {}),
+      senderId: sender.userId,
+      senderKey: sender.publicKey,
+      senderName: sender.name,
+      ...(sender.avatarUrl ? { senderAvatar: sender.avatarUrl } : {}),
       type,
       content,
       ...(attachment ? { attachment } : {}),
+      ...(replyTo ? { replyTo } : {}),
       timestamp: Date.now()
     };
+    return this.storeMessage(message);
+  }
+
+  storeMessage(message) {
+    const { roomId } = message;
     const roomMessages = this.messages.get(roomId) || [];
     roomMessages.push(message);
     if (roomMessages.length > 5000) roomMessages.splice(0, roomMessages.length - 5000);
     this.messages.set(roomId, roomMessages);
     this.rooms.set(roomId, { ...this.rooms.get(roomId), lastMessageAt: new Date(message.timestamp).toISOString() });
     this.persist();
-    return message;
+    return this.toPublicMessage(message);
+  }
+
+  resolveReplyTo(roomId, user, messageId) {
+    if (messageId === undefined || messageId === null) return undefined;
+    if (typeof messageId !== 'string' || !messageId || messageId.length > 100) {
+      throw new RoomRepositoryError('要回复的消息无效', 'REPLY_INVALID');
+    }
+    const source = (this.messages.get(roomId) || []).find((message) => message.id === messageId);
+    if (!source) throw new RoomRepositoryError('要回复的消息不存在或已被删除', 'REPLY_NOT_FOUND');
+    if (source.senderKey === user.publicKey || (!source.senderKey && source.senderId === user.userId)) {
+      throw new RoomRepositoryError('请选择其他人的消息进行快速回复', 'REPLY_SELF_NOT_ALLOWED');
+    }
+    const content = source.type === 'game'
+      ? this.summarizeGame(source.game)
+      : source.content || ({ image: '[图片]', gif: '[表情]', file: `[文件] ${source.attachment?.name || ''}` }[source.type] || '');
+    return { id: source.id, senderName: source.senderName, content: Array.from(content).slice(0, 160).join(''), type: source.type };
+  }
+
+  createGame(roomId, user, input) {
+    this.getRoomOrThrow(roomId);
+    const sender = this.normalizeUser(user);
+    let game;
+    const privateState = { hostId: sender.id };
+    switch (input?.kind) {
+      case 'dice':
+        game = { kind: 'dice', value: randomInt(1, 7) };
+        break;
+      case 'rps':
+        privateState.hostChoice = this.requireRpsChoice(input.choice);
+        game = { kind: 'rps', status: 'waiting' };
+        break;
+      case 'draw': {
+        const answer = this.requireGameText(input.word, '答案', 12);
+        if (Array.from(answer).length < 2) throw new RoomRepositoryError('答案需要 2–12 个字符', 'GAME_ANSWER_INVALID');
+        privateState.answer = answer;
+        game = { kind: 'draw', status: 'playing', strokes: this.normalizeDrawing(input.strokes), wordLength: Array.from(answer).length, guesses: [] };
+        break;
+      }
+      default:
+        throw new RoomRepositoryError('不支持的小游戏', 'GAME_KIND_INVALID');
+    }
+    this.requireGameRate(sender.id, 'create', GAME_CREATE_INTERVAL_MS);
+    return this.storeMessage({
+      id: `msg-${randomUUID()}`,
+      roomId,
+      senderId: sender.userId,
+      senderKey: sender.publicKey,
+      senderName: sender.name,
+      ...(sender.avatarUrl ? { senderAvatar: sender.avatarUrl } : {}),
+      type: 'game',
+      content: this.summarizeGame(game),
+      game,
+      gameRevision: 0,
+      _gamePrivate: privateState,
+      timestamp: Date.now()
+    });
+  }
+
+  actOnGame(roomId, messageId, user, input) {
+    this.getRoomOrThrow(roomId);
+    const actor = this.normalizeUser(user);
+    const roomMessages = this.messages.get(roomId) || [];
+    const index = roomMessages.findIndex((message) => message.id === messageId && message.type === 'game');
+    if (index < 0) throw new RoomRepositoryError('游戏不存在或已被删除', 'GAME_NOT_FOUND');
+    const message = roomMessages[index];
+    const privateState = message._gamePrivate || {};
+    const isHost = privateState.hostId ? privateState.hostId === actor.id : message.senderKey === actor.publicKey;
+    let game = { ...message.game };
+
+    if (game.kind === 'rps') {
+      if (game.status !== 'waiting') throw new RoomRepositoryError('这轮猜拳已经结束', 'GAME_ENDED');
+      if (input?.action === 'finish') {
+        if (!isHost) throw new RoomRepositoryError('只有发起人可以取消这轮猜拳', 'GAME_HOST_REQUIRED');
+        game.status = 'cancelled';
+      } else if (input?.action === 'join') {
+        if (isHost) throw new RoomRepositoryError('等另一位星友来应战吧', 'GAME_SELF_JOIN');
+        const hostChoice = this.requireRpsChoice(privateState.hostChoice);
+        const choice = this.requireRpsChoice(input.choice);
+        const winner = choice === hostChoice ? 'draw' : ({ rock: 'scissors', paper: 'rock', scissors: 'paper' }[hostChoice] === choice ? 'host' : 'guest');
+        game = { ...game, status: 'completed', guest: { userId: actor.userId, publicKey: actor.publicKey, name: actor.name, choice }, winner };
+      } else {
+        throw new RoomRepositoryError('猜拳操作无效', 'GAME_ACTION_INVALID');
+      }
+    } else if (game.kind === 'draw') {
+      if (game.status !== 'playing') throw new RoomRepositoryError('这轮你画我猜已经结束', 'GAME_ENDED');
+      if (input?.action === 'finish') {
+        if (!isHost) throw new RoomRepositoryError('只有画画的人可以揭晓答案', 'GAME_HOST_REQUIRED');
+        game.status = 'completed';
+      } else if (input?.action === 'guess') {
+        if (isHost) throw new RoomRepositoryError('把答案留给其他星友来猜吧', 'GAME_SELF_GUESS');
+        const guess = this.requireGameText(input.guess, '猜测', 40);
+        this.requireGameRate(actor.id, 'guess', GAME_GUESS_INTERVAL_MS);
+        const correct = this.normalizeGuess(guess) === this.normalizeGuess(privateState.answer);
+        const entry = { userId: actor.userId, publicKey: actor.publicKey, name: actor.name, text: guess, correct, timestamp: Date.now() };
+        game.guesses = [...(game.guesses || []), entry].slice(-20);
+        if (correct) {
+          game.status = 'completed';
+          game.winnerName = actor.name;
+        }
+      } else {
+        throw new RoomRepositoryError('你画我猜操作无效', 'GAME_ACTION_INVALID');
+      }
+    } else {
+      throw new RoomRepositoryError('这个游戏没有可执行的操作', 'GAME_ACTION_INVALID');
+    }
+
+    // This synchronous replacement makes simultaneous socket actions observe the
+    // latest status before they can claim the same game or reveal it twice.
+    const updated = { ...message, game, gameRevision: (Number(message.gameRevision) || 0) + 1, content: this.summarizeGame(game) };
+    roomMessages[index] = updated;
+    this.persist();
+    return this.toPublicMessage(updated);
+  }
+
+  requireRpsChoice(choice) {
+    if (!RPS_CHOICES.includes(choice)) throw new RoomRepositoryError('请选择石头、剪刀或布', 'GAME_CHOICE_INVALID');
+    return choice;
+  }
+
+  requireGameText(value, fieldName, maxLength) {
+    const text = typeof value === 'string' ? value.trim().normalize('NFKC') : '';
+    if (!text || Array.from(text).length > maxLength || /[\u0000-\u001f\u007f]/.test(text)) {
+      throw new RoomRepositoryError(`${fieldName}需要 1–${maxLength} 个可见字符`, 'GAME_TEXT_INVALID');
+    }
+    return text;
+  }
+
+  normalizeGuess(value) {
+    return typeof value === 'string' ? value.normalize('NFKC').replace(/\s+/gu, '').toLowerCase() : '';
+  }
+
+  normalizeDrawing(input) {
+    if (!Array.isArray(input) || input.length === 0 || input.length > 120) {
+      throw new RoomRepositoryError('请先画几笔，最多支持 120 条笔迹', 'GAME_DRAWING_INVALID');
+    }
+    let pointCount = 0;
+    return input.map((stroke) => {
+      if (!stroke || !/^#[0-9a-f]{6}$/i.test(stroke.color) || typeof stroke.width !== 'number' || !Number.isFinite(stroke.width) || stroke.width < 1 || stroke.width > 16 || !Array.isArray(stroke.points) || !stroke.points.length || stroke.points.length > 500) {
+        throw new RoomRepositoryError('画笔信息无效，请重新绘制', 'GAME_DRAWING_INVALID');
+      }
+      pointCount += stroke.points.length;
+      if (pointCount > 12000) throw new RoomRepositoryError('画面太复杂了，请简化后再发起', 'GAME_DRAWING_TOO_LARGE');
+      return {
+        color: stroke.color.toLowerCase(),
+        width: stroke.width,
+        points: stroke.points.map((point) => {
+          if (!point || !['x', 'y'].every((key) => typeof point[key] === 'number' && Number.isFinite(point[key]) && point[key] >= 0 && point[key] <= 1)) {
+            throw new RoomRepositoryError('笔迹坐标无效，请重新绘制', 'GAME_DRAWING_INVALID');
+          }
+          return { x: Math.round(point.x * 10000) / 10000, y: Math.round(point.y * 10000) / 10000 };
+        })
+      };
+    });
+  }
+
+  requireGameRate(userId, action, interval) {
+    const now = Date.now();
+    const key = `${action}:${userId}`;
+    if (now - (this.gameActivity.get(key) ?? Number.NEGATIVE_INFINITY) < interval) {
+      throw new RoomRepositoryError(action === 'guess' ? '慢一点，再想想下一次猜测吧' : '稍等一下，再发起新游戏吧', 'GAME_RATE_LIMITED');
+    }
+    this.gameActivity.set(key, now);
+    if (this.gameActivity.size > 10000) {
+      for (const [entry, timestamp] of this.gameActivity) {
+        if (now - timestamp > Math.max(GAME_CREATE_INTERVAL_MS, GAME_GUESS_INTERVAL_MS)) this.gameActivity.delete(entry);
+      }
+    }
+  }
+
+  summarizeGame(game) {
+    if (game?.kind === 'dice') return `🎲 掷出了 ${game.value} 点`;
+    if (game?.kind === 'rps') return game.status === 'waiting' ? '✊ 发起了猜拳挑战' : game.status === 'cancelled' ? '✊ 猜拳已取消' : '✊ 猜拳结果已揭晓';
+    if (game?.kind === 'draw') return game.status === 'playing' ? '🎨 来猜猜我画的是什么' : '🎨 你画我猜答案已揭晓';
+    return '[小游戏]';
+  }
+
+  toPublicMessage(message) {
+    // Use an allowlist for every response, including history and administrative
+    // deletions. Private game choices and stable browser IDs stay on the server.
+    const output = {
+      id: message.id,
+      roomId: message.roomId,
+      senderId: message.senderId,
+      senderKey: message.senderKey,
+      senderName: message.senderName,
+      ...(message.senderAvatar ? { senderAvatar: message.senderAvatar } : {}),
+      type: message.type,
+      content: message.type === 'game' ? this.summarizeGame(message.game) : message.content,
+      timestamp: message.timestamp
+    };
+    if (message.attachment) {
+      const { url, name, size, mimeType } = message.attachment;
+      output.attachment = { url, name, size, mimeType };
+    }
+    if (message.replyTo) {
+      const { id, senderName, content, type } = message.replyTo;
+      output.replyTo = { id, senderName, content, type };
+    }
+    const game = message.game;
+    const privateState = message._gamePrivate || {};
+    if (message.type === 'game' && game) {
+      output.gameRevision = Number(message.gameRevision) || 0;
+      if (game.kind === 'dice') output.game = { kind: 'dice', value: game.value };
+      if (game.kind === 'rps') {
+        output.game = { kind: 'rps', status: game.status };
+        if (game.status === 'completed') {
+          output.game.hostChoice = privateState.hostChoice;
+          if (game.guest) {
+            const { userId, publicKey, name, choice } = game.guest;
+            output.game.guest = { userId, publicKey, name, choice };
+          }
+          output.game.winner = game.winner;
+        }
+      }
+      if (game.kind === 'draw') {
+        output.game = {
+          kind: 'draw', status: game.status, wordLength: game.wordLength,
+          strokes: (game.strokes || []).map(({ color, width, points }) => ({ color, width, points: points.map(({ x, y }) => ({ x, y })) })),
+          guesses: (game.guesses || []).map(({ userId, publicKey, name, text, correct, timestamp }) => ({ userId, publicKey, name, text, correct, timestamp }))
+        };
+        if (game.status === 'completed') {
+          output.game.answer = privateState.answer;
+          if (game.winnerName) output.game.winnerName = game.winnerName;
+        }
+      }
+    }
+    return output;
   }
 
   deleteMessage(roomId, messageId, user, options = {}) {
@@ -475,7 +715,7 @@ class RoomRepository {
     this.rooms.set(room.id, { ...room, lastMessageAt: latestMessage ? new Date(latestMessage.timestamp).toISOString() : null });
     this.deleteStoredAttachment(message);
     this.persist();
-    return message;
+    return this.toPublicMessage(message);
   }
 
   getAdminRooms() {
@@ -526,7 +766,7 @@ class RoomRepository {
       }
     }
     if (deletedRooms.length > 0 || deletedMessages.length > 0 || deletedAccessCount > 0) this.persist();
-    return { deletedRooms, deletedMessages, deletedAccessCount };
+    return { deletedRooms, deletedMessages: deletedMessages.map((message) => this.toPublicMessage(message)), deletedAccessCount };
   }
 
   deleteStoredAttachment(message) {

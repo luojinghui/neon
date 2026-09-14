@@ -7,6 +7,8 @@ import type {
   ChatRoom,
   ChatUser,
   CreateRoomInput,
+  GameActionInput,
+  GameCreateInput,
   OutgoingMessage,
   RoomAccessChangedEvent,
   RoomAccessGateData,
@@ -211,12 +213,49 @@ export class SoulChat {
     const content = text.trim();
     if (!content || !this.roomId) return false;
     const sent = await this.sendMessage({ type: 'text', content });
-    if (sent) useSoulStore.getState().setInputText('');
+    if (sent && useSoulStore.getState().inputText === text) useSoulStore.getState().setInputText('');
     return sent;
   }
 
   public async sendEmoji(emoji: string): Promise<boolean> {
     return this.sendMessage({ type: 'text', content: emoji });
+  }
+
+  public async replyWithEmoji(messageId: string, emoji: string): Promise<boolean> {
+    const message = useSoulStore.getState().messages.find((item) => item.id === messageId);
+    if (!message || message.isLocal) return false;
+    return this.sendMessage({ type: 'text', content: emoji, replyToId: messageId });
+  }
+
+  public createGame(input: GameCreateInput): Promise<boolean> {
+    return this.sendGameRequest(() => this.transport.createGame(this.roomId, input));
+  }
+
+  public actOnGame(input: GameActionInput): Promise<boolean> {
+    return this.sendGameRequest(() => this.transport.actOnGame(this.roomId, input));
+  }
+
+  private async sendGameRequest(request: () => Promise<ServerChatMessage>): Promise<boolean> {
+    const store = useSoulStore.getState();
+    if (!this.roomId || store.isSending) return false;
+    store.setChatError('');
+    if (store.connectionState !== 'connected' || store.accessState !== 'granted') {
+      store.setChatError('聊天服务正在重连，请稍后再试');
+      return false;
+    }
+    const sessionId = this.sessionId;
+    store.setIsSending(true);
+    try {
+      const message = await request();
+      if (sessionId !== this.sessionId) return false;
+      this.handleIncomingMessage(message);
+      return true;
+    } catch (error) {
+      if (sessionId === this.sessionId) store.setChatError(this.getErrorMessage(error));
+      return false;
+    } finally {
+      if (sessionId === this.sessionId) store.setIsSending(false);
+    }
   }
 
   public async sendGif(url: string, name: string): Promise<boolean> {
@@ -255,40 +294,46 @@ export class SoulChat {
   private async sendMessage(outgoing: OutgoingMessage): Promise<boolean> {
     if (!this.roomId) return false;
     const store = useSoulStore.getState();
+    if (store.isSending) return false;
     store.setChatError('');
     if (store.connectionState !== 'connected') {
       store.setChatError('聊天服务正在重连，请稍后再试');
       return false;
     }
 
+    const sessionId = this.sessionId;
     store.setIsSending(true);
     try {
       const message = await this.transport.sendMessage(this.roomId, outgoing);
+      if (sessionId !== this.sessionId) return false;
       this.handleIncomingMessage(message);
       return true;
     } catch (error) {
-      store.setChatError(this.getErrorMessage(error));
+      if (sessionId === this.sessionId) store.setChatError(this.getErrorMessage(error));
       return false;
     } finally {
-      store.setIsSending(false);
+      if (sessionId === this.sessionId) store.setIsSending(false);
     }
   }
 
   public async loadMoreHistory(): Promise<void> {
     const store = useSoulStore.getState();
     if (!this.roomId || !store.hasMoreHistory || store.isLoadingHistory) return;
+    const roomId = this.roomId;
+    const sessionId = this.sessionId;
     store.setIsLoadingHistory(true);
 
     try {
-      const page = await this.transport.getHistory(this.roomId, store.historyBefore);
+      const page = await this.transport.getHistory(roomId, store.historyBefore);
+      if (sessionId !== this.sessionId || roomId !== this.roomId) return;
       const messages = this.toClientMessages(page.messages);
       store.mergeMessages(messages);
       store.setHistoryState(page.before, page.hasMore);
-      this.cacheMessages(this.roomId, useSoulStore.getState().messages);
+      this.cacheMessages(roomId, useSoulStore.getState().messages);
     } catch (error) {
-      store.setChatError(this.getErrorMessage(error));
+      if (sessionId === this.sessionId) store.setChatError(this.getErrorMessage(error));
     } finally {
-      store.setIsLoadingHistory(false);
+      if (sessionId === this.sessionId) store.setIsLoadingHistory(false);
     }
   }
 

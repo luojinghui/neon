@@ -3,6 +3,8 @@ import type {
   ChatRoom,
   ChatUser,
   CreateRoomInput,
+  GameActionInput,
+  GameCreateInput,
   HistoryPage,
   JoinRoomResult,
   MessageDeletedEvent,
@@ -121,6 +123,14 @@ export class SocketChatTransport {
 
   public sendMessage(roomId: string, message: OutgoingMessage): Promise<ServerChatMessage> {
     return this.emitWithAck<ServerChatMessage>('chat:send', { roomId, ...message });
+  }
+
+  public createGame(roomId: string, input: GameCreateInput): Promise<ServerChatMessage> {
+    return this.emitWithAck<ServerChatMessage>('game:create', { roomId, ...input });
+  }
+
+  public actOnGame(roomId: string, input: GameActionInput): Promise<ServerChatMessage> {
+    return this.emitWithAck<ServerChatMessage>('game:act', { roomId, ...input });
   }
 
   public deleteMessage(roomId: string, messageId: string): Promise<MessageDeletedEvent> {

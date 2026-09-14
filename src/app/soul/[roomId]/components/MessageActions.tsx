@@ -2,7 +2,7 @@
 
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, EllipsisOutlined, ShareAltOutlined } from '@ant-design/icons';
 import { Popconfirm, Popover } from 'antd';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
 import type { MessageType } from './types';
@@ -11,12 +11,27 @@ interface MessageActionsProps {
   messageId: string;
   messageType: MessageType;
   hasAttachment: boolean;
+  isLocal: boolean;
 }
 
-export function MessageActions({ messageId, messageType, hasAttachment }: MessageActionsProps) {
+const quickReplies = [
+  { emoji: '🥰', label: '喜欢你' },
+  { emoji: '🥺', label: '可怜巴巴' },
+  { emoji: '🤭', label: '偷偷笑' },
+  { emoji: '🐱', label: '猫猫贴贴' },
+  { emoji: '🫶', label: '比个心' },
+  { emoji: '✨', label: '闪闪发光' }
+];
+
+export function MessageActions({ messageId, messageType, hasAttachment, isLocal }: MessageActionsProps) {
   const canDelete = useSoulStore((state) => state.room?.isOwner === true);
+  const connected = useSoulStore((state) => state.connectionState === 'connected');
+  const isSending = useSoulStore((state) => state.isSending);
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [replyPending, setReplyPending] = useState(false);
+  const [replyError, setReplyError] = useState('');
+  const replyPendingRef = useRef(false);
   const canCopy = messageType === 'text';
   const canDownload = hasAttachment && ['image', 'gif', 'file'].includes(messageType);
   const canShare = canDownload;
@@ -28,8 +43,54 @@ export function MessageActions({ messageId, messageType, hasAttachment }: Messag
     setOpen(false);
   };
 
+  const reply = async (emoji: string) => {
+    if (replyPendingRef.current || !connected || isSending) return;
+    replyPendingRef.current = true;
+    setReplyPending(true);
+    setReplyError('');
+    try {
+      const sent = await soulChat.replyWithEmoji(messageId, emoji);
+      if (sent) close();
+      else setReplyError(useSoulStore.getState().chatError || '表情回复失败，请重试');
+    } catch (error) {
+      setReplyError(error instanceof Error ? error.message : '表情回复失败，请重试');
+    } finally {
+      replyPendingRef.current = false;
+      setReplyPending(false);
+    }
+  };
+
   const content = (
-    <div className="w-32 p-1" onClick={(event) => event.stopPropagation()}>
+    <div className={`${isLocal ? 'w-32' : 'w-60'} p-1`} onClick={(event) => event.stopPropagation()}>
+      {!isLocal && (
+        <div className="px-1 pb-1.5 pt-1">
+          <div className="mb-2 flex items-center justify-between px-1 text-xs text-foreground-muted">
+            <span>快速表情回复</span>
+            <span role="status">{replyPending ? '发送中…' : '回复此条消息'}</span>
+          </div>
+          <div className="grid grid-cols-6 gap-0.5" aria-label="选择表情回复" aria-busy={replyPending}>
+            {quickReplies.map(({ emoji, label }) => (
+              <button
+                key={emoji}
+                type="button"
+                title={`${label} · 回复此条消息`}
+                aria-label={`用${label}${emoji}回复此条消息`}
+                disabled={!connected || isSending || replyPending}
+                onClick={() => void reply(emoji)}
+                className="flex h-9 min-w-0 items-center justify-center rounded-lg text-xl transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+          {replyError ? (
+            <p role="alert" className="mt-2 px-1 text-xs leading-relaxed text-danger">{replyError}</p>
+          ) : !connected ? (
+            <p role="status" className="mt-2 px-1 text-xs text-foreground-muted">连接恢复后即可回复</p>
+          ) : null}
+        </div>
+      )}
+      {!isLocal && (canCopy || canDownload || canShare || canDelete) && <div className="my-1 border-t border-border" />}
       {canCopy && (
         <button
           type="button"
@@ -97,11 +158,14 @@ export function MessageActions({ messageId, messageType, hasAttachment }: Messag
     </div>
   );
 
+  if (isLocal && !canCopy && !canDownload && !canShare && !canDelete) return null;
+
   return (
     <Popover
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
+        if (nextOpen) setReplyError('');
         if (!nextOpen) setDeleteConfirmOpen(false);
       }}
       content={content}

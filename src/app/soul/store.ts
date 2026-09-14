@@ -44,7 +44,11 @@ interface SoulStore {
 
 function mergeById(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
   const messages = new Map(current.map((message) => [message.id, message]));
-  for (const message of incoming) messages.set(message.id, message);
+  for (const message of incoming) {
+    const existing = messages.get(message.id);
+    if ((existing?.gameRevision ?? 0) > (message.gameRevision ?? 0)) continue;
+    messages.set(message.id, message);
+  }
   return [...messages.values()].sort((a, b) => a.timestamp - b.timestamp);
 }
 

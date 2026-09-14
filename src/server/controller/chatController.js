@@ -1,4 +1,4 @@
-const { RoomRepository } = require('../chat/roomRepository');
+const { RoomRepository, RoomRepositoryError } = require('../chat/roomRepository');
 const { profileRepository } = require('../user/profileRepository');
 
 const repository = new RoomRepository({
@@ -44,6 +44,18 @@ function respond(ack, action) {
 function requireUser(socket) {
   if (!socket.data.user) throw new Error(socket.data.identityError || '用户身份无效，请刷新页面重试');
   return socket.data.user;
+}
+
+function requireJoinedRoom(socket, roomId) {
+  const user = requireUser(socket);
+  if (!roomId || socket.data.roomId !== roomId || !roomMembers.get(roomId)?.has(socket.id)) {
+    throw new RoomRepositoryError('请先加入星球', 'ROOM_JOIN_REQUIRED');
+  }
+  const room = repository.getRoom(roomId);
+  if (!room || !repository.canViewRoom(room, user, isSuperAdmin(socket))) {
+    throw new RoomRepositoryError('当前星球访问权限已失效，请重新加入', 'ROOM_JOIN_REQUIRED');
+  }
+  return user;
 }
 
 function isSuperAdmin(socket) {
@@ -309,25 +321,44 @@ const onSocket = (socket, io) => {
 
   socket.on('chat:history', (payload, ack) => {
     respond(ack, () => {
-      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
+      requireJoinedRoom(socket, payload?.roomId);
       return repository.getHistory(payload.roomId, { before: payload?.before, limit: payload?.limit });
     });
   });
 
   socket.on('chat:send', (payload, ack) => {
     respond(ack, () => {
-      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
-      const message = repository.addMessage(socket.data.roomId, requireUser(socket), payload);
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const message = repository.addMessage(socket.data.roomId, user, payload);
       io.to(socket.data.roomId).emit('chat:message', message);
       broadcastRoomsChanged(io);
       return message;
     });
   });
 
+  socket.on('game:create', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const message = repository.createGame(socket.data.roomId, user, payload);
+      io.to(socket.data.roomId).emit('chat:message', message);
+      broadcastRoomsChanged(io);
+      return message;
+    });
+  });
+
+  socket.on('game:act', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const message = repository.actOnGame(socket.data.roomId, payload?.messageId, user, payload);
+      io.to(socket.data.roomId).emit('chat:message', message);
+      return message;
+    });
+  });
+
   socket.on('chat:delete', (payload, ack) => {
     respond(ack, () => {
-      if (!socket.data.roomId || socket.data.roomId !== payload?.roomId) throw new Error('请先加入星球');
-      const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, requireUser(socket), { isAdmin: isSuperAdmin(socket) });
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, user, { isAdmin: isSuperAdmin(socket) });
       io.to(socket.data.roomId).emit('chat:deleted', { roomId: socket.data.roomId, messageId: message.id });
       broadcastRoomsChanged(io);
       return { roomId: socket.data.roomId, messageId: message.id };

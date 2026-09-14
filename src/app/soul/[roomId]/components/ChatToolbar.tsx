@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
 import { EmojiPicker } from './EmojiPicker';
+import { GameLauncher } from './GameLauncher';
 
 const buttonClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -34,6 +35,9 @@ export function ChatToolbar() {
         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!connected || isUploading} className={buttonClass} aria-label="文件">
           <PaperClipOutlined className="text-base" />
         </button>
+
+        <div className="mx-1 h-4 border-l border-border" aria-hidden />
+        <GameLauncher />
 
         <input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFile} className="hidden" />
         <input ref={fileInputRef} type="file" onChange={handleFile} className="hidden" />

@@ -85,7 +85,53 @@ export interface UpdateRoomInput extends CreateRoomInput {
   roomId: string;
 }
 
-export type MessageType = 'text' | 'image' | 'gif' | 'video' | 'audio' | 'file' | 'link' | 'markdown' | 'music';
+export type MessageType = 'text' | 'image' | 'gif' | 'video' | 'audio' | 'file' | 'link' | 'markdown' | 'music' | 'game';
+
+export interface ReplyTo {
+  id: string;
+  senderName: string;
+  content: string;
+  type: MessageType;
+}
+
+export type GameChoice = 'rock' | 'paper' | 'scissors';
+
+export interface DrawingStroke {
+  color: string;
+  width: number;
+  points: Array<{ x: number; y: number }>;
+}
+
+export type ChatGame =
+  | { kind: 'dice'; value: number }
+  | {
+      kind: 'rps';
+      status: 'waiting' | 'completed' | 'cancelled';
+      hostChoice?: GameChoice;
+      guest?: { userId: string; publicKey: string; name: string; choice: GameChoice };
+      winner?: 'host' | 'guest' | 'draw';
+    }
+  | {
+      kind: 'draw';
+      status: 'playing' | 'completed';
+      strokes: DrawingStroke[];
+      wordLength: number;
+      answer?: string;
+      guesses: Array<{ userId: string; publicKey: string; name: string; text: string; correct: boolean; timestamp: number }>;
+      winnerName?: string;
+    };
+
+export type GameCreateInput =
+  | { kind: 'dice' }
+  | { kind: 'rps'; choice: GameChoice }
+  | { kind: 'draw'; word: string; strokes: DrawingStroke[] };
+
+export interface GameActionInput {
+  messageId: string;
+  action: 'join' | 'guess' | 'finish';
+  choice?: GameChoice;
+  guess?: string;
+}
 
 export interface ChatAttachment {
   url: string;
@@ -98,6 +144,7 @@ export interface OutgoingMessage {
   type: Extract<MessageType, 'text' | 'image' | 'gif' | 'file'>;
   content: string;
   attachment?: ChatAttachment;
+  replyToId?: string;
 }
 
 export interface ServerChatMessage {
@@ -111,6 +158,9 @@ export interface ServerChatMessage {
   content: string;
   timestamp: number;
   attachment?: ChatAttachment;
+  replyTo?: ReplyTo;
+  game?: ChatGame;
+  gameRevision?: number;
 }
 
 export interface ChatMessage extends ServerChatMessage {

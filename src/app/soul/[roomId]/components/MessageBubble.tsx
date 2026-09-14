@@ -11,6 +11,8 @@ import { formatTime, getAvatarUrl } from './types';
 import { MessageActions } from './MessageActions';
 import { FilePreviewModal } from './FilePreviewModal';
 import { MessageText } from './MessageText';
+import { MessageReply } from './MessageReply';
+import { GameMessage } from './GameMessage';
 
 function formatFileSize(size = 0): string {
   if (size < 1024) return `${size} B`;
@@ -33,6 +35,8 @@ function MessageContent({
   message: ChatMessage;
   onPreviewFile: () => void;
 }) {
+  if (message.type === 'game' && message.game) return <GameMessage message={message} />;
+
   if (message.type === 'image' || message.type === 'gif') {
     const url = message.attachment?.url || message.content;
     return (
@@ -73,10 +77,11 @@ function MessageContent({
 
   return (
     <div
-      className={`soul-message-content inline-block max-w-[min(680px,100%)] overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-left text-base leading-relaxed ${
+      className={`soul-message-content inline-block max-w-[min(680px,100%)] overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-left text-sm leading-relaxed ${
         message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'
       }`}
     >
+      {message.replyTo && <MessageReply replyTo={message.replyTo} />}
       <MessageText content={message.content} />
     </div>
   );
@@ -107,7 +112,7 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
 
         <div className={`mt-1.5 flex max-w-full items-start gap-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
           <MessageContent message={message} onPreviewFile={() => setFilePreviewOpen(true)} />
-          <MessageActions messageId={message.id} messageType={message.type} hasAttachment={Boolean(message.attachment)} />
+          <MessageActions messageId={message.id} messageType={message.type} hasAttachment={Boolean(message.attachment)} isLocal={isLocal} />
         </div>
       </div>
 
