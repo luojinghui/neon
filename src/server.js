@@ -42,6 +42,9 @@ server.on('error', (error) => {
 nextApp
   .prepare()
   .then(() => {
+    const stopPollScheduler = chatController.startPollScheduler(io);
+    server.once('close', stopPollScheduler);
+
     io.use(async (socket, nextSocket) => {
       try {
         socket.data.admin = await authenticateCookieHeader(socket.handshake.headers.cookie || '');

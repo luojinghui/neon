@@ -439,12 +439,13 @@ class RoomRepository {
     const before = Number(options.before) || Number.POSITIVE_INFINITY;
     const all = (this.messages.get(roomId) || []).filter((message) => message.timestamp < before).sort((a, b) => a.timestamp - b.timestamp);
     const page = all.slice(-limit);
-    return { messages: page.map((message) => this.toPublicMessage(message)), hasMore: all.length > page.length, before: page.length > 0 ? page[0].timestamp : null };
+    return { messages: page.map((message) => this.toPublicMessage(message, options.user)), hasMore: all.length > page.length, before: page.length > 0 ? page[0].timestamp : null };
   }
 
   addMessage(roomId, user, input) {
     if (!this.rooms.has(roomId)) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     if (input?.type === 'game') throw new RoomRepositoryError('请通过小游戏入口发起游戏', 'GAME_CREATE_REQUIRED');
+    if (input?.type === 'poll' || input?.type === 'poll-result') throw new RoomRepositoryError('请通过投票入口发起投票', 'POLL_CREATE_REQUIRED');
     const sender = this.normalizeUser(user);
     const type = ['text', 'image', 'gif', 'file'].includes(input?.type) ? input.type : 'text';
     const content = type === 'text' ? this.requireText(input?.content, '消息', 4000) : this.optionalText(input?.content, 4000);
@@ -470,11 +471,192 @@ class RoomRepository {
     const { roomId } = message;
     const roomMessages = this.messages.get(roomId) || [];
     roomMessages.push(message);
-    if (roomMessages.length > 5000) roomMessages.splice(0, roomMessages.length - 5000);
+    this.trimRoomMessages(roomMessages, new Set([message.id]));
     this.messages.set(roomId, roomMessages);
     this.rooms.set(roomId, { ...this.rooms.get(roomId), lastMessageAt: new Date(message.timestamp).toISOString() });
     this.persist();
     return this.toPublicMessage(message);
+  }
+
+  trimRoomMessages(roomMessages, retainedIds = new Set()) {
+    // 保留进行中的投票及刚写入的消息，避免历史截断导致投票失效或无法结算。
+    // 其余消息按 5,000 条上限淘汰；活跃投票本身超过上限时允许暂时超出。
+    let excess = roomMessages.length - 5000;
+    if (excess <= 0) return;
+    for (let index = 0; index < roomMessages.length && excess > 0;) {
+      if (retainedIds.has(roomMessages[index].id) || (roomMessages[index].type === 'poll' && roomMessages[index].poll?.status === 'open')) {
+        index += 1;
+      } else {
+        roomMessages.splice(index, 1);
+        excess -= 1;
+      }
+    }
+  }
+
+  getStoredMessage(roomId, messageId) {
+    return (this.messages.get(roomId) || []).find((message) => message.id === messageId) || null;
+  }
+
+  createPoll(roomId, user, input) {
+    this.getRoomOrThrow(roomId);
+    const sender = this.normalizeUser(user);
+    const question = this.requirePollText(input?.question, '问题', 200, 'POLL_QUESTION_INVALID');
+    if (!Array.isArray(input?.options) || input.options.length < 2 || input.options.length > 10) {
+      throw new RoomRepositoryError('请设置 2–10 个投票选项', 'POLL_OPTIONS_INVALID');
+    }
+    const texts = input.options.map((text) => this.requirePollText(text, '选项', 100, 'POLL_OPTIONS_INVALID'));
+    if (new Set(texts).size !== texts.length) throw new RoomRepositoryError('投票选项不能重复', 'POLL_OPTIONS_INVALID');
+    const now = Date.now();
+    const deadlineAt = input.deadlineAt;
+    if (deadlineAt !== undefined && (typeof deadlineAt !== 'number' || !Number.isSafeInteger(deadlineAt) || deadlineAt <= now || deadlineAt > 8.64e15)) {
+      throw new RoomRepositoryError('截止时间必须是未来的有效时间', 'POLL_DEADLINE_INVALID');
+    }
+    const poll = {
+      question,
+      options: texts.map((text) => ({ id: `option-${randomUUID()}`, text, count: 0 })),
+      status: 'open',
+      totalVotes: 0,
+      ...(deadlineAt !== undefined ? { deadlineAt } : {})
+    };
+    const message = {
+      id: `msg-${randomUUID()}`,
+      roomId,
+      senderId: sender.userId,
+      senderKey: sender.publicKey,
+      senderName: sender.name,
+      ...(sender.avatarUrl ? { senderAvatar: sender.avatarUrl } : {}),
+      type: 'poll',
+      content: this.summarizePoll(poll),
+      poll,
+      pollRevision: 0,
+      _pollPrivate: { hostId: sender.id, votes: {} },
+      timestamp: now
+    };
+    this.storeMessage(message);
+    return this.toPublicMessage(message, sender);
+  }
+
+  requirePollText(value, fieldName, maxLength, code) {
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (!text || Array.from(text).length > maxLength || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) {
+      throw new RoomRepositoryError(`${fieldName}需要 1–${maxLength} 个字符`, code);
+    }
+    return text;
+  }
+
+  requirePollMessage(roomId, messageId) {
+    this.getRoomOrThrow(roomId);
+    const message = this.getStoredMessage(roomId, messageId);
+    if (!message || message.type !== 'poll' || !message.poll) throw new RoomRepositoryError('投票不存在或已被删除', 'POLL_NOT_FOUND');
+    return message;
+  }
+
+  getPoll(roomId, messageId, user) {
+    this.getRoomOrThrow(roomId);
+    // 原卡片被历史截断后，仍可通过其 ID 打开群里的最终结果快照。
+    const message = this.getStoredMessage(roomId, messageId) || (this.messages.get(roomId) || []).find((entry) => entry.type === 'poll-result' && entry.pollSourceId === messageId);
+    if (message?.type === 'poll-result' && message.poll) {
+      const source = this.getStoredMessage(roomId, message.pollSourceId);
+      return this.toPublicMessage(source?.type === 'poll' ? source : message, user);
+    }
+    return this.toPublicMessage(this.requirePollMessage(roomId, messageId), user);
+  }
+
+  votePoll(roomId, messageId, user, input) {
+    const actor = this.normalizeUser(user);
+    const message = this.requirePollMessage(roomId, messageId);
+    if (message.poll.status !== 'open' || (message.poll.deadlineAt !== undefined && message.poll.deadlineAt <= Date.now())) {
+      throw new RoomRepositoryError('投票已结束，不能再修改答案', 'POLL_CLOSED');
+    }
+    const optionId = input?.optionId;
+    if (typeof optionId !== 'string' || !message.poll.options.some((option) => option.id === optionId)) {
+      throw new RoomRepositoryError('请选择有效的投票选项', 'POLL_OPTION_INVALID');
+    }
+    const previousVotes = message._pollPrivate?.votes || {};
+    if (Object.hasOwn(previousVotes, actor.id) && previousVotes[actor.id] === optionId) return this.toPublicMessage(message, actor);
+    const votes = { ...previousVotes, [actor.id]: optionId };
+    const counts = new Map(message.poll.options.map((option) => [option.id, 0]));
+    for (const selected of Object.values(votes)) {
+      if (counts.has(selected)) counts.set(selected, counts.get(selected) + 1);
+    }
+    const updated = {
+      ...message,
+      poll: { ...message.poll, options: message.poll.options.map((option) => ({ ...option, count: counts.get(option.id) })), totalVotes: [...counts.values()].reduce((total, count) => total + count, 0) },
+      pollRevision: (Number(message.pollRevision) || 0) + 1,
+      _pollPrivate: { ...message._pollPrivate, votes }
+    };
+    const roomMessages = this.messages.get(roomId);
+    roomMessages[roomMessages.indexOf(message)] = updated;
+    this.persist();
+    return this.toPublicMessage(updated, actor);
+  }
+
+  closePoll(roomId, messageId, user) {
+    const actor = this.normalizeUser(user);
+    const message = this.requirePollMessage(roomId, messageId);
+    if (message._pollPrivate?.hostId !== actor.id) throw new RoomRepositoryError('只有发起人可以结束投票', 'POLL_HOST_REQUIRED');
+    const now = Date.now();
+    const reason = message.poll.deadlineAt !== undefined && message.poll.deadlineAt <= now ? 'deadline' : 'manual';
+    return this.finishPoll(message, reason, now, actor);
+  }
+
+  closeExpiredPolls(now = Date.now()) {
+    const candidates = [];
+    const retainedIds = new Set();
+    for (const roomMessages of this.messages.values()) {
+      for (const message of roomMessages) {
+        if (message.type === 'poll' && message.poll?.status === 'open' && message.poll.deadlineAt !== undefined && message.poll.deadlineAt <= now) {
+          candidates.push(message);
+          retainedIds.add(message.id);
+          retainedIds.add(`poll-result-${message.id}`);
+        }
+      }
+    }
+    // 整轮结算共享保留集合，保证后续结算不会在广播前淘汰前面的原卡片或结果。
+    return candidates.map((message) => this.finishPoll(message, 'deadline', now, undefined, retainedIds));
+  }
+
+  finishPoll(message, reason, now, user, retainedIds = new Set()) {
+    const roomMessages = this.messages.get(message.roomId);
+    const created = message.poll.status === 'open';
+    const updated = created ? {
+      ...message,
+      poll: { ...message.poll, status: 'closed', closedAt: reason === 'deadline' ? message.poll.deadlineAt : now, closeReason: reason },
+      pollRevision: (Number(message.pollRevision) || 0) + 1,
+      _pollPrivate: { ...message._pollPrivate, resultTimestamp: now }
+    } : message;
+    updated.content = this.summarizePoll(updated.poll);
+    const resultId = `poll-result-${message.id}`;
+    const resultMessage = this.getStoredMessage(message.roomId, resultId) || {
+      id: resultId,
+      roomId: message.roomId,
+      senderId: message.senderId,
+      senderKey: message.senderKey,
+      senderName: message.senderName,
+      ...(message.senderAvatar ? { senderAvatar: message.senderAvatar } : {}),
+      type: 'poll-result',
+      content: this.summarizePoll(updated.poll, true),
+      poll: { ...updated.poll, options: updated.poll.options.map((option) => ({ ...option })) },
+      pollRevision: updated.pollRevision,
+      pollSourceId: message.id,
+      timestamp: updated._pollPrivate?.resultTimestamp ?? updated.poll.closedAt
+    };
+    if (created) {
+      // 先同步更新原卡片并追加结果，再统一持久化，避免并发操作重复结算。
+      roomMessages[roomMessages.indexOf(message)] = updated;
+      if (!roomMessages.some((entry) => entry.id === resultId)) roomMessages.push(resultMessage);
+      retainedIds.add(updated.id);
+      retainedIds.add(resultId);
+      this.trimRoomMessages(roomMessages, retainedIds);
+      const room = this.rooms.get(message.roomId);
+      this.rooms.set(message.roomId, { ...room, lastMessageAt: new Date(Math.max(Date.parse(room.lastMessageAt) || 0, resultMessage.timestamp)).toISOString() });
+      this.persist();
+    }
+    return { message: this.toPublicMessage(updated, user), resultMessage: this.toPublicMessage(resultMessage, user), created };
+  }
+
+  summarizePoll(poll, isResult = false) {
+    return `${isResult ? '📊 投票结果' : poll.status === 'closed' ? '📊 投票已结束' : '📊 发起投票'}：${poll.question}`;
   }
 
   resolveReplyTo(roomId, user, messageId) {
@@ -651,7 +833,7 @@ class RoomRepository {
     return '[小游戏]';
   }
 
-  toPublicMessage(message) {
+  toPublicMessage(message, user) {
     // Use an allowlist for every response, including history and administrative
     // deletions. Private game choices and stable browser IDs stay on the server.
     const output = {
@@ -672,6 +854,23 @@ class RoomRepository {
     if (message.replyTo) {
       const { id, senderName, content, type } = message.replyTo;
       output.replyTo = { id, senderName, content, type };
+    }
+    if ((message.type === 'poll' || message.type === 'poll-result') && message.poll) {
+      const poll = message.poll;
+      output.pollRevision = Number(message.pollRevision) || 0;
+      if (message.type === 'poll-result') output.pollSourceId = message.pollSourceId;
+      output.poll = {
+        question: poll.question,
+        options: poll.options.map(({ id, text, count }) => ({ id, text, count })),
+        status: poll.status,
+        totalVotes: poll.totalVotes,
+        ...(poll.deadlineAt !== undefined ? { deadlineAt: poll.deadlineAt } : {}),
+        ...(poll.closedAt !== undefined ? { closedAt: poll.closedAt } : {}),
+        ...(poll.closeReason ? { closeReason: poll.closeReason } : {})
+      };
+      const source = message.type === 'poll-result' ? this.getStoredMessage(message.roomId, message.pollSourceId) : message;
+      const votes = source?._pollPrivate?.votes;
+      if (user?.id && votes && Object.hasOwn(votes, user.id)) output.poll.selectedOptionId = votes[user.id];
     }
     const game = message.game;
     const privateState = message._gamePrivate || {};

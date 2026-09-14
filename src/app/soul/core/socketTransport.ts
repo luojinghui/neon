@@ -9,6 +9,7 @@ import type {
   JoinRoomResult,
   MessageDeletedEvent,
   OutgoingMessage,
+  PollCreateInput,
   RoomAccessChangedEvent,
   RoomAccessManagement,
   RoomAccessSummary,
@@ -131,6 +132,22 @@ export class SocketChatTransport {
 
   public actOnGame(roomId: string, input: GameActionInput): Promise<ServerChatMessage> {
     return this.emitWithAck<ServerChatMessage>('game:act', { roomId, ...input });
+  }
+
+  public createPoll(roomId: string, input: PollCreateInput): Promise<ServerChatMessage> {
+    return this.emitWithAck<ServerChatMessage>('poll:create', { roomId, ...input });
+  }
+
+  public votePoll(roomId: string, messageId: string, optionId: string): Promise<ServerChatMessage> {
+    return this.emitWithAck<ServerChatMessage>('poll:vote', { roomId, messageId, optionId });
+  }
+
+  public closePoll(roomId: string, messageId: string): Promise<ServerChatMessage> {
+    return this.emitWithAck<ServerChatMessage>('poll:close', { roomId, messageId });
+  }
+
+  public getPoll(roomId: string, messageId: string): Promise<ServerChatMessage> {
+    return this.emitWithAck<ServerChatMessage>('poll:get', { roomId, messageId });
   }
 
   public deleteMessage(roomId: string, messageId: string): Promise<MessageDeletedEvent> {

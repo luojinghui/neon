@@ -47,6 +47,7 @@ function mergeById(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage
   for (const message of incoming) {
     const existing = messages.get(message.id);
     if ((existing?.gameRevision ?? 0) > (message.gameRevision ?? 0)) continue;
+    if ((existing?.pollRevision ?? 0) > (message.pollRevision ?? 0)) continue;
     messages.set(message.id, message);
   }
   return [...messages.values()].sort((a, b) => a.timestamp - b.timestamp);

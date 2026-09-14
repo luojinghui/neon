@@ -116,6 +116,45 @@ function broadcastRoomsChanged(io) {
   io.emit('rooms:changed');
 }
 
+function broadcastPollMessage(io, message) {
+  const stored = repository.getStoredMessage(message.roomId, message.id);
+  if (!stored) return;
+  const room = repository.getRoom(message.roomId);
+  for (const socketId of roomMembers.get(message.roomId) || []) {
+    const member = io.sockets.sockets.get(socketId);
+    if (!member || !repository.canViewRoom(room, member.data.user, isSuperAdmin(member))) continue;
+    // 票数对所有成员实时共享，每个人只收到自己的已选项。
+    member.emit('chat:message', repository.toPublicMessage(stored, member.data.user));
+  }
+}
+
+function broadcastPollClosed(io, result) {
+  broadcastPollMessage(io, result.message);
+  if (result.created) {
+    broadcastPollMessage(io, result.resultMessage);
+    broadcastRoomsChanged(io);
+  }
+}
+
+function expirePolls(io) {
+  for (const result of repository.closeExpiredPolls()) broadcastPollClosed(io, result);
+}
+
+function startPollScheduler(io) {
+  // 重启后补结算已到期的投票，无需等待成员上线。
+  const settle = () => {
+    try {
+      expirePolls(io);
+    } catch (error) {
+      console.error('Soul polls could not be settled:', error.message);
+    }
+  };
+  settle();
+  const timer = setInterval(settle, 1000);
+  timer.unref();
+  return () => clearInterval(timer);
+}
+
 function emitToUser(io, userId, event, payload) {
   for (const targetSocket of io.sockets.sockets.values()) {
     if (targetSocket.data.user?.id === userId) targetSocket.emit(event, payload);
@@ -266,7 +305,8 @@ const onSocket = (socket, io) => {
       const members = roomMembers.get(room.id) || new Set();
       members.add(socket.id);
       roomMembers.set(room.id, members);
-      const history = repository.getHistory(room.id, { limit: 50 });
+      expirePolls(io);
+      const history = repository.getHistory(room.id, { limit: 50, user });
       broadcastRoomsChanged(io);
 
       return { room: presentRoom(room, user, admin), ...history };
@@ -321,8 +361,47 @@ const onSocket = (socket, io) => {
 
   socket.on('chat:history', (payload, ack) => {
     respond(ack, () => {
-      requireJoinedRoom(socket, payload?.roomId);
-      return repository.getHistory(payload.roomId, { before: payload?.before, limit: payload?.limit });
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      expirePolls(io);
+      return repository.getHistory(payload.roomId, { before: payload?.before, limit: payload?.limit, user });
+    });
+  });
+
+  socket.on('poll:create', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const message = repository.createPoll(socket.data.roomId, user, payload);
+      broadcastPollMessage(io, message);
+      broadcastRoomsChanged(io);
+      return message;
+    });
+  });
+
+  socket.on('poll:vote', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      expirePolls(io);
+      const message = repository.votePoll(socket.data.roomId, payload?.messageId, user, payload);
+      broadcastPollMessage(io, message);
+      return message;
+    });
+  });
+
+  socket.on('poll:close', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      expirePolls(io);
+      const result = repository.closePoll(socket.data.roomId, payload?.messageId, user);
+      broadcastPollClosed(io, result);
+      return result.message;
+    });
+  });
+
+  socket.on('poll:get', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      expirePolls(io);
+      return repository.getPoll(socket.data.roomId, payload?.messageId, user);
     });
   });
 
@@ -429,5 +508,6 @@ module.exports = {
   adminListRoomAccess,
   adminListRooms,
   adminUpdateRoom,
-  onSocket
+  onSocket,
+  startPollScheduler
 };

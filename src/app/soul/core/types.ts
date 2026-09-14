@@ -85,7 +85,24 @@ export interface UpdateRoomInput extends CreateRoomInput {
   roomId: string;
 }
 
-export type MessageType = 'text' | 'image' | 'gif' | 'video' | 'audio' | 'file' | 'link' | 'markdown' | 'music' | 'game';
+export type MessageType = 'text' | 'image' | 'gif' | 'video' | 'audio' | 'file' | 'link' | 'markdown' | 'music' | 'game' | 'poll' | 'poll-result';
+
+export interface ChatPoll {
+  question: string;
+  options: Array<{ id: string; text: string; count: number }>;
+  status: 'open' | 'closed';
+  totalVotes: number;
+  deadlineAt?: number;
+  closedAt?: number;
+  closeReason?: 'manual' | 'deadline';
+  selectedOptionId?: string;
+}
+
+export interface PollCreateInput {
+  question: string;
+  options: string[];
+  deadlineAt?: number;
+}
 
 export interface ReplyTo {
   id: string;
@@ -161,6 +178,9 @@ export interface ServerChatMessage {
   replyTo?: ReplyTo;
   game?: ChatGame;
   gameRevision?: number;
+  poll?: ChatPoll;
+  pollRevision?: number;
+  pollSourceId?: string;
 }
 
 export interface ChatMessage extends ServerChatMessage {

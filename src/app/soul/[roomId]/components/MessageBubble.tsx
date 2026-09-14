@@ -13,6 +13,7 @@ import { FilePreviewModal } from './FilePreviewModal';
 import { MessageText } from './MessageText';
 import { MessageReply } from './MessageReply';
 import { GameMessage } from './GameMessage';
+import { PollMessage } from './PollMessage';
 
 function formatFileSize(size = 0): string {
   if (size < 1024) return `${size} B`;
@@ -36,6 +37,7 @@ function MessageContent({
   onPreviewFile: () => void;
 }) {
   if (message.type === 'game' && message.game) return <GameMessage message={message} />;
+  if ((message.type === 'poll' || message.type === 'poll-result') && message.poll) return <PollMessage message={message} />;
 
   if (message.type === 'image' || message.type === 'gif') {
     const url = message.attachment?.url || message.content;

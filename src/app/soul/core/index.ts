@@ -10,6 +10,7 @@ import type {
   GameActionInput,
   GameCreateInput,
   OutgoingMessage,
+  PollCreateInput,
   RoomAccessChangedEvent,
   RoomAccessGateData,
   RoomAccessManagement,
@@ -233,6 +234,34 @@ export class SoulChat {
 
   public actOnGame(input: GameActionInput): Promise<boolean> {
     return this.sendGameRequest(() => this.transport.actOnGame(this.roomId, input));
+  }
+
+  public createPoll(input: PollCreateInput): Promise<ServerChatMessage> {
+    return this.sendPollRequest(() => this.transport.createPoll(this.roomId, input));
+  }
+
+  public votePoll(messageId: string, optionId: string): Promise<ServerChatMessage> {
+    return this.sendPollRequest(() => this.transport.votePoll(this.roomId, messageId, optionId));
+  }
+
+  public closePoll(messageId: string): Promise<ServerChatMessage> {
+    return this.sendPollRequest(() => this.transport.closePoll(this.roomId, messageId));
+  }
+
+  public getPoll(messageId: string): Promise<ServerChatMessage> {
+    return this.sendPollRequest(() => this.transport.getPoll(this.roomId, messageId));
+  }
+
+  private async sendPollRequest(request: () => Promise<ServerChatMessage>): Promise<ServerChatMessage> {
+    const store = useSoulStore.getState();
+    if (!this.roomId || store.connectionState !== 'connected' || store.accessState !== 'granted') {
+      throw new Error('聊天服务正在重连，请稍后再试');
+    }
+    const sessionId = this.sessionId;
+    const message = await request();
+    if (sessionId !== this.sessionId) throw new Error('已离开当前星球');
+    this.handleIncomingMessage(message);
+    return message;
   }
 
   private async sendGameRequest(request: () => Promise<ServerChatMessage>): Promise<boolean> {

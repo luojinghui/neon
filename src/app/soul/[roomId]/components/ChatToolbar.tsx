@@ -1,21 +1,25 @@
 'use client';
 
-import { FileImageOutlined, LoadingOutlined, PaperClipOutlined, SmileOutlined } from '@ant-design/icons';
+import { BarChartOutlined, FileImageOutlined, LoadingOutlined, PaperClipOutlined, SmileOutlined } from '@ant-design/icons';
 import { useRef, useState } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
 import { EmojiPicker } from './EmojiPicker';
 import { GameLauncher } from './GameLauncher';
+import { PollCreateModal } from './PollCreateModal';
 
 const buttonClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50';
 
 export function ChatToolbar() {
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [pollOpen, setPollOpen] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isUploading = useSoulStore((state) => state.isUploading);
   const chatError = useSoulStore((state) => state.chatError);
   const connected = useSoulStore((state) => state.connectionState === 'connected');
+  const canAccess = useSoulStore((state) => state.accessState === 'granted');
+  const isSending = useSoulStore((state) => state.isSending);
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -37,6 +41,7 @@ export function ChatToolbar() {
         </button>
 
         <div className="mx-1 h-4 border-l border-border" aria-hidden />
+        <button type="button" onClick={() => setPollOpen(true)} disabled={!connected || !canAccess || isSending} aria-label="发起投票" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"><BarChartOutlined className="text-base" /><span>投票</span></button>
         <GameLauncher />
 
         <input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFile} className="hidden" />
@@ -54,6 +59,7 @@ export function ChatToolbar() {
       </div>
 
       {emojiOpen && <EmojiPicker onClose={() => setEmojiOpen(false)} />}
+      {pollOpen && <PollCreateModal onClose={() => setPollOpen(false)} />}
     </div>
   );
 }
