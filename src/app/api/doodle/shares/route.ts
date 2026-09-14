@@ -45,7 +45,9 @@ function errorResponse(error: unknown) {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
   const message = error instanceof Error ? error.message : '请求失败，请重试';
   const status =
-    code === 'PROFILE_NOT_FOUND' || code === 'SHARE_NOT_FOUND'
+    code === 'SHARE_STORAGE_UNAVAILABLE'
+      ? 503
+      : code === 'PROFILE_NOT_FOUND' || code === 'SHARE_NOT_FOUND'
       ? 404
       : code === 'SHARE_FORBIDDEN'
         ? 403

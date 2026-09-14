@@ -25,8 +25,11 @@ const port = Number.parseInt(process.env.APP_PORT || '3000', 10);
 const host = process.env.APP_HOST || '127.0.0.1';
 const releaseId = process.env.NEON_RELEASE_ID || 'development';
 const doodleCleanupTimer = setInterval(() => {
-  doodleShareRepository.cleanupExpired();
-  doodleReviewRepository.cleanupExpired();
+  Promise.resolve()
+    .then(() => Promise.all([doodleShareRepository.cleanupExpired(), doodleReviewRepository.cleanupExpired()]))
+    .catch((error) => {
+      console.error('Doodle cleanup failed:', error.message);
+    });
 }, 60 * 60 * 1000);
 doodleCleanupTimer.unref();
 

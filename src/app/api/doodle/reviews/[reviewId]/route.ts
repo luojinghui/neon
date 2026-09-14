@@ -33,13 +33,15 @@ function errorResponse(error: unknown) {
       ? 404
       : code === 'REVIEW_FORBIDDEN'
         ? 403
+        : code === 'REVIEW_STORAGE_UNAVAILABLE'
+          ? 503
         : code === 'REVIEW_GONE'
-          ? 410
-          : code === 'IMAGE_TOO_LARGE'
-            ? 413
-            : code
-              ? 400
-              : 500;
+            ? 410
+            : code === 'IMAGE_TOO_LARGE'
+              ? 413
+              : code
+                ? 400
+                : 500;
   if (status === 500) console.error('Doodle review update failed:', error);
   return NextResponse.json({ error: message, code }, { status });
 }

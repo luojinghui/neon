@@ -55,6 +55,10 @@ APP_HOST=127.0.0.1
 APP_PORT=3000
 SOUL_CHAT_DATA_FILE=/home/neon-deploy/apps/neon/shared/soul-data/soul-chat.json
 USER_PROFILE_DATA_FILE=/home/neon-deploy/apps/neon/shared/user-data/user-profiles.json
+DOODLE_REVIEW_DATA_FILE=/home/neon-deploy/apps/neon/shared/doodle-data/doodle-reviews.json
+DOODLE_REVIEW_UPLOAD_DIRECTORY=/home/neon-deploy/apps/neon/shared/doodle-review-images
+DOODLE_SHARE_DATA_FILE=/home/neon-deploy/apps/neon/shared/doodle-data/doodle-shares.json
+DOODLE_UPLOAD_DIRECTORY=/home/neon-deploy/apps/neon/shared/soul-uploads/doodle
 ALLOWED_ORIGINS='https://your-domain.example'
 ```
 

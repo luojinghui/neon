@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { randomBytes } = require('crypto');
+const { runFileExclusive, writeFileAtomic } = require('../storage/filePersistence');
 
 const REVIEW_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 const TOMBSTONE_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
@@ -29,116 +30,168 @@ class DoodleReviewRepository {
     this.writeQueue = Promise.resolve();
     this.cleanupQueue = Promise.resolve();
     this.lastLoadedMtime = -1;
+    this.loadError = null;
     this.load(true);
   }
 
   load(force = false) {
     try {
-      if (!fs.existsSync(this.dataFile)) return;
+      if (!fs.existsSync(this.dataFile)) {
+        if (force) {
+          this.reviews = new Map();
+          this.lastLoadedMtime = -1;
+        }
+        this.loadError = null;
+        return;
+      }
       const mtime = fs.statSync(this.dataFile).mtimeMs;
       if (!force && mtime <= this.lastLoadedMtime) return;
       const data = JSON.parse(fs.readFileSync(this.dataFile, 'utf8'));
+      if (!data || !Array.isArray(data.reviews)) throw new Error('reviews must be an array');
       const reviews = new Map();
-      for (const raw of Array.isArray(data.reviews) ? data.reviews : []) {
+      for (const raw of data.reviews) {
         try {
           const review = this.normalizeStoredReview(raw);
           reviews.set(review.id, review);
-        } catch {
-          // Ignore malformed rows without making the entire moderation list unavailable.
+        } catch (error) {
+          throw new Error(`invalid review ${String(raw?.id || 'unknown')}: ${error.message}`);
         }
       }
       this.reviews = reviews;
       this.lastLoadedMtime = mtime;
-      this.cleanupExpired();
+      this.loadError = null;
     } catch (error) {
+      this.loadError = error;
       console.error('Doodle reviews could not be loaded:', error.message);
     }
   }
 
+  ensureLoaded(force = false) {
+    this.load(force);
+    if (this.loadError) {
+      throw new DoodleReviewError('审核数据暂时无法读取，请联系管理员检查存储文件', 'REVIEW_STORAGE_UNAVAILABLE');
+    }
+  }
+
+  runMutation(task) {
+    const operation = runFileExclusive(this.dataFile, async () => {
+      this.ensureLoaded(true);
+      return task();
+    }).catch((error) => {
+      if (error instanceof DoodleReviewError) throw error;
+      console.error('Doodle review storage operation failed:', error.message);
+      throw new DoodleReviewError('审核数据保存失败，请稍后重试', 'REVIEW_STORAGE_UNAVAILABLE');
+    });
+    this.writeQueue = operation.then(() => undefined, () => undefined);
+    return operation;
+  }
+
   async createReview(input, originalBuffer, processedBuffer) {
-    this.load();
     const ownerUuid = this.requireUuid(input?.ownerUuid);
     const originalMimeType = this.requireMimeType(input?.originalMimeType);
     const processedMimeType = this.requireMimeType(input?.processedMimeType);
-    const id = this.createId();
-    const originalFileName = `${id}-original.${IMAGE_TYPES.get(originalMimeType)}`;
-    const processedFileName = `${id}-processed.${IMAGE_TYPES.get(processedMimeType)}`;
-    const now = this.now();
-    const review = {
-      id,
-      ownerUuid,
-      title: this.requireTitle(input?.title),
-      style: this.requireToken(input?.style, '涂鸦风格无效', 'STYLE_INVALID'),
-      template: this.requireToken(input?.template, '卡片模板无效', 'TEMPLATE_INVALID'),
-      shareId: input?.shareId ? this.requireShareId(input.shareId) : '',
-      reviewKey: this.requireReviewKey(input?.reviewKey),
-      originalFile: originalFileName,
-      processedFile: processedFileName,
-      status: 'pending',
-      createdAt: new Date(now).toISOString(),
-      updatedAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + REVIEW_LIFETIME_MS).toISOString(),
-      reviewedAt: '',
-      reviewedBy: '',
-      removedAt: ''
-    };
+    const title = this.requireTitle(input?.title);
+    const style = this.requireToken(input?.style, '涂鸦风格无效', 'STYLE_INVALID');
+    const template = this.requireToken(input?.template, '卡片模板无效', 'TEMPLATE_INVALID');
+    const shareId = input?.shareId ? this.requireShareId(input.shareId) : '';
+    const reviewKey = this.requireReviewKey(input?.reviewKey);
 
-    await this.writeImage(originalFileName, originalBuffer);
-    try {
-      await this.writeImage(processedFileName, processedBuffer);
-    } catch (error) {
-      await fs.promises.unlink(path.join(this.uploadDirectory, originalFileName)).catch(() => undefined);
-      throw error;
-    }
-    this.reviews.set(id, review);
-    await this.persist();
-    return this.toPublic(review);
+    return this.runMutation(async () => {
+      const id = this.createId();
+      const originalFileName = `${id}-original.${IMAGE_TYPES.get(originalMimeType)}`;
+      const processedFileName = `${id}-processed.${IMAGE_TYPES.get(processedMimeType)}`;
+      const now = this.now();
+      const review = {
+        id,
+        ownerUuid,
+        title,
+        style,
+        template,
+        shareId,
+        reviewKey,
+        originalFile: originalFileName,
+        processedFile: processedFileName,
+        status: 'pending',
+        createdAt: new Date(now).toISOString(),
+        updatedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + REVIEW_LIFETIME_MS).toISOString(),
+        reviewedAt: '',
+        reviewedBy: '',
+        removedAt: ''
+      };
+
+      await this.writeImage(originalFileName, originalBuffer);
+      try {
+        await this.writeImage(processedFileName, processedBuffer);
+        this.reviews.set(id, review);
+        await this.persistUnlocked();
+      } catch (error) {
+        this.reviews.delete(id);
+        await Promise.all([
+          fs.promises.unlink(path.join(this.uploadDirectory, originalFileName)).catch(() => undefined),
+          fs.promises.unlink(path.join(this.uploadDirectory, processedFileName)).catch(() => undefined)
+        ]);
+        throw error;
+      }
+      return this.toPublic(review);
+    });
   }
 
   async updateProcessed(idValue, ownerUuidValue, input, processedBuffer) {
-    this.load();
     const id = this.requireId(idValue);
     const ownerUuid = this.requireUuid(ownerUuidValue);
-    const review = this.reviews.get(id);
-    if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
-    if (review.ownerUuid !== ownerUuid) throw new DoodleReviewError('只能更新自己的作品', 'REVIEW_FORBIDDEN');
-    if (!['pending', 'approved'].includes(review.status) || Date.parse(review.expiresAt) <= this.now()) {
-      if (Date.parse(review.expiresAt) <= this.now()) this.markRemoved(review, 'expired');
-      throw new DoodleReviewError('这条审核记录已结束', 'REVIEW_GONE');
-    }
-
     const processedMimeType = this.requireMimeType(input?.processedMimeType);
-    const processedFileName = `${id}-processed.${IMAGE_TYPES.get(processedMimeType)}`;
-    const previousFile = review.processedFile;
-    const updated = {
-      ...review,
-      title: this.requireTitle(input?.title),
-      style: this.requireToken(input?.style, '涂鸦风格无效', 'STYLE_INVALID'),
-      template: this.requireToken(input?.template, '卡片模板无效', 'TEMPLATE_INVALID'),
-      shareId: input?.shareId ? this.requireShareId(input.shareId) : review.shareId,
-      processedFile: processedFileName,
-      status: 'pending',
-      updatedAt: new Date(this.now()).toISOString(),
-      reviewedAt: '',
-      reviewedBy: ''
-    };
-    await this.writeImage(processedFileName, processedBuffer);
-    this.reviews.set(id, updated);
-    if (previousFile && previousFile !== updated.processedFile) this.deleteStoredImage(previousFile);
-    await this.persist();
-    return this.toPublic(updated);
+    const title = this.requireTitle(input?.title);
+    const style = this.requireToken(input?.style, '涂鸦风格无效', 'STYLE_INVALID');
+    const template = this.requireToken(input?.template, '卡片模板无效', 'TEMPLATE_INVALID');
+    const requestedShareId = input?.shareId ? this.requireShareId(input.shareId) : '';
+
+    return this.runMutation(async () => {
+      const review = this.reviews.get(id);
+      if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
+      if (review.ownerUuid !== ownerUuid) throw new DoodleReviewError('只能更新自己的作品', 'REVIEW_FORBIDDEN');
+      if (!['pending', 'approved'].includes(review.status) || Date.parse(review.expiresAt) <= this.now()) {
+        if (Date.parse(review.expiresAt) <= this.now()) await this.expireReview(review);
+        throw new DoodleReviewError('这条审核记录已结束', 'REVIEW_GONE');
+      }
+
+      const processedFileName = `${id}-processed.${IMAGE_TYPES.get(processedMimeType)}`;
+      const previousFile = review.processedFile;
+      const updated = {
+        ...review,
+        title,
+        style,
+        template,
+        shareId: requestedShareId || review.shareId,
+        processedFile: processedFileName,
+        status: 'pending',
+        updatedAt: new Date(this.now()).toISOString(),
+        reviewedAt: '',
+        reviewedBy: ''
+      };
+      await this.writeImage(processedFileName, processedBuffer);
+      this.reviews.set(id, updated);
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.reviews.set(id, review);
+        throw error;
+      }
+      if (previousFile && previousFile !== updated.processedFile) await this.deleteStoredImage(previousFile);
+      return this.toPublic(updated);
+    });
   }
 
-  listAdminReviews() {
-    this.load();
-    this.cleanupExpired();
+  async listAdminReviews() {
+    await this.cleanupExpired();
+    this.ensureLoaded();
     return [...this.reviews.values()]
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
       .map((review) => this.toAdmin(review));
   }
 
   getAdminImage(idValue, kindValue) {
-    this.load();
+    this.ensureLoaded();
     const id = this.requireId(idValue);
     const kind = kindValue === 'original' || kindValue === 'processed' ? kindValue : '';
     if (!kind) throw new DoodleReviewError('审核图片类型无效', 'IMAGE_KIND_INVALID');
@@ -146,68 +199,91 @@ class DoodleReviewRepository {
     if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
     if (!['pending', 'approved'].includes(review.status)) throw new DoodleReviewError('审核图片已被清理', 'REVIEW_GONE');
     const fileName = kind === 'original' ? review.originalFile : review.processedFile;
-    return { filePath: path.join(this.uploadDirectory, fileName), fileName };
+    const filePath = path.join(this.uploadDirectory, fileName);
+    if (!fileName || !fs.existsSync(filePath)) throw new DoodleReviewError('审核图片文件缺失，请检查持久化存储', 'REVIEW_IMAGE_MISSING');
+    return { filePath, fileName };
   }
 
   async moderateReview(idValue, action, adminId) {
-    this.load();
     const id = this.requireId(idValue);
-    const review = this.reviews.get(id);
-    if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
     if (!['approved', 'rejected'].includes(action)) throw new DoodleReviewError('审核操作无效', 'REVIEW_ACTION_INVALID');
-    if (!['pending', 'approved'].includes(review.status)) throw new DoodleReviewError('这条审核记录已结束', 'REVIEW_GONE');
-    if (action === 'rejected') return this.removeReview(review, 'rejected', adminId);
+    return this.runMutation(async () => {
+      const review = this.reviews.get(id);
+      if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
+      if (!['pending', 'approved'].includes(review.status)) throw new DoodleReviewError('这条审核记录已结束', 'REVIEW_GONE');
+      if (action === 'rejected') {
+        const removed = this.removedReview(review, 'rejected', adminId);
+        this.reviews.set(id, removed);
+        try {
+          await this.persistUnlocked();
+        } catch (error) {
+          this.reviews.set(id, review);
+          throw error;
+        }
+        await this.deleteReviewImages(review);
+        return this.toAdmin(removed);
+      }
 
-    const updated = {
-      ...review,
-      status: 'approved',
-      reviewedAt: new Date(this.now()).toISOString(),
-      reviewedBy: String(adminId || '').slice(0, 160),
-      updatedAt: new Date(this.now()).toISOString()
-    };
-    this.reviews.set(id, updated);
-    await this.persist();
-    return this.toAdmin(updated);
+      const updated = {
+        ...review,
+        status: 'approved',
+        reviewedAt: new Date(this.now()).toISOString(),
+        reviewedBy: String(adminId || '').slice(0, 160),
+        updatedAt: new Date(this.now()).toISOString()
+      };
+      this.reviews.set(id, updated);
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.reviews.set(id, review);
+        throw error;
+      }
+      return this.toAdmin(updated);
+    });
   }
 
   async deleteReview(idValue, adminId) {
-    this.load();
     const id = this.requireId(idValue);
-    const review = this.reviews.get(id);
-    if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
-    const removed = this.markRemoved(review, 'deleted', false, adminId);
-    this.reviews.delete(id);
-    await this.persist();
-    await this.cleanupQueue;
-    await this.writeQueue;
-    return this.toAdmin(removed);
-  }
-
-  async removeReview(review, status, adminId = '') {
-    const removed = this.markRemoved(review, status, true, adminId);
-    await this.cleanupQueue;
-    await this.writeQueue;
-    return this.toAdmin(removed);
+    return this.runMutation(async () => {
+      const review = this.reviews.get(id);
+      if (!review) throw new DoodleReviewError('没有找到这条审核记录', 'REVIEW_NOT_FOUND');
+      const removed = this.removedReview(review, 'deleted', adminId);
+      this.reviews.delete(id);
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.reviews.set(id, review);
+        throw error;
+      }
+      await this.deleteReviewImages(review);
+      return this.toAdmin(removed);
+    });
   }
 
   cleanupExpired() {
-    const now = this.now();
-    let changed = false;
-    for (const [id, review] of this.reviews) {
-      if (['pending', 'approved'].includes(review.status) && Date.parse(review.expiresAt) <= now) {
-        this.markRemoved(review, 'expired', false);
-        changed = true;
-      } else if (!['pending', 'approved'].includes(review.status) && Date.parse(review.removedAt || review.expiresAt) + TOMBSTONE_LIFETIME_MS <= now) {
-        this.reviews.delete(id);
-        changed = true;
+    return this.runMutation(async () => {
+      const now = this.now();
+      const imagesToDelete = [];
+      let changed = false;
+      for (const [id, review] of this.reviews) {
+        if (['pending', 'approved'].includes(review.status) && Date.parse(review.expiresAt) <= now) {
+          this.reviews.set(id, this.removedReview(review, 'expired'));
+          imagesToDelete.push(review);
+          changed = true;
+        } else if (!['pending', 'approved'].includes(review.status) && Date.parse(review.removedAt || review.expiresAt) + TOMBSTONE_LIFETIME_MS <= now) {
+          this.reviews.delete(id);
+          changed = true;
+        }
       }
-    }
-    if (changed) this.persist();
+      if (changed) await this.persistUnlocked();
+      for (const review of imagesToDelete) await this.deleteReviewImages(review);
+      return changed;
+    });
   }
 
-  markRemoved(review, status, persist = true, adminId = '') {
+  removedReview(review, status, adminId = '') {
     const now = new Date(this.now()).toISOString();
-    const removed = {
+    return {
       ...review,
       originalFile: '',
       processedFile: '',
@@ -217,11 +293,21 @@ class DoodleReviewRepository {
       reviewedBy: adminId ? String(adminId).slice(0, 160) : review.reviewedBy,
       removedAt: review.removedAt || now
     };
+  }
+
+  async expireReview(review) {
+    const removed = this.removedReview(review, 'expired');
     this.reviews.set(review.id, removed);
-    if (review.originalFile) this.deleteStoredImage(review.originalFile);
-    if (review.processedFile) this.deleteStoredImage(review.processedFile);
-    if (persist) this.persist();
+    await this.persistUnlocked();
+    await this.deleteReviewImages(review);
     return removed;
+  }
+
+  async deleteReviewImages(review) {
+    await Promise.all([
+      review.originalFile ? this.deleteStoredImage(review.originalFile) : Promise.resolve(),
+      review.processedFile ? this.deleteStoredImage(review.processedFile) : Promise.resolve()
+    ]);
   }
 
   toPublic(review) {
@@ -234,6 +320,9 @@ class DoodleReviewRepository {
   }
 
   toAdmin(review) {
+    const hasOriginal = Boolean(review.originalFile && fs.existsSync(path.join(this.uploadDirectory, review.originalFile)));
+    const hasProcessed = Boolean(review.processedFile && fs.existsSync(path.join(this.uploadDirectory, review.processedFile)));
+    const keepsImages = ['pending', 'approved'].includes(review.status);
     return {
       id: review.id,
       ownerUuid: review.ownerUuid,
@@ -242,8 +331,9 @@ class DoodleReviewRepository {
       template: review.template,
       shareId: review.shareId,
       reviewKey: review.reviewKey,
-      originalUrl: review.originalFile ? `/api/admin/doodles/${review.id}/image/original` : '',
-      processedUrl: review.processedFile ? `/api/admin/doodles/${review.id}/image/processed` : '',
+      originalUrl: hasOriginal ? `/api/admin/doodles/${review.id}/image/original` : '',
+      processedUrl: hasProcessed ? `/api/admin/doodles/${review.id}/image/processed` : '',
+      imageState: keepsImages ? (hasOriginal && hasProcessed ? 'ready' : 'missing') : 'removed',
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
@@ -357,22 +447,17 @@ class DoodleReviewRepository {
     return this.cleanupQueue;
   }
 
-  persist() {
+  async persistUnlocked() {
     const snapshot = JSON.stringify({ version: 1, reviews: [...this.reviews.values()] }, null, 2);
-    const tempFile = `${this.dataFile}.tmp`;
-    this.writeQueue = this.writeQueue
-      .then(async () => {
-        await fs.promises.mkdir(path.dirname(this.dataFile), { recursive: true });
-        await fs.promises.writeFile(tempFile, snapshot, 'utf8');
-        await fs.promises.rename(tempFile, this.dataFile);
-        this.lastLoadedMtime = fs.statSync(this.dataFile).mtimeMs;
-      })
-      .catch((error) => console.error('Doodle reviews could not be saved:', error.message));
-    return this.writeQueue;
+    await writeFileAtomic(this.dataFile, snapshot);
+    this.lastLoadedMtime = fs.statSync(this.dataFile).mtimeMs;
+    this.loadError = null;
   }
 }
 
-const doodleReviewRepository = new DoodleReviewRepository();
+const REVIEW_REPOSITORY_KEY = Symbol.for('neon.doodle-review-repository.v1');
+const doodleReviewRepository = globalThis[REVIEW_REPOSITORY_KEY] || new DoodleReviewRepository();
+globalThis[REVIEW_REPOSITORY_KEY] = doodleReviewRepository;
 
 module.exports = {
   DoodleReviewError,

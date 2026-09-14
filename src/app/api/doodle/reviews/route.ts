@@ -10,7 +10,7 @@ const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 function errorResponse(error: unknown) {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
   const message = error instanceof Error ? error.message : '审核图片提交失败，请重试';
-  const status = code === 'PROFILE_NOT_FOUND' ? 404 : code === 'IMAGE_TOO_LARGE' ? 413 : code ? 400 : 500;
+  const status = code === 'PROFILE_NOT_FOUND' ? 404 : code === 'IMAGE_TOO_LARGE' ? 413 : code === 'REVIEW_STORAGE_UNAVAILABLE' ? 503 : code ? 400 : 500;
   if (status === 500) console.error('Doodle review request failed:', error);
   return NextResponse.json({ error: message, code }, { status });
 }

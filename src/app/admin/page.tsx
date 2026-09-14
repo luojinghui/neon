@@ -21,7 +21,7 @@ import {
   TeamOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Image, Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
+import { Alert, Image, Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -648,6 +648,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
   const [items, setItems] = useState<AdminDoodleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, pending: 0 });
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -655,9 +656,12 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
       const result = await adminRequest<{ items: AdminDoodleItem[]; stats: { total: number; pending: number } }>('/doodles');
       setItems(result.items);
       setStats(result.stats);
+      setLoadError('');
     } catch (error) {
       handleAuthError(error, onUnauthorized);
-      setNotice({ type: 'error', text: getErrorMessage(error) });
+      const message = getErrorMessage(error);
+      setLoadError(message);
+      setNotice({ type: 'error', text: message });
     } finally {
       setLoading(false);
     }
@@ -693,9 +697,9 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
     {
       title: '原图 / 加工成品',
       width: 190,
-      render: (_, item) => item.originalUrl && item.processedUrl
+      render: (_, item) => item.imageState === 'ready'
         ? <div className="flex gap-2"><Image src={item.originalUrl} alt={`${item.title}原图`} width={64} height={86} className="rounded-md border border-border object-cover" /><Image src={item.processedUrl} alt={`${item.title}成品`} width={64} height={86} className="rounded-md border border-border object-cover" /></div>
-        : <div className="flex h-[86px] w-[136px] items-center justify-center rounded-md bg-surface-hover text-xs text-foreground-muted">图片已清理</div>
+        : <div className={`flex h-[86px] w-[136px] items-center justify-center rounded-md px-2 text-center text-xs ${item.imageState === 'missing' ? 'bg-warning/10 text-warning' : 'bg-surface-hover text-foreground-muted'}`}>{item.imageState === 'missing' ? '图片文件缺失，请检查存储' : '图片已清理'}</div>
     },
     {
       title: '角色卡',
@@ -719,7 +723,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
       title: '状态',
       dataIndex: 'status',
       width: 100,
-      render: (status: AdminDoodleItem['status']) => status === 'pending' ? <Tag color="processing">待审核</Tag> : status === 'approved' ? <Tag color="success">已通过</Tag> : status === 'rejected' ? <Tag color="error">已驳回</Tag> : status === 'expired' ? <Tag>已过期</Tag> : <Tag>已删除</Tag>
+      render: (status: AdminDoodleItem['status'], item) => <div className="flex flex-col items-start gap-1">{status === 'pending' ? <Tag color="processing">待审核</Tag> : status === 'approved' ? <Tag color="success">已通过</Tag> : status === 'rejected' ? <Tag color="error">已驳回</Tag> : status === 'expired' ? <Tag>已过期</Tag> : <Tag>已删除</Tag>}{item.imageState === 'missing' && <Tag color="warning">存储异常</Tag>}</div>
     },
     {
       title: '操作',
@@ -748,7 +752,8 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
         </div>
         <div className="flex gap-2 text-xs"><Tag color="processing">待审核 {stats.pending}</Tag><Tag>记录 {stats.total}</Tag></div>
       </div>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 1050 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
+      {loadError && <Alert className="mb-4" type="error" showIcon message="审核数据加载失败" description={loadError} action={<button type="button" aria-label="重新加载审核数据" title="重新加载" className="admin-icon-button" onClick={() => void load()}><ReloadOutlined /></button>} />}
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} locale={{ emptyText: loadError ? '审核数据暂时不可用' : '暂无审核记录' }} scroll={{ x: 1050 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
     </section>
   );
 }

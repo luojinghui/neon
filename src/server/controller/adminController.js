@@ -163,7 +163,16 @@ function adminError(error) {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
   const message = error instanceof Error ? error.message : '管理操作失败';
   const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError'].includes(error?.name);
-  const status = code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND' ? 404 : code === 'USER_ID_TAKEN' ? 409 : code || isValidationError ? 400 : 500;
+  const status =
+    code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND'
+      ? 404
+      : code === 'USER_ID_TAKEN'
+        ? 409
+        : code === 'REVIEW_STORAGE_UNAVAILABLE' || code === 'REVIEW_IMAGE_MISSING' || code === 'SHARE_STORAGE_UNAVAILABLE'
+          ? 503
+          : code || isValidationError
+            ? 400
+            : 500;
   if (status === 500) console.error('Admin operation failed:', error);
   return { status, body: { error: message, code } };
 }
@@ -319,23 +328,32 @@ function mountAdminController(app, io) {
     })
   );
 
-  router.get('/doodles', (_req, res) => {
-    const items = doodleReviewRepository.listAdminReviews().map((review) => {
-      const owner = profileRepository.getByUuid(review.ownerUuid);
-      return {
-        ...review,
-        ownerName: owner?.name || '未知人员',
-        ownerUserId: owner?.userId || ''
-      };
-    });
-    return res.json({
-      items,
-      stats: {
-        total: items.length,
-        pending: items.filter((item) => item.status === 'pending').length
+  router.get(
+    '/doodles',
+    asyncRoute(async (_req, res) => {
+      try {
+        const reviews = await doodleReviewRepository.listAdminReviews();
+        const items = reviews.map((review) => {
+          const owner = profileRepository.getByUuid(review.ownerUuid);
+          return {
+            ...review,
+            ownerName: owner?.name || '未知人员',
+            ownerUserId: owner?.userId || ''
+          };
+        });
+        return res.json({
+          items,
+          stats: {
+            total: items.length,
+            pending: items.filter((item) => item.status === 'pending').length
+          }
+        });
+      } catch (error) {
+        const response = adminError(error);
+        return res.status(response.status).json(response.body);
       }
-    });
-  });
+    })
+  );
 
   router.get('/doodles/:id/image/:kind', (req, res, next) => {
     try {

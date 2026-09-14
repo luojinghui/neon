@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { randomBytes } = require('crypto');
+const { writeFileAtomic } = require('../storage/filePersistence');
 
 const SHARE_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 const TOMBSTONE_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
@@ -197,7 +198,7 @@ class DoodleShareRepository {
         changed = true;
       }
     }
-    if (changed) this.persist();
+    if (changed) void this.persist().catch(() => undefined);
   }
 
   markRemoved(share, state, persist = true) {
@@ -209,7 +210,7 @@ class DoodleShareRepository {
     };
     this.shares.set(share.id, removed);
     if (share.imageUrl) this.deleteStoredImage(share.imageUrl);
-    if (persist) this.persist();
+    if (persist) void this.persist().catch(() => undefined);
     return removed;
   }
 
@@ -323,20 +324,20 @@ class DoodleShareRepository {
 
   persist() {
     const snapshot = JSON.stringify({ version: 2, shares: [...this.shares.values()] }, null, 2);
-    const tempFile = `${this.dataFile}.tmp`;
-    this.writeQueue = this.writeQueue
-      .then(async () => {
-        await fs.promises.mkdir(path.dirname(this.dataFile), { recursive: true });
-        await fs.promises.writeFile(tempFile, snapshot, 'utf8');
-        await fs.promises.rename(tempFile, this.dataFile);
-        this.lastLoadedMtime = fs.statSync(this.dataFile).mtimeMs;
-      })
-      .catch((error) => console.error('Doodle shares could not be saved:', error.message));
-    return this.writeQueue;
+    const operation = this.writeQueue.then(async () => {
+      await writeFileAtomic(this.dataFile, snapshot);
+      this.lastLoadedMtime = fs.statSync(this.dataFile).mtimeMs;
+    });
+    this.writeQueue = operation.catch((error) => console.error('Doodle shares could not be saved:', error.message));
+    return operation.catch((error) => {
+      throw new DoodleShareError('分享数据保存失败，请稍后重试', 'SHARE_STORAGE_UNAVAILABLE');
+    });
   }
 }
 
-const doodleShareRepository = new DoodleShareRepository();
+const SHARE_REPOSITORY_KEY = Symbol.for('neon.doodle-share-repository.v1');
+const doodleShareRepository = globalThis[SHARE_REPOSITORY_KEY] || new DoodleShareRepository();
+globalThis[SHARE_REPOSITORY_KEY] = doodleShareRepository;
 
 module.exports = {
   DoodleShareError,

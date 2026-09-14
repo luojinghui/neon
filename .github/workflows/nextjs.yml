@@ -161,7 +161,10 @@ jobs:
             "${app_root}/shared/soul-data" \
             "${app_root}/shared/soul-uploads/soul" \
             "${app_root}/shared/soul-uploads/profile" \
-            "${app_root}/shared/user-data"
+            "${app_root}/shared/soul-uploads/doodle" \
+            "${app_root}/shared/user-data" \
+            "${app_root}/shared/doodle-data" \
+            "${app_root}/shared/doodle-review-images"
           if [[ ! -f "${app_root}/shared/soul-data/soul-chat.json" && -f "${previous_target}/.data/soul-chat.json" ]]; then
             cp "${previous_target}/.data/soul-chat.json" "${app_root}/shared/soul-data/soul-chat.json"
           fi
@@ -194,22 +197,42 @@ jobs:
           set +a
           export SOUL_CHAT_DATA_FILE="${SOUL_CHAT_DATA_FILE:-${app_root}/shared/soul-data/soul-chat.json}"
           export USER_PROFILE_DATA_FILE="${USER_PROFILE_DATA_FILE:-${app_root}/shared/user-data/user-profiles.json}"
+          export DOODLE_REVIEW_DATA_FILE="${DOODLE_REVIEW_DATA_FILE:-${app_root}/shared/doodle-data/doodle-reviews.json}"
+          export DOODLE_REVIEW_UPLOAD_DIRECTORY="${DOODLE_REVIEW_UPLOAD_DIRECTORY:-${app_root}/shared/doodle-review-images}"
+          export DOODLE_SHARE_DATA_FILE="${DOODLE_SHARE_DATA_FILE:-${app_root}/shared/doodle-data/doodle-shares.json}"
+          export DOODLE_UPLOAD_DIRECTORY="${DOODLE_UPLOAD_DIRECTORY:-${app_root}/shared/soul-uploads/doodle}"
           app_port="${APP_PORT:-3000}"
           [[ "${app_port}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid APP_PORT' >&2; exit 1; }
+
+          migrate_doodle_storage() {
+            local source_dir="$1"
+            [[ -n "${source_dir}" && -d "${source_dir}" ]] || return 0
+            if [[ ! -f "${app_root}/shared/doodle-data/doodle-reviews.json" && -f "${source_dir}/.data/doodle-reviews.json" ]]; then
+              cp "${source_dir}/.data/doodle-reviews.json" "${app_root}/shared/doodle-data/doodle-reviews.json"
+            fi
+            if [[ ! -f "${app_root}/shared/doodle-data/doodle-shares.json" && -f "${source_dir}/.data/doodle-shares.json" ]]; then
+              cp "${source_dir}/.data/doodle-shares.json" "${app_root}/shared/doodle-data/doodle-shares.json"
+            fi
+            if [[ -d "${source_dir}/.data/doodle-review-images" ]]; then
+              cp -an "${source_dir}/.data/doodle-review-images/." "${app_root}/shared/doodle-review-images/"
+            fi
+          }
 
           start_release() {
             local target_dir="$1"
             local target_id="$2"
+            local migration_source="${3:-}"
 
             export NEON_RELEASE_ID="${target_id}"
             pm2 delete neon >/dev/null 2>&1 || true
+            migrate_doodle_storage "${migration_source}"
             pm2 start "${target_dir}/ecosystem.config.cjs" --update-env
           }
 
           ln -sfn "${release_dir}" "${app_root}/current"
 
           healthy=false
-          if start_release "${release_dir}" "${release_id}"; then
+          if start_release "${release_dir}" "${release_id}" "${previous_target}"; then
             for _ in $(seq 1 20); do
               running_pid="$(pm2 pid neon 2>/dev/null || true)"
               running_dir=''

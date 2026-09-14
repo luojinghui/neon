@@ -85,6 +85,7 @@ export type AdminDoodleItem = {
   shareId: string;
   originalUrl: string;
   processedUrl: string;
+  imageState: 'ready' | 'missing' | 'removed';
   createdAt: string;
   updatedAt: string;
   expiresAt: string;
