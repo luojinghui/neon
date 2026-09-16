@@ -49,6 +49,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.30.2 --activate
           pnpm install --frozen-lockfile
+          node --test scripts/deployment-data-backup.test.cjs
           pnpm audit --prod --audit-level high
           NODE_OPTIONS='--max-old-space-size=1024' pnpm build
 
@@ -215,18 +216,36 @@ jobs:
           export MOMENT_UPLOAD_DIRECTORY="${MOMENT_UPLOAD_DIRECTORY:-${app_root}/shared/soul-uploads/moments}"
           app_port="${APP_PORT:-3000}"
           [[ "${app_port}" =~ ^[0-9]{1,5}$ ]] || { echo 'Invalid APP_PORT' >&2; exit 1; }
+          # Fail before stopping the current app if a path depends on the SSH working directory.
+          node "${release_dir}/scripts/deployment-storage-env.cjs" validate
+          # Keep only the old app's storage settings, including which settings were absent.
+          # PM2's complete environment may contain secrets and must never enter command arguments.
+          rollback_storage="$(pm2 jlist | node "${release_dir}/scripts/deployment-storage-env.cjs" capture "${previous_target}")"
 
           migrate_doodle_storage() {
             local source_dir="$1"
             [[ -n "${source_dir}" && -d "${source_dir}" ]] || return 0
             if [[ ! -f "${app_root}/shared/doodle-data/doodle-reviews.json" && -f "${source_dir}/.data/doodle-reviews.json" ]]; then
-              cp "${source_dir}/.data/doodle-reviews.json" "${app_root}/shared/doodle-data/doodle-reviews.json"
+              cp "${source_dir}/.data/doodle-reviews.json" "${app_root}/shared/doodle-data/doodle-reviews.json" || return 1
             fi
             if [[ ! -f "${app_root}/shared/doodle-data/doodle-shares.json" && -f "${source_dir}/.data/doodle-shares.json" ]]; then
-              cp "${source_dir}/.data/doodle-shares.json" "${app_root}/shared/doodle-data/doodle-shares.json"
+              cp "${source_dir}/.data/doodle-shares.json" "${app_root}/shared/doodle-data/doodle-shares.json" || return 1
             fi
             if [[ -d "${source_dir}/.data/doodle-review-images" ]]; then
-              cp -an "${source_dir}/.data/doodle-review-images/." "${app_root}/shared/doodle-review-images/"
+              cp -an "${source_dir}/.data/doodle-review-images/." "${app_root}/shared/doodle-review-images/" || return 1
+            fi
+          }
+
+          stop_release() {
+            local process_list
+            local present
+            process_list="$(pm2 jlist)" || return 1
+            present="$(printf '%s' "${process_list}" | node -e '
+              const processes = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+              console.log(processes.some((process) => process.name === "neon") ? "yes" : "no");
+            ')" || return 1
+            if [[ "${present}" == yes ]]; then
+              pm2 delete neon >/dev/null 2>&1 || return 1
             fi
           }
 
@@ -234,17 +253,23 @@ jobs:
             local target_dir="$1"
             local target_id="$2"
             local migration_source="${3:-}"
+            local backup_id="${4:-}"
 
             export NEON_RELEASE_ID="${target_id}"
-            pm2 delete neon >/dev/null 2>&1 || true
-            migrate_doodle_storage "${migration_source}"
+            stop_release || return 1
+            # start_release runs in an if condition, so errexit alone cannot protect these steps.
+            # Capture indices and images together while the old process cannot write to them.
+            if [[ -n "${backup_id}" ]]; then
+              node "${release_dir}/scripts/deployment-data-backup.cjs" shared "${app_root}" "${backup_id}" || return 1
+            fi
+            migrate_doodle_storage "${migration_source}" || return 1
             pm2 start "${target_dir}/ecosystem.config.cjs" --update-env
           }
 
           ln -sfn "${release_dir}" "${app_root}/current"
 
           healthy=false
-          if start_release "${release_dir}" "${release_id}" "${previous_target}"; then
+          if start_release "${release_dir}" "${release_id}" "${previous_target}" "${release_id}"; then
             for _ in $(seq 1 20); do
               running_pid="$(pm2 pid neon 2>/dev/null || true)"
               running_dir=''
@@ -274,7 +299,8 @@ jobs:
               ln -sfn "${previous_target}" "${app_root}/current"
               previous_release_id="${previous_target%/}"
               previous_release_id="${previous_release_id##*/}"
-              start_release "${previous_target}" "${previous_release_id}"
+              stop_release
+              printf '%s' "${rollback_storage}" | node "${release_dir}/scripts/deployment-storage-env.cjs" rollback "${previous_target}" "${previous_release_id}"
               pm2 save
             else
               pm2 delete neon || true
@@ -292,7 +318,11 @@ jobs:
             stale_name="${stale_release##*/}"
             [[ "${stale_release}" == "${app_root}/releases/${stale_name}" ]] || continue
             [[ "${stale_name}" =~ ^[0-9a-f]{40}-[0-9]+-[0-9]+$ ]] || continue
-            [[ "${stale_release}" == "${current_target}" ]] || rm -rf -- "${stale_release}"
+            [[ "${stale_release}" == "${current_target}" ]] && continue
+            # Backups live outside shared/releases and are never pruned by deployment.
+            # A failed copy/verification must prevent deletion of the only surviving data.
+            node "${release_dir}/scripts/deployment-data-backup.cjs" release "${app_root}" "${stale_release}" || exit 1
+            rm -rf -- "${stale_release}"
           done < <(ls -1dt -- "${app_root}"/releases/*/ | tail -n +6)
 
           echo "Activated release ${release_id}"

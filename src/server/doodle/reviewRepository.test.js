@@ -213,5 +213,6 @@ test('production deployment binds doodle data and review images to shared storag
   assert.match(workflow, /export DOODLE_REVIEW_UPLOAD_DIRECTORY=/);
   assert.match(workflow, /export DOODLE_SHARE_DATA_FILE=/);
   assert.match(workflow, /export DOODLE_UPLOAD_DIRECTORY=/);
-  assert.match(workflow, /pm2 delete neon[^\n]*\n\s+migrate_doodle_storage/);
+  const startRelease = workflow.slice(workflow.indexOf('          start_release()'), workflow.indexOf('          ln -sfn "${release_dir}"'));
+  assert.match(startRelease, /stop_release \|\| return 1[\s\S]*deployment-data-backup\.cjs[\s\S]*migrate_doodle_storage[\s\S]*pm2 start/);
 });

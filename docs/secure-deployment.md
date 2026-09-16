@@ -49,6 +49,8 @@ sudo chmod 600 /home/neon-deploy/.ssh/authorized_keys
 
 用服务器上的编辑器创建 `/home/neon-deploy/apps/neon/shared/app.env`，不要把真实值粘进命令历史。格式参考仓库的 `.env.example`：
 
+所有文件存储配置（`*_DATA_FILE`、`*_UPLOAD_DIRECTORY`）必须使用绝对路径。部署会在停止当前进程前校验，发现相对路径立即中止，避免按 SSH 工作目录解析而漏备份。
+
 ```dotenv
 MONGODB_URI='mongodb://APP_USER:URL_ENCODED_PASSWORD@127.0.0.1:27017/APP_DB?authSource=admin'
 APP_HOST=127.0.0.1
@@ -117,8 +119,26 @@ AllowUsers neon-deploy
 
 1. 在隔离 Runner 上安装锁定依赖并构建。
 2. 只传输生产制品，不传输 Git 凭据和应用密钥。
-3. 切换 `current` 软链接并仅 reload `neon` PM2 进程。
+3. 停止 `neon` PM2 进程，把文件索引及其图片一起备份到 `${DEPLOY_PATH}/backups/`，校验成功后启动新 release。备份在停写期间完成，避免索引和原图来自不同时间。
 4. 请求 `/healthz`；40 秒内失败会自动切回上一个 release。
-5. 发布成功后保留最近 5 个 release，自动删除更早的历史版本。
+5. 发布成功后保留最近 5 个 release；每个旧 release 的独立 `.data`、`public/uploads`、`upload`、`static` 都必须先归档并校验成功，才允许删除该 release。指向 `shared` 的上传软链接不会重复归档或删除其目标。
 
 首次成功后，以发布用户执行 `pm2 save`，并按 `pm2 startup` 输出的一次性管理员命令配置开机恢复。确认站点、Socket.IO、MongoDB 读写、上传下载和反向代理都正常后，再销毁旧主机和旧凭据。
+
+## 7. 部署数据备份与恢复边界
+
+`scripts/deployment-data-backup.cjs` 使用 Node.js 内置模块，无需额外安装工具。备份保存在 `${DEPLOY_PATH}/backups/`，独立于 `shared` 和 `releases`，部署流程不会清理它们：
+
+- `shared-<release-id>-<时间>-<随机值>/`：保存本次部署前的聊天、个人资料、漫游相册审核/分享、动态索引，以及相关原图和上传目录。遵循 `app.env` 中配置的文件和目录路径；不复制 `app.env`。此步骤发生在旧进程停止后、迁移和新进程启动前，失败会走回滚流程恢复旧版本。
+- `release-<release-id>-<时间>-<随机值>/`：保存待清理 release 内遗留的独立业务数据，保持原目录结构。备份失败会立即停止后续清理，保留源 release；已经通过健康检查的新版本仍继续运行。
+- 每个完成的备份包含 `manifest.json`，记录源路径、文件大小、SHA-256、缺失路径及跳过的共享软链接。复制后对照源文件校验，再同步到磁盘并原子改名；`.partial-*` 表示未完成的备份，不能作为清理源数据的依据。
+
+部署在停服务前还会捕获旧 PM2 进程的文件存储配置。回滚恢复这些配置，并清除旧进程原本未设置的路径变量，使首次迁移失败时旧版仍读取原 release 的 `.data`，不会误读新建或只迁移一部分的 shared 数据。该捕获只保留文件存储路径白名单；若已有 previous release 却无法确认其运行环境，部署会在停服务前中止。
+
+备份不会自动把旧审核记录、已删除照片或旧分享记录合并回线上数据。恢复时先保留当前状态，再根据索引、审核状态和图片哈希确认恢复范围；索引与对应原图应一起恢复。不要直接用整个历史索引覆盖当前索引，以免丢失后续新增数据或重新公开已删除内容。此流程备份应用文件存储，不包含 MongoDB；数据库和异机备份需分别保留。
+
+本地验证命令：
+
+```bash
+node --test scripts/deployment-data-backup.test.cjs
+```
