@@ -1,0 +1,113 @@
+.moment-profile-gallery { padding-top: 1.25rem; }
+
+.moment-profile-status,
+.moment-profile-empty {
+  display: flex;
+  min-height: 7rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 1.5rem;
+  color: hsl(var(--foreground-muted));
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.moment-profile-status.is-error { color: hsl(var(--danger)); }
+.moment-profile-status button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.6rem;
+  padding: 0 0.85rem;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+}
+
+.moment-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+
+.moment-profile-entry {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.85rem;
+  padding: 0;
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  text-align: left;
+  transition: border-color 150ms, background 150ms;
+}
+.moment-profile-entry:hover { border-color: hsl(var(--primary) / 0.45); background: hsl(var(--surface-hover)); }
+.moment-profile-entry:focus-visible,
+.moment-profile-status button:focus-visible,
+.moment-viewer-delete:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
+
+.moment-profile-cover { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; background: hsl(var(--background-tertiary)); }
+.moment-profile-cover > img,
+.moment-profile-cover > video { width: 100%; height: 100%; object-fit: cover; }
+.moment-profile-media-badge {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 0.4rem;
+  padding: 0.25rem 0.45rem;
+  background: rgb(0 0 0 / 0.62);
+  color: white;
+  font-size: 0.7rem;
+}
+
+.moment-profile-entry-body { display: flex; width: 100%; min-width: 0; flex: 1; flex-direction: column; gap: 0.85rem; padding: 1rem; }
+.moment-profile-entry-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+.moment-profile-entry.has-media .moment-profile-entry-text { -webkit-line-clamp: 2; }
+.moment-profile-voice { display: inline-flex; align-items: center; gap: 0.45rem; color: hsl(var(--primary)); font-size: 0.8rem; }
+.moment-profile-entry-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; color: hsl(var(--foreground-muted)); font-size: 0.7rem; }
+.moment-profile-entry-footer > span { color: hsl(var(--primary)); }
+
+.moment-viewer-modal .ant-modal-content,
+.moment-viewer-modal .ant-modal-container { max-height: calc(100dvh - 3rem); overflow-y: auto; border: 1px solid hsl(var(--border)); border-radius: 1rem; padding: 1.25rem; background: hsl(var(--surface)); }
+.moment-viewer-modal .ant-modal-header { margin-bottom: 1.2rem; background: transparent; }
+.moment-viewer-modal .ant-modal-title,
+.moment-viewer-modal .ant-modal-close { color: hsl(var(--foreground)); }
+.moment-viewer { min-width: 0; }
+.moment-viewer-author { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.moment-viewer-text { margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.95rem; line-height: 1.85; color: hsl(var(--foreground-secondary)); }
+.moment-viewer-voice { margin-top: 1rem; }
+.moment-viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.6rem; }
+.moment-viewer-location { display: inline-flex; min-width: 0; align-items: center; gap: 0.35rem; overflow-wrap: anywhere; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
+.moment-viewer-delete { display: inline-flex; min-height: 2.5rem; flex-shrink: 0; align-items: center; gap: 0.4rem; border: 0; border-radius: 0.5rem; padding: 0 0.65rem; background: transparent; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
+.moment-viewer-delete:hover { background: hsl(var(--danger) / 0.08); color: hsl(var(--danger)); }
+.moment-viewer-delete:disabled { cursor: wait; opacity: 0.6; }
+.moment-viewer > .moment-inline-error { margin-top: 0.5rem; }
+
+@media (max-width: 900px) {
+  .moment-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 540px) {
+  .moment-profile-grid { grid-template-columns: minmax(0, 1fr); gap: 0.85rem; }
+  .moment-profile-status { flex-wrap: wrap; }
+  .moment-viewer-modal { max-width: calc(100vw - 1rem); margin: 0.5rem auto; padding-bottom: 0; }
+  .moment-viewer-modal .ant-modal-content,
+  .moment-viewer-modal .ant-modal-container { max-height: calc(100dvh - 1rem); padding: 1rem; }
+}

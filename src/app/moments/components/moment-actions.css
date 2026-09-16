@@ -1,0 +1,37 @@
+.moment-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.4rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid hsl(var(--border));
+  padding: 0.2rem 0.75rem;
+}
+
+.moment-action {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 0;
+  border-radius: 0.6rem;
+  padding: 0 0.55rem;
+  background: transparent;
+  color: hsl(var(--foreground-secondary));
+  font-size: 0.8rem;
+  transition: color 150ms, background-color 150ms;
+}
+
+.moment-action > .anticon { font-size: 1.15rem; }
+.moment-action:hover { color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
+.moment-action.is-liked { color: hsl(var(--danger)); }
+.moment-action.is-liked:hover { background: hsl(var(--danger-soft)); }
+.moment-action:disabled { cursor: wait; }
+.moment-action:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.moment-action-count { font-variant-numeric: tabular-nums; }
+.moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: 0.75rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .moment-action { transition: none; }
+}

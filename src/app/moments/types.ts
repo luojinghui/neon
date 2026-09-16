@@ -53,6 +53,8 @@ export type Moment = {
   author: MomentAuthor;
   comments: MomentComment[];
   commentCount: number;
+  likeCount: number;
+  liked: boolean;
   createdAt: string;
   updatedAt: string;
   isOwner: boolean;

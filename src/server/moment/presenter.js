@@ -39,7 +39,8 @@ function presentComment(comment, viewer = {}) {
 
 function presentMoment(moment, viewer = {}, options = {}) {
   const commentLimit = Math.max(0, Math.min(100, Number.parseInt(options.commentLimit, 10) || 0));
-  const comments = commentLimit ? moment.comments.slice(-commentLimit) : moment.comments;
+  const comments = commentLimit ? moment.comments.slice(0, commentLimit) : moment.comments;
+  const likedBy = moment.likedBy || [];
   const isOwner = Boolean(viewer.uuid && viewer.uuid === moment.ownerUuid);
   return {
     id: moment.id,
@@ -50,6 +51,8 @@ function presentMoment(moment, viewer = {}, options = {}) {
     author: presentAuthor(moment.ownerUuid),
     comments: comments.map((comment) => presentComment(comment, viewer)),
     commentCount: moment.comments.length,
+    likeCount: likedBy.length,
+    liked: Boolean(viewer.uuid && likedBy.includes(viewer.uuid)),
     createdAt: moment.createdAt,
     updatedAt: moment.updatedAt,
     isOwner,

@@ -4,7 +4,7 @@ import { AppstoreOutlined, CheckOutlined, CopyOutlined, EditOutlined, PlusOutlin
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
 import { getAllMomentsForOwner } from '@/app/moments/client';
@@ -40,21 +40,37 @@ export default function ProfilePage() {
   const [momentsLoading, setMomentsLoading] = useState(false);
   const [momentsLoaded, setMomentsLoaded] = useState(false);
   const [momentsError, setMomentsError] = useState('');
+  const momentsRequest = useRef(0);
+  const momentsInFlight = useRef(false);
+  const publishedMoments = useRef<Moment[]>([]);
+  const deletedMoments = useRef(new Set<string>());
+  const activeProfileKey = useRef('');
   const userId = decodeURIComponent(params.userId || '');
   const publicKey = searchParams.get('key') || '';
   const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
 
   useEffect(() => {
     let active = true;
+    momentsRequest.current += 1;
+    momentsInFlight.current = false;
+    publishedMoments.current = [];
+    deletedMoments.current.clear();
+    activeProfileKey.current = '';
+    setProfile(null);
+    setIsOwner(false);
     setLoading(true);
     setError('');
+    setEditorOpen(false);
+    setComposerOpen(false);
     setActiveSection('profile');
     setMoments([]);
+    setMomentsLoading(false);
     setMomentsLoaded(false);
     setMomentsError('');
     getPublicProfile(userId, publicKey)
       .then((result) => {
         if (!active) return;
+        activeProfileKey.current = result.profile.publicKey;
         setProfile(result.profile);
         setIsOwner(result.isOwner);
         setLoading(false);
@@ -69,6 +85,8 @@ export default function ProfilePage() {
       });
     return () => {
       active = false;
+      momentsRequest.current += 1;
+      activeProfileKey.current = '';
     };
   }, [publicKey, returnTo, router, userId]);
 
@@ -80,23 +98,37 @@ export default function ProfilePage() {
     window.setTimeout(() => setCopied(false), 1500);
   };
 
+  const ownerUserId = profile?.userId;
   const loadMoments = useCallback(async () => {
-    if (!profile) return;
+    if (!ownerUserId || momentsInFlight.current) return;
+    const request = ++momentsRequest.current;
+    momentsInFlight.current = true;
     setMomentsLoading(true);
     setMomentsError('');
     try {
-      setMoments(await getAllMomentsForOwner(profile.userId));
+      const items = await getAllMomentsForOwner(ownerUserId);
+      if (request !== momentsRequest.current) return;
+      // Publishing while history is loading must preserve both the new item and older entries.
+      const merged = new Map<string, Moment>();
+      for (const moment of [...publishedMoments.current, ...items]) {
+        if (!deletedMoments.current.has(moment.id) && !merged.has(moment.id)) merged.set(moment.id, moment);
+      }
+      setMoments([...merged.values()]);
       setMomentsLoaded(true);
     } catch (momentError) {
+      if (request !== momentsRequest.current) return;
       setMomentsError(momentError instanceof Error ? momentError.message : '心迹加载失败');
     } finally {
-      setMomentsLoading(false);
+      if (request === momentsRequest.current) {
+        momentsInFlight.current = false;
+        setMomentsLoading(false);
+      }
     }
-  }, [profile]);
+  }, [ownerUserId]);
 
   useEffect(() => {
-    if (activeSection === 'moments' && profile && !momentsLoaded) void loadMoments();
-  }, [activeSection, loadMoments, momentsLoaded, profile]);
+    if (activeSection === 'moments' && !loading && !momentsLoaded && !momentsLoading && !momentsError) void loadMoments();
+  }, [activeSection, loadMoments, loading, momentsError, momentsLoaded, momentsLoading]);
 
   return (
     <div className="app-screen flex w-full flex-col bg-background">
@@ -220,7 +252,17 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <MomentGallery moments={moments} loading={momentsLoading} error={momentsError} onDeleted={(id) => setMoments((current) => current.filter((moment) => moment.id !== id))} />
+                  <MomentGallery
+                    key={profile.publicKey}
+                    moments={moments}
+                    loading={momentsLoading}
+                    error={momentsError}
+                    onRetry={() => void loadMoments()}
+                    onDeleted={(id) => {
+                      deletedMoments.current.add(id);
+                      setMoments((current) => current.filter((moment) => moment.id !== id));
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -244,8 +286,10 @@ export default function ProfilePage() {
             open={composerOpen}
             onClose={() => setComposerOpen(false)}
             onPublished={(moment) => {
-              setMoments((current) => [moment, ...current]);
-              setMomentsLoaded(true);
+              if (moment.author.publicKey !== activeProfileKey.current) return;
+              publishedMoments.current = [moment, ...publishedMoments.current.filter((item) => item.id !== moment.id)];
+              setMoments((current) => [moment, ...current.filter((item) => item.id !== moment.id)]);
+              setMomentsError('');
               setActiveSection('moments');
             }}
           />

@@ -9,7 +9,7 @@ import { deleteMoment } from '../client';
 import { formatMomentTime } from '../format';
 import type { Moment } from '../types';
 import { MomentAvatar } from './MomentAvatar';
-import { MomentComments } from './MomentComments';
+import { MomentActions } from './MomentActions';
 import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
 
@@ -71,12 +71,9 @@ export function MomentCard({ moment, onDeleted }: Props) {
       <MomentMediaView media={moment.media} />
       {moment.voice && <div className="px-4 pb-3 pt-1 sm:px-5"><MomentVoicePlayer voice={moment.voice} /></div>}
 
-      <footer className="moment-card-meta">
-        {moment.location ? <span><EnvironmentOutlined /> {moment.location.label}</span> : <span />}
-        <time dateTime={moment.createdAt}>{new Date(moment.createdAt).toLocaleString('zh-CN', { hour12: false })}</time>
-      </footer>
+      {moment.location && <div className="moment-card-meta"><span><EnvironmentOutlined /> {moment.location.label}</span></div>}
 
-      <MomentComments momentId={moment.id} initialComments={moment.comments} initialCount={moment.commentCount} />
+      <MomentActions key={moment.id} moment={moment} />
       {error && <p className="moment-inline-error mx-4 mb-4" role="alert">{error}</p>}
     </article>
   );

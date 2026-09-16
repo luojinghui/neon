@@ -1,0 +1,41 @@
+.moment-media-view { min-width: 0; margin: 0 1rem; }
+.moment-media-view-immersive { margin: 0; }
+.moment-media-stage { position: relative; overflow: hidden; width: 100%; aspect-ratio: 16 / 10; max-height: 36rem; border-radius: 0.7rem; background: hsl(var(--background-tertiary)); }
+.moment-media-view-immersive .moment-media-stage { max-height: 55dvh; }
+.moment-media-content { display: block; width: 100%; height: 100%; object-fit: contain; }
+.moment-media-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.5);
+  color: white;
+  transition: background 150ms;
+}
+.moment-media-arrow:hover { background: rgb(0 0 0 / 0.72); }
+.moment-media-arrow-left { left: 0.65rem; }
+.moment-media-arrow-right { right: 0.65rem; }
+.moment-media-arrow:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+.moment-media-navigation { display: flex; min-width: 0; align-items: center; gap: 0.75rem; padding: 0.65rem 0; }
+.moment-media-thumbnails { display: flex; min-width: 0; flex: 1; gap: 0.4rem; overflow-x: auto; padding: 0.2rem; scrollbar-width: thin; }
+.moment-media-thumbnail { display: inline-flex; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; align-items: center; justify-content: center; overflow: hidden; border: 2px solid transparent; border-radius: 0.4rem; padding: 0; background: hsl(var(--background-tertiary)); color: hsl(var(--foreground-secondary)); font-size: 1.25rem; opacity: 0.6; }
+.moment-media-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.moment-media-thumbnail:hover { opacity: 1; }
+.moment-media-thumbnail.is-active { border-color: hsl(var(--primary)); opacity: 1; }
+.moment-media-thumbnail:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 1px; }
+.moment-media-count { flex-shrink: 0; color: hsl(var(--foreground-muted)); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .moment-media-view { margin: 0 0.85rem; }
+  .moment-media-view-immersive { margin: 0; }
+  .moment-media-stage { aspect-ratio: 4 / 3; }
+  .moment-media-arrow-left { left: 0.4rem; }
+  .moment-media-arrow-right { right: 0.4rem; }
+}

@@ -155,7 +155,7 @@ class MomentRepository {
           stored.push(voice.url);
         }
         const now = new Date(this.now()).toISOString();
-        const moment = { id, ownerUuid, text, media, voice, location, comments: [], createdAt: now, updatedAt: now };
+        const moment = { id, ownerUuid, text, media, voice, location, comments: [], likedBy: [], createdAt: now, updatedAt: now };
         this.moments.set(id, moment);
         try {
           await this.persistUnlocked();
@@ -200,7 +200,8 @@ class MomentRepository {
 
       for (const moment of this.moments.values()) {
         const removedComments = moment.comments.filter((comment) => comment.ownerUuid === ownerUuid);
-        if (removedComments.length === 0) continue;
+        const likedBy = moment.likedBy.filter((uuid) => uuid !== ownerUuid);
+        if (removedComments.length === 0 && likedBy.length === moment.likedBy.length) continue;
         const removedIds = new Set(removedComments.map((comment) => comment.id));
         const comments = moment.comments
           .filter((comment) => comment.ownerUuid !== ownerUuid)
@@ -211,7 +212,7 @@ class MomentRepository {
           );
         changed.push({ id: moment.id, moment });
         commentCount += removedComments.length;
-        this.moments.set(moment.id, { ...moment, comments, updatedAt: new Date(this.now()).toISOString() });
+        this.moments.set(moment.id, { ...moment, comments, likedBy, updatedAt: new Date(this.now()).toISOString() });
       }
 
       if (removed.length === 0 && changed.length === 0) return { count: 0, commentCount: 0 };
@@ -224,6 +225,27 @@ class MomentRepository {
       }
       for (const moment of removed) await this.deleteMomentAttachments(moment);
       return { count: removed.length, commentCount };
+    });
+  }
+
+  async setMomentLiked(momentIdValue, actorUuidValue, liked) {
+    const momentId = this.requireId(momentIdValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const actorUuid = this.requireUuid(actorUuidValue);
+    if (typeof liked !== 'boolean') throw new MomentRepositoryError('点赞状态必须为布尔值', 'MOMENT_LIKE_INVALID');
+    return this.runMutation(async () => {
+      const moment = this.moments.get(momentId);
+      if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
+      const alreadyLiked = moment.likedBy.includes(actorUuid);
+      if (alreadyLiked === liked) return { liked, likeCount: moment.likedBy.length };
+      const likedBy = liked ? [...moment.likedBy, actorUuid] : moment.likedBy.filter((uuid) => uuid !== actorUuid);
+      this.moments.set(momentId, { ...moment, likedBy, updatedAt: new Date(this.now()).toISOString() });
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.moments.set(momentId, moment);
+        throw error;
+      }
+      return { liked, likeCount: likedBy.length };
     });
   }
 
@@ -304,7 +326,10 @@ class MomentRepository {
       if (!comment) throw new MomentRepositoryError('评论不存在或已被删除', 'COMMENT_NOT_FOUND');
       if (options.isAdmin !== true && comment.ownerUuid !== actorUuid) throw new MomentRepositoryError('只能删除自己的评论', 'COMMENT_FORBIDDEN');
       const now = new Date(this.now()).toISOString();
-      this.moments.set(momentId, { ...moment, comments: moment.comments.filter((item) => item.id !== commentId), updatedAt: now });
+      const comments = moment.comments
+        .filter((item) => item.id !== commentId)
+        .map((item) => item.replyToCommentId === commentId ? { ...item, replyToCommentId: '', replyToOwnerUuid: '' } : item);
+      this.moments.set(momentId, { ...moment, comments, updatedAt: now });
       try {
         await this.persistUnlocked();
       } catch (error) {
@@ -328,6 +353,8 @@ class MomentRepository {
     const voice = raw?.voice ? { ...this.normalizeStoredAttachment(raw.voice, ['audio']), durationMs: this.normalizeDuration(raw.voice.durationMs) } : null;
     const text = this.optionalText(raw?.text, MAX_TEXT_LENGTH, 'invalid stored text', 'MOMENT_TEXT_INVALID');
     if (!text && media.length === 0 && !voice) throw new Error('empty moment');
+    const likedBy = raw?.likedBy == null ? [] : raw.likedBy;
+    if (!Array.isArray(likedBy)) throw new Error('invalid stored likes');
     return {
       id: this.requireId(raw?.id, 'invalid stored moment id', 'MOMENT_ID_INVALID'),
       ownerUuid: this.requireUuid(raw?.ownerUuid),
@@ -336,6 +363,7 @@ class MomentRepository {
       voice,
       location: this.normalizeLocation(raw?.location),
       comments: Array.isArray(raw?.comments) ? raw.comments.map((comment) => this.normalizeStoredComment(comment)) : [],
+      likedBy: [...new Set(likedBy.map((uuid) => this.requireUuid(uuid)))],
       createdAt: this.requireDate(raw?.createdAt),
       updatedAt: this.requireDate(raw?.updatedAt || raw?.createdAt)
     };

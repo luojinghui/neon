@@ -76,6 +76,16 @@ export async function getComments(momentId: string): Promise<MomentComment[]> {
   return result.items;
 }
 
+export async function setMomentLiked(momentId: string, liked: boolean): Promise<{ liked: boolean; likeCount: number }> {
+  return parseJson<{ liked: boolean; likeCount: number }>(
+    await fetch(`/api/moments/${encodeURIComponent(momentId)}/like`, {
+      method: 'PUT',
+      headers: { ...(await identityHeaders()), 'content-type': 'application/json' },
+      body: JSON.stringify({ liked })
+    })
+  );
+}
+
 export async function createComment(momentId: string, text: string, replyToCommentId = ''): Promise<MomentComment> {
   const result = await parseJson<{ item: MomentComment }>(
     await fetch(`/api/moments/${encodeURIComponent(momentId)}/comments`, {
