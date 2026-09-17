@@ -11,6 +11,7 @@ import { useCloudStore, FileItem } from './store';
 import { HISTORY_KEY, TEXT_HISTORY_KEY, MAX_HISTORY, MAX_TEXT_HISTORY } from '@/constants/cloud';
 import { MessageInstance } from 'antd/es/message/interface';
 import { CLOUD_VERSION, CLOUD_VERSION_DISMISSED_KEY } from './version';
+import { copyShareCode } from './clipboard';
 
 export class NeonCloud {
   // ===== 私有变量（内部缓存） =====
@@ -119,7 +120,8 @@ export class NeonCloud {
   public async sendMessage(): Promise<void> {
     const store = useCloudStore.getState();
     const files = store.files;
-    const hasText = !!this._text.trim();
+    const sentText = this._text;
+    const hasText = !!sentText.trim();
     const hasFiles = files.length > 0;
 
     if (!hasText && !hasFiles) {
@@ -136,23 +138,40 @@ export class NeonCloud {
       if (hasFiles) {
         const rawFiles = files.map((f) => f.file);
         const relativePaths = files.map((f) => f.relativePath || f.name);
-        data = await CloudAPI.sendWithFiles(this._text, rawFiles, relativePaths, (percent) => {
+        data = await CloudAPI.sendWithFiles(sentText, rawFiles, relativePaths, (percent) => {
           useCloudStore.getState().setUploadProgress(percent);
         });
       } else {
-        data = await CloudAPI.sendMessage(this._text);
+        data = await CloudAPI.sendMessage(sentText);
       }
 
       useCloudStore.getState().setUploadProgress(100);
 
       if (data.state === 200) {
-        this.setPassword(data.data.password);
-        if (hasText) this.addToTextHistory(this._text);
+        const password = data.data.password;
+        this.setPassword(password);
+        if (hasText) {
+          try {
+            this.addToTextHistory(sentText);
+          } catch (error) {
+            // The server already accepted the content; local history is best-effort.
+            console.error('保存文本历史失败:', error);
+            this._message?.warning('发送成功，但本地历史记录未能保存');
+          }
+        }
         useCloudStore.getState().setShowContentInfo(true);
         useCloudStore.getState().clearFiles();
         useCloudStore.getState().setQueryFiles([]);
 
-        this._message?.success('发送成功，请及时分享密码');
+        // Start copying before moving focus, and keep its result independent of sending.
+        void copyShareCode(password).catch(() => false).then((copied) => {
+          if (copied) {
+            this._message?.success('发送成功，分享码已复制');
+          } else {
+            this._message?.warning('发送成功，分享码未能自动复制，请点击“复制密码”');
+          }
+        });
+        useCloudStore.getState().markSendSuccess();
       } else {
         this._message?.error(data.message || '发送失败');
       }
@@ -282,10 +301,14 @@ export class NeonCloud {
   /**
    * 处理复制密码
    */
-  public handleCopyPassword(): void {
+  public async handleCopyPassword(): Promise<void> {
     if (!this._password) return;
-    navigator.clipboard.writeText(this._password);
-    this._message?.success('密码已复制');
+    const copied = await copyShareCode(this._password).catch(() => false);
+    if (copied) {
+      this._message?.success('密码已复制');
+    } else {
+      this._message?.warning('复制失败，请选择密码后手动复制');
+    }
   }
 
   /**

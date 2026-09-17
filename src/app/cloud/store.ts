@@ -50,6 +50,7 @@ interface CloudStore {
 
   // ===== 分享相关 =====
   shareLink: string;
+  sendSuccessVersion: number;
 
   // ===== Actions =====
   setText: (text: string) => void;
@@ -69,6 +70,7 @@ interface CloudStore {
   setJsonObject: (obj: any) => void;
   setQueryFiles: (files: CloudFileInfo[]) => void;
   setShareLink: (link: string) => void;
+  markSendSuccess: () => void;
   setIsSending: (sending: boolean) => void;
   setUploadProgress: (progress: number) => void;
   reset: () => void;
@@ -92,6 +94,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   isSending: false,
   uploadProgress: 0,
   shareLink: '',
+  sendSuccessVersion: 0,
 
   // ===== Actions =====
   setText: (text) => set({ text }),
@@ -111,6 +114,7 @@ export const useCloudStore = create<CloudStore>((set, get) => ({
   setJsonObject: (obj) => set({ jsonObject: obj }),
   setQueryFiles: (queryFiles) => set({ queryFiles }),
   setShareLink: (link) => set({ shareLink: link }),
+  markSendSuccess: () => set((state) => ({ sendSuccessVersion: state.sendSuccessVersion + 1 })),
   setIsSending: (sending) => set({ isSending: sending }),
   setUploadProgress: (progress) => set({ uploadProgress: progress }),
   reset: () =>

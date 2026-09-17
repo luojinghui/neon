@@ -1,0 +1,25 @@
+.wrapper {
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: auto;
+  scrollbar-width: none;
+  /* Native text stays visible, so input, selection and theme styling are untouched. */
+  color: transparent;
+  pointer-events: none;
+}
+
+.overlay::-webkit-scrollbar {
+  display: none;
+}
+
+.overlay a {
+  pointer-events: auto;
+}
+
+.editing a {
+  pointer-events: none;
+}

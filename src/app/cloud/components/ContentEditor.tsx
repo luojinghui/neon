@@ -20,8 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useCloudStore, FileItem } from '../store';
 import { neonCloud } from '../core';
-
-const { TextArea } = Input;
+import LinkTextArea from './LinkTextArea';
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -114,7 +113,7 @@ export default function ContentEditor() {
         onDragLeave={(e) => neonCloud.handleDragLeave(e)}
         onDrop={(e) => neonCloud.handleDrop(e)}
       >
-        <TextArea autoSize={{ minRows: 10, maxRows: 24 }} showCount className="trans-input w-full" allowClear onChange={(e) => neonCloud.handleTextChange(e)} value={text} />
+        <LinkTextArea autoSize={{ minRows: 10, maxRows: 24 }} showCount className="trans-input w-full" allowClear onChange={(e) => neonCloud.handleTextChange(e)} value={text} />
 
         {/* 拖拽覆盖层 */}
         {isDragging && (

@@ -27,7 +27,7 @@ export default function ContentInfo() {
         <div className="flex items-center bg-background-secondary p-2 rounded-lg">
           <div className="flex-1 flex items-center space-x-2">
             <span className="text-foreground-muted w-[50px]">密码：</span>
-            <span className="text-lg font-medium text-foreground">{password}</span>
+            <span className="select-text text-lg font-medium text-foreground">{password}</span>
             <Button type="text" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyPassword()} className="text-foreground-secondary hover:bg-background-tertiary">
               复制密码
             </Button>
