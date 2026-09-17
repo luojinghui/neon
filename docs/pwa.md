@@ -26,6 +26,11 @@ node scripts/generate-pwa-icons.cjs
 180px Apple 主屏图标、32px favicon 和包含 16/32/48px 图层的 ICO。
 产物随代码发布，浏览器不需要运行时生成图标。
 
+图标使用浅奶油色背景（`#fff1df`）、橙色星球和陶土色星环，保证小尺寸下的辨识度。
+修改背景时需同步两份 SVG 的背景与遮挡描边，以及生成脚本中的不透明填充色。
+替换图标后递增 `src/lib/pwa.ts` 中的 `PWA_ICON_VERSION`，让 manifest 和页面图标链接
+统一更新资源版本。
+
 ## 验收
 
 1. 运行 `pnpm lint` 和 `pnpm build`；用 HTTPS 站点或 localhost 验证安装。

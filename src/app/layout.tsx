@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { cn } from '@/utils/cn';
 import { Suspense } from 'react';
 import ClientThemeWrapper from '../components/theme/theme-wrapper';
-import { PWA_NAME, PWA_THEME_COLORS } from '@/lib/pwa';
+import { PWA_ICON_VERSION, PWA_NAME, PWA_THEME_COLORS } from '@/lib/pwa';
 import '@/styles/index.css';
 
 export const metadata: Metadata = {
@@ -17,11 +17,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
-      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/soul.svg', sizes: 'any', type: 'image/svg+xml' }
+      { url: `/favicon.ico?v=${PWA_ICON_VERSION}`, sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
+      { url: `/icons/favicon-32.png?v=${PWA_ICON_VERSION}`, sizes: '32x32', type: 'image/png' },
+      { url: `/icons/soul.svg?v=${PWA_ICON_VERSION}`, sizes: 'any', type: 'image/svg+xml' }
     ],
-    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }]
+    apple: [{ url: `/icons/apple-touch-icon.png?v=${PWA_ICON_VERSION}`, sizes: '180x180', type: 'image/png' }]
   }
 };
 

@@ -14,7 +14,7 @@ const iconDir = path.join(publicDir, 'icons');
 
 async function render(source, size, opaque = false) {
   let pipeline = sharp(source, { density: 288 }).resize(size, size);
-  if (opaque) pipeline = pipeline.flatten({ background: '#30221c' });
+  if (opaque) pipeline = pipeline.flatten({ background: '#fff1df' });
   return pipeline.png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
 }
 

@@ -5,3 +5,6 @@ export const PWA_THEME_COLORS = {
 } as const;
 
 export const PWA_NAME = 'Soul星球';
+
+// Bump when replacing icon artwork so browsers request the new assets.
+export const PWA_ICON_VERSION = '2';
