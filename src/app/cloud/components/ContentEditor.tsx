@@ -113,7 +113,7 @@ export default function ContentEditor() {
         onDragLeave={(e) => neonCloud.handleDragLeave(e)}
         onDrop={(e) => neonCloud.handleDrop(e)}
       >
-        <LinkTextArea autoSize={{ minRows: 10, maxRows: 24 }} showCount className="trans-input w-full" allowClear onChange={(e) => neonCloud.handleTextChange(e)} value={text} />
+        <LinkTextArea autoSize={{ minRows: 10, maxRows: 22 }} spellCheck={false} showCount className="trans-input w-full" allowClear onChange={(e) => neonCloud.handleTextChange(e)} value={text} />
 
         {/* 拖拽覆盖层 */}
         {isDragging && (
