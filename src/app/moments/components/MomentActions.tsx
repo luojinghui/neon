@@ -7,7 +7,7 @@ import type { Moment } from '../types';
 import { MomentCommentSheet } from './MomentCommentSheet';
 import './moment-actions.css';
 
-export function MomentActions({ moment }: { moment: Moment }) {
+export function MomentActions({ moment, appearance }: { moment: Moment; appearance?: 'journal' }) {
   const [reaction, setReaction] = useState({ liked: moment.liked ?? false, likeCount: moment.likeCount ?? 0 });
   const [commentCount, setCommentCount] = useState(moment.commentCount);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -64,7 +64,7 @@ export function MomentActions({ moment }: { moment: Moment }) {
         </button>
       </footer>
       {error && <p className="moment-action-error" role="alert">{error}，点击爱心重试。</p>}
-      <MomentCommentSheet open={commentsOpen} moment={moment} onClose={() => setCommentsOpen(false)} onCountChange={setCommentCount} />
+      <MomentCommentSheet appearance={appearance} open={commentsOpen} moment={moment} onClose={() => setCommentsOpen(false)} onCountChange={setCommentCount} />
     </>
   );
 }

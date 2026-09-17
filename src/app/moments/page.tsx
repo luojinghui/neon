@@ -1,6 +1,6 @@
 'use client';
 
-import { LoadingOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ArrowDownOutlined, EditOutlined, LoadingOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -10,6 +10,7 @@ import { MomentCard } from './components/MomentCard';
 import { MomentComposer } from './components/MomentComposer';
 import type { Moment } from './types';
 import './moments.css';
+import './moments-journal.css';
 
 export default function MomentsPage() {
   const [items, setItems] = useState<Moment[]>([]);
@@ -74,8 +75,9 @@ export default function MomentsPage() {
   };
 
   return (
-    <div className="app-screen flex w-full flex-col overflow-hidden bg-background">
+    <div className="moments-screen app-screen flex w-full flex-col overflow-hidden bg-background">
       <TopBar
+        className="moment-topbar"
         middle="心迹"
         backHref="/"
         backLabel="首页"
@@ -87,25 +89,31 @@ export default function MomentsPage() {
         }
       />
 
-      <main ref={scrollRef} className="chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-20">
+      <main ref={scrollRef} className="moment-scroll-area chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="moment-page-layout">
+          <header className="moment-journal-intro">
+            <div>
+              <p className="moment-journal-eyebrow">日常 · 心情 · 片刻</p>
+              <h1>让此刻，留下回响。</h1>
+              <p className="moment-journal-description">用文字、照片和声音，收藏生活里的微光。</p>
+            </div>
+            <button type="button" className="moment-primary-button" onClick={() => setComposerOpen(true)}><EditOutlined />发布心迹</button>
+          </header>
+
           <section aria-label="心迹时间流" aria-busy={loading}>
             <div className="moment-page-heading">
-              <div className="flex min-w-0 items-baseline gap-3">
-                <h1>最新心迹</h1>
-                <span className="text-xs text-foreground-muted">{loading && items.length === 0 ? '加载中…' : `${total} 条`}</span>
+              <div className="moment-feed-label">
+                <h2>最新心迹</h2>
+                <span>{loading && items.length === 0 ? '加载中…' : `${total} 条`}</span>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button type="button" className="moment-icon-button" onClick={() => void load()} disabled={loading || loadingMore} aria-label="刷新心迹" title="刷新心迹">
-                  {loading ? <LoadingOutlined /> : <ReloadOutlined />}
-                </button>
-                <button type="button" className="moment-primary-button" onClick={() => setComposerOpen(true)}><PlusOutlined />发布心迹</button>
-              </div>
+              <button type="button" className="moment-refresh-button" onClick={() => void load()} disabled={loading || loadingMore} aria-label="刷新心迹">
+                {loading ? <LoadingOutlined /> : <ReloadOutlined />}<span>刷新</span>
+              </button>
             </div>
 
             {loading && items.length === 0 ? (
               <div className="moment-feed-grid" aria-label="正在加载心迹">
-                {[0, 1, 2, 3].map((index) => <div key={index} className="moment-card-skeleton"><div /><div /><div /></div>)}
+                {[0, 1, 2].map((index) => <div key={index} className="moment-card-skeleton" aria-hidden="true"><div /><div /><div /></div>)}
               </div>
             ) : error && items.length === 0 ? (
               <div className="moment-empty-state" role="alert">
@@ -115,8 +123,9 @@ export default function MomentsPage() {
               </div>
             ) : items.length === 0 ? (
               <div className="moment-empty-state">
+                <EditOutlined className="moment-empty-icon" aria-hidden="true" />
                 <span>还没有心迹</span>
-                <p>记录此刻的文字、照片或声音。</p>
+                <p>平凡的日常，也有值得留下的片刻。</p>
                 <button type="button" onClick={() => setComposerOpen(true)}><PlusOutlined />发布心迹</button>
               </div>
             ) : (
@@ -131,14 +140,15 @@ export default function MomentsPage() {
             )}
 
             {items.length > 0 && hasMore && (
-              <button type="button" className="moment-load-more" onClick={() => void loadMore()} disabled={loading || loadingMore}>{loadingMore && <LoadingOutlined />}{loadingMore ? '加载中…' : '查看更多心迹'}</button>
+              <button type="button" className="moment-load-more" onClick={() => void loadMore()} disabled={loading || loadingMore}>{loadingMore ? <LoadingOutlined /> : <ArrowDownOutlined />}{loadingMore ? '加载中…' : '查看更多心迹'}</button>
             )}
+            {items.length > 0 && !hasMore && !loading && !error && <p className="moment-feed-end">此刻的心迹，都在这里了</p>}
             {error && items.length > 0 && <p className="moment-inline-error mt-4" role="alert">{error}</p>}
           </section>
         </div>
       </main>
 
-      <MomentComposer open={composerOpen} onClose={() => setComposerOpen(false)} onPublished={(moment) => {
+      <MomentComposer appearance="journal" open={composerOpen} onClose={() => setComposerOpen(false)} onPublished={(moment) => {
         setItems((current) => [moment, ...current.filter((item) => item.id !== moment.id)]);
         setTotal((value) => value + 1);
         scrollRef.current?.scrollTo({ top: 0 });

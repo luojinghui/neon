@@ -57,7 +57,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
             <Link href={createProfileHref(moment.author.userId, { returnTo: '/moments' })} className="block truncate text-sm font-semibold text-foreground hover:text-primary">
               {moment.author.name}
             </Link>
-            <div className="mt-0.5 truncate text-xs text-foreground-muted">@{moment.author.userId} · {formatMomentTime(moment.createdAt)}</div>
+            <div className="moment-card-byline"><span>@{moment.author.userId}</span><span aria-hidden="true">·</span><time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
           </div>
         </div>
         {moment.canDelete && (
@@ -67,14 +67,16 @@ export function MomentCard({ moment, onDeleted }: Props) {
         )}
       </header>
 
-      {moment.text && <p className="moment-card-text">{moment.text}</p>}
-      <MomentMediaView media={moment.media} />
-      {moment.voice && <div className="px-4 pb-3 pt-1 sm:px-5"><MomentVoicePlayer voice={moment.voice} /></div>}
+      <div className="moment-entry-content">
+        {moment.text && <p className="moment-card-text">{moment.text}</p>}
+        <MomentMediaView media={moment.media} />
+        {moment.voice && <div className="moment-card-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
 
-      {moment.location && <div className="moment-card-meta"><span><EnvironmentOutlined /> {moment.location.label}</span></div>}
+        {moment.location && <div className="moment-card-meta"><span><EnvironmentOutlined /> {moment.location.label}</span></div>}
 
-      <MomentActions key={moment.id} moment={moment} />
-      {error && <p className="moment-inline-error mx-4 mb-4" role="alert">{error}</p>}
+        <MomentActions key={moment.id} moment={moment} appearance="journal" />
+        {error && <p className="moment-inline-error" role="alert">{error}</p>}
+      </div>
     </article>
   );
 }

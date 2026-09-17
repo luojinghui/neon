@@ -7,13 +7,14 @@ import { MomentComments } from './MomentComments';
 import './moment-comment-sheet.css';
 
 type Props = {
+  appearance?: 'journal';
   open: boolean;
   moment: Moment;
   onClose: () => void;
   onCountChange: (count: number) => void;
 };
 
-export function MomentCommentSheet({ open, moment, onClose, onCountChange }: Props) {
+export function MomentCommentSheet({ open, moment, onClose, onCountChange, appearance }: Props) {
   const [hasOpened, setHasOpened] = useState(open);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export function MomentCommentSheet({ open, moment, onClose, onCountChange }: Pro
       placement="bottom"
       size="min(78dvh, 760px)"
       title="评论"
-      rootClassName="moment-comment-sheet"
+      rootClassName={`moment-comment-sheet${appearance === 'journal' ? ' moment-journal-comments' : ''}`}
       classNames={{ wrapper: 'moment-comment-sheet-wrapper', section: 'moment-comment-sheet-section', body: 'moment-comment-sheet-body' }}
       closable={{ placement: 'end' }}
       mask={{ closable: true }}

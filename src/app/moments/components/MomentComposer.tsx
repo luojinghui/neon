@@ -9,6 +9,7 @@ import type { Moment, MomentLocation } from '../types';
 import { MomentVoicePlayer } from './MomentVoice';
 
 type Props = {
+  appearance?: 'journal';
   open: boolean;
   onClose: () => void;
   onPublished: (moment: Moment) => void;
@@ -39,7 +40,7 @@ function useObjectUrl(file: File | null) {
   return url;
 }
 
-export function MomentComposer({ open, onClose, onPublished }: Props) {
+export function MomentComposer({ open, onClose, onPublished, appearance }: Props) {
   const [text, setText] = useState('');
   const [media, setMedia] = useState<File[]>([]);
   const [voice, setVoice] = useState<File | null>(null);
@@ -246,7 +247,7 @@ export function MomentComposer({ open, onClose, onPublished }: Props) {
   };
 
   return (
-    <Modal open={open} onCancel={close} footer={null} centered destroyOnHidden width={700} title={null} mask={{ closable: !saving }} keyboard={!saving}>
+    <Modal open={open} onCancel={close} footer={null} centered destroyOnHidden width={700} title={null} mask={{ closable: !saving }} keyboard={!saving} rootClassName={appearance === 'journal' ? 'moment-journal-composer' : undefined}>
       <div className="moment-composer">
         <header className="moment-composer-head">
           <button type="button" onClick={close} disabled={saving}>取消</button>
