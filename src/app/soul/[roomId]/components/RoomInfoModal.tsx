@@ -67,6 +67,11 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
   const [managementLoading, setManagementLoading] = useState(false);
   const [managementError, setManagementError] = useState('');
   const [actingId, setActingId] = useState('');
+  const [passwordEditing, setPasswordEditing] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordNotice, setPasswordNotice] = useState('');
 
   const loadManagement = useCallback(async () => {
     if (!room?.isPrivate || !room.isCreator) return;
@@ -89,6 +94,42 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
     setManagementError('');
     void loadManagement();
   }, [loadManagement, open, room?.id, room?.pendingRequestCount]);
+
+  useEffect(() => {
+    setPasswordEditing(false);
+    setPassword('');
+    setPasswordError('');
+    setPasswordNotice('');
+  }, [open, room?.id]);
+
+  const savePassword = async (enabled: boolean) => {
+    if (!room?.isCreator || room.isPrivate || passwordSaving) return;
+    if (enabled && !/^[A-Za-z0-9]{2,4}$/.test(password)) {
+      setPasswordError('请输入 2-4 位数字或字母');
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordError('');
+    setPasswordNotice('');
+    try {
+      await soulChat.updateRoom({
+        roomId: room.id,
+        name: room.name,
+        description: room.description,
+        tags: room.tags,
+        isPrivate: room.isPrivate,
+        passwordEnabled: enabled,
+        password: enabled ? password : ''
+      });
+      setPasswordEditing(false);
+      setPassword('');
+      setPasswordNotice(enabled ? '密码已保存，其他用户下次进入时需验证新密码。' : '密码已撤销，其他用户可直接进入。');
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : '密码设置失败，请重试');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   const buildShareUrl = () => {
     if (!room) return '';
@@ -176,9 +217,62 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
 
           <dl className="mt-5 rounded-xl bg-background-secondary px-4 py-2 text-sm">
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">可见范围</dt><dd className="font-medium text-foreground">{room.isPrivate ? '私密星球' : '公开星球'}</dd></div>
+            {!room.isPrivate && <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">进入密码</dt><dd className="font-medium text-foreground">{room.hasPassword ? '已设置' : '未设置'}</dd></div>}
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建人</dt><dd className="font-medium text-foreground">{room.owner.name}{room.owner.userId ? ` @${room.owner.userId}` : ''}</dd></div>
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建时间</dt><dd className="font-medium text-foreground">{formatCreatedAt(room.createdAt)}</dd></div>
           </dl>
+
+          {!room.isPrivate && room.isCreator && (
+            <section className="mt-6 border-t border-border pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">管理进入密码</h3>
+                  <p className="mt-1 text-xs text-foreground-muted">创建者和超管无需密码；修改密码后，其他用户需重新验证。</p>
+                </div>
+                {!passwordEditing && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={passwordSaving}
+                      onClick={() => { setPasswordEditing(true); setPassword(''); setPasswordError(''); setPasswordNotice(''); }}
+                      className="rounded-lg bg-primary-soft px-3 py-1.5 text-xs font-medium text-primary disabled:opacity-50"
+                    >
+                      {room.hasPassword ? '修改密码' : '设置密码'}
+                    </button>
+                    {room.hasPassword && (
+                      <Popconfirm title="撤销进入密码？" description="撤销后，其他用户可直接进入该公开星球。" okText="撤销密码" cancelText="取消" okButtonProps={{ danger: true, loading: passwordSaving }} onConfirm={() => savePassword(false)}>
+                        <button type="button" disabled={passwordSaving} className="rounded-lg bg-danger-soft px-3 py-1.5 text-xs font-medium text-danger disabled:opacity-50">撤销密码</button>
+                      </Popconfirm>
+                    )}
+                  </div>
+                )}
+              </div>
+              {passwordEditing && (
+                <form className="mt-4" onSubmit={(event) => { event.preventDefault(); void savePassword(true); }}>
+                  <label htmlFor="room-info-password" className="mb-1.5 block text-sm font-medium text-foreground">{room.hasPassword ? '新密码' : '进入密码'}</label>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      id="room-info-password"
+                      type="password"
+                      value={password}
+                      minLength={2}
+                      maxLength={4}
+                      required
+                      autoComplete="new-password"
+                      disabled={passwordSaving}
+                      onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                      placeholder="输入 2-4 位数字或字母"
+                      className="min-w-0 flex-1 rounded-xl border border-border bg-input px-3.5 py-2 text-sm text-input-foreground outline-none placeholder:text-input-placeholder focus:border-border-focus focus:ring-2 focus:ring-ring/10 disabled:opacity-50"
+                    />
+                    <button type="submit" disabled={passwordSaving || !/^[A-Za-z0-9]{2,4}$/.test(password)} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{passwordSaving ? '保存中...' : '保存密码'}</button>
+                    <button type="button" disabled={passwordSaving} onClick={() => { setPasswordEditing(false); setPassword(''); setPasswordError(''); }} className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-active disabled:opacity-50">取消</button>
+                  </div>
+                </form>
+              )}
+              {passwordError && <p role="alert" className="mt-3 text-xs text-danger">{passwordError}</p>}
+              {passwordNotice && <p role="status" className="mt-3 text-xs text-success">{passwordNotice}</p>}
+            </section>
+          )}
 
           {room.isPrivate && room.isCreator && (
             <section className="mt-6 border-t border-border pt-5">

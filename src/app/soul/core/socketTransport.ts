@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
+import { subscribeAdminSessionChanges } from '../../admin/sessionEvents';
 import type {
   ChatRoom,
   ChatUser,
@@ -31,11 +32,16 @@ export class SocketChatError extends Error {
 
 export class SocketChatTransport {
   private socket: Socket | null = null;
+  private unsubscribeAdminSession: Unsubscribe | null = null;
 
   public connect(user: ChatUser): Promise<void> {
     if (this.socket?.connected) return Promise.resolve();
     if (!this.socket) {
       this.socket = io({ path: '/im', autoConnect: false, transports: ['websocket', 'polling'], auth: { user } });
+      this.unsubscribeAdminSession = subscribeAdminSessionChanges(() => {
+        // A new handshake reads the latest HttpOnly admin cookie after login/logout.
+        this.socket?.disconnect().connect();
+      });
     } else {
       this.socket.auth = { user };
     }
@@ -67,6 +73,8 @@ export class SocketChatTransport {
   }
 
   public disconnect(): void {
+    this.unsubscribeAdminSession?.();
+    this.unsubscribeAdminSession = null;
     this.socket?.disconnect();
     this.socket = null;
   }

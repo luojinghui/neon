@@ -139,6 +139,7 @@ export class SoulChat {
     if (!normalized.name) throw new Error('请输入星球名');
     this.validatePassword(normalized.passwordEnabled, normalized.password, true);
     const room = await this.transport.updateRoom(normalized);
+    if (this.mode === 'room' && this.roomId === room.id) useSoulStore.getState().setRoom(room);
     await this.loadRooms(true);
     return room;
   }
@@ -467,6 +468,7 @@ export class SoulChat {
     if (!this.user) return;
     const result = await this.transport.joinRoom(roomId, this.roomPassword, this.inviteToken);
     if (this.mode !== 'room' || this.roomId !== roomId) return;
+    this.roomPassword = '';
     const store = useSoulStore.getState();
     store.setRoom(result.room);
     store.setMessages(this.toClientMessages(result.messages));

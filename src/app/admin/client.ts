@@ -1,5 +1,7 @@
 'use client';
 
+import { notifyAdminSessionChanged } from './sessionEvents';
+
 export class AdminApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code = '') {
     super(message);
@@ -20,6 +22,9 @@ export async function adminRequest<T>(path: string, init: RequestInit = {}): Pro
       // Keep the generic fallback for non-JSON proxy errors.
     }
     throw new AdminApiError(result.error || '管理请求失败，请稍后重试', response.status, result.code || '');
+  }
+  if ((path === '/login' && init.method === 'POST') || (path === '/session' && init.method === 'DELETE')) {
+    notifyAdminSessionChanged();
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;

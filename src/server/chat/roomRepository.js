@@ -69,6 +69,7 @@ class RoomRepository {
     this.rooms = new Map(DEFAULT_ROOMS.map((room) => [room.id, room]));
     this.messages = new Map(DEFAULT_ROOMS.map((room) => [room.id, DEFAULT_MESSAGES.filter((message) => message.roomId === room.id)]));
     this.roomAccess = new Map();
+    this.passwordAccess = new Map();
     this.gameActivity = new Map();
     this.writeQueue = Promise.resolve();
     this.cleanupQueue = Promise.resolve();
@@ -162,6 +163,23 @@ class RoomRepository {
         }
         if (JSON.stringify(record) !== JSON.stringify(storedAccess)) migrated = true;
         this.roomAccess.set(this.accessKey(record.roomId, record.requesterId), record);
+      }
+      for (const record of Array.isArray(data.passwordAccess) ? data.passwordAccess : []) {
+        const room = this.rooms.get(record?.roomId);
+        if (
+          !room || room.isPrivate || !room.passwordHash || !room.passwordSalt ||
+          typeof record?.requesterId !== 'string' || !record.requesterId ||
+          record.passwordVersion !== room.passwordSalt ||
+          (this.resolveProfile && !this.resolveAccessProfile(record))
+        ) {
+          migrated = true;
+          continue;
+        }
+        this.passwordAccess.set(this.accessKey(record.roomId, record.requesterId), {
+          roomId: room.id,
+          requesterId: record.requesterId,
+          passwordVersion: room.passwordSalt
+        });
       }
       for (const message of storedMessages) {
         if (!message || !this.rooms.has(message.roomId)) {
@@ -268,6 +286,7 @@ class RoomRepository {
     if (updated.isPrivate && !wasPrivate) updated.inviteToken = this.generateInviteToken();
     if (!updated.isPrivate) delete updated.inviteToken;
     this.applyPassword(updated, !updated.isPrivate && input.passwordEnabled === true, input.password);
+    if (room.passwordSalt !== updated.passwordSalt) this.deletePasswordAccessRecords(room.id);
     if (wasPrivate !== updated.isPrivate) this.deleteRoomAccessRecords(room.id);
     this.rooms.set(room.id, updated);
     this.persist();
@@ -290,6 +309,7 @@ class RoomRepository {
     this.rooms.delete(room.id);
     this.messages.delete(room.id);
     this.deleteRoomAccessRecords(room.id);
+    this.deletePasswordAccessRecords(room.id);
     this.persist();
     return room;
   }
@@ -313,14 +333,22 @@ class RoomRepository {
       }
       return room;
     }
-    if (options.isAdmin === true) return room;
+    if (options.isAdmin === true || room.ownerId === options.user?.id) return room;
     if (!room.passwordHash || !room.passwordSalt) return room;
+    const requesterId = options.user?.id;
+    const accessKey = requesterId ? this.accessKey(room.id, requesterId) : '';
+    if (accessKey && this.passwordAccess.get(accessKey)?.passwordVersion === room.passwordSalt) return room;
     if (!password) throw new RoomRepositoryError('请输入星球密码', 'ROOM_PASSWORD_REQUIRED');
     if (!PASSWORD_PATTERN.test(password)) throw new RoomRepositoryError('密码必须是 2-4 位数字或字母', 'ROOM_PASSWORD_INVALID');
     const actual = scryptSync(password, room.passwordSalt, 32);
     const expected = Buffer.from(room.passwordHash, 'hex');
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
       throw new RoomRepositoryError('星球密码错误', 'ROOM_PASSWORD_INVALID');
+    }
+    if (accessKey) {
+      // Remember verification for this identity and password version, never the password itself.
+      this.passwordAccess.set(accessKey, { roomId: room.id, requesterId, passwordVersion: room.passwordSalt });
+      this.persist();
     }
     return room;
   }
@@ -982,6 +1010,12 @@ class RoomRepository {
         deletedAccessCount += 1;
       }
     }
+    for (const [key, record] of this.passwordAccess) {
+      if (ownerId && record.requesterId === ownerId) {
+        this.passwordAccess.delete(key);
+        deletedAccessCount += 1;
+      }
+    }
     if (deletedRooms.length > 0 || deletedMessages.length > 0 || deletedAccessCount > 0) this.persist();
     return { deletedRooms, deletedMessages: deletedMessages.map((message) => this.toPublicMessage(message)), deletedAccessCount };
   }
@@ -1064,6 +1098,12 @@ class RoomRepository {
   deleteRoomAccessRecords(roomId) {
     for (const [key, record] of this.roomAccess) {
       if (record.roomId === roomId) this.roomAccess.delete(key);
+    }
+  }
+
+  deletePasswordAccessRecords(roomId) {
+    for (const [key, record] of this.passwordAccess) {
+      if (record.roomId === roomId) this.passwordAccess.delete(key);
     }
   }
 
@@ -1284,7 +1324,8 @@ class RoomRepository {
         version: CHAT_DATA_VERSION,
         rooms: this.sortRooms([...this.rooms.values()]),
         messages: [...this.messages.values()].flat(),
-        roomAccess: [...this.roomAccess.values()]
+        roomAccess: [...this.roomAccess.values()],
+        passwordAccess: [...this.passwordAccess.values()]
       },
       null,
       2

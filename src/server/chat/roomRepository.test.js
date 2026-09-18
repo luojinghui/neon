@@ -393,6 +393,76 @@ test('super admin can inspect private rooms, bypass public passwords and manage 
   }
 });
 
+test('password verification persists per identity and is invalidated by password changes', async () => {
+  const fixture = createFixture();
+  try {
+    const input = { name: '密码授权', description: '', tags: [], isPrivate: false, passwordEnabled: true, password: 'A12' };
+    const room = fixture.repository.createRoom(input, fixture.owner);
+    const anotherRoom = fixture.repository.createRoom(input, fixture.owner);
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.owner }).id, room.id);
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor, isAdmin: true }).id, room.id);
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }), { code: 'ROOM_PASSWORD_REQUIRED' });
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, 'BAD', { user: fixture.visitor }), { code: 'ROOM_PASSWORD_INVALID' });
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+
+    fixture.repository.verifyRoomAccess(room.id, 'A12', { user: fixture.visitor });
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { user: { ...fixture.visitor, userId: 'Renamed' } }).id, room.id);
+    assert.throws(() => fixture.repository.verifyRoomAccess(anotherRoom.id, '', { user: fixture.visitor }), { code: 'ROOM_PASSWORD_REQUIRED' });
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, '', { user: { ...fixture.visitor, id: 'guest-other' } }), { code: 'ROOM_PASSWORD_REQUIRED' });
+    await fixture.repository.writeQueue;
+    fixture.repository = new RoomRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.uploadDirectory });
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }).id, room.id);
+
+    fixture.repository.updateRoom(room.id, { ...input, name: '只修改名称', password: '' }, fixture.owner);
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }).id, room.id);
+    fixture.repository.updateRoom(room.id, { ...input, password: 'B34' }, fixture.owner);
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }), { code: 'ROOM_PASSWORD_REQUIRED' });
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, 'A12', { user: fixture.visitor }), { code: 'ROOM_PASSWORD_INVALID' });
+    fixture.repository.verifyRoomAccess(room.id, 'B34', { user: fixture.visitor });
+    fixture.repository.updateRoom(room.id, { ...input, passwordEnabled: false }, fixture.owner);
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+    assert.equal(fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }).id, room.id);
+    fixture.repository.updateRoom(room.id, input, fixture.owner);
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }), { code: 'ROOM_PASSWORD_REQUIRED' });
+    fixture.repository.verifyRoomAccess(room.id, 'A12', { user: fixture.visitor });
+    fixture.repository.updateRoom(room.id, { ...input, isPrivate: true }, fixture.owner);
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, '', { user: fixture.visitor }), { code: 'ROOM_ACCESS_REQUIRED' });
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
+test('stale password grants are discarded on load and room or profile deletion clears grants', async () => {
+  const fixture = createFixture();
+  try {
+    const input = { name: '授权清理', description: '', tags: [], isPrivate: false, passwordEnabled: true, password: 'A12' };
+    const room = fixture.repository.createRoom(input, fixture.owner);
+    const uuid = '11111111-1111-4111-8111-111111111111';
+    const visitor = { ...fixture.visitor, id: `guest-${uuid}` };
+    fixture.repository.verifyRoomAccess(room.id, 'A12', { user: visitor });
+    await fixture.repository.writeQueue;
+    const snapshot = JSON.parse(fs.readFileSync(fixture.repository.dataFile, 'utf8'));
+    snapshot.passwordAccess[0].passwordVersion = 'old-password-version';
+    fs.writeFileSync(fixture.repository.dataFile, JSON.stringify(snapshot));
+    fixture.repository = new RoomRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.uploadDirectory });
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+    assert.throws(() => fixture.repository.verifyRoomAccess(room.id, '', { user: visitor }), { code: 'ROOM_PASSWORD_REQUIRED' });
+
+    fixture.repository.verifyRoomAccess(room.id, 'A12', { user: visitor });
+    fixture.repository.deleteUserData({ uuid, userId: visitor.userId, publicKey: visitor.publicKey });
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+    fixture.repository.verifyRoomAccess(room.id, 'A12', { user: visitor });
+    fixture.repository.deleteRoom(room.id, fixture.owner);
+    assert.equal(fixture.repository.passwordAccess.size, 0);
+    await fixture.repository.writeQueue;
+    assert.deepEqual(JSON.parse(fs.readFileSync(fixture.repository.dataFile, 'utf8')).passwordAccess, []);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test('only the creator can update or delete a room', async () => {
   const fixture = createFixture();
   try {
