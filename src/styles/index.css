@@ -167,6 +167,8 @@
 
   html {
     @apply bg-background;
+    /* Allow scrolling while preventing browser page-zoom gestures. */
+    touch-action: pan-x pan-y;
   }
 
   body {
