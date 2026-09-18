@@ -168,7 +168,7 @@ export class NeonCloud {
           if (copied) {
             this._message?.success('发送成功，分享码已复制');
           } else {
-            this._message?.warning('发送成功，分享码未能自动复制，请点击“复制密码”');
+            this._message?.warning('发送成功，分享码未能自动复制，请点击提取密码旁的复制图标');
           }
         });
         useCloudStore.getState().markSendSuccess();

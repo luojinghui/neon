@@ -1,8 +1,7 @@
 /**
- * 文件信息卡片组件（仅用于文件回显/下载）
+ * 文件信息（仅用于文件回显/下载）
  */
 
-import { Card } from 'antd';
 import { DownloadOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useCloudStore } from '../store';
 import { CloudAPI, CloudFileInfo } from '@/action';
@@ -24,14 +23,16 @@ function QueryFileItem({ file }: { file: CloudFileInfo }) {
   };
 
   return (
-    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background-tertiary group max-w-full">
-      <PaperClipOutlined className="text-foreground-muted text-xs shrink-0" />
-      <span className="text-sm text-foreground truncate max-w-[340px]" title={file.relativePath || file.fileName}>
-        {file.relativePath || file.fileName}
-      </span>
-      <span className="text-xs text-foreground-muted shrink-0">{formatFileSize(file.fileSize)}</span>
-      <button type="button" onClick={handleDownload} className="inline-flex items-center justify-center text-primary hover:text-primary-hover shrink-0" title="下载">
-        <DownloadOutlined className="text-xs" />
+    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-background-secondary/65 px-3 py-2.5">
+      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground-secondary"><PaperClipOutlined /></span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm text-foreground" title={file.relativePath || file.fileName}>
+          {file.relativePath || file.fileName}
+        </p>
+        <p className="mt-0.5 text-xs text-foreground-muted">{formatFileSize(file.fileSize)}</p>
+      </div>
+      <button type="button" onClick={handleDownload} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-primary-soft hover:text-primary-hover shrink-0" aria-label={`下载 ${file.fileName}`} title="下载">
+        <DownloadOutlined />
       </button>
     </div>
   );
@@ -43,24 +44,18 @@ export default function FileInfo() {
   if (!queryFiles || queryFiles.length === 0) return null;
 
   return (
-    <Card
-      title="文件"
-      className="w-full"
-      styles={{
-        body: { padding: '12px' },
-        header: { padding: '8px 12px', minHeight: '40px' }
-      }}
-    >
-      <div className="space-y-2">
+    <section aria-labelledby="cloud-files-heading" className="cloud-panel">
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 id="cloud-files-heading" className="text-base font-semibold text-foreground">文件</h2>
         <span className="text-foreground-muted text-xs">
-          附件（{queryFiles.length} 个文件，共 {formatFileSize(queryFiles.reduce((sum, f) => sum + f.fileSize, 0))}）
+          {queryFiles.length} 个文件 · 共 {formatFileSize(queryFiles.reduce((sum, f) => sum + f.fileSize, 0))}
         </span>
-        <div className="flex flex-wrap gap-2">
-          {queryFiles.map((file) => (
-            <QueryFileItem key={file.fileId} file={file} />
-          ))}
-        </div>
       </div>
-    </Card>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {queryFiles.map((file) => (
+          <QueryFileItem key={file.fileId} file={file} />
+        ))}
+      </div>
+    </section>
   );
 }

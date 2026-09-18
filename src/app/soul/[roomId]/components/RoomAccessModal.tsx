@@ -84,7 +84,7 @@ export function RoomAccessModal({ onBack }: Props) {
           {room?.owner && <p className="mt-2 text-xs text-foreground-muted">创建人：{room.owner.name}{room.owner.userId ? ` @${room.owner.userId}` : ''}</p>}
         </div>
 
-        <div className="mt-4 rounded-lg border border-border px-3 py-3 text-sm text-foreground-secondary">
+        <div className="mt-4 py-2 text-sm text-foreground-secondary">
           {accessState === 'application-pending' ? (
             <span className="inline-flex items-center gap-2"><ClockCircleOutlined className="text-warning" />申请已提交，正在等待创建人或超管处理。</span>
           ) : accessState === 'application-rejected' ? (
@@ -135,7 +135,7 @@ export function RoomAccessModal({ onBack }: Props) {
           maxLength={4}
           onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
           placeholder="输入 2-4 位数字或字母"
-          className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+          className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10"
         />
         {(localError || accessError) && <p className="mt-2 text-xs text-danger">{localError || accessError}</p>}
         <div className="mt-5 flex justify-end gap-2">

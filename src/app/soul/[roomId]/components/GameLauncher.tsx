@@ -21,7 +21,7 @@ export function GameChoicePicker({ value, onChange, disabled = false }: { value:
   return (
     <div className="grid grid-cols-3 gap-2" role="group" aria-label="选择猜拳手势">
       {GAME_CHOICES.map((choice) => (
-        <button key={choice.value} type="button" aria-pressed={value === choice.value} onClick={() => onChange(choice.value)} disabled={disabled} className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 ${value === choice.value ? 'border-primary bg-primary-soft text-primary' : 'border-border bg-surface text-foreground-secondary hover:border-border-hover hover:bg-surface-hover'}`}>
+        <button key={choice.value} type="button" aria-pressed={value === choice.value} onClick={() => onChange(choice.value)} disabled={disabled} className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 ${value === choice.value ? 'border-primary bg-primary-soft text-primary' : 'border-transparent bg-background-secondary text-foreground-secondary hover:bg-surface-hover'}`}>
           <span className="text-2xl leading-none" aria-hidden="true">{choice.emoji}</span>
           <span>{choice.label}</span>
         </button>
@@ -83,10 +83,10 @@ export function GameSetupModal({ kind, onClose }: { kind: 'rps' | 'draw'; onClos
                 <label htmlFor={wordInputId} className="font-medium">画什么？</label>
                 <span className="text-xs text-foreground-muted">2–12 个字 · 揭晓前保密</span>
               </div>
-              <input id={wordInputId} value={word} onChange={(event) => setWord(Array.from(event.target.value).slice(0, 12).join(''))} disabled={disabled} autoComplete="off" placeholder="输入你的谜底" className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50" />
+              <input id={wordInputId} value={word} onChange={(event) => setWord(Array.from(event.target.value).slice(0, 12).join(''))} disabled={disabled} autoComplete="off" placeholder="输入你的谜底" className="h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50" />
               <div className="flex flex-wrap gap-1.5">
                 {WORDS.map((suggestion) => (
-                  <button key={suggestion} type="button" onClick={() => setWord(suggestion)} disabled={disabled} className={`rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 ${word === suggestion ? 'border-primary/30 bg-primary-soft text-primary' : 'border-border text-foreground-muted hover:border-border-hover hover:bg-surface-hover'}`}>{suggestion}</button>
+                  <button key={suggestion} type="button" onClick={() => setWord(suggestion)} disabled={disabled} className={`rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 ${word === suggestion ? 'border-primary/30 bg-primary-soft text-primary' : 'border-transparent bg-background-secondary text-foreground-muted hover:bg-surface-hover'}`}>{suggestion}</button>
                 ))}
               </div>
             </div>
@@ -96,7 +96,7 @@ export function GameSetupModal({ kind, onClose }: { kind: 'rps' | 'draw'; onClos
         )}
 
         {(!connected || error) && <p role="alert" className="text-xs text-danger">{!connected ? '连接已断开，恢复连接后可以继续发起。' : error}</p>}
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <div className="flex justify-end gap-2 pt-3">
           <button type="button" disabled={pending} onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-foreground-muted transition-colors hover:bg-surface-active disabled:opacity-50">取消</button>
           <button type="button" onClick={() => void submit()} disabled={disabled || (kind === 'rps' ? !choice : !strokes.length || wordLength < 2)} className={primaryButtonClass}>
             {pending ? <LoadingOutlined /> : <ArrowRightOutlined />}{pending ? '正在发起…' : kind === 'rps' ? '出拳并邀请' : '发起你画我猜'}

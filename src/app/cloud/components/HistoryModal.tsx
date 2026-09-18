@@ -12,10 +12,10 @@ import { neonCloud } from '../core';
 
 function HistoryItem({ item }: { item: { text: string; timestamp: number } }) {
   return (
-    <div className="group rounded-lg border border-border bg-surface hover:border-primary/40 transition-all">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+    <div className="group rounded-xl border border-border bg-background px-4 py-3">
+      <div className="flex items-center justify-between gap-2 py-1">
         <span className="text-xs text-foreground-muted">{new Date(item.timestamp).toLocaleString()}</span>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => neonCloud.handleCopyHistoryText(item.text)}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-foreground-muted hover:text-foreground hover:bg-surface-hover transition-colors"
@@ -32,13 +32,13 @@ function HistoryItem({ item }: { item: { text: string; timestamp: number } }) {
           </button>
         </div>
       </div>
-      <div className="px-3 py-2">
+      <div className="py-2">
         <div className="text-sm text-foreground leading-relaxed line-clamp-4 whitespace-pre-wrap">{item.text}</div>
       </div>
-      <div className="px-3 pb-2">
+      <div className="pt-1">
         <button
           onClick={() => neonCloud.useHistoryItem(item)}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium bg-primary text-white hover:bg-primary-hover transition-colors"
+          className="inline-flex items-center gap-1.5 py-1 rounded-md text-xs font-medium text-primary hover:text-primary-hover transition-colors"
         >
           <SendOutlined className="text-[10px]" />
           使用此内容

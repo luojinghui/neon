@@ -70,7 +70,7 @@
 
 .moment-card {
   overflow: hidden;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid transparent;
   min-width: 0;
   border-radius: 0.85rem;
   background: hsl(var(--surface));
@@ -93,7 +93,7 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid transparent;
   border-radius: 999px;
   background: hsl(var(--surface));
   color: hsl(var(--foreground-secondary));
@@ -137,7 +137,7 @@
 .moment-card-meta time { flex: 0 0 auto; }
 
 .moment-comments {
-  border-top: 1px solid hsl(var(--border));
+  border-top: 0;
   background: color-mix(in srgb, hsl(var(--background-secondary)) 55%, hsl(var(--surface)));
 }
 
@@ -172,7 +172,7 @@
 
 .moment-comment {
   padding: 0.4rem 0;
-  border-bottom: 1px solid color-mix(in srgb, hsl(var(--border)) 72%, transparent);
+  border-bottom: 0;
 }
 
 .moment-comment:last-child { border-bottom: 0; }
@@ -223,7 +223,7 @@
 .moment-comment-edit textarea {
   width: 100%;
   resize: vertical;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid transparent;
   border-radius: 0.65rem;
   padding: 0.55rem 0.65rem;
   background: hsl(var(--input));
@@ -231,7 +231,7 @@
   outline: none;
 }
 
-.moment-comment-edit textarea:focus { border-color: hsl(var(--border-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.14); }
+.moment-comment-edit textarea:focus { border-color: hsl(var(--border-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
 .moment-comment-edit > div { display: flex; justify-content: flex-end; gap: 0.35rem; margin-top: 0.35rem; }
 
 .moment-reply-target {
@@ -255,7 +255,7 @@
   align-items: end;
   gap: 0.55rem;
   margin-top: 0.45rem;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 0;
   padding: 0.7rem 1rem 0.85rem;
 }
 
@@ -272,7 +272,7 @@
   font-size: 0.875rem;
 }
 
-.moment-comment-composer textarea:focus { border-color: hsl(var(--border-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.14); }
+.moment-comment-composer textarea:focus { border-color: hsl(var(--border-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
 
 .moment-comment-composer > button {
   display: inline-flex;
@@ -304,7 +304,7 @@
   justify-content: center;
   gap: 0.45rem;
   margin-top: 1.25rem;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid transparent;
   border-radius: 0.75rem;
   background: hsl(var(--surface));
   color: hsl(var(--foreground-secondary));
@@ -319,7 +319,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid transparent;
   border-radius: 1rem;
   padding: 2rem;
   background: hsl(var(--surface));
@@ -332,7 +332,7 @@
 .moment-card-skeleton {
   overflow: hidden;
   height: 30rem;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid transparent;
   border-radius: 1rem;
   background: hsl(var(--surface));
   animation: moment-pulse 1.6s ease-in-out infinite;
@@ -364,7 +364,7 @@
 
 .moment-composer-text { position: relative; display: block; }
 .moment-composer-text textarea { display: block; width: 100%; resize: vertical; border: 1px solid hsl(var(--border)); border-radius: 0.85rem; padding: 0.85rem 0.9rem 2rem; background: hsl(var(--input)); color: hsl(var(--input-foreground)); outline: none; line-height: 1.7; }
-.moment-composer-text textarea:focus { border-color: hsl(var(--border-focus)); background: hsl(var(--input-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.14); }
+.moment-composer-text textarea:focus { border-color: hsl(var(--border-focus)); background: hsl(var(--input-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
 .moment-composer-text > span:last-child { position: absolute; right: 0.8rem; bottom: 0.55rem; font-size: 0.7rem; color: hsl(var(--foreground-muted)); }
 
 .moment-file-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; margin-top: 0.75rem; }
@@ -395,11 +395,11 @@
 .moment-recording button { display: inline-flex; min-height: 2rem; align-items: center; gap: 0.3rem; margin-left: auto; border: 0; border-radius: 0.5rem; padding: 0 0.6rem; background: hsl(var(--surface)); color: hsl(var(--danger)); }
 @keyframes moment-recording { 50% { opacity: 0.35; } }
 
-.moment-location-chip { display: inline-flex; max-width: 100%; min-height: 2.3rem; align-items: center; gap: 0.45rem; margin-top: 0.75rem; border: 1px solid hsl(var(--border)); border-radius: 999px; padding: 0 0.75rem; background: hsl(var(--background-secondary)); color: hsl(var(--foreground-secondary)); font-size: 0.75rem; }
+.moment-location-chip { display: inline-flex; max-width: 100%; min-height: 2.3rem; align-items: center; gap: 0.45rem; margin-top: 0.75rem; border: 1px solid transparent; border-radius: 999px; padding: 0 0.75rem; background: hsl(var(--background-secondary)); color: hsl(var(--foreground-secondary)); font-size: 0.75rem; }
 .moment-location-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moment-location-chip > span + span { color: hsl(var(--foreground-muted)); }
 
-.moment-composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin-top: 0.85rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.75rem; }
+.moment-composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.85rem; border-top: 0; padding-top: 0; }
 .moment-composer-tools button { display: inline-flex; min-height: 2.5rem; align-items: center; gap: 0.4rem; border: 0; border-radius: 0.6rem; padding: 0 0.7rem; background: transparent; color: hsl(var(--foreground-secondary)); font-size: 0.8rem; }
 .moment-composer-tools button:hover,
 .moment-composer-tools button.is-active { background: hsl(var(--primary-soft)); color: hsl(var(--primary)); }

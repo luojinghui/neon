@@ -86,21 +86,11 @@ function SoulPage() {
         backLabel="首页"
         right={
           <div className="flex items-center gap-2">
-            <Tooltip title="创建星球" placement="bottom">
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
-                aria-label="创建星球"
-              >
-                <PlusOutlined className="text-base" />
-              </button>
-            </Tooltip>
             <Tooltip title="搜索星球" placement="bottom">
               <button
                 type="button"
                 onClick={() => setSearchOpen(true)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface/60 text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
                 aria-label="搜索星球"
               >
                 <SearchOutlined className="text-sm" />
@@ -114,7 +104,7 @@ function SoulPage() {
                 placement="bottomRight"
                 arrow={false}
                 dropdownRender={() => (
-                  <div className="w-44 rounded-lg border border-border bg-surface p-1 shadow-lg">
+                  <div className="w-44 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
                     <Link
                       href={createProfileHref('', { returnTo: '/soul' })}
                       onClick={() => setMoreOpen(false)}
@@ -132,7 +122,7 @@ function SoulPage() {
               >
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface/60 text-foreground-secondary transition-all duration-300 hover:bg-surface-hover hover:text-primary"
                   aria-label="更多操作"
                   aria-haspopup="menu"
                   aria-expanded={moreOpen}
@@ -145,29 +135,41 @@ function SoulPage() {
         }
       />
 
-      <main className="w-full flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-20">
-        <div className="mx-auto max-w-[1312px] px-4">
-          <div className="mb-5 inline-flex rounded-lg border border-border bg-surface p-1 shadow-sm" role="tablist" aria-label="星球类型">
-            {(
-              [
-                ['public', `公共星球 ${publicRooms.length}`],
-                ['owned', `我的 ${ownedRooms.length}`],
-                ['joined', `已加入 ${joinedRooms.length}`]
-              ] as const
-            ).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                  activeTab === tab ? 'bg-primary text-white shadow-sm' : 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+      <main className="w-full flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-[var(--app-page-top)]">
+        <div className="app-content-width">
+          <div className="mb-5 flex items-start gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1" role="tablist" aria-label="星球类型">
+              {(
+                [
+                  ['public', `公共星球 ${publicRooms.length}`],
+                  ['owned', `我的 ${ownedRooms.length}`],
+                  ['joined', `已加入 ${joinedRooms.length}`]
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`h-9 whitespace-nowrap rounded-full px-3 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
+                    activeTab === tab ? 'bg-primary-soft text-primary' : 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface text-sm font-medium text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:w-auto sm:px-3"
+              aria-label="创建星球"
+              title="创建星球"
+            >
+              <PlusOutlined />
+              <span className="hidden sm:inline">创建星球</span>
+            </button>
           </div>
 
           {roomsState === 'loading' || roomsState === 'idle' ? (
@@ -192,7 +194,7 @@ function SoulPage() {
                 {activeTab === 'owned' ? '你创建的私密星球会显示在这里。' : activeTab === 'joined' ? '申请通过或使用邀请链接后会显示在这里。' : '成为第一个创建星球的人吧。'}
               </div>
               {activeTab !== 'joined' && (
-                <button type="button" onClick={openCreate} className="mt-6 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">创建星球</button>
+                <button type="button" onClick={openCreate} className="mt-6 rounded-lg bg-surface-hover px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">创建星球</button>
               )}
             </div>
           ) : (

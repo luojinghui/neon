@@ -1,7 +1,7 @@
 .admin-icon-button {
   display: inline-flex;
-  height: 2rem;
-  width: 2rem;
+  height: 2.25rem;
+  width: 2.25rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -29,10 +29,9 @@
 }
 
 .admin-header-button {
-  min-height: 2.25rem;
-  min-width: 2.25rem;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--surface));
+  height: 2.5rem;
+  min-width: 2.5rem;
+  background: hsl(var(--background-secondary));
   color: hsl(var(--foreground-secondary));
 }
 
@@ -44,13 +43,13 @@
 
 .admin-secondary-button,
 .admin-primary-button {
-  min-height: 2rem;
+  min-height: 2.25rem;
   padding-inline: 0.875rem;
 }
 
 .admin-secondary-button {
   border: 1px solid hsl(var(--border));
-  background: hsl(var(--surface));
+  background: hsl(var(--background-secondary));
   color: hsl(var(--foreground-secondary));
 }
 

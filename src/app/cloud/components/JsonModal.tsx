@@ -28,7 +28,7 @@ export default function JsonModal() {
           <Button key="copy" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyFormattedJson()}>
             复制JSON
           </Button>
-          <Button key="close" onClick={() => neonCloud.closeJsonModal()}>
+          <Button key="close" type="text" onClick={() => neonCloud.closeJsonModal()}>
             关闭
           </Button>
         </Space>
@@ -39,7 +39,7 @@ export default function JsonModal() {
       <div className="max-h-[70vh] overflow-y-auto">
         {jsonObject && (
           <div className="space-y-4">
-            <div className="select-text border border-gray-200 rounded-lg p-4 bg-white [&_*]:select-text">
+            <div className="select-text rounded-lg p-4 bg-white [&_*]:select-text">
               <JsonView
                 value={jsonObject}
                 displayDataTypes={false}

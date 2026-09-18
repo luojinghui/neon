@@ -1,7 +1,7 @@
 'use client';
 
-import { LeftOutlined, PlayCircleFilled, RightOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { Image } from 'antd';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { MomentMedia } from '../types';
 import './moment-media.css';
 
@@ -11,45 +11,110 @@ type Props = {
 };
 
 export function MomentMediaView({ media, immersive = false }: Props) {
-  // Tie the active item to its ID so list refreshes cannot move a selection to another image.
+  const images = media.filter((item) => item.type === 'image');
+  const videos = media.filter((item) => item.type === 'video');
+  // Keep an open preview on the same image when a refreshed list changes order.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedIndex = media.findIndex((item) => item.id === selectedId);
-  const index = Math.max(0, selectedIndex);
-  const current = media[index];
-  if (!current) return null;
+  const [previewRequested, setPreviewRequested] = useState(false);
+  const [singleImage, setSingleImage] = useState<{ id: string; ratio: number } | null>(null);
+  const previewTrigger = useRef<HTMLButtonElement | null>(null);
+  const selectedIndex = images.findIndex((item) => item.id === selectedId);
+  const previewOpen = previewRequested && selectedIndex >= 0;
+  const singleRatio = singleImage?.id === images[0]?.id ? singleImage?.ratio : 4 / 3;
 
-  const select = (nextIndex: number) => setSelectedId(media[nextIndex].id);
-  const move = (direction: -1 | 1) => select((index + direction + media.length) % media.length);
+  const closePreview = useCallback(() => {
+    setPreviewRequested(false);
+    previewTrigger.current?.focus({ preventScroll: true });
+  }, []);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    // AntD 6.3.3 handles arrow keys; Escape also needs to stay inside this preview
+    // when it is opened from the profile's moment detail modal.
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      closePreview();
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [closePreview, previewOpen]);
+
+  if (!media.length) return null;
 
   return (
-    <div className={`moment-media-view ${immersive ? 'moment-media-view-immersive' : ''}`} role="region" aria-label="心迹图片与视频">
-      <div className="moment-media-stage">
-        {current.type === 'image' ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={current.id} src={current.url} alt={current.name || `心迹图片 ${index + 1}`} className="moment-media-content" loading="lazy" />
-        ) : (
-          <video key={current.id} src={current.url} className="moment-media-content" controls playsInline preload="metadata" aria-label={current.name || '心迹视频'} />
-        )}
-        {media.length > 1 && (
-          <>
-            <button type="button" onClick={() => move(-1)} className="moment-media-arrow moment-media-arrow-left" aria-label="上一项媒体"><LeftOutlined /></button>
-            <button type="button" onClick={() => move(1)} className="moment-media-arrow moment-media-arrow-right" aria-label="下一项媒体"><RightOutlined /></button>
-          </>
-        )}
-      </div>
-      {media.length > 1 && (
-        <div className="moment-media-navigation">
-          <div className="moment-media-thumbnails" aria-label="选择要查看的图片或视频">
-            {media.map((item, mediaIndex) => (
-              <button key={item.id} type="button" className={`moment-media-thumbnail ${mediaIndex === index ? 'is-active' : ''}`} aria-label={`查看第 ${mediaIndex + 1} 项${item.type === 'image' ? '图片' : '视频'}`} aria-pressed={mediaIndex === index} onClick={() => select(mediaIndex)}>
-                {item.type === 'image' ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.url} alt="" loading="lazy" />
-                ) : <PlayCircleFilled />}
+    <div className={`moment-media-view${immersive ? ' moment-media-view-immersive' : ''}`} role="region" aria-label="心迹图片与视频">
+      {images.length > 0 && (
+        <Image.PreviewGroup
+          items={images.map((item, index) => ({ src: item.url, alt: `心迹图片 ${index + 1}${item.name ? `：${item.name}` : ''}` }))}
+          preview={{
+            open: previewOpen,
+            current: Math.max(0, selectedIndex),
+            onOpenChange: (open) => { if (!open) closePreview(); },
+            onChange: (current) => setSelectedId(images[current]?.id ?? null),
+            countRender: (current, total) => <span aria-live="polite">{current} / {total}</span>
+          }}
+        >
+          <div
+            className="moment-media-grid"
+            data-count={images.length}
+            style={{ '--moment-single-ratio': singleRatio } as CSSProperties}
+            role="group"
+            aria-label={`共 ${images.length} 张图片，点击可查看大图`}
+          >
+            {images.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className="moment-media-tile"
+                aria-label={`查看第 ${index + 1} 张图片，共 ${images.length} 张${item.name ? `：${item.name}` : ''}`}
+                aria-haspopup="dialog"
+                onClick={(event) => {
+                  previewTrigger.current = event.currentTarget;
+                  setSelectedId(item.id);
+                  setPreviewRequested(true);
+                }}
+              >
+                {/* The original image opens in PreviewGroup; the feed uses a compact crop. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.url}
+                  alt={item.name || `心迹图片 ${index + 1}`}
+                  className="moment-media-image"
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={(event) => {
+                    if (images.length !== 1) return;
+                    const { naturalWidth, naturalHeight } = event.currentTarget;
+                    if (naturalWidth && naturalHeight) {
+                      setSingleImage({ id: item.id, ratio: Math.min(16 / 9, Math.max(3 / 4, naturalWidth / naturalHeight)) });
+                    }
+                  }}
+                />
               </button>
             ))}
           </div>
-          <span className="moment-media-count" aria-live="polite" aria-atomic="true">{index + 1} / {media.length}</span>
+        </Image.PreviewGroup>
+      )}
+      {videos.length > 0 && (
+        <div className="moment-media-video-list">
+          {videos.map((item, index) => (
+            <figure key={item.id} className="moment-media-video-item">
+              <video
+                src={item.url}
+                className="moment-media-video"
+                controls
+                playsInline
+                preload="none"
+                aria-label={`心迹视频 ${index + 1}${item.name ? `：${item.name}` : ''}`}
+              />
+              <figcaption className="moment-media-video-caption">
+                <span>视频{videos.length > 1 ? ` ${index + 1} / ${videos.length}` : ''}</span>
+                {item.name && <span className="moment-media-video-name">{item.name}</span>}
+              </figcaption>
+            </figure>
+          ))}
         </div>
       )}
     </div>

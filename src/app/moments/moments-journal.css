@@ -1,57 +1,44 @@
-/* A page-scoped experiment: shared moments styles remain available to profiles. */
+/* Individual posts share a quiet surface; the page itself stays open. */
 .moments-screen {
   --moment-muted: color-mix(in srgb, hsl(var(--foreground-secondary)) 90%, hsl(var(--foreground-muted)));
 }
 
-.moment-topbar {
-  background: hsl(var(--background) / 0.94);
-  backdrop-filter: blur(16px);
-}
-
-.moment-topbar > div { max-width: 1120px; padding: 1rem 1.5rem; }
-.moment-topbar > div > div { border: 0; border-radius: 0; padding: 0; background: transparent; backdrop-filter: none; }
-.moment-topbar :is(a, button) { min-height: 2.75rem; border: 0; background: transparent; box-shadow: none; }
-.moment-topbar :is(a, button):hover { background: hsl(var(--surface-active)); }
-.moment-topbar :is(a, button):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
-.moment-topbar a[aria-label="返回首页"],
-.moment-topbar button { min-width: 2.75rem; }
-
-.moments-screen .moment-scroll-area { padding: 7.25rem 0 3rem; }
-.moments-screen .moment-page-layout { max-width: 808px; padding: 0 2rem; }
+.moments-screen .moment-scroll-area { padding: var(--app-page-top) 0 3rem; }
+.moments-screen button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 
 .moment-journal-intro {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  margin-bottom: 3.25rem;
+  margin-bottom: 1.25rem;
 }
 
-.moment-journal-eyebrow { margin-bottom: 0.8rem; color: var(--moment-muted); font-size: 0.7rem; letter-spacing: 0.2em; }
-.moment-journal-intro h1 { color: hsl(var(--foreground)); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; line-height: 1.5; letter-spacing: 0.015em; }
-.moment-journal-description { margin-top: 0.7rem; color: var(--moment-muted); font-size: 0.85rem; line-height: 1.8; }
+.moment-journal-intro h1 { color: hsl(var(--foreground)); font-size: clamp(1.25rem, 2.5vw, 1.5rem); font-weight: 600; line-height: 1.5; letter-spacing: 0.015em; }
+.moment-journal-description { margin-top: 0.35rem; color: var(--moment-muted); font-size: 0.85rem; line-height: 1.8; }
 
 .moments-screen .moment-primary-button,
 .moments-screen .moment-empty-state button {
   flex-shrink: 0;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0.65rem;
   padding: 0 1.2rem;
-  background: hsl(var(--foreground));
-  color: hsl(var(--background));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
   box-shadow: none;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   transition: background-color 160ms ease;
 }
 
 .moments-screen .moment-primary-button:hover,
-.moments-screen .moment-empty-state button:hover { background: hsl(var(--foreground-secondary)); transform: none; }
+.moments-screen .moment-empty-state button:hover { background: hsl(var(--primary-hover)); transform: none; }
 
-.moments-screen .moment-page-heading { margin-bottom: 1.5rem; }
+.moment-feed-section { min-width: 0; }
+.moments-screen .moment-page-heading { margin-bottom: 1rem; }
 .moment-feed-label { display: flex; min-width: 0; align-items: center; gap: 0.65rem; }
 .moment-feed-label::before { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--primary)); content: ''; }
-.moment-feed-label h2 { color: hsl(var(--foreground)); font-size: 0.85rem; font-weight: 600; }
+.moment-feed-label h2 { color: hsl(var(--foreground)); font-size: 0.875rem; font-weight: 600; }
 .moment-feed-label > span { color: var(--moment-muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 
 .moment-refresh-button {
@@ -70,34 +57,41 @@
 
 .moment-refresh-button:hover { background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
 .moment-refresh-button:disabled { cursor: wait; opacity: 0.55; }
-.moments-screen .moment-feed-grid { grid-template-columns: minmax(0, 1fr); gap: 3rem; }
+.moments-screen .moment-feed-grid { display: flex; flex-direction: column; gap: 1.25rem; }
 
 .moments-screen .moment-card {
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  min-width: 0;
+  width: 100%;
+  flex: 0 0 auto;
+  align-self: start;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.65);
+  border-radius: 1rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  background: hsl(var(--surface));
+  box-shadow: 0 2px 8px hsl(var(--shadow-color) / 0.025);
 }
 
-.moments-screen .moment-card-head { min-height: 2.75rem; align-items: flex-start; padding: 0; }
-.moment-card-byline { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 0.35rem; margin-top: 0.3rem; color: var(--moment-muted); font-size: 0.7rem; line-height: 1.5; }
-.moment-card-byline > span:first-child { overflow: hidden; max-width: 100%; text-overflow: ellipsis; white-space: nowrap; }
+.moments-screen .moment-card-head { min-height: 2.625rem; align-items: center; padding: 0; }
+.moment-card-byline { margin-top: 0.2rem; color: var(--moment-muted); font-size: 0.7rem; line-height: 1.5; }
 .moment-card-byline time { white-space: nowrap; }
-.moments-screen .moment-icon-button { width: 2.75rem; height: 2.75rem; border: 0; background: transparent; color: var(--moment-muted); }
+.moments-screen .moment-icon-button { width: 2.25rem; height: 2.25rem; margin-right: -0.5rem; border: 0; background: transparent; color: var(--moment-muted); }
 .moments-screen .moment-icon-button:hover { background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
-.moment-entry-content { min-width: 0; margin: 0.75rem 0 0 3.375rem; }
-.moments-screen .moment-card-text { padding: 0 0 1rem; color: hsl(var(--foreground)); font-size: 0.95rem; line-height: 1.95; }
+.moment-entry-content { min-width: 0; margin: 1rem 0 0; }
+.moment-post-copy { margin-bottom: 1rem; }
+.moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: 0.9375rem; line-height: 1.85; }
+.moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
+.moment-expand-button { min-height: 2rem; margin-top: 0.25rem; border: 0; padding: 0; background: transparent; color: hsl(var(--primary)); font-size: 0.75rem; }
+.moment-expand-button:hover { color: hsl(var(--primary-hover)); }
 .moments-screen .moment-media-view { margin: 0; }
-.moments-screen .moment-media-stage { aspect-ratio: 16 / 10; border-radius: 0.875rem; background: hsl(var(--background-secondary)); }
-.moments-screen .moment-media-navigation { padding: 0.6rem 0 0; }
-.moments-screen .moment-media-count { color: var(--moment-muted); }
-.moment-card-voice { padding: 0.25rem 0 0.75rem; }
+.moment-card-voice { padding: 0.25rem 0 0.5rem; }
+.moment-media-view + .moment-card-voice { margin-top: 0.75rem; }
 .moments-screen .moment-voice-player { border: 0; background: hsl(var(--background-secondary)); }
-.moments-screen .moment-card-meta { justify-content: flex-start; padding: 0.85rem 0 0.15rem; color: var(--moment-muted); font-size: 0.72rem; }
-.moments-screen .moment-actions { min-height: 2.75rem; gap: 1.25rem; margin-top: 0.4rem; border: 0; padding: 0; }
+.moments-screen .moment-card-meta { justify-content: flex-start; padding: 0.85rem 0 0; color: var(--moment-muted); font-size: 0.72rem; }
+.moments-screen .moment-actions { min-height: 2.75rem; justify-content: space-between; gap: 1rem; margin-top: 0.65rem; border: 0; padding: 0; }
 .moments-screen .moment-action { gap: 0.4rem; color: var(--moment-muted); font-size: 0.75rem; }
 .moments-screen .moment-action:first-child { margin-left: -0.55rem; }
+.moments-screen .moment-action:last-child { margin-right: -0.55rem; }
 .moments-screen .moment-action > .anticon { font-size: 1.05rem; }
 .moments-screen .moment-action:hover { color: hsl(var(--primary)); }
 .moments-screen .moment-action.is-liked { color: hsl(var(--danger)); }
@@ -122,45 +116,42 @@
 .moments-screen .moment-empty-state > .moment-empty-icon { margin-bottom: 1.25rem; color: var(--moment-muted); font-size: 2rem; }
 .moments-screen .moment-empty-state p { color: var(--moment-muted); line-height: 1.8; }
 
-.moments-screen .moment-card-skeleton { height: auto; border: 0; border-radius: 0; background: transparent; }
+.moments-screen .moment-card-skeleton { min-width: 0; height: 22rem; border: 1px solid hsl(var(--border) / 0.65); border-radius: 1rem; padding: 1.25rem; background: hsl(var(--surface)); }
 .moments-screen .moment-card-skeleton > div:first-child { width: 10rem; height: 2.5rem; margin: 0 0 1rem; }
-.moments-screen .moment-card-skeleton > div:nth-child(2) { width: 55%; height: 0.7rem; margin: 0 0 1rem 3.375rem; }
-.moments-screen .moment-card-skeleton > div:last-child { height: auto; aspect-ratio: 16 / 10; margin: 0 0 0 3.375rem; }
+.moments-screen .moment-card-skeleton > div:nth-child(2) { width: 70%; height: 0.7rem; margin: 0 0 1rem; }
+.moments-screen .moment-card-skeleton > div:last-child { height: 13rem; margin: 0; }
 
-/* Ant Design portals opt in explicitly; the profile's composer stays unchanged. */
-.moment-journal-composer .moment-composer-head { border: 0; }
-.moment-journal-composer .moment-composer-head button:last-child { border-radius: 999px; padding-inline: 1rem; background: hsl(var(--foreground)); color: hsl(var(--background)); }
-.moment-journal-composer .moment-composer-body { padding-top: 0.5rem; }
-.moment-journal-composer .moment-composer-text textarea { border-color: transparent; background: hsl(var(--background-secondary)); }
+/* Keep the composer and comment sheet's functional boundaries visible. */
+.moment-journal-composer .moment-composer-head { border-bottom: 1px solid hsl(var(--border)); }
+.moment-journal-composer .moment-composer-head button:last-child { border-radius: 0.6rem; padding-inline: 1rem; }
+.moment-journal-composer .moment-composer-body { padding-top: 1rem; }
+.moment-journal-composer .moment-composer-text textarea { border-color: hsl(var(--border)); background: hsl(var(--background-secondary)); }
 .moment-journal-composer .moment-composer-text textarea:focus { background: hsl(var(--background-secondary)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
 .moment-journal-composer .moment-composer-tools { gap: 0.5rem; border: 0; padding-top: 0; }
 .moment-journal-composer .moment-location-chip,
 .moment-journal-composer .moment-voice-player { border: 0; }
 
-.moment-journal-comments .moment-comment-sheet-section,
-.moment-journal-comments .ant-drawer-header,
-.moment-journal-comments .moment-comment,
-.moment-journal-comments .moment-comment-footer { border: 0; }
+.moment-journal-comments .moment-comment { border: 0; }
 .moment-journal-comments .moment-comment-list { gap: 1rem; }
-.moment-journal-comments .moment-comment-composer textarea { border-color: transparent; }
+.moment-journal-comments .moment-comment-composer textarea { border-color: hsl(var(--border)); }
 .moment-journal-comments .moment-comment-composer textarea:focus { box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
 
+@media (min-width: 768px) {
+  .moments-screen .moment-feed-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.25rem; }
+  .moments-screen .moment-feed-grid[data-masonry="ready"] { grid-auto-rows: 1px; grid-auto-flow: row dense; row-gap: 0; }
+}
+
+@media (min-width: 1200px) {
+  .moments-screen .moment-feed-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 @media (max-width: 640px) {
-  .moment-topbar > div { padding: 0.65rem 1rem; }
-  .moments-screen .moment-scroll-area { padding-top: 6rem; }
-  .moments-screen .moment-page-layout { padding: 0 1.25rem; }
-  .moment-journal-intro { align-items: flex-start; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem; }
-  .moment-journal-eyebrow { font-size: 0.65rem; }
+  .moment-journal-intro { flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }
   .moment-journal-description { font-size: 0.78rem; }
-  .moments-screen .moment-primary-button { min-height: 2.75rem; padding-inline: 1rem; }
-  .moments-screen .moment-page-heading { margin-bottom: 1.25rem; }
-  .moments-screen .moment-feed-grid { gap: 2.5rem; }
-  .moment-entry-content { margin-left: 0; margin-top: 1rem; }
+  .moments-screen .moment-primary-button { min-height: 2.5rem; padding-inline: 0.85rem; }
+  .moments-screen .moment-page-heading { margin-bottom: 0.75rem; }
+  .moments-screen .moment-card { padding: 1rem 1rem 0.65rem; }
   .moments-screen .moment-card-text { font-size: 0.9rem; }
-  .moments-screen .moment-media-stage { aspect-ratio: 4 / 3; }
-  .moments-screen .moment-card-skeleton > div:nth-child(2),
-  .moments-screen .moment-card-skeleton > div:last-child { margin-left: 0; }
-  .moments-screen .moment-card-skeleton > div:last-child { aspect-ratio: 4 / 3; }
 }
 
 @media (prefers-reduced-motion: reduce) {

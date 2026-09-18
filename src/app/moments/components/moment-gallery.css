@@ -19,7 +19,7 @@
   min-height: 2.5rem;
   align-items: center;
   gap: 0.4rem;
-  border: 1px solid hsl(var(--border));
+  border: 0;
   border-radius: 0.6rem;
   padding: 0 0.85rem;
   background: hsl(var(--surface));
@@ -38,15 +38,15 @@
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid hsl(var(--border));
+  border: 0;
   border-radius: 0.85rem;
   padding: 0;
-  background: hsl(var(--surface));
+  background: transparent;
   color: hsl(var(--foreground));
   text-align: left;
-  transition: border-color 150ms, background 150ms;
+  transition: background 150ms;
 }
-.moment-profile-entry:hover { border-color: hsl(var(--primary) / 0.45); background: hsl(var(--surface-hover)); }
+.moment-profile-entry:hover { background: hsl(var(--surface-hover)); }
 .moment-profile-entry:focus-visible,
 .moment-profile-status button:focus-visible,
 .moment-viewer-delete:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
@@ -85,7 +85,7 @@
 .moment-profile-entry-footer > span { color: hsl(var(--primary)); }
 
 .moment-viewer-modal .ant-modal-content,
-.moment-viewer-modal .ant-modal-container { max-height: calc(100dvh - 3rem); overflow-y: auto; border: 1px solid hsl(var(--border)); border-radius: 1rem; padding: 1.25rem; background: hsl(var(--surface)); }
+.moment-viewer-modal .ant-modal-container { max-height: calc(100dvh - 3rem); overflow-y: auto; border: 0; border-radius: 1rem; padding: 1.25rem; background: hsl(var(--surface)); }
 .moment-viewer-modal .ant-modal-header { margin-bottom: 1.2rem; background: transparent; }
 .moment-viewer-modal .ant-modal-title,
 .moment-viewer-modal .ant-modal-close { color: hsl(var(--foreground)); }
@@ -93,7 +93,7 @@
 .moment-viewer-author { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
 .moment-viewer-text { margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.95rem; line-height: 1.85; color: hsl(var(--foreground-secondary)); }
 .moment-viewer-voice { margin-top: 1rem; }
-.moment-viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.6rem; }
+.moment-viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; border-top: 0; padding-top: 0.6rem; }
 .moment-viewer-location { display: inline-flex; min-width: 0; align-items: center; gap: 0.35rem; overflow-wrap: anywhere; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
 .moment-viewer-delete { display: inline-flex; min-height: 2.5rem; flex-shrink: 0; align-items: center; gap: 0.4rem; border: 0; border-radius: 0.5rem; padding: 0 0.65rem; background: transparent; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
 .moment-viewer-delete:hover { background: hsl(var(--danger) / 0.08); color: hsl(var(--danger)); }

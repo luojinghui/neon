@@ -106,14 +106,14 @@ export function MessageList({ className = '' }: MessageListProps) {
   return (
     <div className="relative w-full flex-1 overflow-hidden">
       <div ref={containerRef} className="chat-scrollbar h-full overflow-y-auto" onScroll={handleScroll}>
-        <div ref={contentRef} className={`mx-auto flex min-h-full w-full max-w-[1312px] flex-col justify-end px-4 pb-4 ${className}`}>
+        <div ref={contentRef} className={`app-content-width flex min-h-full flex-col justify-end pb-4 ${className}`}>
           {hasMoreHistory && (
             <div className="flex justify-center pb-4">
               <button
                 type="button"
                 onClick={() => void handleLoadMore()}
                 disabled={isLoadingHistory || connectionState !== 'connected'}
-                className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground-secondary transition-colors hover:bg-surface-active disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-full bg-surface-hover px-3 py-1.5 text-xs font-medium text-foreground-secondary transition-colors hover:bg-surface-active disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoadingHistory ? '加载中...' : '加载更早消息'}
               </button>

@@ -80,7 +80,7 @@ export function ProfileEditor({ open, profile, onClose, onSaved }: ProfileEditor
             type="button"
             onClick={() => bannerInputRef.current?.click()}
             disabled={Boolean(uploading)}
-            className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-lg border border-white/30 bg-black/35 px-3 py-2 text-xs font-medium text-white backdrop-blur-md transition-colors hover:bg-black/50 disabled:opacity-60"
+            className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-lg bg-black/35 px-3 py-2 text-xs font-medium text-white backdrop-blur-md transition-colors hover:bg-black/50 disabled:opacity-60"
           >
             {uploading === 'banner' ? <LoadingOutlined /> : <PictureOutlined />}
             上传背景
@@ -96,13 +96,13 @@ export function ProfileEditor({ open, profile, onClose, onSaved }: ProfileEditor
               fill
               sizes="80px"
               unoptimized
-              className="rounded-full border-4 border-surface bg-surface-active object-cover shadow-md"
+              className="rounded-full border-4 border-surface bg-surface-active object-cover"
             />
             <button
               type="button"
               onClick={() => avatarInputRef.current?.click()}
               disabled={Boolean(uploading)}
-              className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-primary text-white shadow-sm transition-transform hover:scale-105 disabled:opacity-60"
+              className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-primary text-white transition-transform hover:scale-105 disabled:opacity-60"
               aria-label="上传头像"
             >
               {uploading === 'avatar' ? <LoadingOutlined /> : <CameraOutlined />}
@@ -166,7 +166,7 @@ export function ProfileEditor({ open, profile, onClose, onSaved }: ProfileEditor
                       key={preset.id}
                       type="button"
                       onClick={() => setDraft((current) => ({ ...current, banner: { type: 'preset', value: preset.id } }))}
-                      className={`group rounded-lg border p-1 transition ${selected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-border-hover'}`}
+                      className={`group rounded-lg border p-1 transition ${selected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:bg-surface-hover'}`}
                       aria-label={`使用${preset.label}背景`}
                     >
                       <span className={`block h-9 rounded-md bg-gradient-to-br ${preset.className}`} />
@@ -180,7 +180,7 @@ export function ProfileEditor({ open, profile, onClose, onSaved }: ProfileEditor
 
           {error && <div className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <button
               type="button"
               onClick={() => setDraft((current) => ({ ...current, avatarUrl: '' }))}

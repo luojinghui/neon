@@ -54,9 +54,9 @@ export function ChatInput() {
           aria-label="输入消息"
           value={inputText}
           rows={1}
-          className="block w-full min-h-[38px] resize-none px-3 py-2 rounded-lg text-sm leading-[22px]
-                     bg-input text-input-foreground
-                     border border-border focus:border-border-focus focus:outline-none
+          className="block w-full min-h-10 resize-none px-3 py-2 rounded-lg text-sm leading-[22px]
+                     bg-transparent text-input-foreground
+                     border-0 focus:outline-none
                      placeholder:text-input-placeholder
                      overflow-hidden break-words whitespace-pre-wrap transition-colors"
           placeholder="输入消息..."
@@ -75,7 +75,7 @@ export function ChatInput() {
         type="button"
         onClick={handleSend}
         disabled={!hasContent || isSending || connectionState !== 'connected'}
-        className={`send-btn shrink-0 w-9 h-[38px] flex items-center justify-center rounded-lg transition-colors ${
+        className={`send-btn shrink-0 w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
           hasContent && !isSending && connectionState === 'connected' ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-surface-hover text-foreground-muted cursor-not-allowed'
         }`}
         aria-label="发送"

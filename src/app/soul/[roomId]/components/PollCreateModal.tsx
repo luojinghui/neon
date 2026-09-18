@@ -7,7 +7,7 @@ import { soulChat } from '../../core';
 import type { PollCreateInput } from '../../core/types';
 import { useSoulStore } from '../../store';
 
-const inputClass = 'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50';
+const inputClass = 'w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50';
 
 function localDateTime(timestamp: number) {
   const date = new Date(timestamp);
@@ -94,7 +94,7 @@ export function PollCreateModal({ onClose }: { onClose: () => void }) {
 
         {error && <p role="alert" className="break-words text-xs text-danger">{error}</p>}
         {(!connected || !canAccess) && <p role="status" className="text-xs text-danger">{!canAccess ? '当前无法访问聊天室，请重新加入后发起投票。' : '连接已断开，恢复连接后可以发起投票。'}</p>}
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <div className="flex justify-end gap-2 pt-3">
           <button type="button" disabled={pending} onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-foreground-muted transition-colors hover:bg-surface-active disabled:opacity-50">取消</button>
           <button type="submit" disabled={disabled} className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50">{pending ? <LoadingOutlined /> : <BarChartOutlined />}{pending ? '正在发起…' : '发起投票'}</button>
         </div>

@@ -4,12 +4,12 @@ export function ChatRoomCardSkeleton({ count = 8 }: { count?: number }) {
   const items = Array.from({ length: Math.max(0, count) });
 
   return (
-    <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4 xl:grid-cols-6">
+    <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((_, idx) => (
         <div
           key={idx}
-          // 注意：loading 阶段只让内部骨架闪烁，避免“边框/背景一起闪烁”
-          className="flex min-h-[166px] flex-col rounded-xl border border-border bg-surface p-4 shadow-sm"
+          // 与内容列表保持相同的留白，仅让文字骨架闪烁。
+          className="flex min-h-[180px] flex-col rounded-2xl border border-border bg-surface p-5"
           aria-hidden="true"
         >
           <div className="flex items-start justify-between gap-2">
@@ -24,8 +24,7 @@ export function ChatRoomCardSkeleton({ count = 8 }: { count?: number }) {
             <div className="h-5 w-12 animate-pulse rounded-md bg-background-tertiary" />
             <div className="h-5 w-12 animate-pulse rounded-md bg-background-tertiary" />
           </div>
-          <div className="mt-auto h-px w-full bg-background-tertiary" />
-          <div className="mt-3 flex justify-between">
+          <div className="mt-auto flex justify-between pt-5">
             <div className="h-3 w-10 animate-pulse rounded bg-background-tertiary" />
             <div className="h-3 w-10 animate-pulse rounded bg-background-tertiary" />
           </div>

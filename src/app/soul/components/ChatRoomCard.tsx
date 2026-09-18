@@ -19,11 +19,11 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
   ];
 
   return (
-    <article className="group relative flex min-h-[166px] flex-col overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border-hover hover:shadow-md">
+    <article className="group relative flex min-h-[180px] flex-col overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-colors duration-200 hover:border-border-hover">
       <button
         type="button"
         onClick={onClick}
-        className="absolute inset-0 z-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+        className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
         aria-label={`进入星球：${room.name}`}
       />
 
@@ -57,17 +57,17 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
         <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-foreground-secondary">{room.description || '来这里坐坐，随便聊点什么。'}</p>
 
         {room.tags.length > 0 && (
-          <div className="mt-2.5 flex min-h-5 flex-wrap gap-1.5">
+          <div className="mt-2.5 flex min-h-5 flex-wrap gap-x-3 gap-y-1">
             {room.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="inline-flex items-center rounded-md bg-background-secondary px-2 py-0.5 text-[11px] font-medium text-foreground-secondary">
-                {tag}
+              <span key={tag} className="inline-flex items-center text-[11px] text-foreground-muted">
+                #{tag}
               </span>
             ))}
           </div>
         )}
 
-        <div className="mt-auto pt-3">
-          <div className="flex items-center justify-between border-t border-border/70 pt-3 text-[11px] text-foreground-muted">
+        <div className="mt-auto pt-4">
+          <div className="flex items-center justify-between text-[11px] text-foreground-muted">
             <div className="flex items-center gap-2">
               {room.isPrivate && <span>私密</span>}
               {room.hasPassword && <LockOutlined aria-label="需要密码" />}

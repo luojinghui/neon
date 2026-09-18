@@ -92,7 +92,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
           ) : null}
         </div>
       )}
-      {!isLocal && (canCopy || canDownload || canShare || canDelete) && <div className="my-1 border-t border-border" />}
+      {!isLocal && (canCopy || canDownload || canShare || canDelete) && <div className="h-2" />}
       {canCopy && (
         <button
           type="button"
@@ -134,7 +134,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
       )}
       {isLocal && (
         <>
-          {(canCopy || canDownload || canShare) && <div className="my-1 border-t border-border" />}
+          {(canCopy || canDownload || canShare) && <div className="h-2" />}
           <Popconfirm
             open={recallConfirmOpen}
             title="撤回这条消息？"
@@ -159,7 +159,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
       )}
       {canDelete && !isLocal && (
         <>
-          {(canCopy || canDownload || canShare) && <div className="my-1 border-t border-border" />}
+          {(canCopy || canDownload || canShare) && <div className="h-2" />}
           <Popconfirm
             open={deleteConfirmOpen}
             title="删除这条消息？"

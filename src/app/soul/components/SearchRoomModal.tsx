@@ -54,7 +54,7 @@ export function SearchRoomModal({ open, onClose, onJoin }: Props) {
           maxLength={80}
           onChange={(event) => setQuery(event.target.value.replace(/\s/g, '').toUpperCase())}
           placeholder="输入星球 ID，例如 AB3D"
-          className="min-w-0 flex-1 rounded-lg border border-border bg-input px-3 py-2 text-sm uppercase text-input-foreground outline-none transition-colors placeholder:normal-case placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-input px-3 py-2 text-sm uppercase text-input-foreground outline-none transition-colors placeholder:normal-case placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10"
         />
         <button
           type="submit"
@@ -71,11 +71,11 @@ export function SearchRoomModal({ open, onClose, onJoin }: Props) {
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
       {searched && !result && !error && (
-        <div className="mt-5 rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-foreground-muted">没有找到对应的星球，请检查 ID。</div>
+        <div className="mt-5 px-4 py-8 text-center text-sm text-foreground-muted">没有找到对应的星球，请检查 ID。</div>
       )}
 
       {result && (
-        <div className="mt-5 rounded-lg border border-border bg-surface p-4 shadow-sm">
+        <div className="mt-5 rounded-xl border border-border bg-surface p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">

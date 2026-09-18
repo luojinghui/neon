@@ -74,7 +74,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             maxLength={32}
             onChange={(event) => setName(event.target.value)}
             placeholder="给这个星球起个名字"
-            className="w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+            className="w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10"
           />
         </div>
 
@@ -88,7 +88,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             maxLength={80}
             onChange={(event) => setTags(event.target.value)}
             placeholder="日常、音乐、治愈，最多 5 个"
-            className="w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+            className="w-full rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10"
           />
         </div>
 
@@ -103,7 +103,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
             rows={3}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="介绍一下想在这里聊些什么"
-            className="w-full resize-none rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm leading-6 text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus"
+            className="w-full resize-none rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm leading-6 text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10"
           />
         </div>
 
@@ -115,7 +115,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
               aria-pressed={!isPrivate}
               onClick={() => setIsPrivate(false)}
               className={`flex items-start gap-2.5 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
-                !isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-border bg-surface text-foreground-secondary hover:border-border-hover hover:bg-surface-hover'
+                !isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-transparent bg-background-secondary text-foreground-secondary hover:bg-surface-hover'
               }`}
             >
               <GlobalOutlined className={`mt-0.5 text-sm ${!isPrivate ? 'text-primary' : 'text-foreground-muted'}`} />
@@ -133,7 +133,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
                 setPassword('');
               }}
               className={`flex items-start gap-2.5 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 ${
-                isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-border bg-surface text-foreground-secondary hover:border-border-hover hover:bg-surface-hover'
+                isPrivate ? 'border-primary/50 bg-primary-soft text-foreground' : 'border-transparent bg-background-secondary text-foreground-secondary hover:bg-surface-hover'
               }`}
             >
               <LockOutlined className={`mt-0.5 text-sm ${isPrivate ? 'text-primary' : 'text-foreground-muted'}`} />
@@ -171,7 +171,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
               disabled={!passwordEnabled}
               onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
               placeholder={!passwordEnabled ? '任何人都可以直接进入' : isEditing && room?.hasPassword ? '留空表示保留原密码' : '输入 2-4 位数字或字母'}
-              className="w-full max-w-xs rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus disabled:cursor-not-allowed"
+              className="w-full max-w-xs rounded-xl border border-border bg-input px-3.5 py-2.5 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10 disabled:cursor-not-allowed"
             />
           </div>
         ) : (
@@ -180,7 +180,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
 
         {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">{error}</p>}
 
-        <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <div className="flex justify-end gap-2 pt-3">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">
             取消
           </button>

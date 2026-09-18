@@ -28,7 +28,7 @@ export function ChatToolbar() {
   };
 
   return (
-    <div className="relative mt-2 flex min-h-8 items-center justify-between gap-2">
+    <div className="relative mt-1 flex min-h-8 items-center justify-between gap-2">
       <div className="flex items-center gap-1">
         <button type="button" onClick={() => setEmojiOpen((open) => !open)} disabled={!connected} className={buttonClass} aria-label="表情">
           <SmileOutlined className="text-base" />
@@ -40,7 +40,7 @@ export function ChatToolbar() {
           <PaperClipOutlined className="text-base" />
         </button>
 
-        <div className="mx-1 h-4 border-l border-border" aria-hidden />
+        <span className="w-1" aria-hidden />
         <button type="button" onClick={() => setPollOpen(true)} disabled={!connected || !canAccess || isSending} aria-label="发起投票" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"><BarChartOutlined className="text-base" /><span>投票</span></button>
         <GameLauncher />
 

@@ -74,7 +74,7 @@ export function EmojiPicker({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div ref={pickerRef} className="absolute bottom-11 left-0 z-20 w-[min(320px,calc(100vw-32px))] rounded-lg border border-border bg-surface p-3 shadow-xl">
+    <div ref={pickerRef} className="absolute bottom-11 left-0 z-20 w-[min(320px,calc(100vw-32px))] rounded-xl border border-border bg-surface p-3 shadow-lg">
       <div className="text-xs font-medium text-foreground-secondary">常用 Emoji</div>
       <div className="mt-2 grid grid-cols-8 gap-1">
         {EMOJIS.map((emoji) => (
@@ -93,7 +93,7 @@ export function EmojiPicker({ onClose }: { onClose: () => void }) {
         ))}
       </div>
 
-      <div className="mt-3 border-t border-border pt-3 text-xs font-medium text-foreground-secondary">动态表情</div>
+      <div className="mt-4 text-xs font-medium text-foreground-secondary">动态表情</div>
       <div className="mt-2 grid grid-cols-4 gap-2">
         {ANIMATED_EMOJIS.map((item) => (
           <button

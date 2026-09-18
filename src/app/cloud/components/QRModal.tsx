@@ -19,8 +19,8 @@ export default function QRModal() {
   return (
     <Modal title="分享二维码" open={isQRModalOpen} onCancel={() => neonCloud.closeQRModal()} footer={null} centered>
       <div className="flex flex-col items-center space-y-4 py-4">
-        <QRCode value={shareLink} size={200} />
-        <p className="text-gray-500 text-sm">扫描二维码访问内容</p>
+        <QRCode value={shareLink} size={200} bordered={false} />
+        <p className="text-foreground-muted text-sm">扫描二维码访问内容</p>
       </div>
     </Modal>
   );

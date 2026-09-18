@@ -67,7 +67,7 @@ function ChatRoomPage() {
           <div className="flex items-center gap-2">
             <Link
               href={createProfileHref('', { returnTo: `/soul/${params.roomId}` })}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface/60 text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"
               aria-label="个人中心"
             >
               <UserOutlined className="text-sm" />
@@ -80,12 +80,14 @@ function ChatRoomPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {accessState === 'granted' ? <MessageList className="pt-20" /> : <div className="flex-1" />}
+        {accessState === 'granted' ? <MessageList className="pt-[var(--app-page-top)]" /> : <div className="flex-1" />}
 
         {accessState === 'granted' && (
-          <div className="mx-auto w-full max-w-[1312px] shrink-0 px-4 pb-3 pt-3">
-            <ChatInput />
-            <ChatToolbar />
+          <div className="app-content-width shrink-0 pb-3 pt-2">
+            <div className="rounded-2xl border border-border bg-surface p-2.5 transition-colors focus-within:border-border-focus">
+              <ChatInput />
+              <ChatToolbar />
+            </div>
           </div>
         )}
       </div>

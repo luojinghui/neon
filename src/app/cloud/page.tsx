@@ -15,6 +15,7 @@ import JsonModal from './components/JsonModal';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
 import VersionModal from './components/VersionModal';
+import './cloud.css';
 
 function CloudPage() {
   const { message } = App.useApp();
@@ -68,12 +69,12 @@ function CloudPage() {
   }, [sendSuccessVersion, showContentInfo, password]);
 
   return (
-    <div className="app-screen w-full bg-background flex flex-col select-none">
+    <div className="cloud-page app-screen w-full bg-background flex flex-col select-none">
       <TopBar middle="云传" backHref="/" backLabel="首页" right={<ThemeToggle />} />
 
       {/* Content */}
-      <div ref={contentRef} className="content w-full pt-20 pb-8 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto max-w-[1312px] space-y-6 px-4">
+      <div ref={contentRef} className="content w-full pt-[var(--app-page-top)] pb-8 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="app-content-width space-y-4">
           <ContentEditor />
 
           <Show is={queryFilesCount > 0}>
@@ -81,7 +82,7 @@ function CloudPage() {
           </Show>
 
           <Show is={showContentInfo && password}>
-            <div ref={shareInfoRef} tabIndex={-1} role="region" aria-label="分享信息" className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+            <div ref={shareInfoRef} tabIndex={-1} role="region" aria-label="分享信息" className="rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
               <ContentInfo />
             </div>
           </Show>

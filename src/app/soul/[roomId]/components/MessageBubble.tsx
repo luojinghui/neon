@@ -61,7 +61,7 @@ function MessageContent({
       <button
         type="button"
         onClick={onPreviewFile}
-        className="flex max-w-[min(300px,72vw)] items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left shadow-sm transition-colors hover:border-border-hover hover:bg-surface-hover"
+        className="flex max-w-[min(300px,72vw)] items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-hover"
         aria-label={`预览 ${message.attachment?.name || message.content}`}
       >
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">

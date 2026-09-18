@@ -8,7 +8,7 @@ import { useSoulStore } from '../../store';
 import { DrawingCanvas } from './DrawingCanvas';
 import { GAME_CHOICES, GameChoicePicker, GameSetupModal } from './GameLauncher';
 
-const actionClass = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground-secondary transition-colors hover:border-border-hover hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50';
+const actionClass = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-surface-hover px-3 py-2 text-xs font-medium text-foreground-secondary transition-colors hover:bg-surface-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50';
 const primaryClass = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50';
 
 function DiceFace({ value, rolling }: { value: number; rolling: boolean }) {
@@ -77,8 +77,8 @@ export function GameMessage({ message }: { message: ChatMessage }) {
 
   return (
     <>
-      <section className={`w-[300px] min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-surface text-left text-sm text-foreground shadow-sm ${game.kind === 'draw' ? 'sm:w-[340px]' : ''}`} aria-label={`${title}游戏`}>
-        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
+      <section className={`w-[300px] min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-surface text-left text-sm text-foreground ${game.kind === 'draw' ? 'sm:w-[340px]' : ''}`} aria-label={`${title}游戏`}>
+        <div className="flex items-center justify-between gap-2 border-b border-border/70 px-3 py-2.5">
           <span className="flex items-center gap-1.5 font-medium"><span aria-hidden="true">{emoji}</span>{title}</span>
           <span className={`rounded-full px-2 py-0.5 text-xs ${waiting ? 'bg-primary-soft text-primary' : 'bg-surface-hover text-foreground-muted'}`}>{game.kind === 'dice' ? '好运时刻' : waiting ? game.kind === 'rps' ? '等待应战' : '正在猜谜' : game.kind === 'rps' && game.status === 'cancelled' ? '已收起' : '已揭晓'}</span>
         </div>
@@ -161,7 +161,7 @@ export function GameMessage({ message }: { message: ChatMessage }) {
                 <button type="button" className={`${actionClass} w-full`} disabled={disabled} onClick={() => void act({ action: 'finish' })}>{pending && <LoadingOutlined />}揭晓答案</button>
               ) : (
                 <form className="flex min-w-0 items-center gap-2" onSubmit={(event) => { event.preventDefault(); if (guess.trim()) void act({ action: 'guess', guess: guess.trim() }, () => setGuess('')); }}>
-                  <input type="text" value={guess} onChange={(event) => setGuess(Array.from(event.target.value).slice(0, 40).join(''))} onKeyDown={(event) => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }} disabled={disabled} placeholder="我猜是…" aria-label="你的猜测" autoComplete="off" className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-surface px-2.5 text-sm text-foreground outline-none placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50" />
+                  <input type="text" value={guess} onChange={(event) => setGuess(Array.from(event.target.value).slice(0, 40).join(''))} onKeyDown={(event) => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }} disabled={disabled} placeholder="我猜是…" aria-label="你的猜测" autoComplete="off" className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-input px-2.5 text-sm text-foreground outline-none placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50" />
                   <button type="submit" disabled={disabled || !guess.trim()} className={`${primaryClass} shrink-0`}>{pending ? <LoadingOutlined /> : '猜一下'}</button>
                 </form>
               ) : (

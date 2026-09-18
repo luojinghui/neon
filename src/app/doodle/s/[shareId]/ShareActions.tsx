@@ -67,11 +67,11 @@ function Actions({ id, title, imageUrl, pageUrl }: ShareActionsProps) {
   };
 
   return (
-    <div className="mt-6 grid gap-3 sm:grid-cols-3">
-      <Button size="large" icon={<DownloadOutlined />} onClick={download} className="!h-12 !border-2 !border-[#201a17] !font-black">保存图片</Button>
-      <Button size="large" icon={<CopyOutlined />} onClick={() => void copy()} className="!h-12 !border-2 !border-[#201a17] !font-black">复制链接</Button>
-      <Button type="primary" size="large" icon={<ShareAltOutlined />} onClick={() => void share()} className="!h-12 !border-2 !border-[#201a17] !bg-[#ff5d46] !font-black">分享</Button>
-      {isOwner && <Button danger type="text" icon={<DeleteOutlined />} onClick={destroy} className="sm:col-span-3">我是创建者，销毁这条分享</Button>}
+    <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+      <Button size="large" icon={<DownloadOutlined />} onClick={download} className="!h-10 !border-border !font-semibold !shadow-none">保存图片</Button>
+      <Button size="large" icon={<CopyOutlined />} onClick={() => void copy()} className="!h-10 !border-border !font-semibold !shadow-none">复制链接</Button>
+      <Button type="primary" size="large" icon={<ShareAltOutlined />} onClick={() => void share()} className="!h-10 !border-0 !bg-[#ff5d46] !font-semibold !shadow-none">分享</Button>
+      {isOwner && <Button danger type="text" icon={<DeleteOutlined />} onClick={destroy} className="sm:col-span-3 lg:col-span-1">我是创建者，销毁这条分享</Button>}
     </div>
   );
 }

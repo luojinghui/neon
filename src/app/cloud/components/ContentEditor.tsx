@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useRef } from 'react';
-import { Card, Button, Input } from 'antd';
+import { Button, Input } from 'antd';
 import {
   ClearOutlined,
   CopyOutlined,
@@ -31,7 +31,7 @@ function formatFileSize(bytes: number): string {
 
 function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: string) => void }) {
   return (
-    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background-secondary group max-w-full">
+    <div className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-background-secondary px-3 py-1.5 max-w-full">
       <PaperClipOutlined className="text-foreground-muted text-xs shrink-0" />
       <span className="text-sm text-foreground truncate max-w-[360px]" title={item.relativePath || item.name}>
         {item.relativePath || item.name}
@@ -40,7 +40,8 @@ function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: strin
       <button
         type="button"
         onClick={() => onRemove(item.id)}
-        className="inline-flex items-center justify-center text-foreground-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        aria-label={`移除 ${item.name}`}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground-muted hover:bg-danger-soft hover:text-danger transition-colors shrink-0"
       >
         <DeleteOutlined className="text-xs" />
       </button>
@@ -82,38 +83,49 @@ export default function ContentEditor() {
   }, [hasText, trimmedText]);
 
   return (
-    <Card
-      title="发送内容"
-      extra={
-        <div className="flex items-center space-x-2">
+    <section aria-labelledby="cloud-editor-heading" className="cloud-panel cloud-editor">
+      <div className="cloud-editor-heading">
+        <h1 id="cloud-editor-heading" className="text-base font-semibold text-foreground">发送内容</h1>
+        <div className="cloud-query-controls">
           <Input
             placeholder="查询密码"
+            aria-label="查询密码"
+            variant="outlined"
             maxLength={4}
             onChange={(e) => neonCloud.handleQueryPasswordChange(e)}
             value={queryPassword}
-            className="h-8 w-[130px]"
+            className="cloud-query-input"
             onPressEnter={() => neonCloud.queryMessage()}
           />
-          <Button type="primary" onClick={() => neonCloud.queryMessage()}>
+          <Button onClick={() => neonCloud.queryMessage()} className="cloud-query-button">
             查询
           </Button>
         </div>
-      }
-      className="w-full"
-      styles={{
-        body: { padding: '12px' },
-        header: { padding: '8px 12px', minHeight: '40px' }
-      }}
-    >
+      </div>
       {/* 拖拽区域包裹 TextArea */}
       <div
-        className="relative"
+        className="cloud-editor-surface relative"
         onDragEnter={(e) => neonCloud.handleDragEnter(e)}
         onDragOver={(e) => neonCloud.handleDragOver(e)}
         onDragLeave={(e) => neonCloud.handleDragLeave(e)}
         onDrop={(e) => neonCloud.handleDrop(e)}
       >
-        <LinkTextArea autoSize={{ minRows: 10, maxRows: 22 }} spellCheck={false} showCount className="trans-input w-full" allowClear onChange={(e) => neonCloud.handleTextChange(e)} value={text} />
+        <LinkTextArea
+          autoSize={{ minRows: 6, maxRows: 22 }}
+          variant="borderless"
+          aria-label="发送内容"
+          placeholder="输入或粘贴文字，也可以将文件拖到这里"
+          spellCheck={false}
+          showCount={{ formatter: ({ count }) => `${count} 字` }}
+          className="cloud-editor-input w-full"
+          styles={{
+            textarea: { padding: '14px 40px 32px 16px', lineHeight: 1.75 },
+            count: { bottom: 12, insetInlineEnd: 16, fontSize: 12, color: 'hsl(var(--foreground-muted))' }
+          }}
+          allowClear
+          onChange={(e) => neonCloud.handleTextChange(e)}
+          value={text}
+        />
 
         {/* 拖拽覆盖层 */}
         {isDragging && (
@@ -141,11 +153,12 @@ export default function ContentEditor() {
       )}
 
       {/* 操作按钮 */}
-      <div className="flex flex-wrap gap-2 mt-4">
+      <div className="cloud-editor-toolbar">
         <button
+          type="button"
           onClick={() => neonCloud.sendMessage()}
           disabled={isSending}
-          className="send-btn relative h-8 px-5 rounded-lg text-sm font-medium text-white overflow-hidden bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed"
+          className="send-btn cloud-send-button relative inline-flex h-9 min-w-24 shrink-0 items-center justify-center px-5 rounded-lg text-sm font-medium text-white overflow-hidden bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed"
           style={showProgress ? { background: `linear-gradient(90deg, hsl(var(--primary)) ${uploadProgress}%, hsl(var(--border)) ${uploadProgress}%)` } : undefined}
         >
           <span className="relative z-10 flex items-center gap-1.5">
@@ -153,14 +166,17 @@ export default function ContentEditor() {
             {isSending ? showProgress ? `${uploadProgress}%` : '发送中...' : <>发送{hasFiles ? ` (${files.length})` : ''}</>}
           </span>
         </button>
+        <Button icon={<PaperClipOutlined />} onClick={() => fileInputRef.current?.click()}>
+          文件
+        </Button>
         {showClearButton && (
           <Button icon={<ClearOutlined />} onClick={() => neonCloud.clear()}>
             清空
           </Button>
         )}
         {hasText && (
-          <Button icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyText()}>
-            复制内容
+          <Button aria-label="复制内容" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyText()}>
+            复制
           </Button>
         )}
         {canShowJsonParseButton && (
@@ -168,17 +184,14 @@ export default function ContentEditor() {
             JSON解析
           </Button>
         )}
-        <Button icon={<PaperClipOutlined />} onClick={() => fileInputRef.current?.click()}>
-          文件
-        </Button>
         {textHistory.length > 0 && (
           <Button icon={<HistoryOutlined />} onClick={() => neonCloud.showHistoryModal()}>
-            历史记录
+            历史
           </Button>
         )}
       </div>
 
       <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => neonCloud.handleFileSelect(e)} />
-    </Card>
+    </section>
   );
 }

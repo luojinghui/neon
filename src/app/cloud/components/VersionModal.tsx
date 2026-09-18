@@ -41,7 +41,7 @@ export default function VersionModal() {
 
         <div className="space-y-3">
           {VERSION_UPDATES.map((update, index) => (
-            <div key={index} className="flex items-start space-x-3 p-3 bg-background-secondary rounded-lg hover:bg-background-tertiary transition-colors border border-border">
+            <div key={index} className="flex items-start space-x-3 py-2">
               <span className="text-2xl flex-shrink-0">{update.icon}</span>
               <div>
                 <div className="font-medium text-foreground">{update.title}</div>
@@ -51,8 +51,8 @@ export default function VersionModal() {
           ))}
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4 border-t border-border">
-          <Button onClick={handleRemindLater} size="large" className="bg-surface hover:bg-surface-hover text-foreground border-border">
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button type="text" onClick={handleRemindLater} size="large">
             稍后提醒
           </Button>
           <Button type="primary" onClick={handleAcknowledge} size="large">

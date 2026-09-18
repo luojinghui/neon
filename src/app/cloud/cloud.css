@@ -1,0 +1,55 @@
+.cloud-page .cloud-panel {
+  width: 100%;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: hsl(var(--surface));
+}
+
+.cloud-editor-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.cloud-query-controls { display: flex; min-width: 0; align-items: center; gap: 0.5rem; }
+.cloud-page .cloud-query-input { width: 8rem; height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--background)); }
+.cloud-page .cloud-query-button { height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); box-shadow: none; }
+.cloud-page .cloud-query-input:hover,
+.cloud-page .cloud-query-button:hover { border-color: hsl(var(--border-hover)); }
+.cloud-page .cloud-query-input:focus { border-color: hsl(var(--border-focus)); box-shadow: none; }
+
+/* The main panel owns the outline; a quiet writing surface defines the editor. */
+.cloud-editor-surface { border-radius: 0.75rem; outline: 1px solid transparent; background: hsl(var(--background-secondary) / 0.65); transition: outline-color 150ms; }
+.cloud-editor-surface:focus-within { outline-color: hsl(var(--border-focus)); }
+.cloud-page .cloud-editor-input { border-radius: 0.75rem; background: transparent; }
+.cloud-page .cloud-editor-input textarea { color: hsl(var(--foreground)); }
+.cloud-page .cloud-editor-input textarea::placeholder { color: hsl(var(--foreground-muted)); }
+.cloud-page .cloud-editor-input.ant-input-textarea-affix-wrapper .ant-input-suffix .ant-input-clear-icon { inset-block-start: 0.8rem; inset-inline-end: 0.8rem; }
+
+.cloud-editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; }
+.cloud-page .cloud-editor-toolbar .ant-btn { height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); box-shadow: none; }
+.cloud-page .cloud-share-panel .ant-btn { height: 2.25rem; box-shadow: none; }
+.cloud-share-label { margin-bottom: 0.5rem; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
+.cloud-share-row { display: flex; min-width: 0; align-items: center; gap: 0.5rem; }
+.cloud-share-value { display: block; min-width: 0; overflow: hidden; border-radius: 0.5rem; padding: 0.5rem 1rem; background: hsl(var(--primary-soft)); color: hsl(var(--primary)); font-size: 1rem; font-weight: 600; line-height: 1.5rem; text-overflow: ellipsis; white-space: nowrap; user-select: text; }
+.cloud-share-actions { display: flex; flex-shrink: 0; align-items: center; gap: 0.25rem; }
+.cloud-page .cloud-share-action.ant-btn { width: 2.25rem; flex-shrink: 0; border: 0; border-radius: 0.5rem; padding: 0; background: transparent; color: hsl(var(--foreground-secondary)); }
+.cloud-page .cloud-share-action.ant-btn:not(:disabled):hover,
+.cloud-page .cloud-share-action.ant-btn:not(:disabled):active { border: 0; background: hsl(var(--background-tertiary)); color: hsl(var(--foreground)); box-shadow: none; }
+.cloud-page .cloud-share-action.ant-btn:not(:disabled):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.cloud-page button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .cloud-page .cloud-panel { padding: 0.875rem; border-radius: 0.875rem; }
+  .cloud-editor-heading { gap: 0.625rem; margin-bottom: 0.875rem; }
+  .cloud-page .cloud-query-input { width: 7rem; }
+  .cloud-editor-toolbar { margin-top: 0.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-editor-surface { transition: none; }
+}

@@ -8,6 +8,7 @@ import { TopBar } from '@/components/topbar';
 import { getMoments } from './client';
 import { MomentCard } from './components/MomentCard';
 import { MomentComposer } from './components/MomentComposer';
+import { MomentFeed } from './components/MomentFeed';
 import type { Moment } from './types';
 import './moments.css';
 import './moments-journal.css';
@@ -77,7 +78,6 @@ export default function MomentsPage() {
   return (
     <div className="moments-screen app-screen flex w-full flex-col overflow-hidden bg-background">
       <TopBar
-        className="moment-topbar"
         middle="心迹"
         backHref="/"
         backLabel="首页"
@@ -90,17 +90,16 @@ export default function MomentsPage() {
       />
 
       <main ref={scrollRef} className="moment-scroll-area chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="moment-page-layout">
+        <div className="app-content-width">
           <header className="moment-journal-intro">
             <div>
-              <p className="moment-journal-eyebrow">日常 · 心情 · 片刻</p>
               <h1>让此刻，留下回响。</h1>
               <p className="moment-journal-description">用文字、照片和声音，收藏生活里的微光。</p>
             </div>
             <button type="button" className="moment-primary-button" onClick={() => setComposerOpen(true)}><EditOutlined />发布心迹</button>
           </header>
 
-          <section aria-label="心迹时间流" aria-busy={loading}>
+          <section className="moment-feed-section" aria-label="心迹时间流" aria-busy={loading}>
             <div className="moment-page-heading">
               <div className="moment-feed-label">
                 <h2>最新心迹</h2>
@@ -129,14 +128,14 @@ export default function MomentsPage() {
                 <button type="button" onClick={() => setComposerOpen(true)}><PlusOutlined />发布心迹</button>
               </div>
             ) : (
-              <div className="moment-feed-grid">
+              <MomentFeed>
                 {items.map((moment) => <MomentCard key={moment.id} moment={moment} onDeleted={(id) => {
                   setItems((current) => current.filter((item) => item.id !== id));
                   setTotal((value) => Math.max(0, value - 1));
                   // Deletion shifts offset pagination; invalidate older requests and reload page one.
                   void load();
                 }} />)}
-              </div>
+              </MomentFeed>
             )}
 
             {items.length > 0 && hasMore && (

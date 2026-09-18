@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ArrowLeftOutlined,
   CameraOutlined,
   CheckCircleFilled,
   CopyOutlined,
@@ -18,7 +17,8 @@ import {
 } from '@ant-design/icons';
 import { App, Button, QRCode, Spin, Switch } from 'antd';
 import NextImage from 'next/image';
-import Link from 'next/link';
+import { TopBar } from '@/components/topbar';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createDoodleReview, createDoodleShare, deleteDoodleShare, updateDoodleReview, updateDoodleShare } from './client';
 import { canvasToBlob, DOODLE_TEMPLATES, DOODLE_THEMES, DOODLE_TITLES, renderDoodlePoster } from './poster';
@@ -656,27 +656,13 @@ export default function DoodleStudio() {
           });
         }}
       />
-      <header className="app-sticky-header sticky z-30 border-b-4 border-[#201a17] bg-[#fffaf0]/95 backdrop-blur dark:border-[#fff2df] dark:bg-[#17110f]/95">
-        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3 sm:px-6">
-          <Link href="/" className="inline-flex items-center gap-2 justify-self-start rounded-full px-3 py-2 font-black transition hover:bg-black/5 dark:hover:bg-white/10">
-            <ArrowLeftOutlined />
-            返回星球
-          </Link>
-          <div className="flex items-center gap-2 text-base font-black sm:text-lg">
-            <span className="inline-flex h-9 w-9 rotate-[-6deg] items-center justify-center rounded-xl border-2 border-[#201a17] bg-[#ffd84d] text-[#201a17] shadow-[3px_3px_0_#201a17]">
-              <CameraOutlined />
-            </span>
-            漫游相机
-          </div>
-          <span aria-hidden="true" />
-        </div>
-      </header>
+      <TopBar middle="漫游相机" position="sticky" right={<ThemeToggle />} />
 
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <div className="app-content-width py-6 sm:py-8">
         {mode === 'welcome' && (
           <section className="grid items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
             <div>
-              <div className="mb-5 inline-flex rotate-[-2deg] items-center gap-2 rounded-full border-2 border-[#201a17] bg-[#ff7ba8] px-4 py-2 text-sm font-black text-[#201a17] shadow-[4px_4px_0_#201a17]">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#ff7ba8]/25 px-4 py-2 text-sm font-bold text-foreground">
                 <StarFilled /> 今日角色随机派送
               </div>
               <h1 className="max-w-3xl text-5xl font-black leading-[1.05] tracking-tight sm:text-7xl">
@@ -686,7 +672,7 @@ export default function DoodleStudio() {
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#554943] dark:text-[#d9c8bd]">
                 拍一张自拍，或从相册选一张照片，把表情变成带猫耳、闪电和随机称号的漫画涂鸦。所有漫画效果都会在当前设备上完成。
               </p>
-              {cameraError && <div className="mt-5 rounded-2xl border-2 border-[#201a17] bg-[#fff0c9] p-4 font-bold text-[#8a3f21]">{cameraError}</div>}
+              {cameraError && <div className="mt-5 rounded-2xl bg-[#fff0c9] p-4 font-bold text-[#8a3f21]">{cameraError}</div>}
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={() => void startCamera()} className="doodle-primary-button">
                   <CameraOutlined /> 打开相机
@@ -723,18 +709,18 @@ export default function DoodleStudio() {
               <h1 className="text-3xl font-black sm:text-4xl">对准轮廓，准备变身</h1>
               <p className="mt-2 font-semibold text-[#665750] dark:text-[#ccb9ad]">{faceHint}</p>
             </div>
-            <div className="relative mx-auto aspect-[3/4] max-h-[68vh] overflow-hidden rounded-[32px] border-[6px] border-[#201a17] bg-black shadow-[12px_12px_0_#ff7ba8]">
+            <div className="relative mx-auto aspect-[3/4] max-h-[68vh] overflow-hidden rounded-[28px] border border-border bg-black">
               <video ref={videoRef} playsInline muted className="h-full w-full scale-x-[-1] object-cover" />
               <div className="pointer-events-none absolute inset-[11%_14%_18%] rounded-[48%] border-4 border-dashed border-white/90 shadow-[0_0_0_999px_rgba(18,12,10,0.2)]" />
               {countdown > 0 && <div className="absolute inset-0 flex items-center justify-center bg-black/20 text-[10rem] font-black text-white drop-shadow-[8px_8px_0_#201a17]">{countdown}</div>}
-              <button type="button" onClick={() => smileState !== 'ready' && toggleSmileShutter()} className="absolute left-4 top-4 flex items-center gap-2 rounded-full border-2 border-[#201a17] bg-white/90 px-3 py-2 text-xs font-black text-[#201a17]">
+              <button type="button" onClick={() => smileState !== 'ready' && toggleSmileShutter()} className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 text-xs font-black text-[#201a17]">
                 {smileState === 'loading' ? <LoadingOutlined /> : <SmileOutlined />}
                 {smileState === 'ready' ? '微笑快门已就绪' : smileState === 'loading' ? '正在加载微笑快门' : '手动快门模式'}
               </button>
             </div>
             <div className="mt-7 flex items-center justify-center gap-5">
               <button onClick={() => void captureVideo()} aria-label="拍照" className="doodle-shutter"><span /></button>
-              <button type="button" onClick={toggleSmileShutter} className="flex h-14 items-center gap-2 rounded-full border-2 border-[#201a17] bg-white px-4 text-sm font-black text-[#201a17] transition hover:-translate-y-0.5">
+              <button type="button" onClick={toggleSmileShutter} className="flex h-10 items-center gap-2 rounded-full border border-border bg-white px-4 text-sm font-semibold text-[#201a17] transition hover:-translate-y-0.5">
                 <SmileOutlined />
                 <span className="hidden sm:inline">微笑快门</span>
                 <Switch size="small" checked={smileState === 'ready' && smileEnabled} className="pointer-events-none" />
@@ -760,20 +746,20 @@ export default function DoodleStudio() {
               <p className="mt-5 text-center text-sm font-bold text-[#75645c] dark:text-[#cbb9ae]">手机可长按图片保存，也可以使用右侧保存按钮</p>
             </div>
 
-            <aside className="space-y-5 lg:sticky lg:top-24">
-              <div className="rounded-[26px] border-4 border-[#201a17] bg-white p-5 text-[#201a17] shadow-[7px_7px_0_#ff7ba8]">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#7a675d]">DESIGN YOUR CARD</p>
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[#fff0b8] px-4 py-3">
+            <aside className="space-y-5 rounded-2xl border border-border/70 bg-surface/75 p-5 lg:sticky lg:top-24">
+              <div className="py-2 text-foreground">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground-muted">DESIGN YOUR CARD</p>
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[#fff0b8] px-4 py-3 text-[#201a17]">
                   <div className="min-w-0">
                     <span className="text-[10px] font-black text-[#806f65]">当前称号</span>
                     <p className="truncate text-base font-black">{title}</p>
                   </div>
-                  <button onClick={changeTitle} disabled={busy} aria-label="换个称号" title="换个称号" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#201a17] bg-white text-base transition hover:-rotate-12 hover:bg-[#ffe47d] disabled:opacity-50">
+                  <button onClick={changeTitle} disabled={busy} aria-label="换个称号" title="换个称号" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-base transition hover:-rotate-12 hover:bg-[#ffe47d] disabled:opacity-50">
                     <ReloadOutlined />
                   </button>
                 </div>
 
-                <div className="mt-6 border-t-2 border-dashed border-[#201a17]/30 pt-5">
+                <div className="mt-6">
                   <p className="mb-3 text-sm font-black">选择卡片模板</p>
                   <div className="grid grid-cols-2 gap-2">
                     {DOODLE_TEMPLATES.map((template, index) => (
@@ -782,7 +768,8 @@ export default function DoodleStudio() {
                         type="button"
                         onClick={() => changeTemplate(template.id)}
                         disabled={busy}
-                        className={`group relative min-h-[68px] overflow-hidden rounded-xl border-2 px-3 py-2 text-left transition hover:-translate-y-0.5 disabled:opacity-50 ${templateId === template.id ? 'border-[#201a17] bg-[#fff0b8] shadow-[2px_2px_0_#201a17]' : 'border-[#201a17]/20 bg-[#fffaf0]'}`}
+                        aria-pressed={templateId === template.id}
+                        className={`group relative min-h-[68px] overflow-hidden rounded-xl px-3 py-2 text-left text-[#201a17] transition hover:-translate-y-0.5 disabled:opacity-50 ${templateId === template.id ? 'bg-[#fff0b8] ring-2 ring-inset ring-[#c29326]/70' : 'bg-[#fffaf0] hover:bg-[#fff0b8]/70'}`}
                       >
                         <span className="absolute right-2 top-1 text-lg font-black text-[#201a17]/10 transition group-hover:rotate-6 group-hover:text-[#201a17]/20">{String(index + 1).padStart(2, '0')}</span>
                         <span className="block text-sm font-black">{template.name}</span>
@@ -792,7 +779,7 @@ export default function DoodleStudio() {
                   </div>
                 </div>
 
-                <div className="mt-6 border-t-2 border-dashed border-[#201a17]/30 pt-5">
+                <div className="mt-6">
                   <p className="mb-3 text-sm font-black">换一套宇宙配色</p>
                   <div className="grid grid-cols-8 gap-2">
                     {DOODLE_THEMES.map((theme) => (
@@ -801,8 +788,9 @@ export default function DoodleStudio() {
                         onClick={() => changeTheme(theme.id)}
                         disabled={busy}
                         aria-label={theme.name}
+                        aria-pressed={themeId === theme.id}
                         title={theme.name}
-                        className={`aspect-square rounded-xl border-2 border-[#201a17] transition hover:-translate-y-1 ${themeId === theme.id ? 'ring-4 ring-[#201a17]/20' : ''}`}
+                        className={`aspect-square rounded-xl transition hover:-translate-y-1 ${themeId === theme.id ? 'ring-2 ring-foreground/50 ring-offset-2 ring-offset-background' : ''}`}
                         style={{ background: `linear-gradient(135deg, ${theme.primary} 0 50%, ${theme.secondary} 50%)` }}
                       />
                     ))}
@@ -810,7 +798,7 @@ export default function DoodleStudio() {
                 </div>
               </div>
 
-              <div className="rounded-[26px] border-4 border-[#201a17] bg-[#ffd84d] p-5 text-[#201a17] shadow-[7px_7px_0_#201a17]">
+              <div className="border-t border-border/60 pt-5 text-foreground">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-xl font-black">保存与分享</h2>
@@ -819,14 +807,14 @@ export default function DoodleStudio() {
                   <QrcodeOutlined className="text-3xl" />
                 </div>
                 <div className="mt-5 grid gap-3">
-                  <Button size="large" icon={<DownloadOutlined />} onClick={saveImage} block className="!h-12 !border-[3px] !border-[#201a17] !font-black !shadow-[3px_3px_0_#201a17]">保存图片</Button>
-                  <Button type="primary" size="large" icon={busy ? <LoadingOutlined /> : <ShareAltOutlined />} onClick={() => void publishShare()} disabled={busy} block className="!h-12 !border-[3px] !border-[#201a17] !bg-[#ff5d46] !font-black !shadow-[3px_3px_0_#201a17]">
+                  <Button size="large" icon={<DownloadOutlined />} onClick={saveImage} block className="!h-10 !border-border !font-semibold !shadow-none">保存图片</Button>
+                  <Button type="primary" size="large" icon={busy ? <LoadingOutlined /> : <ShareAltOutlined />} onClick={() => void publishShare()} disabled={busy} block className="!h-10 !border-0 !bg-[#ff5d46] !font-semibold !shadow-none">
                     {shareInfo ? (shareInfo.dirty ? '更新分享卡' : '重新同步分享卡') : '生成分享链接'}
                   </Button>
                 </div>
 
                 {shareInfo && (
-                  <div className="mt-5 rounded-2xl border-2 border-[#201a17] bg-white p-4">
+                  <div className="mt-5 rounded-2xl bg-white p-4">
                     <div className="flex gap-4">
                       <div ref={qrHolderRef} className="shrink-0"><QRCode type="svg" value={shareInfo.url} size={112} color="#201a17" bgColor="#ffffff" bordered={false} /></div>
                       <div className="min-w-0 flex-1">
@@ -853,7 +841,7 @@ export default function DoodleStudio() {
         )}
       </div>
 
-      {busy && mode === 'result' && <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/15 backdrop-blur-[2px]"><div className="rounded-2xl border-4 border-[#201a17] bg-white px-6 py-4 text-lg font-black text-[#201a17] shadow-[6px_6px_0_#201a17]"><LoadingOutlined spin className="mr-3" />正在施展涂鸦魔法</div></div>}
+      {busy && mode === 'result' && <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/15 backdrop-blur-[2px]"><div className="rounded-2xl bg-surface px-6 py-4 text-lg font-semibold text-foreground shadow-lg"><LoadingOutlined spin className="mr-3" />正在施展涂鸦魔法</div></div>}
     </main>
   );
 }

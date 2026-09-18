@@ -247,11 +247,25 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
   };
 
   return (
-    <Modal open={open} onCancel={close} footer={null} centered destroyOnHidden width={700} title={null} mask={{ closable: !saving }} keyboard={!saving} rootClassName={appearance === 'journal' ? 'moment-journal-composer' : undefined}>
+    <Modal
+      open={open}
+      onCancel={close}
+      footer={null}
+      centered
+      destroyOnHidden
+      width={700}
+      title={null}
+      closable={false}
+      aria-labelledby="moment-composer-heading"
+      mask={{ closable: !saving }}
+      keyboard={!saving}
+      styles={{ container: { padding: 0, overflow: 'hidden', border: '1px solid hsl(var(--border))', borderRadius: 16, background: 'hsl(var(--surface))' }, body: { padding: 0 } }}
+      rootClassName={appearance === 'journal' ? 'moment-journal-composer' : undefined}
+    >
       <div className="moment-composer">
         <header className="moment-composer-head">
           <button type="button" onClick={close} disabled={saving}>取消</button>
-          <h2>发布心迹</h2>
+          <h2 id="moment-composer-heading">发布心迹</h2>
           <button type="button" onClick={() => void publish()} disabled={saving || recording || requestingMicrophone}>{saving && <LoadingOutlined />}{saving ? '发布中' : '发布'}</button>
         </header>
 

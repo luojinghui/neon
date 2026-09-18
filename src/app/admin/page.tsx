@@ -85,8 +85,7 @@ function LoginScreen({ onLogin }: { onLogin: (admin: AdminIdentity) => void }) {
         <ThemeToggle />
       </div>
 
-      <section className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
-        <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-warning" />
+      <section className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-surface/85">
         <div className="px-6 py-8 sm:px-9 sm:py-10">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-xl text-primary">
             <SafetyCertificateOutlined />
@@ -130,7 +129,7 @@ function LoginScreen({ onLogin }: { onLogin: (admin: AdminIdentity) => void }) {
             </button>
           </form>
 
-          <div className="mt-7 border-t border-border pt-5 text-center">
+          <div className="mt-7 pt-2 text-center">
             <Link href="/" className="text-sm text-foreground-muted transition-colors hover:text-primary">返回 Soul 首页</Link>
           </div>
         </div>
@@ -277,14 +276,14 @@ function CloudDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePr
             </div>
             <div>
               <div className="mb-2 text-sm font-medium text-foreground">文本内容</div>
-              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-input p-3 text-sm leading-6 text-input-foreground">{viewing.content || '（无文本内容）'}</pre>
+              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-input p-3 text-sm leading-6 text-input-foreground">{viewing.content || '（无文本内容）'}</pre>
             </div>
             <div>
               <div className="mb-2 text-sm font-medium text-foreground">文件</div>
               {viewing.files.length === 0 ? <div className="text-sm text-foreground-muted">无文件</div> : (
                 <div className="grid gap-2">
                   {viewing.files.map((file) => (
-                    <a key={file.fileId} href={file.downloadUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 rounded-lg border border-border px-3 py-2.5 text-sm hover:border-border-hover hover:bg-surface-hover">
+                    <a key={file.fileId} href={file.downloadUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 rounded-lg bg-background-secondary px-3 py-2.5 text-sm hover:bg-surface-hover">
                       <span className="min-w-0 truncate text-foreground">{file.relativePath || file.fileName}</span>
                       <span className="shrink-0 text-xs text-foreground-muted">{formatBytes(file.fileSize)}</span>
                     </a>
@@ -698,7 +697,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
       title: '原图 / 加工成品',
       width: 190,
       render: (_, item) => item.imageState === 'ready'
-        ? <div className="flex gap-2"><Image src={item.originalUrl} alt={`${item.title}原图`} width={64} height={86} className="rounded-md border border-border object-cover" /><Image src={item.processedUrl} alt={`${item.title}成品`} width={64} height={86} className="rounded-md border border-border object-cover" /></div>
+        ? <div className="flex gap-2"><Image src={item.originalUrl} alt={`${item.title}原图`} width={64} height={86} className="rounded-md object-cover" /><Image src={item.processedUrl} alt={`${item.title}成品`} width={64} height={86} className="rounded-md object-cover" /></div>
         : <div className={`flex h-[86px] w-[136px] items-center justify-center rounded-md px-2 text-center text-xs ${item.imageState === 'missing' ? 'bg-warning/10 text-warning' : 'bg-surface-hover text-foreground-muted'}`}>{item.imageState === 'missing' ? '图片文件缺失，请检查存储' : '图片已清理'}</div>
     },
     {
@@ -794,8 +793,8 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
 
   return (
     <div className="app-page bg-background">
-      <header className="app-sticky-header sticky z-20 border-b border-border bg-surface/90 backdrop-blur-lg">
-        <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="app-sticky-header app-glass-header sticky z-20">
+        <div className="app-content-width app-header-row flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary"><SafetyCertificateOutlined /></div>
             <div className="min-w-0"><div className="truncate text-sm font-semibold text-foreground">Soul 管理控制台</div><div className="truncate text-[11px] text-foreground-muted">{admin.displayName} · {admin.username}</div></div>
@@ -818,10 +817,10 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1 shadow-sm">
+      <div className="app-content-width py-5 sm:py-6">
+        <div className="mb-6 flex gap-1 overflow-x-auto py-1">
           {tabs.map((item) => (
-            <button key={item.key} type="button" onClick={() => setTab(item.key)} className={`inline-flex min-w-max items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${tab === item.key ? 'bg-primary text-white shadow-sm' : 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground'}`}>
+            <button key={item.key} type="button" onClick={() => setTab(item.key)} className={`inline-flex min-w-max items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${tab === item.key ? 'bg-primary-soft text-primary' : 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground'}`}>
               {item.icon}{item.label}
             </button>
           ))}
@@ -829,7 +828,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
 
         {notice && <div className={`mb-5 rounded-lg px-4 py-3 text-sm ${notice.type === 'error' ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success'}`}>{notice.text}</div>}
 
-        <div className="overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <div className="min-w-0 rounded-2xl border border-border/70 bg-surface/70 p-4 sm:p-5">
           {tab === 'cloud' && <CloudDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'rooms' && <RoomDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'access' && <RoomAccessTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}

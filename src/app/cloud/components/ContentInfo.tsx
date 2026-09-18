@@ -1,54 +1,47 @@
 /**
- * 内容信息卡片组件
+ * 内容分享信息
  *
  * Created at     : 2025-12-07 23:00:00
  * Last modified  : 2026-03-17 17:04:13
  */
 
-import { Card, Button } from 'antd';
-import { CopyOutlined, LinkOutlined, QrcodeOutlined, CloseOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
+import { CopyOutlined, QrcodeOutlined, CloseOutlined } from '@ant-design/icons';
 import { useCloudStore } from '../store';
 import { neonCloud } from '../core';
 
 export default function ContentInfo() {
   const password = useCloudStore((state) => state.password);
+  const shareLink = neonCloud.generateShareLink();
 
   return (
-    <Card
-      title="内容信息"
-      extra={<Button type="text" icon={<CloseOutlined />} onClick={() => neonCloud.hideContentInfo()} className="text-foreground-secondary hover:bg-background-secondary" />}
-      className="w-full"
-      styles={{
-        body: { padding: '12px' },
-        header: { padding: '8px 12px', minHeight: '40px' }
-      }}
-    >
-      <div className="space-y-2">
-        <div className="flex items-center bg-background-secondary p-2 rounded-lg">
-          <div className="flex-1 flex items-center space-x-2">
-            <span className="text-foreground-muted w-[50px]">密码：</span>
-            <span className="select-text text-lg font-medium text-foreground">{password}</span>
-            <Button type="text" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyPassword()} className="text-foreground-secondary hover:bg-background-tertiary">
-              复制密码
-            </Button>
-          </div>
+    <section aria-labelledby="cloud-share-heading" className="cloud-panel cloud-share-panel">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 id="cloud-share-heading" className="text-base font-semibold text-foreground">分享信息</h2>
+        <Button type="text" aria-label="关闭内容信息" icon={<CloseOutlined />} onClick={() => neonCloud.hideContentInfo()} className="text-foreground-secondary hover:bg-background-secondary" />
+      </div>
+      <dl className="grid gap-5 md:grid-cols-[minmax(180px,0.45fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <dt className="cloud-share-label">提取密码</dt>
+          <dd className="cloud-share-row">
+            <span className="cloud-share-value">{password}</span>
+            <div className="cloud-share-actions">
+              <Button type="text" aria-label="复制密码" title="复制密码" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyPassword()} className="cloud-share-action" />
+            </div>
+          </dd>
         </div>
 
-        <div className="flex items-center bg-background-secondary p-2 rounded-lg">
-          <div className="flex-1 flex items-center space-x-2 flex-wrap">
-            <span className="text-foreground-muted w-[50px]">链接：</span>
-            <span className="text-sm text-foreground-secondary truncate max-w-[200px]">{neonCloud.generateShareLink()}</span>
-            <div className="flex items-center space-x-1">
-              <Button type="text" icon={<LinkOutlined />} onClick={() => neonCloud.handleCopyLink()} className="text-foreground-secondary hover:bg-background-tertiary">
-                复制链接
-              </Button>
-              <Button type="text" icon={<QrcodeOutlined />} onClick={() => neonCloud.showQRCode()} className="text-foreground-secondary hover:bg-background-tertiary">
-                二维码
-              </Button>
+        <div className="min-w-0">
+          <dt className="cloud-share-label">分享链接</dt>
+          <dd className="cloud-share-row">
+            <span className="cloud-share-value" title={shareLink}>{shareLink}</span>
+            <div className="cloud-share-actions">
+              <Button type="text" aria-label="复制链接" title="复制链接" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyLink()} className="cloud-share-action" />
+              <Button type="text" aria-label="二维码" title="二维码" icon={<QrcodeOutlined />} onClick={() => neonCloud.showQRCode()} className="cloud-share-action" />
             </div>
-          </div>
+          </dd>
         </div>
-      </div>
-    </Card>
+      </dl>
+    </section>
   );
 }

@@ -4,7 +4,7 @@
   width: 100%;
   align-items: center;
   gap: 0.7rem;
-  border: 1px solid hsl(var(--border));
+  border: 0;
   border-radius: 0.8rem;
   padding: 0.75rem;
   background: hsl(var(--background-secondary));
@@ -56,5 +56,5 @@
 .moment-voice-track input:disabled { cursor: default; opacity: 0.5; }
 .moment-voice-draft { display: flex; min-width: 0; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 .moment-voice-draft .moment-voice-player { flex: 1; }
-.moment-voice-remove { display: inline-flex; width: 2.5rem; height: 2.5rem; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid hsl(var(--border)); border-radius: 50%; background: hsl(var(--surface)); color: hsl(var(--foreground-muted)); cursor: pointer; }
+.moment-voice-remove { display: inline-flex; width: 2.5rem; height: 2.5rem; flex-shrink: 0; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: hsl(var(--surface)); color: hsl(var(--foreground-muted)); cursor: pointer; }
 .moment-voice-remove:hover { color: hsl(var(--danger)); border-color: hsl(var(--danger)); }

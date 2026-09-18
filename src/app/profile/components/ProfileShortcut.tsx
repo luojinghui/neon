@@ -33,8 +33,9 @@ export function ProfileShortcut({ returnTo = '/' }: { returnTo?: string }) {
   return (
     <Link
       href={createProfileHref('', { returnTo })}
-      className="inline-flex h-8 max-w-[190px] items-center gap-2 rounded-full border border-border bg-surface px-1 py-0.5 text-foreground shadow-sm transition-colors hover:bg-surface-hover hover:text-primary sm:pr-3"
+      className="app-icon-button"
       aria-label={profile ? `打开${profile.name}的个人中心` : '打开个人中心'}
+      title={profile ? `${profile.name} · 个人中心` : '个人中心'}
     >
       {profile ? (
         <Image
@@ -50,7 +51,6 @@ export function ProfileShortcut({ returnTo = '/' }: { returnTo?: string }) {
           <UserOutlined />
         </span>
       )}
-      <span className="hidden truncate text-xs font-medium sm:inline">{profile?.name || '个人中心'}</span>
     </Link>
   );
 }
