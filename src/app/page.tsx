@@ -3,6 +3,7 @@
 import '@/styles/index.css';
 import { Footer } from '@/components/footer';
 import { Card } from '@/components/card';
+import { HomeGreeting } from '@/components/home-greeting';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { ProfileShortcut } from './profile/components/ProfileShortcut';
 import { TopBar } from '@/components/topbar';
@@ -49,8 +50,9 @@ export default function Home() {
       />
 
       <main className="app-content-width flex-1 pb-8 pt-24 sm:pt-28">
-        <div className="mb-7 text-center sm:mb-8">
+        <div className="mb-10 text-center sm:mb-12">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Soul 星球</h1>
+          <HomeGreeting />
         </div>
 
         <nav aria-label="探索 Soul 星球" className="mx-auto grid w-full max-w-[1008px] grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">

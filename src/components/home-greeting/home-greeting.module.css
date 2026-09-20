@@ -1,0 +1,72 @@
+.slot {
+  display: flex;
+  min-height: 28px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.greeting {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  margin: 0;
+  color: hsl(var(--foreground-secondary));
+  font-size: 14px;
+  line-height: 28px;
+  animation: arrive 240ms ease-out both;
+}
+
+.salutation {
+  flex-shrink: 0;
+}
+
+.name {
+  min-width: 0;
+  max-width: 16em;
+  overflow: hidden;
+  color: hsl(var(--foreground));
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emoji {
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: 8px;
+  font-size: 19px;
+  transform-origin: 70% 75%;
+}
+
+.wave {
+  animation: wave 1s ease-in-out 160ms 1;
+}
+
+.sway {
+  animation: sway 900ms ease-in-out 160ms 1;
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(16deg); }
+  40%, 80% { transform: rotate(-8deg); }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(0); }
+  40% { transform: rotate(-10deg); }
+  70% { transform: rotate(6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .greeting,
+  .emoji {
+    animation: none;
+  }
+}

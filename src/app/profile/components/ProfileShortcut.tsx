@@ -3,32 +3,12 @@
 import { UserOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { ensureCurrentProfile, PROFILE_CHANGED_EVENT } from '../client';
 import { createProfileHref } from '../navigation';
-import { getProfileAvatar, type PublicProfile } from '../types';
+import { getProfileAvatar } from '../types';
+import { useCurrentProfile } from '../useCurrentProfile';
 
 export function ProfileShortcut({ returnTo = '/' }: { returnTo?: string }) {
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    void ensureCurrentProfile()
-      .then((current) => {
-        if (active) setProfile(current);
-      })
-      .catch(() => undefined);
-
-    const handleProfileChanged = (event: Event) => {
-      const changed = (event as CustomEvent<PublicProfile>).detail;
-      if (changed) setProfile(changed);
-    };
-    window.addEventListener(PROFILE_CHANGED_EVENT, handleProfileChanged);
-    return () => {
-      active = false;
-      window.removeEventListener(PROFILE_CHANGED_EVENT, handleProfileChanged);
-    };
-  }, []);
+  const profile = useCurrentProfile();
 
   return (
     <Link
