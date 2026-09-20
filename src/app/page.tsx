@@ -12,31 +12,31 @@ export default function Home() {
   const cards = [
     {
       title: '云传',
-      description: '简洁、高效的内容传输服务',
+      description: '文字与文件，轻松传递',
       href: '/cloud',
       icon: <CloudOutlined />,
-      iconClassName: 'bg-info-soft text-info'
+      tone: 'info' as const
     },
     {
       title: '星球',
-      description: '寻找属于自己的Soul星球',
+      description: '遇见同频，随心畅聊',
       href: '/soul',
       icon: <GlobalOutlined />,
-      iconClassName: 'bg-primary-soft text-primary'
+      tone: 'primary' as const
     },
     {
       title: '心迹',
-      description: '记录此刻心情，遇见真实的彼此',
+      description: '记录此刻，分享心情',
       href: '/moments',
       icon: <HeartOutlined />,
-      iconClassName: 'bg-accent-soft text-accent'
+      tone: 'accent' as const
     },
     {
       title: '漫游相机',
-      description: '把今天的表情，变成一张有称号的漫画涂鸦',
+      description: '让表情变成漫画',
       href: '/doodle',
       icon: <CameraOutlined />,
-      iconClassName: 'bg-success-soft text-success'
+      tone: 'success' as const
     }
   ];
 
@@ -48,19 +48,17 @@ export default function Home() {
         right={<div className="flex items-center gap-2"><ProfileShortcut returnTo="/" /><ThemeToggle /></div>}
       />
 
-      <main className="app-content-width flex-1 pb-12 pt-28 sm:pt-36">
-        <div className="mb-9 text-center sm:mb-12">
+      <main className="app-content-width flex-1 pb-8 pt-24 sm:pt-28">
+        <div className="mb-7 text-center sm:mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Soul 星球</h1>
           <p className="mt-3 text-sm leading-6 text-foreground-secondary">传递内容，分享此刻，遇见同频的你。</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
-          {cards.map((card, index) => (
-            <div key={index} className="min-w-0">
-              <Card {...card} />
-            </div>
+        <nav aria-label="探索 Soul 星球" className="mx-auto grid w-full max-w-[1008px] grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
+          {cards.map((card) => (
+            <Card key={card.href} {...card} />
           ))}
-        </div>
+        </nav>
       </main>
       <Footer />
     </div>
