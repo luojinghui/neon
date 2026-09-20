@@ -19,14 +19,14 @@ export default function Home() {
     },
     {
       title: '星球',
-      description: '遇见同频，随心畅聊',
+      description: '在此着陆，随意聊聊',
       href: '/soul',
       icon: <GlobalOutlined />,
       tone: 'primary' as const
     },
     {
       title: '心迹',
-      description: '记录此刻，分享心情',
+      description: '这颗星球的日常切片',
       href: '/moments',
       icon: <HeartOutlined />,
       tone: 'accent' as const
@@ -51,7 +51,6 @@ export default function Home() {
       <main className="app-content-width flex-1 pb-8 pt-24 sm:pt-28">
         <div className="mb-7 text-center sm:mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Soul 星球</h1>
-          <p className="mt-3 text-sm leading-6 text-foreground-secondary">传递内容，分享此刻，遇见同频的你。</p>
         </div>
 
         <nav aria-label="探索 Soul 星球" className="mx-auto grid w-full max-w-[1008px] grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
