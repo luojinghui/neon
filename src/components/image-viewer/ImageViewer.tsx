@@ -1,12 +1,14 @@
 'use client';
 
 import { AppstoreOutlined, CloseOutlined, LeftOutlined, LoadingOutlined, PictureOutlined, ReloadOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
-import { useCallback, useEffect, useId, useRef, useState, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { constrainTransform, INITIAL_TRANSFORM, pinchTransform, swipeDirection, type ImageTransform, type Point } from './image-viewer-gestures';
 import './image-viewer.css';
 
 export type ImageViewerItem = { id: string; url: string; name?: string };
+type ImageStatus = 'loading' | 'ready' | 'error';
+const imageKey = (item: ImageViewerItem) => JSON.stringify([item.id, item.url]);
 
 type Props = {
   images: ImageViewerItem[];
@@ -29,6 +31,7 @@ type Gesture = {
 
 function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'onClose'>) {
   const isSticker = variant === 'sticker';
+  const currentKey = imageKey(images[currentIndex]);
   const stageRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const pointers = useRef(new Map<number, Point>());
@@ -41,8 +44,34 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [settling, setSettling] = useState(false);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [attempt, setAttempt] = useState(0);
+  const [animateSwipe, setAnimateSwipe] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, ImageStatus>>({});
+  const [attempts, setAttempts] = useState<Record<string, number>>({});
+  const status = statuses[currentKey] || 'loading';
+  const attempt = attempts[currentKey] || 0;
+
+  const setImageStatus = useCallback((key: string, next: ImageStatus) => {
+    setStatuses((previous) => previous[key] === next ? previous : { ...previous, [key]: next });
+  }, []);
+
+  // Keep preloaded image nodes alive; only reset the interaction when selection changes.
+  // Disable the track transition before paint so completing a swipe never animates back.
+  useLayoutEffect(() => {
+    if (transitionTimer.current) clearTimeout(transitionTimer.current);
+    const capturedPointers = [...pointers.current.keys()];
+    pointers.current.clear();
+    gesture.current = null;
+    for (const id of capturedPointers) {
+      if (stageRef.current?.hasPointerCapture(id)) stageRef.current.releasePointerCapture(id);
+    }
+    lastTap.current.time = 0;
+    transformRef.current = INITIAL_TRANSFORM;
+    setTransform(INITIAL_TRANSFORM);
+    setOffset(0);
+    setDragging(false);
+    setSettling(false);
+    setAnimateSwipe(false);
+  }, [currentKey]);
 
   const updateTransform = useCallback((next: ImageTransform) => {
     const stage = stageRef.current;
@@ -64,9 +93,9 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
   }, [updateTransform]);
 
   // A cached image can finish loading before React attaches its load listener.
-  useEffect(() => {
-    if (imageRef.current?.complete) setStatus(imageRef.current.naturalWidth ? 'ready' : 'error');
-  }, [attempt]);
+  useLayoutEffect(() => {
+    if (imageRef.current?.complete) setImageStatus(currentKey, imageRef.current.naturalWidth ? 'ready' : 'error');
+  }, [currentKey, attempt, setImageStatus]);
 
   const localPoint = (point: Point) => {
     const rect = stageRef.current!.getBoundingClientRect();
@@ -99,6 +128,7 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
     pointerType.current = event.pointerType;
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     setDragging(true);
+    setAnimateSwipe(false);
     setOffset(0);
     beginGesture();
   };
@@ -139,6 +169,7 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
     }
     gesture.current = null;
     setDragging(false);
+    setAnimateSwipe(true);
     if (!active || cancelled) { setOffset(0); return; }
     const dx = event.clientX - active.start.x;
     const dy = event.clientY - active.start.y;
@@ -174,31 +205,31 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
         onLostPointerCapture={(event) => endPointer(event, true)}
         onDoubleClick={(event) => { if (!isSticker && pointerType.current !== 'touch') zoomAt({ x: event.clientX, y: event.clientY }); }}
       >
-        <div className="image-viewer-track" style={{ transform: `translate3d(${offset}px, 0, 0)` }}>
+        <div className="image-viewer-track" style={{ transform: `translate3d(${offset}px, 0, 0)`, transition: animateSwipe && !dragging ? undefined : 'none' }}>
           {[-1, 0, 1].map((relative) => {
             const item = images[currentIndex + relative];
+            if (!item) return null;
+            const key = imageKey(item);
             return (
-              <div key={relative} className="image-viewer-slide" style={{ left: `${relative * 100}%` }} aria-hidden={relative !== 0 || undefined}>
-                {item && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={`${item.url}-${relative === 0 ? attempt : 0}`}
-                    ref={relative === 0 ? imageRef : undefined}
-                    src={item.url}
-                    alt={relative === 0 ? item.name || `图片 ${currentIndex + 1}` : ''}
-                    draggable={false}
-                    className="image-viewer-image"
-                    style={relative === 0 ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`, opacity: status === 'ready' ? 1 : 0 } : undefined}
-                    onLoad={relative === 0 ? () => setStatus('ready') : undefined}
-                    onError={relative === 0 ? () => setStatus('error') : undefined}
-                  />
-                )}
+              <div key={key} className="image-viewer-slide" style={{ left: `${relative * 100}%` }} aria-hidden={relative !== 0 || undefined}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  key={attempts[key] || 0}
+                  ref={relative === 0 ? imageRef : undefined}
+                  src={item.url}
+                  alt={relative === 0 ? item.name || `图片 ${currentIndex + 1}` : ''}
+                  draggable={false}
+                  className="image-viewer-image"
+                  style={{ transform: relative === 0 ? `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})` : undefined, opacity: statuses[key] === 'ready' ? 1 : 0 }}
+                  onLoad={() => setImageStatus(key, 'ready')}
+                  onError={() => setImageStatus(key, 'error')}
+                />
               </div>
             );
           })}
         </div>
-        {status === 'loading' && <div className="image-viewer-status" role="status"><LoadingOutlined spin /><span>正在加载原图</span></div>}
-        {status === 'error' && <div className="image-viewer-status" role="alert"><PictureOutlined /><span>图片暂时无法加载</span><button type="button" onClick={() => { setStatus('loading'); setAttempt((value) => value + 1); }}><ReloadOutlined />重新加载</button></div>}
+        {status === 'loading' && <div className="image-viewer-status" role="status" aria-label="正在加载图片"><LoadingOutlined spin /></div>}
+        {status === 'error' && <div className="image-viewer-status" role="alert"><PictureOutlined /><span>图片暂时无法加载</span><button type="button" onClick={() => { setImageStatus(currentKey, 'loading'); setAttempts((previous) => ({ ...previous, [currentKey]: attempt + 1 })); }}><ReloadOutlined />重新加载</button></div>}
       </div>
       {!isSticker && <div className="image-viewer-zoom" role="group" aria-label="图片缩放">
         <button type="button" aria-label="缩小图片" disabled={transform.scale <= 1 || status !== 'ready'} onClick={() => updateTransform({ ...transformRef.current, scale: transformRef.current.scale - 0.5 })}><ZoomOutOutlined /></button>
@@ -212,6 +243,7 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
 export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '图片预览', variant = 'photo' }: Props) {
   const isSticker = variant === 'sticker';
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
   const headingId = useId();
   const [overview, setOverview] = useState(false);
@@ -229,6 +261,8 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     dialog.showModal();
+    // Focus the title instead of a control on open; keyboard navigation remains visible.
+    titleRef.current?.focus({ preventScroll: true });
     return () => {
       dialog.close();
       document.body.style.overflow = bodyOverflow;
@@ -272,13 +306,13 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
       }
     }} onKeyDown={(event) => event.stopPropagation()}>
       <header className="image-viewer-header">
-        <div className="image-viewer-title"><span id={headingId}>{title}</span>{!isSticker && <span className="image-viewer-counter" aria-live="polite" aria-atomic="true"><b>{currentIndex + 1}</b><span>/</span>{images.length}</span>}</div>
-        <button type="button" className="image-viewer-close" aria-label={isSticker ? '关闭表情预览' : '关闭图片预览'} title="关闭 (Esc)" autoFocus onClick={onClose}><CloseOutlined /></button>
+        <div ref={titleRef} tabIndex={-1} className="image-viewer-title"><span id={headingId}>{title}</span>{!isSticker && <span className="image-viewer-counter" aria-live="polite" aria-atomic="true"><b>{currentIndex + 1}</b><span>/</span>{images.length}</span>}</div>
+        <button type="button" className="image-viewer-close" aria-label={isSticker ? '关闭表情预览' : '关闭图片预览'} title="关闭 (Esc)" onClick={onClose}><CloseOutlined /></button>
       </header>
 
       {overview ? (
         <div className="image-viewer-overview" role="group" aria-label="全部图片">
-          <div className="image-viewer-overview-heading"><h2>全部图片</h2><p>{images.length} 张 · 点击查看大图</p></div>
+          <div className="image-viewer-overview-heading"><h2>全部图片</h2></div>
           <div className="image-viewer-overview-grid">
             {images.map((item, index) => (
               <button key={item.id} type="button" aria-label={`查看第 ${index + 1} 张大图`} aria-current={index === currentIndex ? 'true' : undefined} onClick={() => { onSelect(item.id); setOverview(false); }}>
@@ -291,7 +325,7 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
         </div>
       ) : (
         <div className="image-viewer-main">
-          <ImageStage key={`${current.id}-${current.url}`} images={images} currentIndex={currentIndex} onSelect={onSelect} variant={variant} />
+          <ImageStage images={images} currentIndex={currentIndex} onSelect={onSelect} variant={variant} />
           {images.length > 1 && <>
             <button type="button" className="image-viewer-arrow is-previous" aria-label="上一张图片" title="上一张 (←)" disabled={currentIndex === 0} onClick={() => onSelect(images[currentIndex - 1].id)}><LeftOutlined /></button>
             <button type="button" className="image-viewer-arrow is-next" aria-label="下一张图片" title="下一张 (→)" disabled={currentIndex === images.length - 1} onClick={() => onSelect(images[currentIndex + 1].id)}><RightOutlined /></button>
@@ -311,9 +345,8 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
             ))}
           </div>
         )}
-        {!overview && <p className="image-viewer-mobile-hint">{images.length > 1 ? '左右滑动切换 · ' : ''}双指缩放查看细节</p>}
         <div className="image-viewer-bottom">
-          <p className="image-viewer-desktop-hint">{overview ? '点击照片进入大图' : `${images.length > 1 ? '← → 切换 · ' : ''}双击放大 · Esc 关闭`}</p>
+          <p className="image-viewer-desktop-hint">Esc 关闭</p>
           {images.length > 1 && <div className="image-viewer-modes" role="group" aria-label="图片查看模式">
             <button type="button" aria-pressed={!overview} onClick={() => setOverview(false)}><PictureOutlined />大图</button>
             <button type="button" aria-pressed={overview} onClick={() => setOverview(true)}><AppstoreOutlined />总览</button>
