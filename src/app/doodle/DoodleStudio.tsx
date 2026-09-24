@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons';
 import { App, Button, QRCode, Spin, Switch } from 'antd';
 import NextImage from 'next/image';
+import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -741,7 +742,9 @@ export default function DoodleStudio() {
           <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_390px]">
             <div className="mx-auto w-full max-w-[620px]">
               <div className="overflow-hidden rounded-[28px] border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
-                <NextImage src={resultUrl} alt={`漫画涂鸦：${title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
+                <ImagePreview images={[{ id: 'result', url: resultUrl, name: title }]} imageId="result" title="漫游相机" className="w-full">
+                  <NextImage src={resultUrl} alt={`漫画涂鸦：${title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
+                </ImagePreview>
               </div>
               <p className="mt-5 text-center text-sm font-bold text-[#75645c] dark:text-[#cbb9ae]">手机可长按图片保存，也可以使用右侧保存按钮</p>
             </div>

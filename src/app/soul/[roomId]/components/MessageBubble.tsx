@@ -1,11 +1,11 @@
 'use client';
 
 import { FileOutlined } from '@ant-design/icons';
-import { Image as PreviewImage } from 'antd';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { createProfileHref } from '@/app/profile/navigation';
+import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import type { ChatMessage } from './types';
 import { formatTime, getAvatarUrl } from './types';
 import { MessageActions } from './MessageActions';
@@ -31,28 +31,31 @@ function getFileType(name = '', mimeType = ''): string {
 
 function MessageContent({
   message,
-  onPreviewFile
+  onPreviewFile,
+  onPreviewImage
 }: {
   message: ChatMessage;
   onPreviewFile: () => void;
+  onPreviewImage: () => void;
 }) {
   if (message.type === 'game' && message.game) return <GameMessage message={message} />;
   if ((message.type === 'poll' || message.type === 'poll-result') && message.poll) return <PollMessage message={message} />;
 
   if (message.type === 'image' || message.type === 'gif') {
     const url = message.attachment?.url || message.content;
+    const name = message.attachment?.name || (message.type === 'gif' ? message.content : '聊天图片');
+    if (message.type === 'gif') {
+      const label = name.replace(/\.(gif|png|webp)$/i, '');
+      return <ImagePreview images={[{ id: message.id, url, name: label }]} imageId={message.id} title="表情" variant="sticker" className="rounded-xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={label} draggable={false} className="block h-28 w-28 max-w-full object-contain" />
+      </ImagePreview>;
+    }
     return (
-      <PreviewImage
-        src={url}
-        alt={message.attachment?.name || message.content || '图片'}
-        draggable={false}
-        preview={{
-          cover: false
-        }}
-        classNames={{ root: 'soul-message-image max-w-[min(280px,70vw)] overflow-hidden rounded-xl', popup: { root: 'soul-image-preview' } }}
-        className="block max-h-72 w-auto max-w-full rounded-xl object-contain"
-        fallback="/source/index.png"
-      />
+      <button type="button" onClick={onPreviewImage} aria-label={`查看大图：${name}`} aria-haspopup="dialog" className="image-preview-trigger max-w-[min(280px,70vw)] overflow-hidden rounded-xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={name} draggable={false} className="block max-h-72 w-auto max-w-full rounded-xl object-contain" />
+      </button>
     );
   }
 
@@ -89,7 +92,7 @@ function MessageContent({
   );
 }
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
+export function MessageBubble({ message, onPreviewImage }: { message: ChatMessage; onPreviewImage: () => void }) {
   const isLocal = message.isLocal;
   const avatarUrl = getAvatarUrl(message.senderId, message.senderAvatar, message.senderKey);
   const profileHref = createProfileHref(message.senderId, { publicKey: message.senderKey, returnTo: `/soul/${message.roomId}` });
@@ -113,8 +116,8 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
         </div>
 
         <div className={`mt-1.5 flex max-w-full items-start gap-1 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
-          <MessageContent message={message} onPreviewFile={() => setFilePreviewOpen(true)} />
-          <MessageActions messageId={message.id} messageType={message.type} hasAttachment={Boolean(message.attachment)} isLocal={isLocal} />
+          <MessageContent message={message} onPreviewFile={() => setFilePreviewOpen(true)} onPreviewImage={onPreviewImage} />
+          <MessageActions messageId={message.id} messageType={message.type} hasAttachment={Boolean(message.attachment)} isLocal={isLocal} game={message.game} />
         </div>
       </div>
 

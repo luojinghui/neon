@@ -1,17 +1,20 @@
 'use client';
 
-import { CopyOutlined, DeleteOutlined, DownloadOutlined, EllipsisOutlined, RollbackOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { CopyOutlined, DeleteOutlined, DownloadOutlined, EllipsisOutlined, LoadingOutlined, ReloadOutlined, RollbackOutlined, ShareAltOutlined, CheckOutlined } from '@ant-design/icons';
 import { Popconfirm, Popover } from 'antd';
 import { useRef, useState } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
 import type { MessageType } from './types';
+import type { ChatGame } from '../../core/types';
+import { GameSetupModal } from './GameLauncher';
 
 interface MessageActionsProps {
   messageId: string;
   messageType: MessageType;
   hasAttachment: boolean;
   isLocal: boolean;
+  game?: ChatGame;
 }
 
 const quickReplies = [
@@ -23,10 +26,17 @@ const quickReplies = [
   { emoji: '✨', label: '闪闪发光' }
 ];
 
-export function MessageActions({ messageId, messageType, hasAttachment, isLocal }: MessageActionsProps) {
+export function MessageActions({ messageId, messageType, hasAttachment, isLocal, game }: MessageActionsProps) {
   const canDelete = useSoulStore((state) => state.room?.isOwner === true);
   const connected = useSoulStore((state) => state.connectionState === 'connected');
   const isSending = useSoulStore((state) => state.isSending);
+  const canAccess = useSoulStore((state) => state.accessState === 'granted');
+  const [setup, setSetup] = useState<'rps' | 'draw' | null>(null);
+  const [gamePending, setGamePending] = useState(false);
+  const gamePendingRef = useRef(false);
+  const [gameError, setGameError] = useState('');
+  const gameDisabled = gamePending || !connected || !canAccess || isSending;
+  const canFinishGame = isLocal && ((game?.kind === 'rps' && game.status === 'waiting') || (game?.kind === 'draw' && game.status === 'playing'));
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [recallConfirmOpen, setRecallConfirmOpen] = useState(false);
@@ -62,6 +72,19 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
     }
   };
 
+  const runGame = async (finish = false) => {
+    if (!game || gameDisabled || gamePendingRef.current) return;
+    if (!finish && game.kind !== 'dice') { close(); setSetup(game.kind); return; }
+    gamePendingRef.current = true;
+    setGamePending(true);
+    setGameError('');
+    try {
+      const sent = finish ? await soulChat.actOnGame({ messageId, action: 'finish' }) : await soulChat.createGame({ kind: 'dice' });
+      if (sent) close(); else setGameError(useSoulStore.getState().chatError || '操作失败，请重试');
+    } catch { setGameError('操作失败，请重试'); }
+    finally { gamePendingRef.current = false; setGamePending(false); }
+  };
+
   const content = (
     <div className={`${isLocal ? 'w-32' : 'w-60'} p-1`} onClick={(event) => event.stopPropagation()}>
       {!isLocal && (
@@ -93,6 +116,11 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
         </div>
       )}
       {!isLocal && (canCopy || canDownload || canShare || canDelete) && <div className="h-2" />}
+      {game && <>
+        <button type="button" disabled={gameDisabled} className={`${actionClass} disabled:opacity-40`} onClick={() => void runGame()}>{gamePending ? <LoadingOutlined /> : <ReloadOutlined />}<span>重新发送</span></button>
+        {canFinishGame && <button type="button" disabled={gameDisabled} className={`${actionClass} disabled:opacity-40`} onClick={() => void runGame(true)}><CheckOutlined /><span>{game.kind === 'draw' ? '揭晓答案' : '取消邀请'}</span></button>}
+        {gameError && <p role="alert" className="px-3 py-2 text-xs text-danger">{gameError}</p>}
+      </>}
       {canCopy && (
         <button
           type="button"
@@ -186,11 +214,11 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
   );
 
   return (
-    <Popover
+    <><Popover
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (nextOpen) setReplyError('');
+        if (nextOpen) { setReplyError(''); setGameError(''); }
         if (!nextOpen) {
           setDeleteConfirmOpen(false);
           setRecallConfirmOpen(false);
@@ -212,5 +240,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal 
         <EllipsisOutlined className="text-base" />
       </button>
     </Popover>
+    {setup && <GameSetupModal key={setup} kind={setup} onClose={() => setSetup(null)} />}
+    </>
   );
 }

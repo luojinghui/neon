@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { ImageViewer } from '@/components/image-viewer/ImageViewer';
 import { useSoulStore } from '../../store';
 import { soulChat } from '../../core';
 import { MessageBubble } from './MessageBubble';
@@ -22,6 +23,9 @@ export function MessageList({ className = '' }: MessageListProps) {
   const prevCountRef = useRef(messages.length);
   const isNearBottomRef = useRef(true);
   const isRestoringHistoryRef = useRef(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const images = useMemo(() => messages.filter((message) => message.type === 'image').map((message) => ({ id: message.id, url: message.attachment?.url || message.content, name: message.attachment?.name || '聊天图片' })), [messages]);
+  const previewIndex = images.findIndex((image) => image.id === previewId);
 
   const scrollToBottom = useCallback((smooth = true) => {
     const el = containerRef.current;
@@ -126,10 +130,12 @@ export function MessageList({ className = '' }: MessageListProps) {
             </div>
           )}
           {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
+            <MessageBubble key={msg.id} message={msg} onPreviewImage={() => setPreviewId(msg.id)} />
           ))}
         </div>
       </div>
+
+      {previewIndex >= 0 && <ImageViewer images={images} currentIndex={previewIndex} onSelect={setPreviewId} onClose={() => setPreviewId(null)} title="聊天图片" />}
 
       {hasNewMessage && (
         <button

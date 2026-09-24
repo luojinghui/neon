@@ -21,7 +21,8 @@ import {
   TeamOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Alert, Image, Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
+import { Alert, Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
+import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -696,9 +697,14 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
     {
       title: '原图 / 加工成品',
       width: 190,
-      render: (_, item) => item.imageState === 'ready'
-        ? <div className="flex gap-2"><Image src={item.originalUrl} alt={`${item.title}原图`} width={64} height={86} className="rounded-md object-cover" /><Image src={item.processedUrl} alt={`${item.title}成品`} width={64} height={86} className="rounded-md object-cover" /></div>
-        : <div className={`flex h-[86px] w-[136px] items-center justify-center rounded-md px-2 text-center text-xs ${item.imageState === 'missing' ? 'bg-warning/10 text-warning' : 'bg-surface-hover text-foreground-muted'}`}>{item.imageState === 'missing' ? '图片文件缺失，请检查存储' : '图片已清理'}</div>
+      render: (_, item) => {
+        if (item.imageState !== 'ready') return <div className={`flex h-[86px] w-[136px] items-center justify-center rounded-md px-2 text-center text-xs ${item.imageState === 'missing' ? 'bg-warning/10 text-warning' : 'bg-surface-hover text-foreground-muted'}`}>{item.imageState === 'missing' ? '图片文件缺失，请检查存储' : '图片已清理'}</div>;
+        const images = [{ id: 'original', url: item.originalUrl, name: `${item.title}原图` }, { id: 'processed', url: item.processedUrl, name: `${item.title}成品` }];
+        return <div className="flex gap-2">{images.map((image) => <ImagePreview key={image.id} images={images} imageId={image.id} title="图片审核" className="shrink-0 rounded-md">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image.url} alt={image.name} width={64} height={86} className="h-[86px] w-16 rounded-md object-cover" />
+        </ImagePreview>)}</div>;
+      }
     },
     {
       title: '角色卡',

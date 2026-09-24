@@ -1,6 +1,5 @@
 'use client';
 
-import { Image } from 'antd';
 import { useEffect, useRef } from 'react';
 import { soulChat } from '../../core';
 
@@ -106,7 +105,8 @@ export function EmojiPicker({ onClose }: { onClose: () => void }) {
             className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-background-secondary p-1 transition-colors hover:bg-surface-active"
             aria-label={`发送动态表情：${item.name}`}
           >
-            <Image src={item.url} alt={item.name} preview={false} className="h-full w-full object-contain" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={item.url} alt={item.name} draggable={false} loading="lazy" className="h-full w-full object-contain" />
           </button>
         ))}
       </div>

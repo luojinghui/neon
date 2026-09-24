@@ -114,19 +114,19 @@ export function PollMessage({ message }: { message: ChatMessage }) {
   const status = closed ? '已结束' : deadlinePassed ? '已截止' : '进行中';
   const timing = closed
     ? `${poll.closeReason === 'deadline' ? '到期结束' : '发起人已结束'}${poll.closedAt ? ` · ${pollTime(poll.closedAt)}` : ''}`
-    : deadlineAt ? `${pollTime(deadlineAt)} 截止` : '不限时间 · 由发起人结束';
+    : deadlineAt ? `${pollTime(deadlineAt)} 截止` : '';
   const vote = (optionId: string) => { void run(() => soulChat.votePoll(sourceId, optionId)); };
   const notice = (
     <>
       {pending && <p role="status" className="flex items-center gap-1.5 text-xs text-primary"><LoadingOutlined />正在更新投票…</p>}
       {error && <p role="alert" className="break-words text-xs text-danger">{error}</p>}
-      {(!connected || !canAccess) && <p role="status" className="text-xs text-foreground-muted">{!canAccess ? '当前无法访问聊天室，显示最近保存的结果。' : '连接已断开，显示最近保存的结果；恢复后可继续操作。'}</p>}
+      {(!connected || !canAccess) && <p role="status" className="text-xs text-foreground-muted">{!canAccess ? '请先加入星球' : '连接已断开'}</p>}
     </>
   );
   const summary = (
     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-foreground-muted">
       <span role="status" aria-live="polite">{poll.totalVotes} 人参与</span>
-      <span>{finished ? closed ? '最终结果' : '正在汇总结果…' : poll.selectedOptionId ? '已参与 · 点击其他选项可改票' : '单选 · 点击选项投票'}</span>
+      <span>{finished ? '已结束' : poll.selectedOptionId ? '已投票' : '单选'}</span>
     </div>
   );
 
@@ -136,7 +136,7 @@ export function PollMessage({ message }: { message: ChatMessage }) {
         <button type="button" onClick={showDetails} className="block w-full border-b border-border/70 px-3 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30" aria-label={`查看投票${finished ? '结果' : '详情'}：${poll.question}`}>
           <span className="flex items-center justify-between gap-2"><span className="inline-flex items-center gap-1.5 font-medium"><BarChartOutlined className="text-primary" />{message.type === 'poll-result' ? '投票结果' : '投票'}</span><span className={`rounded-full px-2 py-0.5 text-xs ${finished ? 'bg-surface-hover text-foreground-muted' : 'bg-primary-soft text-primary'}`}>{status}</span></span>
           <span className="mt-2 block break-words font-medium leading-relaxed">{poll.question}</span>
-          <span className="mt-1.5 flex items-center gap-1 text-xs text-foreground-muted"><ClockCircleOutlined />{timing}</span>
+          {timing && <span className="mt-1.5 flex items-center gap-1 text-xs text-foreground-muted"><ClockCircleOutlined />{timing}</span>}
         </button>
         <div className="space-y-3 p-3">
           <PollOptions poll={poll} disabled={disabled} onVote={vote} />
@@ -151,12 +151,12 @@ export function PollMessage({ message }: { message: ChatMessage }) {
 
       <Modal title={finished ? '投票结果' : '投票详情'} open={open} onCancel={() => setOpen(false)} footer={null} centered destroyOnHidden width={480}>
         <div className="space-y-4 pt-1 text-foreground">
-          <div><p className="break-words text-base font-medium leading-relaxed">{poll.question}</p><p className="mt-2 text-xs text-foreground-muted">{status} · {timing}</p></div>
+          <div><p className="break-words text-base font-medium leading-relaxed">{poll.question}</p>{timing && <p className="mt-2 text-xs text-foreground-muted">{timing}</p>}</div>
           <div className="max-h-[50dvh] overflow-y-auto pr-1"><PollOptions poll={poll} disabled={disabled} onVote={vote} /></div>
           {summary}
           {notice}
           <div className="flex items-center justify-between gap-2 pt-3">
-            <button type="button" disabled={refreshing || pending || !connected || !canAccess} onClick={() => void refresh()} className={actionClass}>{refreshing ? <LoadingOutlined /> : <ReloadOutlined />}{refreshing ? '更新中…' : '刷新结果'}</button>
+            <button type="button" aria-label="刷新结果" title="刷新结果" disabled={refreshing || pending || !connected || !canAccess} onClick={() => void refresh()} className={actionClass}>{refreshing ? <LoadingOutlined /> : <ReloadOutlined />}</button>
             {canClose && <button type="button" disabled={disabled} onClick={() => void run(() => soulChat.closePoll(sourceId))} className={actionClass}>结束投票</button>}
           </div>
         </div>

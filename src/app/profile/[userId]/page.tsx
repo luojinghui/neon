@@ -2,6 +2,7 @@
 
 import { AppstoreOutlined, CheckOutlined, CopyOutlined, EditOutlined, PlusOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
 import Image from 'next/image';
+import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -187,6 +188,7 @@ export default function ProfilePage() {
               <div className="relative px-5 pb-6 sm:px-7 sm:pb-7">
                 <div className="flex items-start justify-between gap-4">
                   <div className="relative -mt-14 h-28 w-28 shrink-0 sm:-mt-16 sm:h-32 sm:w-32">
+                    <ImagePreview images={[{ id: 'avatar', url: getProfileAvatar(profile), name: `${profile.name}的头像` }]} imageId="avatar" className="relative h-full w-full rounded-full" title="头像">
                     <Image
                       src={getProfileAvatar(profile)}
                       alt={`${profile.name}的头像`}
@@ -196,6 +198,7 @@ export default function ProfilePage() {
                       unoptimized
                       className="rounded-full border-[5px] border-surface bg-surface-active object-cover"
                     />
+                    </ImagePreview>
                     {isOwner && <span className="absolute bottom-1 right-1 h-5 w-5 rounded-full border-4 border-surface bg-success" title="这是你" />}
                   </div>
 

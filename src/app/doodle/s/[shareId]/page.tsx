@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { CameraOutlined, ClockCircleOutlined, StarFilled } from '@ant-design/icons';
 import Image from 'next/image';
+import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import Link from 'next/link';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -61,7 +62,9 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
 
       <div className="app-content-width grid items-center gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-8">
         <div className="mx-auto w-full max-w-[560px] overflow-hidden rounded-[28px] border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
-          <Image src={share.imageUrl} alt={`漫画涂鸦：${share.title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
+          <ImagePreview images={[{ id: share.id, url: share.imageUrl, name: share.title }]} imageId={share.id} title="漫游相机" className="w-full">
+            <Image src={share.imageUrl} alt={`漫画涂鸦：${share.title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
+          </ImagePreview>
         </div>
 
         <section className="rounded-2xl border border-border/70 bg-surface/75 p-5">
