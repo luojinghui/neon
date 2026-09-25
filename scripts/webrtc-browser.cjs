@@ -48,13 +48,21 @@ async function waitFor(check, label, timeout = 30000) {
       page.on('pageerror', (error) => errors.push(error.message));
       const portrait = process.env.WEBRTC_EFFECTS_TEST_IMAGE ? `data:image/jpeg;base64,${fs.readFileSync(process.env.WEBRTC_EFFECTS_TEST_IMAGE).toString('base64')}` : null;
       await page.addInitScript(({ portrait }) => {
-        window.__captures = []; window.__tracks = []; window.__peers = []; window.__canvasTracks = [];
+        window.__captures = []; window.__tracks = []; window.__peers = []; window.__canvasTracks = []; window.__microphones = [];
         const capture = HTMLCanvasElement.prototype.captureStream;
         HTMLCanvasElement.prototype.captureStream = function (...args) { const stream = capture.apply(this, args); window.__canvasTracks.push(...stream.getTracks()); return stream; };
         const acquire = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
         navigator.mediaDevices.getUserMedia = async (constraints) => {
           window.__captures.push(constraints);
           const stream = await acquire(constraints);
+          if (constraints.audio) {
+            stream.getAudioTracks().forEach(track => { track.stop(); stream.removeTrack(track); });
+            const context = new AudioContext(), oscillator = context.createOscillator(), gain = context.createGain(), destination = context.createMediaStreamDestination();
+            gain.gain.value = 0; oscillator.connect(gain); gain.connect(destination); oscillator.start(); await context.resume();
+            const track = destination.stream.getAudioTracks()[0];
+            const stop = track.stop.bind(track); track.stop = () => { stop(); oscillator.stop(); void context.close(); };
+            window.__microphones.push({ context, gain }); stream.addTrack(track);
+          }
           if (constraints.video && portrait) {
             stream.getVideoTracks().forEach(track => { track.stop(); stream.removeTrack(track); });
             const photo = new Image(); photo.src = portrait; await photo.decode();
@@ -83,6 +91,10 @@ async function waitFor(check, label, timeout = 30000) {
       await require('./clipboard-browser.cjs')(await participant(), url, output);
       assert.deepEqual(errors, []); return;
     }
+    if (process.env.WEBRTC_EXPERIENCE_ONLY) {
+      await require('./experience-fixes-browser.cjs')(await participant(), await participant(), url, output, waitFor);
+      assert.deepEqual(errors, []); return;
+    }
     const host = await participant();
     const guest = await participant();
     await host.getByRole('button', { name: '语音通话', exact: true }).click();
@@ -96,11 +108,26 @@ async function waitFor(check, label, timeout = 30000) {
       }), 'incoming audio packets');
     }
     console.log('PASS two-party audio with no camera acquisition');
+    await host.getByRole('button', { name: '参会者列表', exact: true }).click();
+    assert.equal(await host.locator('.soul-call-participants li').count(), 2);
+    assert.equal(await host.locator('.soul-call-participants').getByText('已连接', { exact: true }).count(), 2);
+    await host.screenshot({ path: path.join(output, 'participants-light.png') });
+    await host.getByRole('button', { name: '关闭参会者列表', exact: true }).click();
+    await host.evaluate(() => { window.__microphones[0].gain.gain.value = .16; });
+    await waitFor(() => host.locator('.soul-call-microphone-level').getAttribute('height').then(value => Number(value) > 3), 'live microphone level rises with audio');
+    await host.evaluate(() => { window.__microphones[0].gain.gain.value = 0; });
+    await waitFor(() => host.locator('.soul-call-microphone-level').getAttribute('height').then(value => Number(value) < .1), 'microphone level falls in silence');
+    assert.equal(await host.locator('.soul-call-controls').innerText(), '', 'call controls contain no visible text');
+    await host.evaluate(() => document.documentElement.classList.add('dark'));
+    await host.screenshot({ path: path.join(output, 'call-dark.png'), animations: 'disabled' });
+    await host.evaluate(() => document.documentElement.classList.remove('dark'));
     await host.getByRole('button', { name: '开启摄像头', exact: true }).click();
     await waitFor(() => guest.evaluate(async () => {
       const stats = await window.__peers[0].getStats(); return [...stats.values()].some((stat) => stat.type === 'inbound-rtp' && stat.kind === 'video' && stat.framesDecoded > 0);
     }), 'video frames decoded');
     await guest.screenshot({ path: path.join(output, 'desktop-video.png') });
+    assert.match(await host.locator('.is-local video').evaluate(element => getComputedStyle(element).transform), /^matrix\(-1,/, 'local video stays mirrored');
+    assert.equal(await host.locator('.soul-call-select-tile').innerText(), '', 'thumbnail has no enlargement badge');
     await host.getByRole('button', { name: '将我的画面放大', exact: true }).click();
     assert.equal(await host.locator('.is-local.is-primary').count(), 1);
     await host.locator('.is-thumbnail .soul-call-select-tile').click();
@@ -152,6 +179,7 @@ async function waitFor(check, label, timeout = 30000) {
     await host.mouse.move(headerBounds.x + 30, headerBounds.y + 15); await host.mouse.down();
     await host.mouse.move(headerBounds.x - 90, headerBounds.y + 80); await host.mouse.up();
     assert.ok((await miniHeader.boundingBox()).x < headerBounds.x - 50, 'mini window can be dragged');
+    for (const button of await host.locator('.soul-call-controls > button').all()) assert.ok((await button.locator('svg').boundingBox()).width > 0, 'mini controls keep all icons visible');
     await host.getByRole('textbox', { name: '输入消息', exact: true }).fill('通话中仍然可以聊天');
     await host.getByRole('button', { name: '发送', exact: true }).click();
     await host.screenshot({ path: path.join(output, 'desktop-mini.png') });
@@ -208,6 +236,7 @@ async function waitFor(check, label, timeout = 30000) {
       assert.equal(await page.evaluate(() => window.__peers.every((peer) => peer.connectionState === 'closed')), true, 'hangup closes all peers');
       assert.equal(await page.evaluate(() => window.__canvasTracks.every(track => track.readyState === 'ended')), true, 'hangup stops every processed track');
     }
+    await require('./experience-fixes-browser.cjs')(host, guest, url, output, waitFor);
     await host.getByRole('button', { name: '视频通话', exact: true }).click();
     await host.getByRole('button', { name: '挂断通话', exact: true }).waitFor();
     await host.getByRole('button', { name: '缩小到聊天室', exact: true }).click();
