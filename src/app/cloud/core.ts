@@ -188,7 +188,7 @@ export class NeonCloud {
    * 查询消息
    */
   public async queryMessage(password?: string): Promise<void> {
-    const pwd = password || this._queryPassword;
+    const pwd = (password || this._queryPassword).trim().toLowerCase();
 
     if (!pwd) {
       this._message?.error('请输入密码');

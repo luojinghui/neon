@@ -232,7 +232,7 @@
 
 .app-glass-header {
   border: 0;
-  background: color-mix(in srgb, var(--app-header-background, hsl(var(--background))) 50%, transparent);
+  background: color-mix(in srgb, var(--app-header-background, hsl(var(--background))) 35%, transparent);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
@@ -463,6 +463,16 @@
 .docx-preview ol,
 .docx-preview table {
   margin: 0.65em 0;
+}
+
+/* Bound the dialog itself and the intrinsic canvas size, not the page viewport. */
+.ant-modal.soul-game-modal { max-width: calc(100vw - 24px); margin-inline: auto; padding-bottom: 0; }
+.soul-game-modal .ant-modal-container { min-width: 0; }
+.soul-game-modal .ant-modal-body { min-width: 0; max-height: calc(100dvh - 140px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.soul-game-modal canvas, .soul-game-modal svg[role=img] { max-width: 100%; min-width: 0; }
+@media (max-width: 600px) {
+  .soul-game-modal .ant-modal-container { padding: 16px; }
+  .soul-game-modal .ant-modal-body { max-height: calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 }
 
 .docx-preview img {

@@ -3,6 +3,7 @@ import { CloudMessage, CLOUD_MESSAGE_LIFETIME_MS } from '@/server/models/cloud';
 import mongoose from 'mongoose';
 import path from 'path';
 import fs from 'fs/promises';
+import { cloudPasswordQuery } from '@/server/models/cloudPassword';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'upload');
 
@@ -12,16 +13,16 @@ async function ensureUploadDir() {
 
 async function getPassword() {
   const password = Math.random().toString(36).substring(2, 4);
-  const isExist = await CloudMessage.findOne({ password });
+  const isExist = await CloudMessage.findOne({ password: cloudPasswordQuery(password) });
   if (isExist) return getPassword();
   return password;
 }
 
 export async function GET(request: Request) {
-  await connectDB();
-
   const { searchParams } = new URL(request.url);
-  const password = searchParams.get('password');
+  const password = cloudPasswordQuery(searchParams.get('password'));
+  if (!password) return Response.json({ message: '请输入 2–4 位字母或数字查询码', state: 400, data: null }, { status: 400 });
+  await connectDB();
 
   const cloudMessage = await CloudMessage.findOne({ password, expireAt: { $gt: new Date() } });
 

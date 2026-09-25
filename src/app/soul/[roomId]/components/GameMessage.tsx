@@ -84,7 +84,7 @@ export function GameMessage({ message }: { message: ChatMessage }) {
       {finished && game.winnerName && <span className="block text-center text-xs text-foreground-muted">{game.winnerName} 猜中了</span>}
     </button>}
 
-    <Modal title={title} open={open} onCancel={() => setOpen(false)} footer={null} centered destroyOnHidden width={game.kind === 'draw' ? 480 : 360}>
+    <Modal className="soul-game-modal" title={title} open={open} onCancel={() => setOpen(false)} footer={null} centered destroyOnHidden width={game.kind === 'draw' ? 480 : 360}>
       <div className="space-y-4 pt-2 text-foreground">
         {game.kind === 'rps' && (finished ? <RpsResult message={message} /> : game.status === 'cancelled' ? <p className="text-sm text-foreground-muted">邀请已取消</p> : message.isLocal ? <p className="py-6 text-center text-sm text-foreground-muted">等待对方出拳</p> : <>
           <GameChoicePicker value={choice} onChange={setChoice} disabled={disabled} />

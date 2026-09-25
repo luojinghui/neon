@@ -29,6 +29,14 @@ function storage() {
   return { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key), key: index => [...values.keys()][index], get length() { return values.size; } };
 }
 
+test('cloud queries are anchored and case insensitive for generated and older mixed-case codes', () => {
+  const { cloudPasswordQuery } = load('src/server/models/cloudPassword.ts');
+  const query = cloudPasswordQuery(' aB ');
+  for (const value of ['ab', 'AB', 'aB', 'Ab']) assert.equal(query.test(value), true);
+  for (const value of ['a.b', '$ne', null, {}, 'a', 'abcde']) assert.equal(cloudPasswordQuery(value), null);
+  assert.equal(query.test('abc'), false);
+});
+
 test('vision downloads share in-flight bytes, report progress, reuse cache and retry failed resources', async () => {
   const filename = path.resolve(__dirname, '../src/app/doodle/visionRuntime.ts');
   const { outputText } = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } });

@@ -69,7 +69,7 @@ export function GameSetupModal({ kind, onClose }: { kind: 'rps' | 'draw'; onClos
   };
 
   return (
-    <Modal title={kind === 'rps' ? '✊ 来一局猜拳' : '🎨 你画我猜'} open onCancel={onClose} footer={null} centered destroyOnHidden width={kind === 'draw' ? 560 : 380} closable={!pending} mask={{ closable: !pending }} keyboard={!pending}>
+    <Modal className="soul-game-modal" title={kind === 'rps' ? '✊ 来一局猜拳' : '🎨 你画我猜'} open onCancel={onClose} footer={null} centered destroyOnHidden width={kind === 'draw' ? 560 : 380} closable={!pending} mask={{ closable: !pending }} keyboard={!pending}>
       <div className="space-y-4 pt-1 text-sm text-foreground">
         {kind === 'rps' ? (
           <>

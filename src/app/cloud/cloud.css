@@ -16,9 +16,9 @@
 }
 
 .cloud-query-controls { display: flex; min-width: 0; align-items: center; gap: 0.5rem; }
-.cloud-page .cloud-query-input { width: 8rem; height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--background)); }
-.cloud-page .cloud-query-button { height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--background)); color: hsl(var(--foreground)); box-shadow: none; }
+.cloud-page .cloud-query-input { width: 8rem; height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--background-secondary) / 0.65); }
 .cloud-page .cloud-query-input:hover,
+.cloud-page .cloud-editor-toolbar .ant-btn:hover,
 .cloud-page .cloud-query-button:hover { border-color: hsl(var(--border-hover)); }
 .cloud-page .cloud-query-input:focus { border-color: hsl(var(--border-focus)); box-shadow: none; }
 
@@ -31,6 +31,7 @@
 .cloud-page .cloud-editor-input.ant-input-textarea-affix-wrapper .ant-input-suffix .ant-input-clear-icon { inset-block-start: 0.8rem; inset-inline-end: 0.8rem; }
 
 .cloud-editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; }
+.cloud-page .cloud-query-button,
 .cloud-page .cloud-editor-toolbar .ant-btn { height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); box-shadow: none; }
 .cloud-page .cloud-share-panel .ant-btn { height: 2.25rem; box-shadow: none; }
 .cloud-share-label { margin-bottom: 0.5rem; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
