@@ -1,9 +1,11 @@
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { SendOutlined } from '@ant-design/icons';
 import { useSoulStore } from '../../store';
 import { soulChat } from '../../core';
+import { clipboardImages } from '@/lib/clipboardImages';
+import { ImageAttachmentDraft } from '@/components/image-viewer/ImageAttachmentDraft';
 
 const MAX_LINES = 5;
 const LINE_HEIGHT = 22;
@@ -13,9 +15,21 @@ export function ChatInput() {
   const inputText = useSoulStore((s) => s.inputText);
   const connectionState = useSoulStore((s) => s.connectionState);
   const isSending = useSoulStore((s) => s.isSending);
+  const isUploading = useSoulStore((s) => s.isUploading);
+  const roomId = useSoulStore((s) => s.roomId);
+  const [images, setImages] = useState<File[]>([]);
+  const [sendingImages, setSendingImages] = useState(false);
+  const sendingRef = useRef(false);
+  const draftGeneration = useRef(0);
+  useEffect(() => {
+    setImages([]); setSendingImages(false); sendingRef.current = false;
+    const generation = ++draftGeneration.current;
+    return () => { draftGeneration.current = generation + 1; };
+  }, [roomId]);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const isComposingRef = useRef(false);
-  const hasContent = inputText.trim().length > 0;
+  const hasContent = inputText.trim().length > 0 || images.length > 0;
+  const busy = isSending || isUploading || sendingImages;
 
   const clampHeight = useCallback(() => {
     const el = editorRef.current;
@@ -27,9 +41,19 @@ export function ChatInput() {
   }, []);
 
   const handleSend = useCallback(async () => {
-    if (isComposingRef.current || !inputText.trim()) return;
-    await soulChat.sendTextMessage(inputText);
-  }, [inputText]);
+    if (isComposingRef.current || sendingRef.current || busy || connectionState !== 'connected') return;
+    sendingRef.current = true;
+    const generation = draftGeneration.current;
+    setSendingImages(true);
+    try {
+      for (const file of images) {
+        if (!await soulChat.uploadAndSend(file)) return;
+        if (generation !== draftGeneration.current) return;
+        setImages(current => current.filter(item => item !== file));
+      }
+      if (generation === draftGeneration.current && inputText.trim()) await soulChat.sendTextMessage(inputText);
+    } finally { if (generation === draftGeneration.current) { sendingRef.current = false; setSendingImages(false); } }
+  }, [inputText, images, busy, connectionState]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -47,6 +71,10 @@ export function ChatInput() {
   }, [inputText, clampHeight]);
 
   return (
+    <div>
+      {images.length > 0 && <div className="flex gap-2 overflow-x-auto px-3 pb-2" aria-label="待发送图片">
+        {images.map((file, index) => <ImageAttachmentDraft key={`${file.name}-${file.lastModified}-${index}`} file={file} disabled={busy} onRemove={() => setImages(current => current.filter(item => item !== file))} />)}
+      </div>}
     <div className="flex items-end gap-2">
       <div className="relative flex-1 min-w-0">
         <textarea
@@ -59,7 +87,15 @@ export function ChatInput() {
                      border-0 focus:outline-none
                      placeholder:text-input-placeholder
                      overflow-hidden break-words whitespace-pre-wrap transition-colors"
-          placeholder="输入消息..."
+          placeholder="输入消息或粘贴图片..."
+          onPaste={event => {
+            const pasted = clipboardImages(event.clipboardData);
+            if (!pasted.length) return;
+            event.preventDefault();
+            if (busy) return;
+            if (pasted.length + images.length > 9) useSoulStore.getState().setChatError('每次最多发送 9 张图片');
+            setImages(current => [...current, ...pasted].slice(0, 9));
+          }}
           onChange={(event) => useSoulStore.getState().setInputText(event.currentTarget.value)}
           onCompositionStart={() => {
             isComposingRef.current = true;
@@ -74,14 +110,15 @@ export function ChatInput() {
       <button
         type="button"
         onClick={handleSend}
-        disabled={!hasContent || isSending || connectionState !== 'connected'}
+        disabled={!hasContent || busy || connectionState !== 'connected'}
         className={`send-btn shrink-0 w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-          hasContent && !isSending && connectionState === 'connected' ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-surface-hover text-foreground-muted cursor-not-allowed'
+          hasContent && !busy && connectionState === 'connected' ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-surface-hover text-foreground-muted cursor-not-allowed'
         }`}
         aria-label="发送"
       >
         <SendOutlined className="send-icon text-base" />
       </button>
+    </div>
     </div>
   );
 }

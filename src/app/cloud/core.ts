@@ -571,6 +571,12 @@ export class NeonCloud {
     e.target.value = '';
   }
 
+  public addClipboardImages(files: File[]): void {
+    if (useCloudStore.getState().isSending || !files.length) return;
+    useCloudStore.getState().addFiles(files.map(file => this.createFileItem(file, file.name)));
+    this._message?.success(`已添加 ${files.length} 张图片`);
+  }
+
   /**
    * 移除单个文件
    */

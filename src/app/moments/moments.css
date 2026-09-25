@@ -364,7 +364,7 @@
 
 .moment-composer-text { position: relative; display: block; }
 .moment-composer-text textarea { display: block; width: 100%; resize: vertical; border: 1px solid hsl(var(--border)); border-radius: 0.85rem; padding: 0.85rem 0.9rem 2rem; background: hsl(var(--input)); color: hsl(var(--input-foreground)); outline: none; line-height: 1.7; }
-.moment-composer-text textarea:focus { border-color: hsl(var(--border-focus)); background: hsl(var(--input-focus)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
+.moment-composer-text textarea:focus { border-color: hsl(var(--border-focus)); background: hsl(var(--input-focus)); box-shadow: none; }
 .moment-composer-text > span:last-child { position: absolute; right: 0.8rem; bottom: 0.55rem; font-size: 0.7rem; color: hsl(var(--foreground-muted)); }
 
 .moment-file-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; margin-top: 0.75rem; }

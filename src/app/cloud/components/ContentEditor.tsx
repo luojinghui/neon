@@ -21,6 +21,8 @@ import {
 import { useCloudStore, FileItem } from '../store';
 import { neonCloud } from '../core';
 import LinkTextArea from './LinkTextArea';
+import { clipboardImages } from '@/lib/clipboardImages';
+import { ImageAttachmentDraft } from '@/components/image-viewer/ImageAttachmentDraft';
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -114,7 +116,13 @@ export default function ContentEditor() {
           autoSize={{ minRows: 6, maxRows: 22 }}
           variant="borderless"
           aria-label="发送内容"
-          placeholder="输入或粘贴文字，也可以将文件拖到这里"
+          placeholder="输入文字、粘贴图片，也可以将文件拖到这里"
+          onPaste={event => {
+            const images = clipboardImages(event.clipboardData);
+            if (!images.length) return;
+            event.preventDefault();
+            neonCloud.addClipboardImages(images);
+          }}
           spellCheck={false}
           showCount={{ formatter: ({ count }) => `${count} 字` }}
           className="cloud-editor-input w-full"
@@ -146,7 +154,7 @@ export default function ContentEditor() {
           </div>
           <div className="max-h-[160px] overflow-y-auto flex flex-wrap gap-2">
             {files.map((item) => (
-              <FileListItem key={item.id} item={item} onRemove={(id) => neonCloud.removeFile(id)} />
+              item.type.startsWith('image/') ? <ImageAttachmentDraft key={item.id} file={item.file} onRemove={() => neonCloud.removeFile(item.id)} disabled={isSending} /> : <FileListItem key={item.id} item={item} onRemove={(id) => neonCloud.removeFile(id)} />
             ))}
           </div>
         </div>

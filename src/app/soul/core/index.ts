@@ -321,6 +321,8 @@ export class SoulChat {
 
   public async uploadAndSend(file: File): Promise<boolean> {
     const store = useSoulStore.getState();
+    if (!this.roomId || store.connectionState !== 'connected' || store.isUploading || store.isSending) return false;
+    const sessionId = this.sessionId;
     store.setChatError('');
     store.setIsUploading(true);
     try {
@@ -333,14 +335,15 @@ export class SoulChat {
         body: file
       });
       const result = (await response.json()) as ChatAttachment & { error?: string };
+      if (sessionId !== this.sessionId) return false;
       if (!response.ok) throw new Error(result.error || '上传失败');
       const type = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(result.mimeType) ? 'image' : 'file';
       return await this.sendMessage({ type, content: result.name, attachment: result });
     } catch (error) {
-      store.setChatError(this.getErrorMessage(error));
+      if (sessionId === this.sessionId) store.setChatError(this.getErrorMessage(error));
       return false;
     } finally {
-      store.setIsUploading(false);
+      if (sessionId === this.sessionId) store.setIsUploading(false);
     }
   }
 

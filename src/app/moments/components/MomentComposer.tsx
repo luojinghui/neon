@@ -8,6 +8,7 @@ import { formatVoiceDuration } from '../format';
 import type { Moment, MomentLocation } from '../types';
 import { MomentVoicePlayer } from './MomentVoice';
 import { VideoCover } from '@/components/video-player/VideoPlayer';
+import { clipboardImages } from '@/lib/clipboardImages';
 
 type Props = {
   appearance?: 'journal';
@@ -116,8 +117,8 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
     onClose();
   };
 
-  const addMedia = (files: FileList | null) => {
-    if (!files) return;
+  const addMedia = (files: FileList | File[] | null) => {
+    if (!files || saving) return;
     const accepted = Array.from(files).filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'));
     if (accepted.length !== files.length) setError('仅支持图片和视频文件');
     setMedia((current) => [...current, ...accepted].slice(0, 9));
@@ -263,7 +264,12 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
       styles={{ container: { padding: 0, overflow: 'hidden', border: '1px solid hsl(var(--border))', borderRadius: 16, background: 'hsl(var(--surface))' }, body: { padding: 0 } }}
       rootClassName={appearance === 'journal' ? 'moment-journal-composer' : undefined}
     >
-      <div className="moment-composer">
+      <div className="moment-composer" onPaste={event => {
+        const images = clipboardImages(event.clipboardData);
+        if (!images.length) return;
+        event.preventDefault();
+        addMedia(images);
+      }}>
         <header className="moment-composer-head">
           <button type="button" onClick={close} disabled={saving}>取消</button>
           <h2 id="moment-composer-heading">发布心迹</h2>
@@ -273,7 +279,7 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
         <div className="moment-composer-body">
           <label className="moment-composer-text">
             <span className="sr-only">心迹文字</span>
-            <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={500} rows={5} placeholder="此刻，想说点什么……" autoFocus />
+            <textarea value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={500} rows={5} placeholder="此刻，想说点什么……也可以直接粘贴图片" autoFocus />
             <span>{text.length}/500</span>
           </label>
 

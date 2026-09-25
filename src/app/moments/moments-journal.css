@@ -126,7 +126,7 @@
 .moment-journal-composer .moment-composer-head button:last-child { border-radius: 0.6rem; padding-inline: 1rem; }
 .moment-journal-composer .moment-composer-body { padding-top: 1rem; }
 .moment-journal-composer .moment-composer-text textarea { border-color: hsl(var(--border)); background: hsl(var(--background-secondary)); }
-.moment-journal-composer .moment-composer-text textarea:focus { background: hsl(var(--background-secondary)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35); }
+.moment-journal-composer .moment-composer-text textarea:focus { border-color: hsl(var(--border-focus)); background: hsl(var(--background-secondary)); box-shadow: none; }
 .moment-journal-composer .moment-composer-tools { gap: 0.5rem; border: 0; padding-top: 0; }
 .moment-journal-composer .moment-location-chip,
 .moment-journal-composer .moment-voice-player { border: 0; }
