@@ -26,8 +26,9 @@ import { canvasToBlob, DOODLE_TEMPLATES, DOODLE_THEMES, DOODLE_TITLES, renderDoo
 import { createSmileDetector, type SmileDetector } from './smileDetector';
 import type { DoodleShare, DoodleTemplateId, DoodleThemeId } from './types';
 import { analyzePortrait, type PortraitAnalysis } from './portrait/analyze';
-import { DEFAULT_PORTRAIT, normalizePortrait, MOODS, STICKERS, STICKER_COLORS, type PortraitSettings } from './portrait/settings';
+import { DEFAULT_PORTRAIT, normalizePortrait, FACE_EFFECTS, MOODS, STICKERS, STICKER_COLORS, type PortraitSettings } from './portrait/settings';
 import { PortraitControls } from './portrait/PortraitControls';
+import { LivePreview } from './portrait/livePreview';
 import { prepareVisionCache } from './visionRuntime';
 import './doodle.css';
 
@@ -237,6 +238,10 @@ export default function DoodleStudio() {
   const analysisRef = useRef<PortraitAnalysis | null>(null);
   const analysisRequestRef = useRef(0);
   const capturedAtRef = useRef(new Date());
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const qrImageRef = useRef<CanvasImageSource | null>(null);
+  const previewRef = useRef<LivePreview<Blob> | null>(null);
+  if (!previewRef.current) previewRef.current = new LivePreview(canvasToBlob, error => message.error(error instanceof Error ? error.message : '预览暂时无法更新，请重试'));
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const albumInputRef = useRef<HTMLInputElement>(null);
@@ -265,8 +270,7 @@ export default function DoodleStudio() {
     smileEnabledRef.current = smileEnabled;
   }, [smileEnabled]);
 
-  const replaceResult = useCallback(async (canvas: HTMLCanvasElement) => {
-    const blob = await canvasToBlob(canvas);
+  const publishResult = useCallback((blob: Blob) => {
     const url = URL.createObjectURL(blob);
     if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     resultUrlRef.current = url;
@@ -274,6 +278,8 @@ export default function DoodleStudio() {
     setResultBlob(blob);
     return blob;
   }, []);
+
+  const replaceResult = useCallback(async (canvas: HTMLCanvasElement) => publishResult(await canvasToBlob(canvas)), [publishResult]);
 
   const stopCamera = useCallback(() => {
     cameraRequestRef.current += 1;
@@ -291,29 +297,41 @@ export default function DoodleStudio() {
     () => () => {
       stopCamera();
       analysisRequestRef.current += 1;
+      previewRef.current?.cancel();
       analysisRef.current?.renderer?.dispose();
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     },
     [stopCamera]
   );
 
-  const renderResult = useCallback(
-    async (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId, qrSource: CanvasImageSource | null = null) => {
+  const drawPoster = useCallback(
+    (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId, qrSource: CanvasImageSource | null = null, settings = portraitRef.current) => {
       const raw = rawCanvasRef.current;
       if (!raw) throw new Error('原始照片已经丢失，请重新拍摄');
-      const source = analysisRef.current?.renderer?.render(portraitRef.current) || raw;
+      const source = analysisRef.current?.renderer?.render(settings) || raw;
       const poster = renderDoodlePoster(source, source.width, source.height, {
-        title: nextTitle,
+        title: nextTitle.trim() || '今日限定角色',
         themeId: nextTheme,
         templateId: nextTemplate,
         qrSource,
-        portrait: portraitRef.current,
+        portrait: settings,
         createdAt: capturedAtRef.current
       });
-      return replaceResult(poster);
+      const preview = previewCanvasRef.current;
+      if (preview) {
+        preview.width = poster.width; preview.height = poster.height;
+        preview.getContext('2d')?.drawImage(poster, 0, 0);
+        preview.style.opacity = '1';
+      }
+      return poster;
     },
-    [replaceResult]
+    []
   );
+
+  const renderResult = useCallback(async (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId, qrSource: CanvasImageSource | null = null) => {
+    previewRef.current?.cancel();
+    return replaceResult(drawPoster(nextTitle, nextTheme, nextTemplate, qrSource));
+  }, [drawPoster, replaceResult]);
 
   const queueReviewUpdate = useCallback(
     (blob: Blob, nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId, shareId = '') => {
@@ -321,7 +339,7 @@ export default function DoodleStudio() {
       if (!context || context.stopped) return;
       context.latest = {
         blob,
-        title: nextTitle,
+        title: nextTitle.trim() || '今日限定角色',
         themeId: nextTheme,
         templateId: nextTemplate,
         shareId: shareId || context.latest.shareId,
@@ -334,6 +352,8 @@ export default function DoodleStudio() {
 
   const enterResult = useCallback(
     async (rawCanvas: HTMLCanvasElement, fallbackMode: StudioMode = 'welcome', replaceSession = false) => {
+      previewRef.current?.cancel();
+      qrImageRef.current = null;
       const previousRawCanvas = rawCanvasRef.current;
       const previousAnalysis = analysisRef.current;
       const request = ++analysisRequestRef.current;
@@ -355,7 +375,7 @@ export default function DoodleStudio() {
           id: '',
           key,
           original,
-          latest: { blob: processed, title, themeId, templateId, shareId: '', version: 0 },
+          latest: { blob: processed, title: title.trim() || '今日限定角色', themeId, templateId, shareId: '', version: 0 },
           syncedVersion: -1,
           creating: false,
           syncing: false,
@@ -536,70 +556,55 @@ export default function DoodleStudio() {
     [busy, enterResult, message, mode, stopCamera]
   );
 
-  const rerender = useCallback(
-    async (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId) => {
-      setBusy(true);
-      try {
-        const qrImage = shareInfo ? await readQrImage(qrHolderRef.current) : null;
-        const processed = await renderResult(nextTitle, nextTheme, nextTemplate, qrImage);
-        queueReviewUpdate(processed, nextTitle, nextTheme, nextTemplate);
-        if (shareInfo) setShareInfo({ ...shareInfo, dirty: true });
-        return true;
-      } catch (error) {
-        message.error(error instanceof Error ? error.message : '换装失败，请重试');
-        return false;
-      } finally {
-        setBusy(false);
-      }
+  const requestPreview = useCallback(
+    (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId) => {
+      const settings = portraitRef.current;
+      setShareInfo(current => current ? { ...current, dirty: true } : current);
+      previewRef.current?.request(
+        () => drawPoster(nextTitle, nextTheme, nextTemplate, qrImageRef.current, settings),
+        blob => {
+          publishResult(blob);
+          queueReviewUpdate(blob, nextTitle.trim() || '今日限定角色', nextTheme, nextTemplate);
+          try { localStorage.setItem('neon:portrait-settings:v1', JSON.stringify(settings)); } catch { /* Optional. */ }
+        }
+      );
     },
-    [message, queueReviewUpdate, renderResult, shareInfo]
+    [drawPoster, publishResult, queueReviewUpdate]
   );
 
   const changeTitle = useCallback(() => {
     const next = randomTitle(title);
-    void rerender(next, themeId, templateId).then((success) => {
-      if (success) setTitle(next);
-    });
-  }, [rerender, templateId, themeId, title]);
+    setTitle(next); requestPreview(next, themeId, templateId);
+  }, [requestPreview, templateId, themeId, title]);
 
   const changeTheme = useCallback(
     (next: DoodleThemeId) => {
-      void rerender(title, next, templateId).then((success) => {
-        if (success) setThemeId(next);
-      });
+      setThemeId(next); requestPreview(title, next, templateId);
     },
-    [rerender, templateId, title]
+    [requestPreview, templateId, title]
   );
 
   const changeTemplate = useCallback(
     (next: DoodleTemplateId) => {
-      void rerender(title, themeId, next).then((success) => {
-        if (success) setTemplateId(next);
-      });
+      setTemplateId(next); requestPreview(title, themeId, next);
     },
-    [rerender, themeId, title]
+    [requestPreview, themeId, title]
   );
 
-  const applyPortrait = async (next: PortraitSettings, nextTitle: string) => {
-    const previous = portraitRef.current;
+  const updatePortrait = (next: PortraitSettings, nextTitle: string) => {
     const normalized = normalizePortrait(next);
     portraitRef.current = normalized;
-    if (await rerender(nextTitle.slice(0, 24), themeId, templateId)) {
-      setPortrait(normalized); setTitle(nextTitle.slice(0, 24));
-      try { localStorage.setItem('neon:portrait-settings:v1', JSON.stringify(normalized)); } catch { /* Optional. */ }
-    } else portraitRef.current = previous;
+    setPortrait(normalized); setTitle(nextTitle.slice(0, 24));
+    requestPreview(nextTitle.slice(0, 24), themeId, templateId);
   };
 
-  const surprisePortrait = async () => {
+  const surprisePortrait = () => {
     const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
-    const next = normalizePortrait({ ...portraitRef.current, sticker: pick(STICKERS.slice(1)).id, stickerColor: pick(STICKER_COLORS), mood: pick(MOODS), stickerScale: 1, stickerY: 0, stickerRotation: 0, decoration: pick(['spark', 'hearts', 'orbit'] as const) });
+    const next = normalizePortrait({ ...portraitRef.current, faceEffect: pick(FACE_EFFECTS).id, sticker: pick(STICKERS.slice(1)).id, stickerColor: pick(STICKER_COLORS), mood: pick(MOODS), stickerScale: 1, stickerY: 0, stickerRotation: 0, decoration: pick(['spark', 'hearts', 'orbit'] as const) });
     const nextTitle = randomTitle(title), nextTheme = pick(DOODLE_THEMES).id, nextTemplate = pick(DOODLE_TEMPLATES).id;
-    const previous = portraitRef.current;
     portraitRef.current = next;
-    if (await rerender(nextTitle, nextTheme, nextTemplate)) {
-      setPortrait(next); setTitle(nextTitle); setThemeId(nextTheme); setTemplateId(nextTemplate);
-      try { localStorage.setItem('neon:portrait-settings:v1', JSON.stringify(next)); } catch { /* Optional. */ }
-    } else portraitRef.current = previous;
+    setPortrait(next); setTitle(nextTitle); setThemeId(nextTheme); setTemplateId(nextTemplate);
+    requestPreview(nextTitle, nextTheme, nextTemplate);
   };
 
   const toggleSmileShutter = useCallback(() => {
@@ -614,30 +619,39 @@ export default function DoodleStudio() {
     setSmileEnabled((value) => !value);
   }, [message, smileState]);
 
-  const saveImage = useCallback(() => {
-    if (!resultUrl) return;
-    const anchor = document.createElement('a');
-    anchor.href = resultUrl;
-    anchor.download = `漫游相机-${title}-${new Date().toISOString().slice(0, 10)}.jpg`;
-    anchor.click();
-    message.success('图片已开始保存');
-  }, [message, resultUrl, title]);
+  const saveImage = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const blob = await previewRef.current?.flush() || resultBlob;
+      if (!blob) return;
+      const url = URL.createObjectURL(blob), anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `漫游相机-${title || '今日限定角色'}-${new Date().toISOString().slice(0, 10)}.jpg`;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      message.success('图片已开始保存');
+    } catch { message.error('图片保存失败，请重试'); } finally { setBusy(false); }
+  }, [busy, message, resultBlob, title]);
 
   const publishShare = useCallback(async () => {
     if (!resultBlob || busy) return;
     setBusy(true);
     try {
+      const latestBlob = await previewRef.current?.flush() || resultBlob;
+      const cardTitle = title.trim() || '今日限定角色';
       let current = shareInfo;
       if (!current) {
-        const created = await createDoodleShare(resultBlob, title, themeId, templateId, reviewContextRef.current?.key || '');
+        const created = await createDoodleShare(latestBlob, cardTitle, themeId, templateId, reviewContextRef.current?.key || '');
         current = { record: created.share, url: created.shareUrl, dirty: false };
         setShareInfo(current);
         await waitForPaint();
       }
       const qrImage = await readQrImage(qrHolderRef.current);
-      const finalBlob = await renderResult(title, themeId, templateId, qrImage);
-      queueReviewUpdate(finalBlob, title, themeId, templateId, current.record.id);
-      const updated = await updateDoodleShare(current.record.id, finalBlob, title, themeId, templateId);
+      qrImageRef.current = qrImage;
+      const finalBlob = await renderResult(cardTitle, themeId, templateId, qrImage);
+      queueReviewUpdate(finalBlob, cardTitle, themeId, templateId, current.record.id);
+      const updated = await updateDoodleShare(current.record.id, finalBlob, cardTitle, themeId, templateId);
       setShareInfo({ record: updated.share, url: updated.shareUrl, dirty: false });
       message.success(shareInfo ? '分享卡已更新' : '分享链接已生成，有效期 30 天');
     } catch (error) {
@@ -678,6 +692,7 @@ export default function DoodleStudio() {
       cancelText: '先保留',
       async onOk() {
         await deleteDoodleShare(shareInfo.record.id);
+        qrImageRef.current = null;
         setShareInfo(null);
         const processed = await renderResult(title, themeId, templateId, null);
         queueReviewUpdate(processed, title, themeId, templateId, shareInfo.record.id);
@@ -687,6 +702,9 @@ export default function DoodleStudio() {
   }, [message, modal, queueReviewUpdate, renderResult, shareInfo, templateId, themeId, title]);
 
   const retake = useCallback(() => {
+    previewRef.current?.cancel();
+    qrImageRef.current = null;
+    analysisRef.current?.renderer?.dispose(); analysisRef.current = null; setAnalysis(null);
     setShareInfo(null);
     reviewContextRef.current = null;
     rawCanvasRef.current = null;
@@ -799,16 +817,17 @@ export default function DoodleStudio() {
         {mode === 'result' && resultUrl && (
           <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_390px]">
             <div className="mx-auto w-full max-w-[620px] lg:sticky lg:top-24 lg:max-w-[min(620px,calc((100vh-170px)*0.75))]">
-              <div className="overflow-hidden rounded-[28px] border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
-                <ImagePreview images={[{ id: 'result', url: resultUrl, name: title }]} imageId="result" title="漫游相机" className="w-full">
-                  <NextImage src={resultUrl} alt={`漫画涂鸦：${title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
+              <div className="relative overflow-hidden rounded-[28px] border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
+                <ImagePreview images={[{ id: 'result', url: resultUrl, name: title }]} imageId="result" title="漫游相机" className={`w-full ${previewRef.current?.pending || busy ? 'pointer-events-none' : ''}`}>
+                  <NextImage src={resultUrl} alt={`漫画涂鸦：${title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" onLoad={event => { if (event.currentTarget.src === resultUrlRef.current && !previewRef.current?.pending && previewCanvasRef.current) previewCanvasRef.current.style.opacity = '0'; }} />
                 </ImagePreview>
+                <canvas ref={previewCanvasRef} aria-hidden="true" className="doodle-live-preview pointer-events-none absolute inset-0 h-full w-full opacity-0" />
               </div>
               <p className="mt-5 text-center text-sm font-bold text-[#75645c] dark:text-[#cbb9ae]">长按图片保存，或在卡片设置中点击保存</p>
             </div>
 
             <aside className="space-y-5 rounded-2xl border border-border/70 bg-surface/75 p-5">
-              <PortraitControls value={portrait} title={title} busy={busy} faceCount={analysis?.faceCount || 0} segmented={analysis?.segmented || false} available={Boolean(analysis?.renderer)} hint={analysis?.message || ''} onApply={(value, nextTitle) => void applyPortrait(value, nextTitle)} onSurprise={() => void surprisePortrait()} />
+              <PortraitControls value={portrait} title={title} busy={busy} faceCount={analysis?.faceCount || 0} segmented={analysis?.segmented || false} available={Boolean(analysis?.renderer)} hint={analysis?.message || ''} onChange={updatePortrait} onSurprise={surprisePortrait} />
               <div className="py-2 text-foreground">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground-muted">DESIGN YOUR CARD</p>
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[#fff0b8] px-4 py-3 text-[#201a17]">
@@ -869,7 +888,7 @@ export default function DoodleStudio() {
                   <QrcodeOutlined className="text-3xl" />
                 </div>
                 <div className="mt-5 grid gap-3">
-                  <Button size="large" icon={<DownloadOutlined />} onClick={saveImage} block className="!h-10 !border-border !font-semibold !shadow-none">保存图片</Button>
+                  <Button size="large" icon={<DownloadOutlined />} onClick={() => void saveImage()} disabled={busy} block className="!h-10 !border-border !font-semibold !shadow-none">保存图片</Button>
                   <Button type="primary" size="large" icon={busy ? <LoadingOutlined /> : <ShareAltOutlined />} onClick={() => void publishShare()} disabled={busy} block className="!h-10 !border-0 !bg-[#ff5d46] !font-semibold !shadow-none">
                     {shareInfo ? (shareInfo.dirty ? '更新分享卡' : '重新同步分享卡') : '生成分享链接'}
                   </Button>
@@ -895,7 +914,7 @@ export default function DoodleStudio() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button onClick={retake} className="doodle-secondary-button w-full justify-center"><CameraOutlined /> 重新拍一张</button>
+                <button onClick={retake} disabled={busy} className="doodle-secondary-button w-full justify-center"><CameraOutlined /> 重新拍一张</button>
                 <button type="button" onClick={openAlbum} disabled={busy} className="doodle-secondary-button w-full justify-center disabled:opacity-50"><PictureOutlined /> 从相册换一张</button>
               </div>
             </aside>

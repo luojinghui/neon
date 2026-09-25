@@ -147,8 +147,7 @@
 .portrait-chips button { min-height: 2.5rem; border: 1px solid transparent; border-radius: .6rem; background: hsl(var(--background-secondary)); padding: 0 .7rem; font-size: .7rem; }
 .portrait-field { display: grid; gap: .4rem; margin: .75rem 0; font-size: .75rem; }
 .portrait-field input, .portrait-field textarea, .portrait-field select { width: 100%; min-width: 0; border: 1px solid hsl(var(--border)); border-radius: .6rem; padding: .65rem; background: hsl(var(--surface)); color: hsl(var(--foreground)); font-size: .8rem; }
-.portrait-apply { display: flex; gap: .5rem; margin-top: .65rem; }
-.portrait-apply button { min-height: 2.75rem; border-radius: .65rem; padding: 0 .8rem; background: hsl(var(--background-secondary)); font-size: .75rem; }
-.portrait-apply button:last-child { flex: 1; color: #fff; background: #dd6844; font-weight: 600; }
+.portrait-live-status { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .65rem; font-size: .75rem; color: hsl(var(--foreground-muted)); }
+.portrait-live-status button { min-height: 2.75rem; border-radius: .65rem; padding: 0 .8rem; color: hsl(var(--foreground)); background: hsl(var(--background-secondary)); }
 .portrait-controls button:disabled, .portrait-controls input:disabled { opacity: .45; cursor: not-allowed; }
 .portrait-controls :is(button, input, textarea, select, summary):focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }

@@ -81,32 +81,18 @@ function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, wi
   context.closePath();
 }
 
-function drawCover(
-  context: CanvasRenderingContext2D,
-  source: CanvasImageSource,
-  sourceWidth: number,
-  sourceHeight: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number
-) {
-  const scale = Math.max(width / sourceWidth, height / sourceHeight);
-  const drawWidth = sourceWidth * scale;
-  const drawHeight = sourceHeight * scale;
-  context.drawImage(source, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
-}
-
-function preparePhoto(source: CanvasImageSource, sourceWidth: number, sourceHeight: number, width: number, height: number) {
+function preparePhoto(source: CanvasImageSource, sourceWidth: number, sourceHeight: number, width: number, height: number, theme: DoodleTheme) {
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(width);
   canvas.height = Math.round(height);
   const context = canvas.getContext('2d');
   if (!context) throw new Error('当前浏览器无法生成卡片');
-  // Preserve accessories and the full portrait across square, round and wide templates.
-  context.filter = 'blur(24px)';
-  drawCover(context, source, sourceWidth, sourceHeight, -30, -30, width + 60, height + 60);
-  context.filter = 'none';
+  // Draw the portrait exactly once. Canvas filters are unavailable in some iOS WebViews.
+  const backdrop = context.createLinearGradient(0, 0, width, height);
+  backdrop.addColorStop(0, theme.accent);
+  backdrop.addColorStop(1, theme.primary);
+  context.fillStyle = backdrop;
+  context.fillRect(0, 0, width, height);
   const scale = Math.min(width / sourceWidth, height / sourceHeight);
   context.drawImage(source, (width - sourceWidth * scale) / 2, (height - sourceHeight * scale) / 2, sourceWidth * scale, sourceHeight * scale);
   return canvas;
@@ -381,7 +367,7 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     'arcade-ticket': { x: 110, y: 330, width: 860, height: 720, radius: 26 }
   };
   const frame = frames[template.id];
-  const cartoon = preparePhoto(source, sourceWidth, sourceHeight, frame.width, frame.height);
+  const cartoon = preparePhoto(source, sourceWidth, sourceHeight, frame.width, frame.height, theme);
 
   if (template.id === 'comic-cover') {
     context.fillStyle = theme.primary;

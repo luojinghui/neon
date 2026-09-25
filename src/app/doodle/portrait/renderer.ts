@@ -2,6 +2,7 @@ import type { ImageSegmenterResult, NormalizedLandmark } from '@mediapipe/tasks-
 import { buildSticker, cross, normalize } from './meshes';
 import type { PortraitSettings } from './settings';
 import { fitPortraitFrame } from './framing';
+import { buildFaceMesh } from './faceMesh';
 
 const QUAD = `#version 300 es
 out vec2 uv;
@@ -22,6 +23,7 @@ uniform float whitening,smoothing,cartoon,outline;
 uniform int background,exclusionCount;
 uniform vec4 exclusions[9];
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float personAt(vec2 p){ return texture(mask,p).g*step(0.,p.x)*step(p.x,1.)*step(0.,p.y)*step(p.y,1.); }
 void main(){
   vec2 framed=((uv*2.-1.-viewOffset)/viewZoom+1.)*.5;
   vec2 p=vec2(framed.x,1.-framed.y), pixel=1./size;
@@ -42,14 +44,13 @@ void main(){
   vec3 quantized=floor(processed*12.+.5)/12.;
   float edge=length(texture(photo,p+vec2(pixel.x,0.)).rgb-texture(photo,p-vec2(pixel.x,0.)).rgb)+length(texture(photo,p+vec2(0.,pixel.y)).rgb-texture(photo,p-vec2(0.,pixel.y)).rgb);
   processed=mix(processed,quantized*(1.-smoothstep(.12,.6,edge)*.5),cartoon*.75);
-  vec3 backdrop=vec3(0.);
-  for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) backdrop+=texture(photo,clamp(p,vec2(.03),vec2(.97))+vec2(x,y)*.025).rgb/9.;
+  vec3 backdrop=mix(vec3(.96,.94,.90),vec3(.87,.89,.92),clamp(p.y,0.,1.));
   if(background==1) backdrop=mix(vec3(1.,.77,.79),vec3(1.,.95,.81),p.y);
   if(background==2) { backdrop=mix(vec3(.12,.10,.25),vec3(.38,.26,.58),p.y); vec2 cell=floor(p*vec2(75.,100.)); backdrop+=step(.985,hash(cell))*smoothstep(.15,0.,length(fract(p*vec2(75.,100.))-.5))*.7; }
   if(background==3) backdrop=mix(vec3(.53,.86,.78),vec3(.85,.97,.86),p.y);
   processed=mix(backdrop,processed,background!=0 ? smoothstep(.2,.85,m.g) : inside);
   float outer=0.;
-  for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) outer=max(outer,texture(mask,p+vec2(x,y)*pixel*(2.+outline*5.)).g);
+  for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) outer=max(outer,personAt(p+vec2(x,y)*pixel*(2.+outline*5.)));
   processed=mix(processed,vec3(1.,.96,.87),max(0.,outer-m.g)*outline*.85);
   color=vec4(clamp(processed,0.,1.),1.);
 }`;
@@ -73,7 +74,54 @@ void main(){
 const MESH_FRAGMENT = `#version 300 es
 precision highp float;
 in vec3 n; in vec3 rgb; out vec4 color;
-void main(){ vec3 normal=normalize(n); float diffuse=abs(dot(normal,normalize(vec3(-.4,.65,1.)))); float shine=pow(max(0.,dot(normal,normalize(vec3(-.3,.4,1.)))),28.); color=vec4(rgb*(.56+diffuse*.44)+shine*.2,1.); }`;
+uniform float opacity;
+void main(){ vec3 normal=normalize(n); float diffuse=abs(dot(normal,normalize(vec3(-.4,.65,1.)))); float shine=pow(max(0.,dot(normal,normalize(vec3(-.3,.4,1.)))),28.); color=vec4(rgb*(.70+diffuse*.30)+shine*.12,opacity); }`;
+const FACE_VERTEX = `#version 300 es
+layout(location=0) in vec3 position;
+layout(location=1) in vec3 normal;
+layout(location=2) in vec2 faceUv;
+uniform vec2 viewOffset; uniform float viewZoom;
+out vec3 n; out vec2 p;
+void main(){ gl_Position=vec4(position.xy*viewZoom+viewOffset,-position.z*.12,1.); n=normal; p=faceUv; }`;
+const FACE_FRAGMENT = `#version 300 es
+precision highp float;
+in vec3 n; in vec2 p; out vec4 color;
+uniform int character; uniform float opacity; uniform vec4 features[3];
+float oval(vec2 center,vec2 radii){ return 1.-smoothstep(.88,1.08,length((p-center)/radii)); }
+float line(vec2 a,vec2 b,float width){ vec2 delta=b-a; float t=clamp(dot(p-a,delta)/dot(delta,delta),0.,1.); return 1.-smoothstep(width,width+.006,length(p-a-t*delta)); }
+void main(){
+  vec3 cream=vec3(1.,.97,.88),ink=vec3(.13,.12,.18),pink=vec3(1.,.55,.65);
+  vec3 base=cream;
+  if(character==1){
+    base=vec3(1.,.82,.48);
+    base=mix(base,cream,oval(vec2(0.,-.18),vec2(.34,.27)));
+    for(int i=-1;i<=1;i++) base=mix(base,vec3(.65,.34,.15),oval(vec2(float(i)*.095,.36),vec2(.022,.105)));
+    for(int i=0;i<3;i++) for(int side=-1;side<=1;side+=2) base=mix(base,ink,line(vec2(float(side)*.18,-.06-float(i)*.045),vec2(float(side)*.43,-.035-float(i)*.075),.008));
+    base=mix(base,pink,oval(vec2(0.,-.005),vec2(.065,.04)));
+  }
+  if(character==2){
+    base=vec3(1.,.52,.21);
+    base=mix(base,cream,oval(vec2(0.,-.24),vec2(.47,.34)));
+    base=mix(base,cream,oval(vec2(0.,.17),vec2(.055,.25)));
+    base=mix(base,ink,oval(vec2(0.,-.005),vec2(.07,.045)));
+  }
+  if(character==3){
+    for(int i=0;i<2;i++) base=mix(base,ink,oval(features[i].xy,vec2(features[i].z*1.8,max(.095,features[i].w*2.5))));
+    base=mix(base,ink,oval(vec2(0.,-.005),vec2(.075,.045)));
+  }
+  if(character==4){
+    base=vec3(1.,.79,.68);
+    for(int i=0;i<2;i++){
+      base=mix(base,pink,oval(features[i].xy+vec2(0.,-.15),vec2(.095,.055))*.7);
+      vec2 brow=features[i].xy+vec2(0.,features[i].w+.055);
+      base=mix(base,vec3(.34,.23,.26),oval(brow,vec2(features[i].z,.018)));
+    }
+  }
+  float alpha=opacity;
+  for(int i=0;i<3;i++) alpha*=1.-oval(features[i].xy,features[i].zw);
+  float diffuse=abs(dot(normalize(n),normalize(vec3(-.3,.4,1.))));
+  color=vec4(base*(.83+.17*diffuse),alpha);
+}`;
 
 function program(gl: WebGL2RenderingContext, vertex: string, fragment: string) {
   const shaders = [vertex, fragment].map((source, i) => {
@@ -95,6 +143,7 @@ export class PortraitRenderer {
   private photoProgram: WebGLProgram;
   private maskProgram: WebGLProgram;
   private meshProgram: WebGLProgram;
+  private faceProgram: WebGLProgram;
   private photo: WebGLTexture;
   private mask: WebGLTexture;
   private fbo: WebGLFramebuffer;
@@ -104,6 +153,12 @@ export class PortraitRenderer {
   private meshKey = '';
   private meshCount = 0;
   private meshData: Float32Array = new Float32Array(0);
+  private faceMesh: WebGLVertexArrayObject;
+  private faceBuffer: WebGLBuffer;
+  private faceKey = '';
+  private faceCount = 0;
+  private faceFeatures: Float32Array = new Float32Array(12);
+  faceTriangles: number[][] = [];
   private disposed = false;
   faces: NormalizedLandmark[][] = [];
   segmented = false;
@@ -119,6 +174,7 @@ export class PortraitRenderer {
     this.photoProgram = program(gl, QUAD, PHOTO);
     this.maskProgram = program(gl, QUAD, MASK);
     this.meshProgram = program(gl, MESH_VERTEX, MESH_FRAGMENT);
+    this.faceProgram = program(gl, FACE_VERTEX, FACE_FRAGMENT);
     this.quad = gl.createVertexArray()!;
     this.photo = this.texture();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -130,6 +186,10 @@ export class PortraitRenderer {
     this.meshBuffer = gl.createBuffer()!;
     gl.bindVertexArray(this.mesh); gl.bindBuffer(gl.ARRAY_BUFFER, this.meshBuffer);
     for (let i = 0; i < 3; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, 3, gl.FLOAT, false, 36, i * 12); }
+    this.faceMesh = gl.createVertexArray()!;
+    this.faceBuffer = gl.createBuffer()!;
+    gl.bindVertexArray(this.faceMesh); gl.bindBuffer(gl.ARRAY_BUFFER, this.faceBuffer);
+    for (let i = 0; i < 3; i++) { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, i === 2 ? 2 : 3, gl.FLOAT, false, 32, i * 12); }
     gl.bindVertexArray(null);
   }
 
@@ -199,6 +259,7 @@ export class PortraitRenderer {
     gl.uniform1i(gl.getUniformLocation(this.photoProgram, 'exclusionCount'), count);
     gl.uniform4fv(gl.getUniformLocation(this.photoProgram, 'exclusions[0]'), exclusions);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (face && settings.faceEffect !== 'none' && settings.faceEffectStrength > 0) this.drawFace(face, settings, view);
     if (sticker) this.drawSticker(sticker, settings);
     return this.canvas;
   }
@@ -231,6 +292,7 @@ export class PortraitRenderer {
   private drawSticker(layout: ReturnType<PortraitRenderer['layoutSticker']>, settings: PortraitSettings) {
     const gl = this.gl;
     gl.useProgram(this.meshProgram); gl.bindVertexArray(this.mesh);
+    gl.uniform1f(gl.getUniformLocation(this.meshProgram, 'opacity'), 1);
     gl.uniformMatrix3fv(gl.getUniformLocation(this.meshProgram, 'basis'), false, layout.basis);
     gl.uniform2f(gl.getUniformLocation(this.meshProgram, 'origin'), layout.origin[0], layout.origin[1]);
     gl.uniform2f(gl.getUniformLocation(this.meshProgram, 'scale'), layout.scale[0], layout.scale[1]);
@@ -242,13 +304,33 @@ export class PortraitRenderer {
     gl.drawArrays(gl.TRIANGLES, 0, this.meshCount); gl.disable(gl.DEPTH_TEST);
   }
 
+  private drawFace(face: NormalizedLandmark[], settings: PortraitSettings, view: { zoom: number; offset: readonly number[] }) {
+    const gl = this.gl, key = String(settings.faceIndex);
+    if (key !== this.faceKey) {
+      const data = buildFaceMesh(face, this.faceTriangles, this.width / this.height);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.faceBuffer); gl.bufferData(gl.ARRAY_BUFFER, data.vertices, gl.STATIC_DRAW);
+      this.faceCount = data.vertices.length / 8; this.faceFeatures = data.features; this.faceKey = key;
+    }
+    gl.useProgram(this.faceProgram); gl.bindVertexArray(this.faceMesh);
+    gl.uniform2f(gl.getUniformLocation(this.faceProgram, 'viewOffset'), view.offset[0], view.offset[1]);
+    gl.uniform1f(gl.getUniformLocation(this.faceProgram, 'viewZoom'), view.zoom);
+    gl.uniform1f(gl.getUniformLocation(this.faceProgram, 'opacity'), settings.faceEffectStrength / 100);
+    gl.uniform1i(gl.getUniformLocation(this.faceProgram, 'character'), ['none','cat','fox','panda','avatar'].indexOf(settings.faceEffect));
+    gl.uniform4fv(gl.getUniformLocation(this.faceProgram, 'features[0]'), this.faceFeatures);
+    gl.clearDepth(1); gl.clear(gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLES, 0, this.faceCount);
+    gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST);
+  }
+
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
     const gl = this.gl;
-    [this.photoProgram, this.maskProgram, this.meshProgram].forEach(p => gl.deleteProgram(p));
+    [this.photoProgram, this.maskProgram, this.meshProgram, this.faceProgram].forEach(p => gl.deleteProgram(p));
     [this.photo, this.mask].forEach(t => gl.deleteTexture(t));
     gl.deleteFramebuffer(this.fbo); gl.deleteBuffer(this.meshBuffer); gl.deleteVertexArray(this.quad); gl.deleteVertexArray(this.mesh);
+    gl.deleteBuffer(this.faceBuffer); gl.deleteVertexArray(this.faceMesh);
     gl.getExtension('WEBGL_lose_context')?.loseContext();
   }
 }

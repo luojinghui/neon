@@ -1,5 +1,6 @@
 import { visionFileset, visionModel } from '../visionRuntime';
 import { PortraitRenderer } from './renderer';
+import { faceTriangles } from './faceMesh';
 
 export type PortraitAnalysis = { renderer: PortraitRenderer | null; faceCount: number; segmented: boolean; message: string };
 
@@ -9,6 +10,7 @@ export async function analyzePortrait(source: HTMLCanvasElement): Promise<Portra
   const failures: string[] = [];
   try {
     const { FaceLandmarker, ImageSegmenter } = await import('@mediapipe/tasks-vision');
+    renderer.faceTriangles = faceTriangles(FaceLandmarker.FACE_LANDMARKS_TESSELATION);
     const vision = await visionFileset();
     try {
       const modelAssetBuffer = await visionModel('face_landmarker.task');

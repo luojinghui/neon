@@ -22,6 +22,8 @@ const { useSoulStore: store } = load('src/app/soul/store.ts');
 const { fitPortraitFrame } = load('src/app/doodle/portrait/framing.ts');
 const { buildSticker } = load('src/app/doodle/portrait/meshes.ts');
 const settings = load('src/app/doodle/portrait/settings.ts');
+const { LivePreview } = load('src/app/doodle/portrait/livePreview.ts');
+const faceMesh = load('src/app/doodle/portrait/faceMesh.ts', { './meshes': load('src/app/doodle/portrait/meshes.ts') });
 const room = id => ({ id, name: id, description: 'test', tags: [], isPrivate: false, owner: { userId: 'test' }, membership: 'none' });
 function storage() {
   const values = new Map();
@@ -155,6 +157,70 @@ test('saved portrait controls reject invalid shader inputs and limit exported co
   assert.equal(normalized.stickerScale, 1);
   assert.equal(normalized.signature.length, 12);
   assert.equal(normalized.caption.length, 36);
+  assert.equal(normalized.faceEffect, 'none');
+  assert.equal(normalized.faceEffectStrength, 90);
+  assert.equal(settings.normalizePortrait({ faceEffect: 'panda', faceEffectStrength: 999 }).faceEffectStrength, 100);
+});
+
+test('every template draws the source portrait once even without canvas filter support', () => {
+  const previous = global.document;
+  const original = { portrait: true };
+  let copies = 0;
+  const context = () => new Proxy({}, { get: (target, key) => {
+    if (key === 'drawImage') return source => { if (source === original) copies++; };
+    if (key === 'createLinearGradient') return () => ({ addColorStop() {} });
+    if (key === 'measureText') return text => ({ width: text.length * 25 });
+    return key in target ? target[key] : () => {};
+  }, set: (target, key, value) => { if (key !== 'filter') target[key] = value; return true; } });
+  global.document = { createElement: () => ({ getContext: context }) };
+  try {
+    const poster = load('src/app/doodle/poster.ts');
+    for (const template of poster.DOODLE_TEMPLATES) for (const [width, height] of [[720,960],[1280,720]]) {
+      copies = 0;
+      poster.renderDoodlePoster(original, width, height, { title: '测试', templateId: template.id, themeId: 'sun-pop', portrait: settings.DEFAULT_PORTRAIT });
+      assert.equal(copies, 1, template.id);
+    }
+  } finally { global.document = previous; }
+});
+
+test('live controls coalesce frames, discard stale encodes, and flush the latest value for saving', async () => {
+  const oldFrame = global.requestAnimationFrame, oldCancel = global.cancelAnimationFrame;
+  let id = 0;
+  const frames = new Map(), drawn = [], published = [], encodes = [];
+  global.requestAnimationFrame = callback => { frames.set(++id, callback); return id; };
+  global.cancelAnimationFrame = key => frames.delete(key);
+  const scheduler = new LivePreview(canvas => new Promise(resolve => encodes.push({ canvas, resolve })), error => { throw error; }, 10000);
+  const request = value => scheduler.request(() => { drawn.push(value); return { value }; }, blob => published.push(blob));
+  const drawFrame = () => { const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach(callback => callback()); };
+  try {
+    request('first'); request('second'); drawFrame();
+    assert.deepEqual(drawn, ['second']);
+    const old = scheduler.flush();
+    request('latest');
+    const saved = scheduler.flush(); // No animation frame yet: save must still draw the newest state.
+    assert.deepEqual(drawn, ['second', 'latest']);
+    encodes[1].resolve('latest jpeg');
+    assert.equal(await saved, 'latest jpeg');
+    encodes[0].resolve('stale jpeg'); await old;
+    assert.deepEqual(published, ['latest jpeg']);
+    request('unmounted'); scheduler.cancel(); drawFrame();
+    assert.deepEqual(drawn, ['second', 'latest']);
+  } finally { scheduler.cancel(); global.requestAnimationFrame = oldFrame; global.cancelAnimationFrame = oldCancel; }
+});
+
+test('face effects fit actual MediaPipe surface triangles with finite normals and expression openings', async () => {
+  const { FaceLandmarker } = await import('@mediapipe/tasks-vision');
+  const topology = faceMesh.faceTriangles(FaceLandmarker.FACE_LANDMARKS_TESSELATION);
+  assert.ok(topology.length > 800);
+  assert.ok(topology.every(triangle => triangle.every(i => i >= 0 && i < 468)));
+  const face = Array.from({ length: 478 }, (_, i) => ({ x: .5 + Math.sin(i * 1.7) * .2, y: .5 + Math.cos(i * 2.3) * .25, z: Math.sin(i * .8) * .08 }));
+  for (const [i, x, y] of [[1,.5,.52],[10,.5,.25],[152,.5,.77],[234,.29,.5],[454,.71,.5],[33,.39,.43],[133,.45,.43],[159,.42,.418],[145,.42,.442],[362,.55,.43],[263,.61,.43],[386,.58,.418],[374,.58,.442],[61,.45,.62],[291,.55,.62],[0,.5,.605],[17,.5,.635]]) face[i] = { x, y, z: 0 };
+  const data = faceMesh.buildFaceMesh(face, topology, .75);
+  assert.equal(data.vertices.length, topology.length * 3 * 8);
+  assert.ok(data.vertices.every(Number.isFinite));
+  assert.equal(data.features.length, 12);
+  assert.ok(data.features.every(Number.isFinite));
+  for (let i = 0; i < 12; i += 4) assert.ok(data.features[i + 2] > 0 && data.features[i + 3] > 0);
 });
 
 test('local model/WASM manifest matches every committed binary', () => {
