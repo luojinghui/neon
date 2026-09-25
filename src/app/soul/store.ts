@@ -108,5 +108,5 @@ export const useSoulStore = create<SoulStore>((set) => ({
       isUploading: false,
       chatError: ''
     }),
-  reset: () => set({ ...initialState })
+  reset: () => set((state) => ({ ...initialState, rooms: state.rooms, roomsState: state.roomsState === 'ready' ? 'ready' : 'idle' }))
 }));

@@ -25,6 +25,10 @@ import { createDoodleReview, createDoodleShare, deleteDoodleShare, updateDoodleR
 import { canvasToBlob, DOODLE_TEMPLATES, DOODLE_THEMES, DOODLE_TITLES, renderDoodlePoster } from './poster';
 import { createSmileDetector, type SmileDetector } from './smileDetector';
 import type { DoodleShare, DoodleTemplateId, DoodleThemeId } from './types';
+import { analyzePortrait, type PortraitAnalysis } from './portrait/analyze';
+import { DEFAULT_PORTRAIT, normalizePortrait, MOODS, STICKERS, STICKER_COLORS, type PortraitSettings } from './portrait/settings';
+import { PortraitControls } from './portrait/PortraitControls';
+import { prepareVisionCache } from './visionRuntime';
 import './doodle.css';
 
 type StudioMode = 'welcome' | 'camera' | 'processing' | 'result';
@@ -227,6 +231,12 @@ export default function DoodleStudio() {
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
   const [shareInfo, setShareInfo] = useState<ShareInfo | null>(null);
+  const [portrait, setPortrait] = useState<PortraitSettings>(DEFAULT_PORTRAIT);
+  const [analysis, setAnalysis] = useState<PortraitAnalysis | null>(null);
+  const portraitRef = useRef(portrait);
+  const analysisRef = useRef<PortraitAnalysis | null>(null);
+  const analysisRequestRef = useRef(0);
+  const capturedAtRef = useRef(new Date());
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const albumInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +252,14 @@ export default function DoodleStudio() {
   const smileEnabledRef = useRef(smileEnabled);
   const countdownTimersRef = useRef<number[]>([]);
   const reviewContextRef = useRef<ReviewContext | null>(null);
+
+  useEffect(() => {
+    void prepareVisionCache();
+    try {
+      const saved = JSON.parse(localStorage.getItem('neon:portrait-settings:v1') || 'null');
+      if (saved && typeof saved === 'object') { const next = normalizePortrait(saved); portraitRef.current = next; setPortrait(next); }
+    } catch { /* Optional preferences, never persist photos. */ }
+  }, []);
 
   useEffect(() => {
     smileEnabledRef.current = smileEnabled;
@@ -272,6 +290,8 @@ export default function DoodleStudio() {
   useEffect(
     () => () => {
       stopCamera();
+      analysisRequestRef.current += 1;
+      analysisRef.current?.renderer?.dispose();
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     },
     [stopCamera]
@@ -279,13 +299,16 @@ export default function DoodleStudio() {
 
   const renderResult = useCallback(
     async (nextTitle: string, nextTheme: DoodleThemeId, nextTemplate: DoodleTemplateId, qrSource: CanvasImageSource | null = null) => {
-      const source = rawCanvasRef.current;
-      if (!source) throw new Error('原始照片已经丢失，请重新拍摄');
+      const raw = rawCanvasRef.current;
+      if (!raw) throw new Error('原始照片已经丢失，请重新拍摄');
+      const source = analysisRef.current?.renderer?.render(portraitRef.current) || raw;
       const poster = renderDoodlePoster(source, source.width, source.height, {
         title: nextTitle,
         themeId: nextTheme,
         templateId: nextTemplate,
-        qrSource
+        qrSource,
+        portrait: portraitRef.current,
+        createdAt: capturedAtRef.current
       });
       return replaceResult(poster);
     },
@@ -312,13 +335,22 @@ export default function DoodleStudio() {
   const enterResult = useCallback(
     async (rawCanvas: HTMLCanvasElement, fallbackMode: StudioMode = 'welcome', replaceSession = false) => {
       const previousRawCanvas = rawCanvasRef.current;
+      const previousAnalysis = analysisRef.current;
+      const request = ++analysisRequestRef.current;
       rawCanvasRef.current = rawCanvas;
       setMode('processing');
       setBusy(true);
       try {
+        await waitForPaint();
+        const detected = await analyzePortrait(rawCanvas);
+        if (request !== analysisRequestRef.current) { detected.renderer?.dispose(); return false; }
+        analysisRef.current = detected;
+        setAnalysis(detected);
+        capturedAtRef.current = new Date();
         const key = window.crypto.randomUUID();
         const original = await canvasToBlob(rawCanvas, 0.92);
         const processed = await renderResult(title, themeId, templateId);
+        previousAnalysis?.renderer?.dispose();
         const reviewContext: ReviewContext = {
           id: '',
           key,
@@ -335,6 +367,10 @@ export default function DoodleStudio() {
         createReviewContext(reviewContext);
         return true;
       } catch (error) {
+        if (analysisRef.current !== previousAnalysis) analysisRef.current?.renderer?.dispose();
+        if (fallbackMode !== 'result') previousAnalysis?.renderer?.dispose();
+        analysisRef.current = fallbackMode === 'result' ? previousAnalysis : null;
+        setAnalysis(analysisRef.current);
         rawCanvasRef.current = fallbackMode === 'result' ? previousRawCanvas : null;
         message.error(error instanceof Error ? error.message : '生成失败，请重试');
         setMode(fallbackMode);
@@ -544,6 +580,28 @@ export default function DoodleStudio() {
     [rerender, themeId, title]
   );
 
+  const applyPortrait = async (next: PortraitSettings, nextTitle: string) => {
+    const previous = portraitRef.current;
+    const normalized = normalizePortrait(next);
+    portraitRef.current = normalized;
+    if (await rerender(nextTitle.slice(0, 24), themeId, templateId)) {
+      setPortrait(normalized); setTitle(nextTitle.slice(0, 24));
+      try { localStorage.setItem('neon:portrait-settings:v1', JSON.stringify(normalized)); } catch { /* Optional. */ }
+    } else portraitRef.current = previous;
+  };
+
+  const surprisePortrait = async () => {
+    const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
+    const next = normalizePortrait({ ...portraitRef.current, sticker: pick(STICKERS.slice(1)).id, stickerColor: pick(STICKER_COLORS), mood: pick(MOODS), stickerScale: 1, stickerY: 0, stickerRotation: 0, decoration: pick(['spark', 'hearts', 'orbit'] as const) });
+    const nextTitle = randomTitle(title), nextTheme = pick(DOODLE_THEMES).id, nextTemplate = pick(DOODLE_TEMPLATES).id;
+    const previous = portraitRef.current;
+    portraitRef.current = next;
+    if (await rerender(nextTitle, nextTheme, nextTemplate)) {
+      setPortrait(next); setTitle(nextTitle); setThemeId(nextTheme); setTemplateId(nextTemplate);
+      try { localStorage.setItem('neon:portrait-settings:v1', JSON.stringify(next)); } catch { /* Optional. */ }
+    } else portraitRef.current = previous;
+  };
+
   const toggleSmileShutter = useCallback(() => {
     if (smileState === 'loading') {
       message.info('微笑检测还在加载，请稍等一下；也可以直接点击中间快门');
@@ -671,7 +729,7 @@ export default function DoodleStudio() {
                 <span className="relative mx-2 inline-block -rotate-2 text-[#ff5d46] dark:text-[#ff8b78]">什么角色？</span>
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#554943] dark:text-[#d9c8bd]">
-                拍一张自拍，或从相册选一张照片，把表情变成带猫耳、闪电和随机称号的漫画涂鸦。所有漫画效果都会在当前设备上完成。
+                拍一张自拍，或从相册选一张照片。戴上立体猫耳、软糖熊和小星球，调出喜欢的光感，再写一句今天的宣言。你的角色，由你定义。
               </p>
               {cameraError && <div className="mt-5 rounded-2xl bg-[#fff0c9] p-4 font-bold text-[#8a3f21]">{cameraError}</div>}
               <div className="mt-8 flex flex-wrap gap-3">
@@ -734,22 +792,23 @@ export default function DoodleStudio() {
           <section className="flex min-h-[65vh] flex-col items-center justify-center text-center">
             <div className="doodle-processing-orbit mb-8"><Spin indicator={<LoadingOutlined spin />} size="large" /></div>
             <h1 className="text-3xl font-black">正在领取你的今日角色…</h1>
-            <p className="mt-3 font-semibold text-[#665750] dark:text-[#ccb9ad]">描轮廓、贴猫耳，再撒一点宇宙好运</p>
+            <p className="mt-3 font-semibold text-[#665750] dark:text-[#ccb9ad]">寻找五官与人物轮廓，为你的新角色准备配件</p>
           </section>
         )}
 
         {mode === 'result' && resultUrl && (
           <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_390px]">
-            <div className="mx-auto w-full max-w-[620px]">
+            <div className="mx-auto w-full max-w-[620px] lg:sticky lg:top-24 lg:max-w-[min(620px,calc((100vh-170px)*0.75))]">
               <div className="overflow-hidden rounded-[28px] border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
                 <ImagePreview images={[{ id: 'result', url: resultUrl, name: title }]} imageId="result" title="漫游相机" className="w-full">
                   <NextImage src={resultUrl} alt={`漫画涂鸦：${title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
                 </ImagePreview>
               </div>
-              <p className="mt-5 text-center text-sm font-bold text-[#75645c] dark:text-[#cbb9ae]">手机可长按图片保存，也可以使用右侧保存按钮</p>
+              <p className="mt-5 text-center text-sm font-bold text-[#75645c] dark:text-[#cbb9ae]">长按图片保存，或在卡片设置中点击保存</p>
             </div>
 
-            <aside className="space-y-5 rounded-2xl border border-border/70 bg-surface/75 p-5 lg:sticky lg:top-24">
+            <aside className="space-y-5 rounded-2xl border border-border/70 bg-surface/75 p-5">
+              <PortraitControls value={portrait} title={title} busy={busy} faceCount={analysis?.faceCount || 0} segmented={analysis?.segmented || false} available={Boolean(analysis?.renderer)} hint={analysis?.message || ''} onApply={(value, nextTitle) => void applyPortrait(value, nextTitle)} onSurprise={() => void surprisePortrait()} />
               <div className="py-2 text-foreground">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground-muted">DESIGN YOUR CARD</p>
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[#fff0b8] px-4 py-3 text-[#201a17]">

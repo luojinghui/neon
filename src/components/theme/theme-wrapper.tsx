@@ -3,6 +3,8 @@
 import { ThemeProvider, useTheme } from 'next-themes';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import { BrowserThemeSync } from './browser-theme-sync';
+import { StyleProvider } from '@ant-design/cssinjs';
+import { hoverOnlyTransformer } from '@/styles/hover-policy';
 
 function AntdThemeSync({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
@@ -38,7 +40,7 @@ export default function ClientThemeWrapper({ children }: { children: React.React
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <BrowserThemeSync />
-      <AntdThemeSync>{children}</AntdThemeSync>
+      <StyleProvider transformers={[hoverOnlyTransformer]}><AntdThemeSync>{children}</AntdThemeSync></StyleProvider>
     </ThemeProvider>
   );
 }

@@ -44,7 +44,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
         key: 'delete',
         danger: true,
         icon: deleting ? <LoadingOutlined /> : <DeleteOutlined />,
-        label: <span>{moment.isOwner ? '删除心迹' : '以超管身份删除'}<small className="ml-2 text-foreground-muted">含全部评论</small></span>,
+        label: '删除',
         disabled: deleting,
         onClick: () => void remove()
       }

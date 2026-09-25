@@ -1,3 +1,5 @@
+import { visionFileset, visionModel } from './visionRuntime';
+
 type SmileFrame = {
   hasFace: boolean;
   smileScore: number;
@@ -8,24 +10,20 @@ export type SmileDetector = {
   close(): void;
 };
 
-const MEDIAPIPE_VERSION = '0.10.35';
-const WASM_ROOT = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
-const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
-
 export async function createSmileDetector(): Promise<SmileDetector> {
-  const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
-  const vision = await FilesetResolver.forVisionTasks(WASM_ROOT);
+  const { FaceLandmarker } = await import('@mediapipe/tasks-vision');
+  const [vision, modelAssetBuffer] = await Promise.all([visionFileset(), visionModel('face_landmarker.task')]);
   let landmarker;
   try {
     landmarker = await FaceLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      baseOptions: { modelAssetBuffer, delegate: 'GPU' },
       outputFaceBlendshapes: true,
       runningMode: 'VIDEO',
       numFaces: 1
     });
   } catch {
     landmarker = await FaceLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL_URL, delegate: 'CPU' },
+      baseOptions: { modelAssetBuffer, delegate: 'CPU' },
       outputFaceBlendshapes: true,
       runningMode: 'VIDEO',
       numFaces: 1

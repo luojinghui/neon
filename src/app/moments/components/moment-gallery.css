@@ -1,4 +1,13 @@
 .moment-profile-gallery { padding-top: 1.25rem; }
+.moment-profile-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.moment-profile-heading h2 { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
+.moment-profile-heading p { margin-top: 0.25rem; color: hsl(var(--foreground-muted)); font-size: 0.7rem; }
+.moment-profile-filters { display: flex; gap: 0.25rem; border-radius: 999px; padding: 0.2rem; background: hsl(var(--background-secondary)); }
+.moment-profile-filters button { min-height: 2.5rem; padding: 0 0.85rem; border: 0; border-radius: 999px; color: hsl(var(--foreground-secondary)); background: transparent; font-size: 0.75rem; }
+.moment-profile-filters button[aria-pressed='true'] { background: hsl(var(--surface)); color: hsl(var(--primary)); box-shadow: var(--shadow-sm); }
+.moment-profile-note-label { display: flex; align-items: center; gap: 0.4rem; margin: 1rem 0.85rem 0; color: hsl(var(--primary)); font-size: 0.7rem; }
+.moment-profile-reactions { display: inline-flex; gap: 0.65rem; }
+.moment-profile-reactions > span { display: inline-flex; align-items: center; gap: 0.2rem; }
 
 .moment-profile-status,
 .moment-profile-empty {
@@ -19,7 +28,7 @@
   min-height: 2.5rem;
   align-items: center;
   gap: 0.4rem;
-  border: 0;
+  border: 1px solid hsl(var(--border) / 0.6);
   border-radius: 0.6rem;
   padding: 0 0.85rem;
   background: hsl(var(--surface));
@@ -38,10 +47,10 @@
   min-width: 0;
   flex-direction: column;
   overflow: hidden;
-  border: 0;
+  border: 1px solid hsl(var(--border) / 0.6);
   border-radius: 0.85rem;
   padding: 0;
-  background: transparent;
+  background: hsl(var(--surface));
   color: hsl(var(--foreground));
   text-align: left;
   transition: background 150ms;
@@ -68,7 +77,7 @@
   font-size: 0.7rem;
 }
 
-.moment-profile-entry-body { display: flex; width: 100%; min-width: 0; flex: 1; flex-direction: column; gap: 0.85rem; padding: 1rem; }
+.moment-profile-entry-body { display: flex; width: 100%; min-width: 0; flex: 1; flex-direction: column; gap: 0.6rem; padding: 0.85rem; }
 .moment-profile-entry-text {
   display: -webkit-box;
   overflow: hidden;
@@ -76,13 +85,13 @@
   -webkit-line-clamp: 6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 0.875rem;
-  line-height: 1.75;
+  font-size: 0.8125rem;
+  line-height: 1.7;
 }
 .moment-profile-entry.has-media .moment-profile-entry-text { -webkit-line-clamp: 2; }
 .moment-profile-voice { display: inline-flex; align-items: center; gap: 0.45rem; color: hsl(var(--primary)); font-size: 0.8rem; }
 .moment-profile-entry-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; color: hsl(var(--foreground-muted)); font-size: 0.7rem; }
-.moment-profile-entry-footer > span { color: hsl(var(--primary)); }
+.moment-profile-entry-footer > span { color: hsl(var(--foreground-muted)); }
 
 .moment-viewer-modal .ant-modal-content,
 .moment-viewer-modal .ant-modal-container { max-height: calc(100dvh - 3rem); overflow-y: auto; border: 0; border-radius: 1rem; padding: 1.25rem; background: hsl(var(--surface)); }
@@ -105,7 +114,9 @@
 }
 
 @media (max-width: 540px) {
-  .moment-profile-grid { grid-template-columns: minmax(0, 1fr); gap: 0.85rem; }
+  .moment-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+  .moment-profile-entry-body { padding: 0.65rem; }
+  .moment-profile-entry-footer { font-size: 0.65rem; }
   .moment-profile-status { flex-wrap: wrap; }
   .moment-viewer-modal { max-width: calc(100vw - 1rem); margin: 0.5rem auto; padding-bottom: 0; }
   .moment-viewer-modal .ant-modal-content,

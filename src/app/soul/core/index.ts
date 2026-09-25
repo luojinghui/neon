@@ -1,5 +1,6 @@
 import { useSoulStore } from '../store';
-import { ensureCurrentProfile } from '../../profile/client';
+import { ensureCurrentProfile, getOrCreateIdentity } from '../../profile/client';
+import { readRoomListCache, writeRoomListCache } from './roomListCache';
 import { SocketChatError, SocketChatTransport } from './socketTransport';
 import type {
   ChatAttachment,
@@ -34,15 +35,25 @@ export class SoulChat {
   private inviteToken = '';
   private sessionId = 0;
   private cachePrepared = false;
+  private listOwner = '';
+  private roomsRequest = 0;
   private unsubscribers: Array<() => void> = [];
 
   public async initList(): Promise<void> {
     this.prepareBrowserCache();
+    for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe();
     const sessionId = ++this.sessionId;
     this.mode = 'list';
     this.roomId = '';
     const store = useSoulStore.getState();
-    store.setRoomsState('loading');
+    const owner = getOrCreateIdentity().uuid;
+    if (owner !== this.listOwner) {
+      useSoulStore.setState({ rooms: [], roomsState: 'idle', roomsError: '' });
+      this.listOwner = owner;
+      const cached = readRoomListCache(owner);
+      if (cached) store.setRooms(cached);
+    }
+    if (useSoulStore.getState().roomsState !== 'ready') store.setRoomsState('loading');
     store.setConnectionState('connecting');
 
     try {
@@ -57,7 +68,7 @@ export class SoulChat {
       if (sessionId !== this.sessionId || this.mode !== 'list') return;
       const message = this.getErrorMessage(error);
       store.setConnectionState('error');
-      store.setRoomsState('error', message);
+      store.setRoomsState(useSoulStore.getState().roomsState === 'ready' ? 'ready' : 'error', message);
     }
   }
 
@@ -100,12 +111,20 @@ export class SoulChat {
 
   public async loadRooms(silent = false): Promise<void> {
     const store = useSoulStore.getState();
-    if (!silent) store.setRoomsState('loading');
+    const session = this.sessionId;
+    const request = ++this.roomsRequest;
+    const hasCache = store.roomsState === 'ready';
+    if (!silent && !hasCache) store.setRoomsState('loading');
     try {
       const rooms = await this.transport.listRooms();
-      if (this.mode === 'list') store.setRooms(rooms);
+      if (session !== this.sessionId || request !== this.roomsRequest) return;
+      if (this.user) {
+        writeRoomListCache(this.user.uuid, rooms);
+        this.listOwner = this.user.uuid;
+      }
+      store.setRooms(rooms);
     } catch (error) {
-      if (this.mode === 'list') store.setRoomsState('error', this.getErrorMessage(error));
+      if (session === this.sessionId && request === this.roomsRequest && this.mode === 'list') store.setRoomsState(hasCache ? 'ready' : 'error', this.getErrorMessage(error));
     }
   }
 

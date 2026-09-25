@@ -1,8 +1,8 @@
+import type { PortraitSettings } from './portrait/settings';
 import type { DoodleTemplate, DoodleTemplateId, DoodleTheme, DoodleThemeId } from './types';
 
 export const POSTER_WIDTH = 1080;
 export const POSTER_HEIGHT = 1440;
-const PHOTO_WHITENING = 0.045;
 
 export const DOODLE_THEMES: DoodleTheme[] = [
   { id: 'sun-pop', name: '日光波普', primary: '#FFD84D', secondary: '#FF7BA8', ink: '#1F1A17', accent: '#FFF9E8' },
@@ -67,6 +67,7 @@ type PosterOptions = {
   templateId: DoodleTemplateId;
   createdAt?: Date;
   qrSource?: CanvasImageSource | null;
+  portrait?: PortraitSettings;
 };
 
 function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
@@ -96,94 +97,18 @@ function drawCover(
   context.drawImage(source, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
 }
 
-function clampByte(value: number) {
-  return Math.max(0, Math.min(255, Math.round(value)));
-}
-
-function blendCartoonChannel(
-  channel: number,
-  originalChannel: number,
-  luminance: number,
-  saturation: number,
-  luminanceShift: number,
-  edgeStrength: number,
-  ink: number
-) {
-  const detailed = channel * 0.82 + originalChannel * 0.18;
-  const toned = luminance + (detailed - luminance) * saturation + luminanceShift;
-  const lightlyWhitened = toned * (1 - PHOTO_WHITENING) + 255 * PHOTO_WHITENING;
-  return clampByte(lightlyWhitened * (1 - edgeStrength) + ink * edgeStrength);
-}
-
-function cartoonize(
-  source: CanvasImageSource,
-  sourceWidth: number,
-  sourceHeight: number,
-  targetWidth: number,
-  targetHeight: number
-) {
+function preparePhoto(source: CanvasImageSource, sourceWidth: number, sourceHeight: number, width: number, height: number) {
   const canvas = document.createElement('canvas');
-  const processScale = 620 / Math.max(targetWidth, targetHeight);
-  canvas.width = Math.max(1, Math.round(targetWidth * processScale));
-  canvas.height = Math.max(1, Math.round(targetHeight * processScale));
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) throw new Error('当前浏览器无法处理图片');
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = 'high';
-  drawCover(context, source, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
-
-  const original = context.getImageData(0, 0, canvas.width, canvas.height);
-  const smoothCanvas = document.createElement('canvas');
-  smoothCanvas.width = canvas.width;
-  smoothCanvas.height = canvas.height;
-  const smoothContext = smoothCanvas.getContext('2d', { willReadFrequently: true });
-  if (!smoothContext) throw new Error('当前浏览器无法处理图片');
-  smoothContext.imageSmoothingEnabled = true;
-  smoothContext.imageSmoothingQuality = 'high';
-  smoothContext.filter = 'blur(1.25px) saturate(1.04) contrast(1.03)';
-  smoothContext.drawImage(canvas, 0, 0);
-
-  const image = smoothContext.getImageData(0, 0, canvas.width, canvas.height);
-  const pixels = image.data;
-  const originalPixels = original.data;
-  const luma = new Float32Array(canvas.width * canvas.height);
-  for (let index = 0, pixel = 0; index < pixels.length; index += 4, pixel += 1) {
-    luma[pixel] = pixels[index] * 0.2126 + pixels[index + 1] * 0.7152 + pixels[index + 2] * 0.0722;
-  }
-
-  for (let y = 0; y < canvas.height; y += 1) {
-    for (let x = 0; x < canvas.width; x += 1) {
-      const pixel = y * canvas.width + x;
-      const index = pixel * 4;
-      const left = Math.max(0, x - 1);
-      const right = Math.min(canvas.width - 1, x + 1);
-      const top = Math.max(0, y - 1);
-      const bottom = Math.min(canvas.height - 1, y + 1);
-      const topLeft = luma[top * canvas.width + left];
-      const topCenter = luma[top * canvas.width + x];
-      const topRight = luma[top * canvas.width + right];
-      const middleLeft = luma[y * canvas.width + left];
-      const middleRight = luma[y * canvas.width + right];
-      const bottomLeft = luma[bottom * canvas.width + left];
-      const bottomCenter = luma[bottom * canvas.width + x];
-      const bottomRight = luma[bottom * canvas.width + right];
-      const gradientX = -topLeft + topRight - 2 * middleLeft + 2 * middleRight - bottomLeft + bottomRight;
-      const gradientY = -topLeft - 2 * topCenter - topRight + bottomLeft + 2 * bottomCenter + bottomRight;
-      const gradient = Math.hypot(gradientX, gradientY);
-      const edgeStrength = Math.min(0.72, Math.max(0, (gradient - 105) / 280));
-
-      const luminance = luma[pixel];
-      const liftedLuminance = 255 * Math.pow(luminance / 255, 0.92);
-      const quantizedLuminance = Math.round(liftedLuminance / 24) * 24;
-      const luminanceShift = quantizedLuminance - luminance;
-      const saturation = luminance < 52 ? 0.94 : 1.08;
-
-      pixels[index] = blendCartoonChannel(pixels[index], originalPixels[index], luminance, saturation, luminanceShift, edgeStrength, 31);
-      pixels[index + 1] = blendCartoonChannel(pixels[index + 1], originalPixels[index + 1], luminance, saturation, luminanceShift, edgeStrength, 26);
-      pixels[index + 2] = blendCartoonChannel(pixels[index + 2], originalPixels[index + 2], luminance, saturation, luminanceShift, edgeStrength, 23);
-    }
-  }
-  context.putImageData(image, 0, 0);
+  canvas.width = Math.round(width);
+  canvas.height = Math.round(height);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('当前浏览器无法生成卡片');
+  // Preserve accessories and the full portrait across square, round and wide templates.
+  context.filter = 'blur(24px)';
+  drawCover(context, source, sourceWidth, sourceHeight, -30, -30, width + 60, height + 60);
+  context.filter = 'none';
+  const scale = Math.min(width / sourceWidth, height / sourceHeight);
+  context.drawImage(source, (width - sourceWidth * scale) / 2, (height - sourceHeight * scale) / 2, sourceWidth * scale, sourceHeight * scale);
   return canvas;
 }
 
@@ -433,41 +358,6 @@ function readableText(background: string, darkText: string) {
   return luminance < 0.42 ? '#FFFFFF' : darkText;
 }
 
-function drawCatDetails(context: CanvasRenderingContext2D, frame: PosterFrame, theme: DoodleTheme) {
-  const left = frame.x + frame.width * 0.3;
-  const right = frame.x + frame.width * 0.7;
-  const top = frame.y - 60;
-  context.fillStyle = theme.primary;
-  context.strokeStyle = theme.ink;
-  context.lineWidth = 14;
-  context.lineJoin = 'round';
-  context.beginPath();
-  context.moveTo(left - 70, frame.y + 20);
-  context.lineTo(left, top);
-  context.lineTo(left + 78, frame.y + 18);
-  context.closePath();
-  context.fill();
-  context.stroke();
-  context.beginPath();
-  context.moveTo(right - 78, frame.y + 18);
-  context.lineTo(right, top);
-  context.lineTo(right + 70, frame.y + 20);
-  context.closePath();
-  context.fill();
-  context.stroke();
-
-  context.save();
-  context.globalAlpha = 0.42;
-  context.fillStyle = '#FF7398';
-  context.beginPath();
-  context.ellipse(frame.x + frame.width * 0.28, frame.y + frame.height * 0.69, 64, 28, -0.1, 0, Math.PI * 2);
-  context.fill();
-  context.beginPath();
-  context.ellipse(frame.x + frame.width * 0.72, frame.y + frame.height * 0.69, 64, 28, 0.1, 0, Math.PI * 2);
-  context.fill();
-  context.restore();
-}
-
 export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: number, sourceHeight: number, options: PosterOptions) {
   const canvas = document.createElement('canvas');
   canvas.width = POSTER_WIDTH;
@@ -491,7 +381,7 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     'arcade-ticket': { x: 110, y: 330, width: 860, height: 720, radius: 26 }
   };
   const frame = frames[template.id];
-  const cartoon = cartoonize(source, sourceWidth, sourceHeight, frame.width, frame.height);
+  const cartoon = preparePhoto(source, sourceWidth, sourceHeight, frame.width, frame.height);
 
   if (template.id === 'comic-cover') {
     context.fillStyle = theme.primary;
@@ -505,7 +395,6 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     context.fill();
     drawDots(context, theme.ink, 38, 0.14);
     drawPhotoFrame(context, cartoon, frame, theme, 18);
-    drawCatDetails(context, frame, theme);
     drawPanel(context, 108, 866, 770, 184, 50, '#FFFFFF', theme.ink, 12, 'rgba(0,0,0,0.2)');
     context.fillStyle = '#FFFFFF';
     context.beginPath();
@@ -582,7 +471,6 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     drawDots(context, theme.ink, 42, 0.12);
     drawPanel(context, 116, 110, 848, 848, 424, '#FFFDF7', theme.ink, 14, 'rgba(0,0,0,0.18)');
     drawPhotoFrame(context, cartoon, frame, theme, 14);
-    drawCatDetails(context, frame, theme);
     withRotation(context, 540, 920, -0.045, () => {
       drawPanel(context, 126, 844, 828, 170, 28, theme.accent, theme.ink, 12, 'rgba(0,0,0,0.18)');
     });
@@ -695,6 +583,37 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     drawQrCard(context, options.qrSource, 804, 1154, theme.ink, 0.018);
   }
 
+  if (options.portrait) {
+    const card = options.portrait;
+    // A shared footer keeps the longer custom copy clear of every template's legacy metadata.
+    context.fillStyle = theme.primary;
+    context.fillRect(0, 1140, POSTER_WIDTH, 300);
+    drawPanel(context, 64, 1166, 716, 170, 26, theme.accent, theme.ink, 3);
+    context.textAlign = 'left';
+    context.textBaseline = 'alphabetic';
+    context.fillStyle = theme.ink;
+    context.font = '800 24px "PingFang SC", "Microsoft YaHei", sans-serif';
+    context.fillText(`${card.mood || '今日漫游'}${card.signature ? `  /  ${card.signature}` : ''}`, 90, 1208, 654);
+    context.font = '600 28px "PingFang SC", "Microsoft YaHei", sans-serif';
+    const lines = [''];
+    for (const character of Array.from(card.caption)) {
+      if (context.measureText(lines[lines.length - 1] + character).width > 650) lines.push('');
+      lines[lines.length - 1] += character;
+    }
+    lines.slice(0, 2).forEach((line, index) => context.fillText(line, 90, 1256 + index * 38, 650));
+    drawMeta(context, createdAt, 72, 1392, primaryText);
+    drawQrCard(context, options.qrSource, 820, 1166, theme.ink);
+    if (card.decoration === 'spark') { drawStar(context, 78, 1090, 32, 14, theme.secondary, -.2); drawStar(context, 1004, 1090, 25, 10, theme.accent, .3); }
+    if (card.decoration === 'hearts') {
+      context.font = '900 64px Arial'; context.fillStyle = theme.secondary;
+      context.fillText('♥', 54, 1130); context.fillText('♥', 972, 1130);
+    }
+    if (card.decoration === 'orbit') {
+      context.strokeStyle = theme.secondary; context.lineWidth = 6;
+      context.beginPath(); context.ellipse(1000, 1100, 44, 20, -.4, 0, Math.PI*2); context.stroke();
+      context.fillStyle = theme.primary; context.beginPath(); context.arc(1000, 1100, 20, 0, Math.PI*2); context.fill();
+    }
+  }
   return canvas;
 }
 

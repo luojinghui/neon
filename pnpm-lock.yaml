@@ -18,11 +18,14 @@ importers:
 
   .:
     dependencies:
+      '@ant-design/cssinjs':
+        specifier: 2.1.2
+        version: 2.1.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@ant-design/icons':
         specifier: ^6.1.0
         version: 6.1.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@mediapipe/tasks-vision':
-        specifier: ^0.10.35
+        specifier: 0.10.35
         version: 0.10.35
       '@uiw/react-json-view':
         specifier: 2.0.0-alpha.39

@@ -1,0 +1,2 @@
+# Keep vendored vision assets byte-identical to their SHA-256 manifest on Windows.
+public/mediapipe/** -text -whitespace linguist-vendored

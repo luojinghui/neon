@@ -172,6 +172,7 @@ function SoulPage() {
             </button>
           </div>
 
+          {roomsState === 'ready' && roomsError && <div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-surface p-3 text-xs text-foreground-muted"><span>暂时无法更新，正在显示上次的星球列表</span><button type="button" onClick={() => void soulChat.initList()} className="shrink-0 px-2 py-1 text-primary">重试</button></div>}
           {roomsState === 'loading' || roomsState === 'idle' ? (
             <ChatRoomCardSkeleton count={6} />
           ) : roomsState === 'error' ? (
@@ -180,7 +181,7 @@ function SoulPage() {
               <div className="mt-2 text-center text-sm text-foreground-secondary">{roomsError || '请稍后重试'}</div>
               <button
                 type="button"
-                onClick={() => void soulChat.loadRooms()}
+                onClick={() => void soulChat.initList()}
                 className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-ring/40"
               >
                 <ReloadOutlined />

@@ -9,6 +9,7 @@ import type { Moment } from '../types';
 import { MomentAvatar } from './MomentAvatar';
 import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
+import { MomentActions } from './MomentActions';
 import './moment-gallery.css';
 
 type Props = {
@@ -46,8 +47,9 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
         {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
         {(moment.location || moment.canDelete) && <footer className="moment-viewer-footer">
           <span className="moment-viewer-location">{moment.location && <><EnvironmentOutlined />{moment.location.label}</>}</span>
-          {moment.canDelete && <button type="button" className="moment-viewer-delete" onClick={() => void remove()} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}{moment.isOwner ? '删除心迹' : '以超管身份删除'}</button>}
+          {moment.canDelete && <button type="button" className="moment-viewer-delete" onClick={() => void remove()} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}删除</button>}
         </footer>}
+        <MomentActions moment={moment} />
         {error && <p className="moment-inline-error" role="alert">{error}</p>}
       </article>
     </Modal>
