@@ -17,7 +17,7 @@
     "test:video-effects": "node --test scripts/video-effects.test.cjs",
     "test:video-effects:browser": "node scripts/video-effects-browser.cjs",
     "test:profile": "node --test src/server/user/profileRepository.test.js",
-    "test:moments": "node --test src/server/moment/momentRepository.test.js",
+    "test:moments": "node --test src/server/moment/momentRepository.test.js scripts/moments-cache.test.cjs",
     "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js",
     "test:experience": "node --test scripts/experience.test.cjs",
     "prepare:vision": "node scripts/prepare-vision-assets.cjs"

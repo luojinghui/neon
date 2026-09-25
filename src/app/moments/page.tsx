@@ -1,80 +1,28 @@
 'use client';
 
 import { ArrowDownOutlined, EditOutlined, LoadingOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
-import { getMoments } from './client';
+import { refreshMomentFeed, useMomentFeed } from './useMomentFeed';
 import { MomentCard } from './components/MomentCard';
 import { MomentComposer } from './components/MomentComposer';
 import { MomentFeed } from './components/MomentFeed';
-import type { Moment } from './types';
+
 import './moments.css';
 import './moments-journal.css';
 
 export default function MomentsPage() {
-  const [items, setItems] = useState<Moment[]>([]);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const { data, loading: refreshing, loadingMore, error } = useMomentFeed();
+  const items = data?.items || [];
+  const total = data?.total || 0;
+  const hasMore = data?.hasMore || false;
+  const loading = refreshing || (!data && !error);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [error, setError] = useState('');
-  const requestRef = useRef(0);
-  const loadingMoreRef = useRef(false);
   const scrollRef = useRef<HTMLElement>(null);
-
-  const load = useCallback(async () => {
-    const request = ++requestRef.current;
-    loadingMoreRef.current = false;
-    setLoadingMore(false);
-    setLoading(true);
-    setError('');
-    try {
-      const result = await getMoments({ page: 1, pageSize: 12 });
-      if (request !== requestRef.current) return;
-      setItems(result.items);
-      setPage(1);
-      setTotal(result.total);
-      setHasMore(result.hasMore);
-    } catch (loadError) {
-      if (request === requestRef.current) setError(loadError instanceof Error ? loadError.message : '心迹加载失败');
-    } finally {
-      if (request === requestRef.current) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-    return () => { requestRef.current += 1; };
-  }, [load]);
-
-  const loadMore = async () => {
-    if (!hasMore || loading || loadingMoreRef.current) return;
-    const request = requestRef.current;
-    loadingMoreRef.current = true;
-    setLoadingMore(true);
-    setError('');
-    try {
-      const nextPage = page + 1;
-      const result = await getMoments({ page: nextPage, pageSize: 12 });
-      if (request !== requestRef.current) return;
-      setItems((current) => [...current, ...result.items.filter((item) => !current.some((existing) => existing.id === item.id))]);
-      setPage(nextPage);
-      setHasMore(result.hasMore);
-      setTotal(result.total);
-    } catch (loadError) {
-      if (request === requestRef.current) setError(loadError instanceof Error ? loadError.message : '更多心迹加载失败');
-    } finally {
-      if (request === requestRef.current) {
-        loadingMoreRef.current = false;
-        setLoadingMore(false);
-      }
-    }
-  };
-
+  const load = () => refreshMomentFeed();
+  const loadMore = () => refreshMomentFeed(true);
   return (
     <div className="moments-screen app-screen flex w-full flex-col overflow-hidden bg-background">
       <TopBar
@@ -129,12 +77,7 @@ export default function MomentsPage() {
               </div>
             ) : (
               <MomentFeed>
-                {items.map((moment) => <MomentCard key={moment.id} moment={moment} onDeleted={(id) => {
-                  setItems((current) => current.filter((item) => item.id !== id));
-                  setTotal((value) => Math.max(0, value - 1));
-                  // Deletion shifts offset pagination; invalidate older requests and reload page one.
-                  void load();
-                }} />)}
+                {items.map((moment) => <MomentCard key={moment.id} moment={moment} onDeleted={() => { void refreshMomentFeed(false, true); }} />)}
               </MomentFeed>
             )}
 
@@ -147,11 +90,9 @@ export default function MomentsPage() {
         </div>
       </main>
 
-      <MomentComposer appearance="journal" open={composerOpen} onClose={() => setComposerOpen(false)} onPublished={(moment) => {
-        setItems((current) => [moment, ...current.filter((item) => item.id !== moment.id)]);
-        setTotal((value) => value + 1);
+      <MomentComposer appearance="journal" open={composerOpen} onClose={() => setComposerOpen(false)} onPublished={() => {
         scrollRef.current?.scrollTo({ top: 0 });
-        void load();
+        void refreshMomentFeed(false, true);
       }} />
     </div>
   );
