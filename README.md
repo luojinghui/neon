@@ -20,3 +20,7 @@ $ pnpm build
 ## PWA
 
 - 安装配置、主题色、图标生成和设备验收见 [PWA 外观与安装](docs/pwa.md)。
+
+## 星球通话
+
+- 音视频模块、交互、TURN 部署和设备验收见 [星球音视频通话](docs/planet-calls.md)。

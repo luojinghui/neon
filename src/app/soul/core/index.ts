@@ -109,6 +109,10 @@ export class SoulChat {
     useSoulStore.getState().reset();
   }
 
+  public getCallTransport() {
+    return this.transport.callTransport();
+  }
+
   public async loadRooms(silent = false): Promise<void> {
     const store = useSoulStore.getState();
     const session = this.sessionId;
@@ -452,7 +456,10 @@ export class SoulChat {
     this.unsubscribers.push(
       this.transport.onConnectionChange((connected) => {
         useSoulStore.getState().setConnectionState(connected ? 'connected' : 'disconnected');
-        if (!connected) return;
+        if (!connected) {
+          if (useSoulStore.getState().accessState === 'granted') useSoulStore.getState().setAccessState('joining');
+          return;
+        }
         if (this.mode === 'list') void this.loadRooms();
         if (this.mode === 'room') void this.rejoinRoom();
       }),

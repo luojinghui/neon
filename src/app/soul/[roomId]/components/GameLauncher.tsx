@@ -154,7 +154,7 @@ export function GameLauncher() {
         </div>
       }>
         <button type="button" disabled={disabled} aria-label="聊天室小游戏" aria-expanded={open} className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs transition-colors hover:bg-surface-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 ${open ? 'bg-surface-active text-foreground' : 'text-foreground-muted'}`}>
-          <AppstoreOutlined className="text-base" /><span>小游戏</span>
+          <AppstoreOutlined className="text-base" /><span className="hidden sm:inline">小游戏</span>
         </button>
       </Popover>
       {setup && <GameSetupModal key={setup} kind={setup} onClose={() => setSetup(null)} />}

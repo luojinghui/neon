@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import { subscribeAdminSessionChanges } from '../../admin/sessionEvents';
+import type { CallTransport } from '@/modules/webrtc/types';
 import type {
   ChatRoom,
   ChatUser,
@@ -77,6 +78,15 @@ export class SocketChatTransport {
     this.unsubscribeAdminSession = null;
     this.socket?.disconnect();
     this.socket = null;
+  }
+
+  public callTransport(): CallTransport {
+    const socket = this.requireSocket();
+    return {
+      request: async <T>(event: string, payload: unknown) => this.emitWithAck<T>(event, payload),
+      onState: (listener) => { socket.on('call:state', listener); return () => { socket.off('call:state', listener); }; },
+      onSignal: (listener) => { socket.on('call:signal', listener); return () => { socket.off('call:signal', listener); }; }
+    };
   }
 
   public listRooms(): Promise<ChatRoom[]> {

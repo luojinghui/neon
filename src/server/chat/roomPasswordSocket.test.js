@@ -103,6 +103,7 @@ async function fixture(t, options = {}) {
     module: controllerModule,
     exports: controllerModule.exports,
     require(name) {
+      if (name === '../webrtc/callSignaling') return require('../webrtc/callSignaling');
       if (name === '../chat/roomRepository') {
         return {
           RoomRepositoryError,

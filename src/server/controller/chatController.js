@@ -1,5 +1,6 @@
 const { RoomRepository, RoomRepositoryError } = require('../chat/roomRepository');
 const { profileRepository } = require('../user/profileRepository');
+const { CallSignaling } = require('../webrtc/callSignaling');
 
 const repository = new RoomRepository({
   resolveProfile({ uuid, publicKey, userId }) {
@@ -10,6 +11,7 @@ const repository = new RoomRepository({
   }
 });
 const roomMembers = new Map();
+const calls = new CallSignaling({ requireJoinedRoom });
 
 function normalizeSocketUser(input) {
   const uuid = typeof input?.uuid === 'string' ? input.uuid.trim().toLowerCase() : '';
@@ -173,6 +175,7 @@ function evictRoomUser(io, roomId, userId) {
   const members = roomMembers.get(roomId);
   for (const targetSocket of io.sockets.sockets.values()) {
     if (targetSocket.data.user?.id !== userId || targetSocket.data.roomId !== roomId) continue;
+    calls.leave(targetSocket, io, 'access-revoked');
     targetSocket.leave(roomId);
     targetSocket.data.roomId = null;
     members?.delete(targetSocket.id);
@@ -187,6 +190,7 @@ function broadcastRoomUpdated(io, room) {
     if (!memberSocket) continue;
     const admin = isSuperAdmin(memberSocket);
     if (!repository.canViewRoom(room, memberSocket.data.user, admin)) {
+      calls.leave(memberSocket, io, 'access-revoked');
       memberSocket.leave(room.id);
       memberSocket.data.roomId = null;
       members.delete(socketId);
@@ -205,6 +209,7 @@ function leaveCurrentRoom(socket, io) {
   const roomId = socket.data.roomId;
   if (!roomId) return;
 
+  calls.leave(socket, io);
   socket.leave(roomId);
   const members = roomMembers.get(roomId);
   members?.delete(socket.id);
@@ -218,6 +223,7 @@ function removeDeletedRoomMembers(roomId, io) {
   for (const socketId of members) {
     const memberSocket = io.sockets.sockets.get(socketId);
     if (!memberSocket) continue;
+    calls.leave(memberSocket, io, 'room-deleted');
     memberSocket.leave(roomId);
     memberSocket.data.roomId = null;
   }
@@ -233,6 +239,7 @@ const onSocket = (socket, io) => {
   }
 
   socket.on('rooms:list', (ack) => respond(ack, () => getRooms(requireUser(socket), isSuperAdmin(socket))));
+  calls.bind(socket, io);
 
   socket.on('rooms:search', (payload, ack) => {
     respond(ack, () => {
@@ -299,7 +306,7 @@ const onSocket = (socket, io) => {
         notifyRoomAccessChanged(io, room, user.id);
       }
 
-      leaveCurrentRoom(socket, io);
+      if (socket.data.roomId !== room.id) leaveCurrentRoom(socket, io);
       socket.join(room.id);
       socket.data.roomId = room.id;
       const members = roomMembers.get(room.id) || new Set();

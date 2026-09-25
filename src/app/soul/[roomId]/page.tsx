@@ -16,6 +16,7 @@ import { ChatInput } from './components/ChatInput';
 import { ChatToolbar } from './components/ChatToolbar';
 import { RoomAccessModal } from './components/RoomAccessModal';
 import { RoomInfoModal } from './components/RoomInfoModal';
+import { RoomCallNotice, RoomCallProvider } from './components/RoomCall';
 
 function ChatRoomPage() {
   const params = useParams<{ roomId: string }>();
@@ -23,6 +24,7 @@ function ChatRoomPage() {
   const room = useSoulStore((s) => s.room);
   const roomName = useSoulStore((s) => s.roomName);
   const accessState = useSoulStore((s) => s.accessState);
+  const connected = useSoulStore((s) => s.connectionState === 'connected');
   const [roomInfoOpen, setRoomInfoOpen] = useState(false);
 
   useEffect(() => {
@@ -39,6 +41,7 @@ function ChatRoomPage() {
   }, [accessState, router]);
 
   return (
+    <RoomCallProvider roomId={params.roomId} roomName={roomName} ready={connected && accessState === 'granted'}>
     <div
       className="app-screen soul-page soul-room-page flex w-full select-none flex-col bg-background"
       onContextMenu={(event) => {
@@ -84,6 +87,7 @@ function ChatRoomPage() {
 
         {accessState === 'granted' && (
           <div className="app-content-width shrink-0 pb-3 pt-2">
+            <RoomCallNotice />
             <div className="rounded-2xl border border-border bg-surface p-2.5 transition-colors focus-within:border-border-focus">
               <ChatInput />
               <ChatToolbar />
@@ -95,6 +99,7 @@ function ChatRoomPage() {
       <RoomAccessModal onBack={() => router.replace('/soul')} />
       <RoomInfoModal room={room} open={roomInfoOpen} onClose={() => setRoomInfoOpen(false)} />
     </div>
+    </RoomCallProvider>
   );
 }
 
