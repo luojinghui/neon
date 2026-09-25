@@ -1,6 +1,6 @@
 export type BoardItem = { id: string; authorId: string; color: string } & (
   { kind: 'stroke'; width: number; points: [number, number][] } |
-  { kind: 'text'; text: string; x: number; y: number }
+  { kind: 'text'; text: string; x: number; y: number; fontSize: number }
 );
 export interface Presentation {
   id: string;

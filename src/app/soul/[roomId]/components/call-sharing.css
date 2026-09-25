@@ -3,26 +3,34 @@
 .call-share-menu header button { padding: 6px; }
 .call-share-menu > button { display: flex; gap: 12px; align-items: center; width: 100%; padding: 12px 8px; border-radius: 10px; text-align: left; font-size: 14px; }
 .call-share-menu > button:hover { background: hsl(var(--surface-hover)); }
-.call-share-menu small, .call-share-menu > p { display: block; color: hsl(var(--foreground-muted)); font-size: 11px; line-height: 1.7; margin-top: 4px; }
 .soul-call-panel .soul-call-stage.has-sharing { grid-template-columns: minmax(0, 1fr) clamp(110px, 18%, 200px); grid-template-rows: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); }
 .soul-call-panel .soul-call-stage.has-sharing > .soul-call-tile { position: relative; grid-column: 2; grid-row: var(--tile-slot); top: auto; right: auto; width: auto; height: auto; box-shadow: none; }
 .has-sharing .soul-call-select-tile { display: none; }
 .call-sharing-stage { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 18px; background: hsl(var(--surface)); }
 .call-sharing-heading { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid hsl(var(--border)); }
-.call-sharing-heading > div { min-width: 0; }
-.call-sharing-heading strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
-.call-sharing-heading span { display: block; margin-top: 3px; font-size: 11px; color: hsl(var(--foreground-muted)); }
+.call-sharing-heading strong { min-width: 0; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
 .call-sharing-heading button { flex: none; padding: 6px 10px; border-radius: 8px; background: hsl(var(--danger-soft)); color: hsl(var(--danger)); font-size: 12px; }
-.call-shared-screen { flex: 1; width: 100%; min-height: 0; object-fit: contain; }
+.call-share-viewport { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; touch-action: pan-x pan-y; }
+.call-share-viewport.is-zoomed { cursor: grab; touch-action: none; }
+.call-share-viewport.is-zoomed:active { cursor: grabbing; }
+.call-share-zoom-content { position: absolute; inset: 0; display: flex; min-width: 0; min-height: 0; transform-origin: center; will-change: transform; }
+.call-share-zoom-controls { position: absolute; z-index: 5; top: 8px; right: 8px; display: flex; align-items: center; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--surface) / .92); box-shadow: 0 4px 18px #0002; }
+.call-share-zoom-controls button { display: grid; place-items: center; min-width: 32px; height: 32px; padding: 0 8px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.call-share-zoom-controls button + button { border-left: 1px solid hsl(var(--border)); }
+.call-shared-screen { flex: 1; width: 100%; min-height: 0; object-fit: contain; pointer-events: none; }
 .call-whiteboard, .call-resource { display: flex; flex: 1; min-height: 0; min-width: 0; flex-direction: column; overflow: hidden; }
 .call-share-tools { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; font-size: 12px; border-bottom: 1px solid hsl(var(--border)); }
 .call-share-tools button, .call-share-tools select { min-height: 30px; padding: 4px 8px; border: 1px solid hsl(var(--border)); border-radius: 7px; background: hsl(var(--surface)); }
 .call-share-tools button[aria-pressed=true] { background: hsl(var(--primary-soft)); color: hsl(var(--primary)); border-color: hsl(var(--primary) / .3); }
 .call-share-tools input[type=color] { width: 32px; height: 30px; padding: 2px; border: 1px solid hsl(var(--border)); border-radius: 7px; background: hsl(var(--surface)); }
 .call-share-tools span { color: hsl(var(--foreground-muted)); font-size: 11px; }
-.call-whiteboard-text { padding: 6px 8px; }
-.call-whiteboard-text input { width: 100%; min-width: 0; padding: 7px 10px; background: hsl(var(--input)); border: 1px solid hsl(var(--border)); border-radius: 8px; font-size: 13px; }
 .call-whiteboard-canvas { display: block; flex: 1; min-height: 0; width: 100%; touch-action: none; cursor: crosshair; background: #eceef0; }
+.call-whiteboard-canvas.is-selecting { cursor: default; }
+.call-board-text { cursor: grab; }
+.call-board-text.is-selected { cursor: move; }
+.call-board-text-editor textarea { width: 100%; height: 100%; resize: none; overflow: hidden; padding: 5px 7px; border: 2px solid hsl(var(--primary)); border-radius: 7px; outline: 0; background: #fff; color: #1f2937; line-height: 1.25; }
+.call-board-selection { fill: hsl(var(--primary) / .06); stroke: hsl(var(--primary)); stroke-width: 2; stroke-dasharray: 8 5; pointer-events: none; }
+.call-board-resize { fill: hsl(var(--primary)); stroke: #fff; stroke-width: 3; cursor: nwse-resize; }
 .call-resource-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 12px; }
 .call-resource-scroll.is-viewer { overflow: hidden; }
 .call-share-pdf { display: block; width: 100%; height: auto; background: white; }
@@ -47,20 +55,22 @@
 .is-mini .call-sharing-stage { width: 100%; }
 .is-mini .call-sharing-heading { padding: 6px 8px; }
 .is-mini .call-sharing-heading strong { font-size: 11px; }
-.is-mini :is(.call-sharing-heading span,.call-sharing-heading button,.call-share-tools,.call-whiteboard-text,.call-share-caption) { display: none; }
+.is-mini :is(.call-sharing-heading button,.call-share-tools,.call-share-caption,.call-share-zoom-controls) { display: none; }
 .is-mini .call-whiteboard-canvas { pointer-events: none; }
 @media (max-width: 600px) {
-  .soul-call-panel.is-full .soul-call-stage.has-sharing { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) 70px; gap: 6px; }
+  .soul-call-panel.is-full .soul-call-stage.has-sharing { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) 64px; gap: 6px; overflow: hidden; }
   .is-full .call-sharing-stage { grid-column: 1 / -1; grid-row: 1; border-radius: 12px; }
-  .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile { grid-column: var(--tile-slot); grid-row: 2; }
+  .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile { grid-column: var(--tile-slot); grid-row: 2; min-height: 0; max-height: 64px; overflow: hidden; border-radius: 12px; }
+  .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile .soul-call-avatar { width: 36px; height: 36px; font-size: 16px; }
+  .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile .soul-call-tile-caption { padding: 10px 6px 4px; font-size: 9px; }
   .call-sharing-heading { padding: 9px; gap: 6px; }
   .call-share-tools { gap: 4px; padding: 6px; }
   .call-share-tools button { padding: 3px 6px; font-size: 11px; }
+  .call-share-viewport.has-board-toolbar .call-share-zoom-controls { top: 48px; }
   .call-resource-scroll { padding: 8px; }
   .has-sharing .soul-call-tile-caption { padding: 12px 8px 6px; font-size: 10px; }
 }
 @media (max-height: 500px) and (min-width: 601px) {
   .is-full .soul-call-header { padding-block: 8px; }
   .is-full .soul-call-footer { padding-block: 8px; }
-  .call-sharing-heading span { display: none; }
 }

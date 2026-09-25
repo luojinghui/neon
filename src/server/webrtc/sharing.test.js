@@ -37,7 +37,7 @@ test('whiteboard merges simultaneous authors, enforces ownership, clears stale s
   const callId = a.joined.call.id;
   const state = await a.accepted('share:start', { callId, kind: 'whiteboard' });
   const base = { callId, shareId: state.presentation.id, epoch: 0 };
-  const item = (id, text) => ({ id, kind: 'text', color: '#334155', x: 20, y: 30, text, authorId: 'forged' });
+  const item = (id, text) => ({ id, kind: 'text', color: '#334155', x: 20, y: 30, fontSize: 28, text, authorId: 'forged' });
   await Promise.all([a.accepted('share:board', { ...base, action: 'put', item: item('drawing-one', '你好') }), b.accepted('share:board', { ...base, action: 'put', item: item('drawing-two', 'hello') })]);
   let board = (await a.accepted('share:state', { callId })).presentation;
   assert.equal(board.items.length, 2); assert.deepEqual(new Set(board.items.map(item => item.authorId)), new Set([a.socket.id, b.socket.id]));
@@ -60,7 +60,7 @@ test('whiteboard validates bounded coordinates, text, total strokes and author-o
   const base = { callId, shareId: state.presentation.id, epoch: 0, action: 'put' };
   const stroke = { id: 'stroke-valid', kind: 'stroke', color: '#123456', width: 4, points: [[10, 20], [30, 40]] };
   await a.accepted('share:board', { ...base, item: stroke });
-  for (const patch of [{ color: 'red' }, { points: [[-1, 2]] }, { points: [[Infinity, 2]] }, { points: Array(513).fill([1, 2]) }, { kind: 'text', text: 'x'.repeat(201), x: 1, y: 2 }, { width: 999 }]) assert.equal((await a.request('share:board', { ...base, item: { ...stroke, ...patch } })).ok, false);
+  for (const patch of [{ color: 'red' }, { points: [[-1, 2]] }, { points: [[Infinity, 2]] }, { points: Array(513).fill([1, 2]) }, { kind: 'text', text: 'x'.repeat(201), x: 1, y: 2, fontSize: 28 }, { kind: 'text', text: 'text', x: 1, y: 2, fontSize: 120 }, { width: 999 }]) assert.equal((await a.request('share:board', { ...base, item: { ...stroke, ...patch } })).ok, false);
   assert.equal((await a.accepted('share:state', { callId })).presentation.items.length, 1);
 });
 

@@ -158,8 +158,8 @@ class CallSharing {
           if (points + value.points.length > 24000) invalid('画板已满，请撤销或清空后继续');
           item = { ...item, width: value.width, points: value.points };
         } else if (value.kind === 'text') {
-          if (typeof value.text !== 'string' || !value.text.trim() || value.text.length > 200 || !finite(value.x, 0, 1000) || !finite(value.y, 0, 600)) invalid('文字最多 200 字，请点击画板放置');
-          item = { ...item, text: value.text, x: value.x, y: value.y };
+          if (typeof value.text !== 'string' || !value.text.trim() || value.text.length > 200 || !finite(value.x, 0, 1000) || !finite(value.y, 0, 600) || !finite(value.fontSize, 12, 96)) invalid('白板文字无效');
+          item = { ...item, text: value.text.trim(), x: value.x, y: value.y, fontSize: value.fontSize };
         } else invalid('无效的白板内容');
         if (index < 0) board.items.push(item); else board.items[index] = item;
         action = { type: 'put', item };

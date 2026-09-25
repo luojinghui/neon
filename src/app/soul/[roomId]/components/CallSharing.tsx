@@ -1,7 +1,7 @@
 'use client';
 
-import { CloseOutlined, DesktopOutlined, EditOutlined, FileOutlined } from '@ant-design/icons';
-import { useLayoutEffect, useRef } from 'react';
+import { CloseOutlined, DesktopOutlined, EditOutlined, FileOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type WheelEvent } from 'react';
 import dynamic from 'next/dynamic';
 import type { CallSession } from '@/modules/webrtc/session';
 import type { CallView } from '@/modules/webrtc/types';
@@ -18,12 +18,61 @@ export function ShareMenu({ view, session, onClose }: { view: CallView; session:
   const screenAvailable = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia;
   return <aside className="call-share-menu" aria-label="共享内容">
     <header><h3>与大家共享</h3><button type="button" aria-label="关闭共享菜单" onClick={onClose}><CloseOutlined /></button></header>
-    <button type="button" disabled={!screenAvailable || view.shareBusy || !!view.presentation} onClick={() => { void session.startScreen(); onClose(); }}><DesktopOutlined /><span>共享屏幕<small>{screenAvailable ? '选择一个窗口、标签页或整个屏幕' : '此浏览器支持观看，请用桌面浏览器发起'}</small></span></button>
-    <button type="button" disabled={view.shareBusy || !!view.presentation} onClick={() => { void session.startWhiteboard(); onClose(); }}><EditOutlined /><span>共享白板<small>一起绘画、输入文字</small></span></button>
-    <button type="button" disabled={view.shareBusy || !!view.presentation} onClick={() => input.current?.click()}><FileOutlined /><span>共享图片或文档<small>图片、PDF、PPT、LOG、Markdown、HTML</small></span></button>
+    <button type="button" aria-label="共享屏幕" disabled={!screenAvailable || view.shareBusy || !!view.presentation} onClick={() => { void session.startScreen(); onClose(); }}><DesktopOutlined /><span>共享屏幕</span></button>
+    <button type="button" aria-label="共享白板" disabled={view.shareBusy || !!view.presentation} onClick={() => { void session.startWhiteboard(); onClose(); }}><EditOutlined /><span>共享白板</span></button>
+    <button type="button" aria-label="共享文件" disabled={view.shareBusy || !!view.presentation} onClick={() => input.current?.click()}><FileOutlined /><span>共享文件</span></button>
     <input ref={input} type="file" hidden aria-label="选择共享文件" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.ppt,.pptx,.log,.txt,.md,.markdown,.html,.htm" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) { void session.shareFile(file); onClose(); } }} />
-    <p>文件最大 20 MB，文本最大 2 MB。{!view.shareCapabilities.powerPoint && '此服务器未启用 PPT 转换，请先导出为 PDF。'}</p>
   </aside>;
+}
+
+function ZoomableSurface({ children, whiteboard = false }: { children: ReactNode; whiteboard?: boolean }) {
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ distance: number; scale: number; offset: { x: number; y: number }; point: { x: number; y: number } } | null>(null);
+  const clampScale = (value: number) => Math.max(.5, Math.min(3, Math.round(value * 4) / 4));
+  const zoom = (value: number) => {
+    const next = clampScale(value);
+    setScale(next);
+    if (next <= 1) setOffset({ x: 0, y: 0 });
+  };
+  const begin = (event: PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest('button,input,textarea,select,.call-whiteboard-canvas') || event.button !== 0) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const values = [...pointers.current.values()];
+    if (values.length === 1) gesture.current = { distance: 0, scale, offset, point: values[0] };
+    else if (values.length === 2) gesture.current = { distance: Math.hypot(values[0].x - values[1].x, values[0].y - values[1].y), scale, offset, point: { x: (values[0].x + values[1].x) / 2, y: (values[0].y + values[1].y) / 2 } };
+  };
+  const move = (event: PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId) || !gesture.current) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const values = [...pointers.current.values()];
+    if (values.length === 2 && gesture.current.distance > 0) {
+      const distance = Math.hypot(values[0].x - values[1].x, values[0].y - values[1].y);
+      zoom(gesture.current.scale * distance / gesture.current.distance);
+    } else if (values.length === 1 && scale > 1) {
+      setOffset({ x: gesture.current.offset.x + values[0].x - gesture.current.point.x, y: gesture.current.offset.y + values[0].y - gesture.current.point.y });
+    }
+  };
+  const end = (event: PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    gesture.current = null;
+  };
+  const wheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    zoom(scale + (event.deltaY < 0 ? .25 : -.25));
+  };
+  return <div className={`call-share-viewport ${scale > 1 ? 'is-zoomed' : ''} ${whiteboard ? 'has-board-toolbar' : ''}`} onPointerDown={begin} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onWheel={wheel} onDoubleClick={event => { if (!(event.target as HTMLElement).closest('button,input,textarea,select')) zoom(scale === 1 ? 2 : 1); }}>
+    <div className="call-share-zoom-controls" aria-label="共享画面缩放">
+      <button type="button" aria-label="缩小共享画面" disabled={scale <= .5} onClick={() => zoom(scale - .25)}><MinusOutlined /></button>
+      <button type="button" aria-label="恢复共享画面大小" onClick={() => zoom(1)}>{Math.round(scale * 100)}%</button>
+      <button type="button" aria-label="放大共享画面" disabled={scale >= 3} onClick={() => zoom(scale + .25)}><PlusOutlined /></button>
+    </div>
+    <div className="call-share-zoom-content" style={{ transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})` }}>{children}</div>
+  </div>;
 }
 
 function Screen({ stream }: { stream?: MediaStream | null }) {
@@ -42,11 +91,12 @@ export function SharingStage({ view, session }: { view: CallView; session: CallS
   const presentation = view.presentation;
   if (!presentation) return null;
   const owner = presentation.ownerId === view.selfId;
-  const name = view.call?.participants.find(member => member.peerId === presentation.ownerId)?.name || '伙伴';
   return <div className="call-sharing-stage" aria-label="共享演示">
-    <header className="call-sharing-heading"><div><strong>{presentation.kind === 'whiteboard' ? '协作白板' : presentation.kind === 'screen' ? '屏幕共享' : presentation.file?.name}</strong><span>{presentation.kind === 'whiteboard' ? '所有参会者均可绘画和输入文字' : `${owner ? '你' : name}正在共享`}</span></div>{owner && <button type="button" onClick={() => void session.stopSharing()}>结束共享</button>}</header>
-    {presentation.kind === 'screen' && <Screen stream={owner ? view.screenStream : view.peers[presentation.ownerId]?.screenStream} />}
-    {presentation.kind === 'whiteboard' && <SharedWhiteboard key={presentation.id} presentation={presentation} session={session} selfId={view.selfId} />}
-    {presentation.kind === 'resource' && (owner && !presentation.ready ? <div className="call-share-loading" role="status"><p>{view.shareProgress < 100 ? '正在上传文件…' : /pptx?$/i.test(presentation.file!.extension) ? '上传完成，正在转换幻灯片，请稍候…' : '上传完成，正在准备预览…'}</p><progress max={100} value={view.shareProgress} aria-label="共享文件上传进度" /><span>{view.shareProgress}%</span></div> : <SharedResource key={presentation.id} presentation={presentation} session={session} owner={owner} />)}
+    <header className="call-sharing-heading"><strong>{presentation.kind === 'whiteboard' ? '协作白板' : presentation.kind === 'screen' ? '屏幕共享' : presentation.file?.name}</strong>{owner && <button type="button" onClick={() => void session.stopSharing()}>结束共享</button>}</header>
+    <ZoomableSurface whiteboard={presentation.kind === 'whiteboard'}>
+      {presentation.kind === 'screen' && <Screen stream={owner ? view.screenStream : view.peers[presentation.ownerId]?.screenStream} />}
+      {presentation.kind === 'whiteboard' && <SharedWhiteboard key={presentation.id} presentation={presentation} session={session} selfId={view.selfId} />}
+      {presentation.kind === 'resource' && (owner && !presentation.ready ? <div className="call-share-loading" role="status"><progress max={100} value={view.shareProgress} aria-label="共享文件上传进度" /><span>{view.shareProgress}%</span></div> : <SharedResource key={presentation.id} presentation={presentation} session={session} owner={owner} />)}
+    </ZoomableSurface>
   </div>;
 }
