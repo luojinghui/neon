@@ -90,6 +90,29 @@ test('entering a room does not capture devices; voice captures audio only and ca
   assert.equal(f.peers[0].closed, true);
 });
 
+test('hangup removes self before server acknowledgement and ignores queued self announcements', async () => {
+  const f = fixture();
+  await f.session.connect();
+  await f.session.join('audio');
+  const original = f.session.getSnapshot().call;
+  f.emit({ roomId: 'room', revision: 5, call: { ...original, participants: original.participants.filter(member => member.peerId === 'self') } });
+  const states = [];
+  f.session.subscribe(() => states.push(f.session.getSnapshot()));
+  f.session.hangup();
+  assert.equal(f.session.getSnapshot().call, null, 'no transient join notice above the composer');
+  f.emit({ roomId: 'room', revision: 6, call: { ...original, participants: original.participants.filter(member => member.peerId === 'self') } });
+  assert.ok(states.every(state => state.phase === 'idle' && state.call === null));
+  const ack = f.delayJoin();
+  const rejoining = f.session.join('audio');
+  await flush();
+  ack.resolve({ ...f.result(), revision: 7 });
+  await rejoining;
+  assert.equal(f.session.getSnapshot().phase, 'active', 'can immediately rejoin');
+  f.session.hangup();
+  assert.deepEqual(Array.from(f.session.getSnapshot().call.participants, member => member.peerId), ['remote'], 'other participants remain joinable');
+  f.session.dispose();
+});
+
 test('cancel during browser permission prompt stops late media and never joins', async () => {
   const permission = deferred();
   const f = fixture(() => permission.promise);

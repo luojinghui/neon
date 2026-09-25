@@ -8,8 +8,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { GameLauncher } from './GameLauncher';
 import { PollCreateModal } from './PollCreateModal';
 import { RoomCallButtons } from './RoomCall';
-
-const buttonClass = 'flex h-8 w-8 items-center justify-center rounded-lg text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50';
+import { chatToolbarButtonClass as buttonClass } from './toolbarStyles';
 
 export function ChatToolbar() {
   const [emojiOpen, setEmojiOpen] = useState(false);

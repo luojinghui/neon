@@ -39,7 +39,6 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   const canFinishGame = isLocal && ((game?.kind === 'rps' && game.status === 'waiting') || (game?.kind === 'draw' && game.status === 'playing'));
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [recallConfirmOpen, setRecallConfirmOpen] = useState(false);
   const [replyPending, setReplyPending] = useState(false);
   const [replyError, setReplyError] = useState('');
   const replyPendingRef = useRef(false);
@@ -51,7 +50,6 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
 
   const close = () => {
     setDeleteConfirmOpen(false);
-    setRecallConfirmOpen(false);
     setOpen(false);
   };
 
@@ -163,26 +161,13 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
       {isLocal && (
         <>
           {(canCopy || canDownload || canShare) && <div className="h-2" />}
-          <Popconfirm
-            open={recallConfirmOpen}
-            title="撤回这条消息？"
-            description="撤回后，所有成员都会同步移除。"
-            okText="撤回"
-            cancelText="取消"
-            placement="left"
-            okButtonProps={{ danger: true }}
-            onOpenChange={setRecallConfirmOpen}
-            onConfirm={() => {
+            <button type="button" disabled={!connected || !canAccess} className={`${actionClass} hover:bg-danger-soft hover:text-danger disabled:opacity-40`} onClick={() => {
               void soulChat.recallMessage(messageId);
               close();
-            }}
-            onCancel={() => setRecallConfirmOpen(false)}
-          >
-            <button type="button" className={`${actionClass} hover:bg-danger-soft hover:text-danger`} onClick={() => setRecallConfirmOpen(true)}>
+            }}>
               <RollbackOutlined />
               <span>撤回</span>
             </button>
-          </Popconfirm>
         </>
       )}
       {canDelete && !isLocal && (
@@ -221,7 +206,6 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
         if (nextOpen) { setReplyError(''); setGameError(''); }
         if (!nextOpen) {
           setDeleteConfirmOpen(false);
-          setRecallConfirmOpen(false);
         }
       }}
       content={content}

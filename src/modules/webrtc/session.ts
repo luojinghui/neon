@@ -18,6 +18,7 @@ export class CallSession {
   private disposed = false;
   private earlySignals: CallSignal[] = [];
   private facingMode: 'user' | 'environment' = 'user';
+  private departedCall: { id: string; peerId: string } | null = null;
 
   constructor(private readonly roomId: string, private readonly transport: CallTransport) {}
 
@@ -47,7 +48,12 @@ export class CallSession {
       this.release();
       this.update({ ...initialView(), error: snapshot.reason === 'timeout' ? '已独自等待一小时，通话已结束' : '通话已结束' });
     }
-    this.update({ call: snapshot.call });
+    let call = snapshot.call;
+    if (this.view.phase === 'idle' && call && call.id === this.departedCall?.id) {
+      const participants = call.participants.filter(member => member.peerId !== this.departedCall?.peerId);
+      call = participants.length ? { ...call, participants } : null;
+    }
+    this.update({ call });
     if (this.view.phase === 'active') this.syncPeers();
   };
 
@@ -63,6 +69,7 @@ export class CallSession {
 
   async join(mode: CallMode): Promise<void> {
     if (this.disposed || this.view.phase !== 'idle') return;
+    this.departedCall = null;
     const operation = ++this.operation;
     const expectedCallId = this.view.call?.id;
     const attemptId = this.attemptId = crypto.randomUUID();
@@ -196,9 +203,14 @@ export class CallSession {
   }
 
   hangup = (): void => {
+    // Do not briefly advertise our own departed call above the chat composer
+    // while waiting for the server's leave acknowledgement.
+    const participants = this.view.call?.participants.filter(member => member.peerId !== this.view.selfId) || [];
+    const call = this.view.call && participants.length ? { ...this.view.call, participants } : null;
+    if (this.view.call && this.view.selfId) this.departedCall = { id: this.view.call.id, peerId: this.view.selfId };
     this.leaveAttempt(this.attemptId);
     this.release();
-    this.update({ ...initialView(), call: this.view.call });
+    this.update({ ...initialView(), call });
   };
 
   private release(): void {

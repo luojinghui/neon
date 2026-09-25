@@ -87,7 +87,7 @@ export function ChatInput() {
                      border-0 focus:outline-none
                      placeholder:text-input-placeholder
                      overflow-hidden break-words whitespace-pre-wrap transition-colors"
-          placeholder="输入消息或粘贴图片..."
+          placeholder="输入消息…"
           onPaste={event => {
             const pasted = clipboardImages(event.clipboardData);
             if (!pasted.length) return;
