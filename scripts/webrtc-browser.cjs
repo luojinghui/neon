@@ -49,6 +49,14 @@ async function waitFor(check, label, timeout = 30000) {
       const portrait = process.env.WEBRTC_EFFECTS_TEST_IMAGE ? `data:image/jpeg;base64,${fs.readFileSync(process.env.WEBRTC_EFFECTS_TEST_IMAGE).toString('base64')}` : null;
       await page.addInitScript(({ portrait }) => {
         window.__captures = []; window.__tracks = []; window.__peers = []; window.__canvasTracks = []; window.__microphones = [];
+        window.__screenTracks = [];
+        navigator.mediaDevices.getDisplayMedia = async () => {
+          const canvas = document.createElement('canvas'); canvas.width = 960; canvas.height = 540;
+          const paint = () => { const ctx = canvas.getContext('2d'); ctx.fillStyle = '#eb7042'; ctx.fillRect(0, 0, 960, 540); ctx.fillStyle = '#fff'; ctx.font = '40px sans-serif'; ctx.fillText('Shared screen', 60, 100); };
+          paint(); const stream = canvas.captureStream(15), track = stream.getVideoTracks()[0], timer = setInterval(paint, 60);
+          const stop = track.stop.bind(track); track.stop = () => { clearInterval(timer); stop(); };
+          window.__screenTracks.push(track); return stream;
+        };
         const capture = HTMLCanvasElement.prototype.captureStream;
         HTMLCanvasElement.prototype.captureStream = function (...args) { const stream = capture.apply(this, args); window.__canvasTracks.push(...stream.getTracks()); return stream; };
         const acquire = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
@@ -93,6 +101,10 @@ async function waitFor(check, label, timeout = 30000) {
     }
     if (process.env.WEBRTC_EXPERIENCE_ONLY) {
       await require('./experience-fixes-browser.cjs')(await participant(), await participant(), url, output, waitFor);
+      assert.deepEqual(errors, []); return;
+    }
+    if (process.env.WEBRTC_SHARING_ONLY) {
+      await require('./sharing-browser.cjs')(await participant(), await participant(), await participant(true), url, output, waitFor);
       assert.deepEqual(errors, []); return;
     }
     const host = await participant();

@@ -85,7 +85,8 @@ export class SocketChatTransport {
     return {
       request: async <T>(event: string, payload: unknown) => this.emitWithAck<T>(event, payload),
       onState: (listener) => { socket.on('call:state', listener); return () => { socket.off('call:state', listener); }; },
-      onSignal: (listener) => { socket.on('call:signal', listener); return () => { socket.off('call:signal', listener); }; }
+      onSignal: (listener) => { socket.on('call:signal', listener); return () => { socket.off('call:signal', listener); }; },
+      onSharing: (listener) => { socket.on('call:sharing', listener); return () => { socket.off('call:sharing', listener); }; }
     };
   }
 

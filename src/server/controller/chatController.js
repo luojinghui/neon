@@ -519,6 +519,7 @@ function adminDeleteUserData(profile, io) {
 }
 
 module.exports = {
+  mountCallSharing: (app, io) => calls.sharing.mount(app, io),
   adminChangeRoomAccess,
   adminDeleteRoom,
   adminDeleteUserData,

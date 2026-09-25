@@ -2,8 +2,9 @@ import { assertMediaSupport, LocalMedia, mediaError } from './media';
 import { CallPeer } from './peer';
 import { DEFAULT_VIDEO_EFFECTS, normalizeVideoEffects, type VideoEffectsSettings } from '../video-effects/types';
 import type { CallMode, CallSignal, CallSnapshot, CallTransport, CallView, JoinCallResult } from './types';
+import { applyBoardAction, type BoardItem, type Presentation, type ShareSnapshot } from './sharing';
 
-const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null, effects: { ...DEFAULT_VIDEO_EFFECTS }, effectsStatus: { phase: 'off', progress: 0, message: '' } });
+const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null, effects: { ...DEFAULT_VIDEO_EFFECTS }, effectsStatus: { phase: 'off', progress: 0, message: '' }, presentation: null, screenStream: null, shareBusy: false, shareProgress: 0, shareCapabilities: { powerPoint: false, maxFileSize: 20 * 1024 * 1024 } });
 
 export class CallSession {
   private view = initialView();
@@ -19,6 +20,12 @@ export class CallSession {
   private earlySignals: CallSignal[] = [];
   private facingMode: 'user' | 'environment' = 'user';
   private departedCall: { id: string; peerId: string } | null = null;
+  private shareToken = '';
+  private shareRevision = -1;
+  private shareOperation = 0;
+  private display: MediaStream | null = null;
+  private upload: XMLHttpRequest | null = null;
+  private earlySharing: ShareSnapshot[] = [];
 
   constructor(private readonly roomId: string, private readonly transport: CallTransport) {}
 
@@ -32,7 +39,7 @@ export class CallSession {
   clearError = (): void => this.update({ error: '' });
 
   async connect(): Promise<void> {
-    this.unsubscribers.push(this.transport.onState(this.receiveState), this.transport.onSignal(this.receiveSignal));
+    this.unsubscribers.push(this.transport.onState(this.receiveState), this.transport.onSignal(this.receiveSignal), this.transport.onSharing(this.receiveSharing));
     await this.refresh();
   }
 
@@ -102,7 +109,10 @@ export class CallSession {
       if (!call || call.id !== result.call?.id || !call.participants.some((member) => member.peerId === result.selfId)) throw new Error('通话已结束，请重新发起');
       this.revision = Math.max(this.revision, result.revision);
       this.configuration = result.configuration;
-      this.update({ phase: 'active', call, selfId: result.selfId, localStream: media.stream, microphoneEnabled: true, cameraEnabled: mode === 'video', joinedAt: Date.now() });
+      this.shareToken = result.shareToken;
+      this.update({ phase: 'active', call, selfId: result.selfId, localStream: media.stream, microphoneEnabled: true, cameraEnabled: mode === 'video', joinedAt: Date.now(), ...(result.shareCapabilities ? { shareCapabilities: result.shareCapabilities } : {}) });
+      if (result.sharing) this.receiveSharing(result.sharing);
+      for (const state of this.earlySharing.splice(0)) this.receiveSharing(state);
       this.watchTracks();
       this.syncPeers();
       for (const signal of this.earlySignals.splice(0)) this.receiveSignal(signal);
@@ -129,7 +139,7 @@ export class CallSession {
       if (this.peers.has(member.peerId)) continue;
       const operation = this.operation;
       const peer = new CallPeer({
-        configuration: this.configuration, localStream: this.media.stream, polite: this.view.selfId > member.peerId,
+        configuration: this.configuration, localStream: this.media.stream, screenStream: this.display, polite: this.view.selfId > member.peerId,
         send: (signal) => this.transport.request('call:signal', { roomId: this.roomId, callId, to: member.peerId, ...signal }),
         onChange: (view) => { if (operation === this.operation) this.update({ peers: { ...this.view.peers, [member.peerId]: view } }); },
         onError: (error) => { if (operation === this.operation) this.update({ error: mediaError(error) }); }
@@ -202,6 +212,141 @@ export class CallSession {
     if (attemptId) void this.transport.request('call:leave', { roomId: this.roomId, attemptId }).catch(() => undefined);
   }
 
+  private receiveSharing = (state: ShareSnapshot): void => {
+    if (this.disposed || state.roomId !== this.roomId) return;
+    if (this.view.phase === 'joining') { if (this.earlySharing.length < 256) this.earlySharing.push(state); return; }
+    if (this.view.phase !== 'active' || state.callId !== this.view.call?.id || state.revision <= this.shareRevision) return;
+    if (state.action && state.revision !== this.shareRevision + 1) {
+      void this.transport.request<ShareSnapshot>('share:state', { roomId: this.roomId, callId: state.callId }).then(this.receiveSharing).catch(() => undefined);
+      return;
+    }
+    this.shareRevision = state.revision;
+    const presentation = state.action && this.view.presentation && this.view.presentation.id === state.shareId ? applyBoardAction(this.view.presentation, state.action) : state.presentation ?? null;
+    if (this.display && (presentation?.kind !== 'screen' || presentation.ownerId !== this.view.selfId)) this.releaseScreen();
+    this.update({ presentation });
+  };
+
+  private requestShare<T>(event: string, payload: object = {}): Promise<T> {
+    if (this.view.phase !== 'active') return Promise.reject(new Error('请先加入通话'));
+    return this.transport.request<T>(event, { roomId: this.roomId, callId: this.view.call!.id, shareId: this.view.presentation?.id, ...payload });
+  }
+
+  private async beginShare(kind: Presentation['kind'], extra: object = {}): Promise<ShareSnapshot> {
+    const operation = this.shareOperation;
+    const result = await this.requestShare<ShareSnapshot>('share:start', { kind, ...extra });
+    if (operation !== this.shareOperation || this.view.phase !== 'active') {
+      if (result.presentation) void this.transport.request('share:stop', { roomId: this.roomId, callId: result.callId, shareId: result.presentation.id }).catch(() => undefined);
+      throw new Error('已取消共享');
+    }
+    this.receiveSharing(result);
+    return result;
+  }
+
+  async startWhiteboard(): Promise<void> {
+    if (this.view.shareBusy || this.view.presentation) return;
+    const operation = ++this.shareOperation;
+    this.update({ shareBusy: true, error: '' });
+    try { await this.beginShare('whiteboard'); }
+    catch (error) { if (operation === this.shareOperation) this.update({ error: mediaError(error) }); }
+    finally { if (operation === this.shareOperation) this.update({ shareBusy: false }); }
+  }
+
+  async startScreen(): Promise<void> {
+    if (this.view.phase !== 'active' || this.view.shareBusy || this.view.presentation) return;
+    const operation = ++this.shareOperation;
+    let shareId = '';
+    this.update({ shareBusy: true, error: '' });
+    try {
+      if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('当前浏览器不支持发起屏幕共享，请使用桌面版 Chrome、Edge 或 Firefox；你仍可观看其他人的共享');
+      // Must be called directly from the click, before any network await.
+      const display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+      if (operation !== this.shareOperation || this.view.phase !== 'active') { display.getTracks().forEach(track => track.stop()); return; }
+      this.display = display;
+      const track = display.getVideoTracks()[0];
+      if (!track || track.readyState === 'ended') throw new Error('没有可共享的画面');
+      track.contentHint = 'detail';
+      track.onended = () => { void this.stopSharing(); };
+      this.update({ screenStream: display });
+      const result = await this.beginShare('screen');
+      shareId = result.presentation?.id || '';
+      if (operation !== this.shareOperation) { if (shareId) await this.requestShare('share:stop', { shareId }).catch(() => undefined); return; }
+      await Promise.all([...this.peers.values()].map(peer => peer.replace('screen', track)));
+    } catch (error) {
+      if (operation === this.shareOperation) {
+        this.releaseScreen();
+        if (shareId) await this.requestShare('share:stop', { shareId }).then(state => this.receiveSharing(state as ShareSnapshot)).catch(() => undefined);
+        if (!(error instanceof DOMException && error.name === 'NotAllowedError')) this.update({ error: mediaError(error) });
+      }
+    } finally { if (operation === this.shareOperation) this.update({ shareBusy: false }); }
+  }
+
+  private releaseScreen(publish = true): void {
+    this.display?.getTracks().forEach(track => { track.onended = null; track.stop(); });
+    this.display = null;
+    for (const peer of this.peers.values()) void peer.replace('screen', null).catch(() => undefined);
+    if (publish) this.update({ screenStream: null });
+  }
+
+  async stopSharing(): Promise<void> {
+    this.shareOperation++;
+    const id = this.view.presentation?.ownerId === this.view.selfId ? this.view.presentation.id : null;
+    this.releaseScreen(); this.upload?.abort(); this.upload = null;
+    this.update({ shareBusy: false, shareProgress: 0 });
+    if (!id) return;
+    try { this.receiveSharing(await this.requestShare<ShareSnapshot>('share:stop', { shareId: id })); }
+    catch (error) { if (this.view.phase === 'active') this.update({ error: mediaError(error) }); }
+  }
+
+  async shareFile(file: File): Promise<void> {
+    if (this.view.phase !== 'active' || this.view.shareBusy || this.view.presentation) return;
+    const operation = ++this.shareOperation;
+    let shareId = '';
+    this.update({ shareBusy: true, shareProgress: 0, error: '' });
+    try {
+      const state = await this.beginShare('resource', { file: { name: file.name, size: file.size } });
+      shareId = state.presentation!.id;
+      if (operation !== this.shareOperation) return;
+      await new Promise<void>((resolve, reject) => {
+        const xhr = this.upload = new XMLHttpRequest();
+        xhr.open('POST', `/api/call-share/${state.callId}/${shareId}`);
+        xhr.setRequestHeader('Authorization', `Bearer ${this.shareToken}`);
+        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+        xhr.timeout = 90000;
+        xhr.upload.onprogress = event => { if (operation === this.shareOperation && event.lengthComputable) this.update({ shareProgress: Math.round(event.loaded / event.total * 100) }); };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else { let error = '文件上传失败，请重试'; try { error = JSON.parse(xhr.responseText).error || error; } catch {} reject(new Error(error)); }
+        };
+        xhr.onerror = () => reject(new Error('网络连接失败，请重试'));
+        xhr.ontimeout = () => reject(new Error('文件处理超时，请导出 PDF 后重试'));
+        xhr.onabort = () => reject(new Error('已取消共享'));
+        xhr.send(file);
+      });
+    } catch (error) {
+      if (operation === this.shareOperation) {
+        if (shareId) await this.requestShare<ShareSnapshot>('share:stop', { shareId }).then(this.receiveSharing).catch(() => undefined);
+        this.update({ error: mediaError(error) });
+      }
+    } finally { if (operation === this.shareOperation) { this.upload = null; this.update({ shareBusy: false }); } }
+  }
+
+  async resource(shareId: string, signal: AbortSignal): Promise<Blob> {
+    const response = await fetch(`/api/call-share/${this.view.call?.id}/${shareId}`, { signal, headers: { Authorization: `Bearer ${this.shareToken}` }, cache: 'no-store' });
+    if (!response.ok) throw new Error('共享文件已失效或暂时不可用');
+    return response.blob();
+  }
+
+  async navigateShare(page: number, scroll: number): Promise<void> {
+    const shareId = this.view.presentation?.id;
+    try { this.receiveSharing(await this.requestShare<ShareSnapshot>('share:navigate', { page, scroll })); }
+    catch (error) { if (this.view.phase === 'active' && this.view.presentation?.id === shareId) this.update({ error: mediaError(error) }); }
+  }
+
+  async board(action: 'put' | 'undo' | 'clear', epoch: number, item?: BoardItem, shareId = this.view.presentation?.id): Promise<boolean> {
+    try { await this.requestShare('share:board', { action, epoch, item, shareId }); return true; }
+    catch (error) { if (this.view.phase === 'active' && this.view.presentation?.id === shareId) this.update({ error: mediaError(error) }); return false; }
+  }
+
   hangup = (): void => {
     // Do not briefly advertise our own departed call above the chat composer
     // while waiting for the server's leave acknowledgement.
@@ -215,6 +360,10 @@ export class CallSession {
 
   private release(): void {
     this.operation += 1;
+    this.shareOperation++;
+    this.upload?.abort(); this.upload = null;
+    this.releaseScreen(false);
+    this.shareToken = ''; this.shareRevision = -1; this.earlySharing = [];
     this.media?.dispose(); this.media = null;
     this.peers.forEach((peer) => peer.close()); this.peers.clear();
     this.earlySignals = [];

@@ -24,6 +24,9 @@ export interface CallSnapshot {
 export interface JoinCallResult extends CallSnapshot {
   selfId: string;
   configuration: RTCConfiguration;
+  shareToken: string;
+  sharing: ShareSnapshot;
+  shareCapabilities: { powerPoint: boolean; maxFileSize: number };
 }
 export interface CallSignal {
   roomId: string;
@@ -31,15 +34,18 @@ export interface CallSignal {
   from: string;
   description?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
+  screenStreamId?: string;
 }
 // No React, Socket.IO or chat-store dependency in the WebRTC engine.
 export interface CallTransport {
   request<T>(event: string, payload: unknown): Promise<T>;
   onState(listener: (snapshot: CallSnapshot) => void): () => void;
   onSignal(listener: (signal: CallSignal) => void): () => void;
+  onSharing(listener: (snapshot: ShareSnapshot) => void): () => void;
 }
 export interface PeerView {
   stream: MediaStream;
+  screenStream: MediaStream;
   connectionState: RTCPeerConnectionState;
 }
 export interface CallView {
@@ -55,5 +61,11 @@ export interface CallView {
   joinedAt: number | null;
   effects: VideoEffectsSettings;
   effectsStatus: VideoEffectsStatus;
+  presentation: Presentation | null;
+  screenStream: MediaStream | null;
+  shareBusy: boolean;
+  shareProgress: number;
+  shareCapabilities: { powerPoint: boolean; maxFileSize: number };
 }
+import type { Presentation, ShareSnapshot } from './sharing';
 import type { VideoEffectsSettings, VideoEffectsStatus } from '../video-effects/types';

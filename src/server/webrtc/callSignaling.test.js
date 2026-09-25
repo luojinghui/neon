@@ -115,6 +115,10 @@ test('call signaling requires room access and actual call membership; never trus
   const delivered = nextEvent(host, 'call:signal');
   await accepted(guest, 'call:signal', { ...signal, from: host.id });
   assert.equal((await delivered).from, guest.id);
+  const screenSignal = nextEvent(host, 'call:signal');
+  await accepted(guest, 'call:signal', { ...signal, screenStreamId: 'screen-stream-one' });
+  assert.equal((await screenSignal).screenStreamId, 'screen-stream-one');
+  await rejected(guest, 'call:signal', { ...signal, screenStreamId: 'https://forged-stream' }, 'CALL_INVALID');
   await rejected(guest, 'call:signal', { ...signal, description: { type: 'offer', sdp: 'x'.repeat(65537) } }, 'CALL_INVALID');
   await rejected(guest, 'call:signal', { ...signal, description: null, candidate: { candidate: 'candidate:x', sdpMid: {} } }, 'CALL_INVALID');
   const state = await accepted(host, 'call:state', { roomId });

@@ -3,8 +3,9 @@ import type { CallSignal, PeerView } from './types';
 interface PeerOptions {
   configuration: RTCConfiguration;
   localStream: MediaStream;
+  screenStream?: MediaStream | null;
   polite: boolean;
-  send: (signal: Pick<CallSignal, 'description' | 'candidate'>) => Promise<void>;
+  send: (signal: Pick<CallSignal, 'description' | 'candidate' | 'screenStreamId'>) => Promise<void>;
   onChange: (view: PeerView) => void;
   onError: (error: unknown) => void;
 }
@@ -13,7 +14,10 @@ interface PeerOptions {
 export class CallPeer {
   private readonly connection: RTCPeerConnection;
   private readonly remoteStream = new MediaStream();
-  private readonly senders: Record<'audio' | 'video', RTCRtpSender>;
+  private readonly screenStream = new MediaStream();
+  private readonly outgoingScreenStream = new MediaStream();
+  private remoteScreenId = '';
+  private readonly senders: Record<'audio' | 'video' | 'screen', RTCRtpSender>;
   private makingOffer = false;
   private ignoreOffer = false;
   private settingRemoteAnswer = false;
@@ -28,9 +32,12 @@ export class CallPeer {
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) void options.send({ candidate: candidate.toJSON() }).catch((error) => this.report(error));
     };
-    pc.ontrack = ({ track }) => {
-      this.remoteStream.addTrack(track);
-      track.onended = () => { this.remoteStream.removeTrack(track); this.publish(); };
+    pc.ontrack = ({ track, streams }) => {
+      // Offer-created receivers need not be the transceivers we created locally.
+      // Stable stream IDs identify the screen even across renegotiation/late joins.
+      const stream = streams?.some(stream => stream.id === this.remoteScreenId) ? this.screenStream : this.remoteStream;
+      stream.addTrack(track);
+      track.onended = () => { stream.removeTrack(track); this.publish(); };
       track.onunmute = () => this.publish();
       this.publish();
     };
@@ -41,7 +48,7 @@ export class CallPeer {
       try {
         this.makingOffer = true;
         await pc.setLocalDescription();
-        if (!this.closed && pc.localDescription) await options.send({ description: pc.localDescription.toJSON() });
+        if (!this.closed && pc.localDescription) await options.send({ description: pc.localDescription.toJSON(), screenStreamId: this.outgoingScreenStream.id });
       } catch (error) { this.report(error); }
       finally { this.makingOffer = false; }
     };
@@ -51,10 +58,10 @@ export class CallPeer {
       else if (pc.connectionState === 'failed') this.recover();
       else if (pc.connectionState === 'disconnected') this.armWatchdog(6000);
     };
-    this.senders = {
-      audio: pc.addTransceiver(options.localStream.getAudioTracks()[0] || 'audio', { direction: 'sendrecv', streams: [options.localStream] }).sender,
-      video: pc.addTransceiver(options.localStream.getVideoTracks()[0] || 'video', { direction: 'sendrecv', streams: [options.localStream] }).sender
-    };
+    const audio = pc.addTransceiver(options.localStream.getAudioTracks()[0] || 'audio', { direction: 'sendrecv', streams: [options.localStream] }).sender;
+    const video = pc.addTransceiver(options.localStream.getVideoTracks()[0] || 'video', { direction: 'sendrecv', streams: [options.localStream] }).sender;
+    const screen = pc.addTransceiver(options.screenStream?.getVideoTracks()[0] || 'video', { direction: 'sendrecv', streams: [this.outgoingScreenStream] }).sender;
+    this.senders = { audio, video, screen };
     this.armWatchdog(25000);
     this.publish();
   }
@@ -70,12 +77,12 @@ export class CallPeer {
       this.connection.restartIce();
       this.armWatchdog(20000);
     } else {
-      this.options.onChange({ stream: this.remoteStream, connectionState: 'failed' });
+      this.options.onChange({ stream: this.remoteStream, screenStream: this.screenStream, connectionState: 'failed' });
       this.report(new Error('有成员连接失败，请检查网络后重新加入通话'));
     }
   }
 
-  receive(signal: Pick<CallSignal, 'description' | 'candidate'>): Promise<void> {
+  receive(signal: Pick<CallSignal, 'description' | 'candidate' | 'screenStreamId'>): Promise<void> {
     this.signals = this.signals.then(async () => {
       if (this.closed) return;
       const pc = this.connection;
@@ -84,13 +91,14 @@ export class CallPeer {
         const collision = signal.description.type === 'offer' && !ready;
         this.ignoreOffer = !this.options.polite && collision;
         if (this.ignoreOffer) return;
+        this.remoteScreenId = signal.screenStreamId || '';
         this.settingRemoteAnswer = signal.description.type === 'answer';
         try { await pc.setRemoteDescription(signal.description); }
         finally { this.settingRemoteAnswer = false; }
         for (const candidate of this.candidates.splice(0)) await this.addCandidate(candidate);
         if (signal.description.type === 'offer') {
           await pc.setLocalDescription();
-          if (!this.closed && pc.localDescription) await this.options.send({ description: pc.localDescription.toJSON() });
+          if (!this.closed && pc.localDescription) await this.options.send({ description: pc.localDescription.toJSON(), screenStreamId: this.outgoingScreenStream.id });
         }
       } else if (signal.candidate) {
         if (this.ignoreOffer) {
@@ -113,12 +121,12 @@ export class CallPeer {
     await this.connection.addIceCandidate(candidate);
   }
 
-  async replace(kind: 'audio' | 'video', track: MediaStreamTrack | null): Promise<void> {
+  async replace(kind: 'audio' | 'video' | 'screen', track: MediaStreamTrack | null): Promise<void> {
     if (!this.closed) await this.senders[kind].replaceTrack(track);
   }
 
   private publish(): void {
-    if (!this.closed) this.options.onChange({ stream: this.remoteStream, connectionState: this.connection.connectionState });
+    if (!this.closed) this.options.onChange({ stream: this.remoteStream, screenStream: this.screenStream, connectionState: this.connection.connectionState });
   }
 
   private report(error: unknown): void {
@@ -134,6 +142,7 @@ export class CallPeer {
     this.connection.onconnectionstatechange = null;
     this.connection.close();
     this.remoteStream.getTracks().forEach((track) => { track.onended = null; track.onunmute = null; track.stop(); });
+    this.screenStream.getTracks().forEach((track) => { track.onended = null; track.onunmute = null; track.stop(); });
     this.candidates = [];
   }
 }

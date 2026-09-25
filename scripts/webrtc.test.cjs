@@ -29,7 +29,7 @@ function load(name, dependencies, globals) {
 }
 const effectTypes = load('../video-effects/types', {});
 
-function fixture(acquire) {
+function fixture(acquire, acquireDisplay) {
   const captures = [], tracks = [], messages = [], peers = [];
   const media = load('media', {}, {
     window: { isSecureContext: true }, RTCPeerConnection: class {},
@@ -48,21 +48,62 @@ function fixture(acquire) {
   let revision = 1;
   let onState;
   let joinRequest;
+  let onSharing, shareRevision = 0;
+  let presentation = null;
   const result = () => ({ roomId: 'room', revision: revision++, selfId: 'self', configuration: {}, call: { id: 'call', roomId: 'room', mode: 'audio', startedAt: 1, maxParticipants: 4, participants: [{ peerId: 'self', name: '我', microphoneEnabled: true, cameraEnabled: false }, { peerId: 'remote', name: '伙伴', microphoneEnabled: true, cameraEnabled: false }] } });
   const transport = {
+    onSharing(listener) { onSharing = listener; return () => { onSharing = null; }; },
     onState(listener) { onState = listener; return () => { onState = null; }; },
     onSignal() { return () => undefined; },
     async request(event, payload) {
       messages.push({ event, payload });
       if (event === 'call:state') return { roomId: 'room', revision: 0, call: null };
       if (event === 'call:join') return joinRequest ? joinRequest.promise : result();
+      if (event === 'share:start') presentation = { id: 'presentation-one', kind: payload.kind, ownerId: 'self', page: 1, scroll: 0, epoch: 0, items: [] };
+      if (event === 'share:stop') presentation = null;
+      if (event.startsWith('share:')) return { roomId: 'room', callId: 'call', revision: ++shareRevision, presentation };
       return null;
     }
   };
-  const { CallSession } = load('session', { './media': media, './peer': { CallPeer: Peer } });
+  const displays = [];
+  const { CallSession } = load('session', { './media': media, './peer': { CallPeer: Peer }, './sharing': load('sharing', {}) }, { DOMException, navigator: { mediaDevices: { getDisplayMedia: async () => {
+    if (acquireDisplay) return acquireDisplay();
+    const stream = new Stream([new Track('video')]); displays.push(stream); return stream;
+  } } } });
   const session = new CallSession('room', transport);
-  return { session, media, captures, tracks, messages, peers, result, emit: (state) => onState?.(state), delayJoin: () => { joinRequest = deferred(); return joinRequest; } };
+  return { session, media, captures, tracks, displays, messages, peers, result, share: state => onSharing?.(state), emit: (state) => onState?.(state), delayJoin: () => { joinRequest = deferred(); return joinRequest; } };
 }
+
+test('screen uses an independent sender; browser stop preserves microphone and camera', async () => {
+  const f = fixture(); await f.session.connect(); await f.session.join('video');
+  await f.session.startScreen();
+  const track = f.displays[0].getVideoTracks()[0];
+  assert.equal(f.session.getSnapshot().presentation.kind, 'screen');
+  assert.equal(f.peers[0].replacements.at(-1).kind, 'screen');
+  assert.equal(f.peers[0].replacements.at(-1).track, track);
+  track.onended(); await flush();
+  assert.equal(track.readyState, 'ended'); assert.equal(f.session.getSnapshot().presentation, null);
+  assert.ok(f.tracks.every(track => track.readyState === 'live'), 'camera and mic remain live');
+  await f.session.startScreen(); f.session.hangup();
+  assert.ok(f.displays.every(stream => stream.getTracks().every(track => track.readyState === 'ended')));
+  f.session.dispose();
+});
+
+test('screen permission returned after hangup cannot publish or leak capture', async () => {
+  const permission = deferred(), f = fixture(undefined, () => permission.promise);
+  await f.session.join('audio'); const pending = f.session.startScreen();
+  f.session.hangup(); const track = new Track('video'); permission.resolve(new Stream([track])); await pending;
+  assert.equal(track.readyState, 'ended'); assert.equal(f.session.getSnapshot().presentation, null);
+  assert.equal(f.messages.some(message => message.event === 'share:start'), false);
+  f.session.dispose();
+});
+
+test('screen permission denial is quiet and leaves the ongoing call intact', async () => {
+  const f = fixture(undefined, () => Promise.reject(new DOMException('denied', 'NotAllowedError')));
+  await f.session.join('audio'); await f.session.startScreen();
+  assert.equal(f.session.getSnapshot().phase, 'active'); assert.equal(f.session.getSnapshot().error, '');
+  assert.equal(f.session.getSnapshot().shareBusy, false); f.session.dispose();
+});
 
 test('entering a room does not capture devices; voice captures audio only and camera toggles stop/reacquire', async () => {
   const f = fixture();
@@ -194,7 +235,16 @@ test('perfect negotiation buffers ICE, resolves colliding offers and closes all 
   await pc.onnegotiationneeded();
   await peer.receive({ description: { type: 'offer', sdp: 'collision' } });
   assert.equal(pc.candidates.length, 1); assert.equal(sent.at(-1).description.type, 'answer');
+  await peer.receive({ description: { type: 'offer', sdp: 'screen' }, screenStreamId: 'remote-screen-stream' });
+  let view;
+  options.onChange = value => { view = value; };
+  const camera = new Track('video'), screen = new Track('video');
+  pc.ontrack({ track: camera, streams: [{ id: 'remote-camera-stream' }] });
+  pc.ontrack({ track: screen, streams: [{ id: 'remote-screen-stream' }] });
+  assert.equal(view.stream.getVideoTracks()[0], camera);
+  assert.equal(view.screenStream.getVideoTracks()[0], screen, 'offer-created receivers use the signaled stream ID');
   peer.close(); assert.equal(pc.closed, true); assert.equal(pc.onicecandidate, null);
+  assert.equal(screen.readyState, 'ended');
   const impolite = new CallPeer({ ...options, polite: false }), second = connections[1];
   await second.onnegotiationneeded();
   await impolite.receive({ description: { type: 'offer', sdp: 'ignore' } });

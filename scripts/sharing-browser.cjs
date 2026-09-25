@@ -1,0 +1,125 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+
+function pdfFixture() {
+  const objects = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 5 0 R >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 6 0 R >>'];
+  for (const color of ['1 0 0', '0 0 1']) { const content = `${color} rg 20 20 260 260 re f`; objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`); }
+  let source = '%PDF-1.4\n', offsets = [0];
+  objects.forEach((object, i) => { offsets.push(Buffer.byteLength(source)); source += `${i + 1} 0 obj\n${object}\nendobj\n`; });
+  const start = Buffer.byteLength(source);
+  source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF`;
+  return Buffer.from(source);
+}
+
+module.exports = async function sharingBrowser(host, guest, mobile, url, output, waitFor) {
+  const menu = async page => page.getByRole('button', { name: '共享内容', exact: true }).click();
+  const stop = async () => { await host.getByRole('button', { name: '结束共享', exact: true }).click(); await waitFor(() => guest.locator('.call-sharing-stage').count().then(n => !n), 'share ended'); };
+  const share = async (name, buffer) => {
+    await menu(host);
+    await host.getByLabel('选择共享文件', { exact: true }).setInputFiles({ name, mimeType: 'application/octet-stream', buffer });
+    await waitFor(() => guest.locator('.call-resource').count().then(n => !!n), `${name} loaded`);
+  };
+  for (const size of [{ width: 390, height: 844 }, { width: 320, height: 568 }, { width: 812, height: 375 }]) {
+    await mobile.setViewportSize(size);
+    await mobile.getByRole('button', { name: '聊天室小游戏', exact: true }).click();
+    await mobile.getByRole('button', { name: /你画我猜.*画出脑洞/ }).click();
+    const modal = mobile.locator('.soul-game-modal');
+    await modal.evaluate(async element => { await Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {}))); });
+    const geometry = await modal.evaluate(element => { const bounds = element.getBoundingClientRect(), body = element.querySelector('.ant-modal-body'); return { left: bounds.left, right: bounds.right, scroll: document.documentElement.scrollWidth, viewport: window.innerWidth, bodyWidth: body.clientWidth, contentWidth: body.scrollWidth }; });
+    assert.ok(geometry.left >= 0 && geometry.right <= size.width + 1, JSON.stringify(geometry));
+    assert.ok(geometry.contentWidth <= geometry.bodyWidth + 1, `game contents fit ${size.width}: ${JSON.stringify(geometry)}`);
+    assert.ok(geometry.scroll <= geometry.viewport, 'mobile dialog never widens the page');
+    await modal.getByRole('button', { name: '取消', exact: true }).scrollIntoViewIfNeeded();
+    await mobile.screenshot({ path: path.join(output, `game-mobile-${size.width}.png`) });
+    await modal.getByRole('button', { name: '取消', exact: true }).click();
+  }
+  await mobile.setViewportSize({ width: 390, height: 844 });
+  console.log('PASS game dialog fits 320/390 px portrait and mobile landscape with reachable controls');
+
+  await host.getByRole('button', { name: '视频通话', exact: true }).click();
+  await host.getByRole('button', { name: '挂断通话', exact: true }).waitFor();
+  await guest.getByRole('button', { name: '加入', exact: true }).click();
+  await waitFor(() => guest.evaluate(() => window.__peers.some(peer => peer.connectionState === 'connected')), 'call connected');
+  await menu(host); await host.getByRole('button', { name: /共享白板.*一起绘画/ }).click();
+  await guest.locator('.call-whiteboard-canvas').waitFor();
+  const draw = async (page, x, y) => {
+    const bounds = await page.locator('.call-whiteboard-canvas').boundingBox();
+    await page.mouse.move(bounds.x + bounds.width * x, bounds.y + bounds.height * y);
+    await page.mouse.down(); await page.mouse.move(bounds.x + bounds.width * (x + .1), bounds.y + bounds.height * (y + .1), { steps: 8 }); await page.mouse.up();
+  };
+  await Promise.all([draw(host, .3, .4), draw(guest, .5, .5)]);
+  await waitFor(() => guest.locator('[data-board-item]').count().then(n => n === 2), 'both whiteboard drawings');
+  await guest.getByRole('button', { name: '文字', exact: true }).click();
+  await guest.getByRole('textbox', { name: '白板文字', exact: true }).fill('来自伙伴的文字');
+  await guest.locator('.call-whiteboard-canvas').click({ position: { x: 200, y: 100 } });
+  await host.locator('.call-whiteboard-canvas').getByText('来自伙伴的文字').waitFor();
+  await mobile.getByRole('button', { name: '加入', exact: true }).click();
+  await mobile.getByRole('button', { name: '开始语音', exact: true }).click();
+  await mobile.locator('.call-whiteboard-canvas').getByText('来自伙伴的文字').waitFor();
+  assert.equal(await mobile.locator('[data-board-item]').count(), 3, 'late join receives both strokes and text');
+  assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await mobile.screenshot({ path: path.join(output, 'sharing-mobile-whiteboard.png') });
+  await host.screenshot({ path: path.join(output, 'sharing-desktop-whiteboard.png') });
+  await guest.getByRole('button', { name: '撤销我的一笔', exact: true }).click();
+  await waitFor(() => host.locator('[data-board-item]').count().then(n => n === 2), 'undo synchronized');
+  await stop();
+  console.log('PASS simultaneous whiteboard drawing, guest text, undo and late mobile join');
+
+  await share('document.md', Buffer.from('# 协作笔记\n\n| 人员 | 状态 |\n|---|---|\n| 伙伴 | 在线 |\n\n**一起编辑画板，一起阅读资料**'));
+  await guest.getByRole('heading', { name: '协作笔记' }).waitFor();
+  assert.equal(await guest.locator('.call-share-markup table').count(), 1); await stop();
+  const externalRequests = [];
+  host.on('request', request => { if (request.url().includes('should-not-load')) externalRequests.push(request.url()); });
+  guest.on('request', request => { if (request.url().includes('should-not-load')) externalRequests.push(request.url()); });
+  await share('preview.html', Buffer.from('<h1>静态共享页面</h1><script>window.__unsafeSharedHtml=true</script><iframe src="/should-not-load"></iframe><img src="/should-not-load" onerror="window.__unsafeSharedHtml=true"><p onclick="window.__unsafeSharedHtml=true">安全内容</p>'));
+  await guest.getByRole('heading', { name: '静态共享页面' }).waitFor();
+  assert.equal(await guest.evaluate(() => !!window.__unsafeSharedHtml), false); assert.deepEqual(externalRequests, []);
+  assert.equal(await guest.locator('.call-share-markup :is(script,iframe,img)').count(), 0); await stop();
+  await share('runtime.log', Buffer.from(Array.from({ length: 150 }, (_, i) => `line ${i}: room connected`).join('\n')));
+  await host.locator('.call-resource-scroll').evaluate(element => { element.scrollTop = (element.scrollHeight - element.clientHeight) * .65; });
+  await waitFor(() => guest.locator('.call-resource-scroll').evaluate(element => Math.abs(element.scrollTop / (element.scrollHeight - element.clientHeight) - .65) < .02), 'scroll command synchronized');
+  await stop();
+  await share('slides.pdf', pdfFixture());
+  await waitFor(() => guest.locator('.call-share-pdf').evaluate(canvas => canvas.width > 0 && canvas.getContext('2d').getImageData(canvas.width / 2, canvas.height / 2, 1, 1).data[0] > 240), 'pdf first red page');
+  await host.getByRole('button', { name: '共享文档下一页', exact: true }).click();
+  await waitFor(() => guest.locator('.call-share-pdf').evaluate(canvas => canvas.getContext('2d').getImageData(canvas.width / 2, canvas.height / 2, 1, 1).data[2] > 240), 'pdf second blue page');
+  assert.equal(await guest.getByRole('button', { name: '共享文档上一页', exact: true }).isDisabled(), true);
+  await guest.screenshot({ path: path.join(output, 'sharing-pdf-page2.png') }); await stop();
+  const png = await host.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 900; canvas.height = 600; const ctx = canvas.getContext('2d'); ctx.fillStyle = '#de8547'; ctx.fillRect(0, 0, 900, 600); return canvas.toDataURL('image/png').split(',')[1]; });
+  await share('photo.png', Buffer.from(png, 'base64'));
+  await waitFor(() => guest.locator('.call-share-image').evaluate(image => image.naturalWidth === 900), 'shared image decoded'); await stop();
+  console.log('PASS private image, PDF page commands, Markdown, safe HTML and log scroll synchronization');
+
+  await mobile.getByRole('button', { name: '挂断通话', exact: true }).click();
+  await menu(host); await host.getByRole('button', { name: /共享屏幕.*选择一个/ }).click();
+  await waitFor(() => guest.getByLabel('共享屏幕画面').evaluate(video => video.videoWidth === 960 && video.readyState >= 2), 'screen received through WebRTC');
+  assert.equal(await host.evaluate(() => window.__tracks.every(track => track.readyState === 'live')), true, 'screen sharing preserves camera and mic');
+  const pixels = await guest.getByLabel('共享屏幕画面').evaluate(video => { const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1; canvas.getContext('2d').drawImage(video, 400, 400, 1, 1, 0, 0, 1, 1); return Array.from(canvas.getContext('2d').getImageData(0, 0, 1, 1).data); });
+  assert.ok(pixels[0] > 210 && pixels[1] < 145, `screen pixels: ${pixels}`);
+  await mobile.getByRole('button', { name: '加入', exact: true }).click();
+  await mobile.getByRole('button', { name: '开始语音', exact: true }).click();
+  await waitFor(() => mobile.getByLabel('共享屏幕画面').evaluate(video => video.videoWidth === 960 && video.readyState >= 2), 'late mobile join receives screen');
+  await mobile.screenshot({ path: path.join(output, 'sharing-mobile-screen.png') });
+  await host.evaluate(() => { const track = window.__screenTracks.at(-1); track.stop(); track.dispatchEvent(new Event('ended')); });
+  await waitFor(() => guest.locator('.call-sharing-stage').count().then(n => n === 0), 'browser stop ends shared screen');
+  assert.equal(await host.evaluate(() => window.__tracks.every(track => track.readyState === 'live')), true);
+  await menu(guest); await guest.getByRole('button', { name: /共享屏幕.*选择一个/ }).click();
+  await waitFor(() => host.getByLabel('共享屏幕画面').evaluate(video => video.videoWidth === 960 && video.readyState >= 2), 'other participant can present');
+  await guest.getByRole('button', { name: '结束共享', exact: true }).click();
+  await waitFor(() => host.locator('.call-sharing-stage').count().then(n => n === 0), 'guest ends presentation');
+  await menu(host); await host.getByRole('button', { name: /共享屏幕.*选择一个/ }).click();
+  await waitFor(() => guest.getByLabel('共享屏幕画面').evaluate(video => video.videoWidth === 960 && video.readyState >= 2), 'restart screen');
+  await host.getByRole('button', { name: '缩小到聊天室', exact: true }).click();
+  await host.getByRole('button', { name: '挂断通话', exact: true }).click();
+  await waitFor(() => guest.locator('.call-sharing-stage').count().then(n => n === 0), 'presenter hangup ends sharing');
+  assert.equal(await host.evaluate(() => window.__screenTracks.every(track => track.readyState === 'ended') && window.__tracks.every(track => track.readyState === 'ended')), true);
+  for (const page of [guest, mobile]) await page.getByRole('button', { name: '挂断通话', exact: true }).click();
+  console.log('PASS independent screen RTP, late mobile join, browser stop, presenter switch and mini hangup');
+
+  await host.goto(`${url}/cloud`);
+  const input = host.getByRole('textbox', { name: '查询密码', exact: true }); await input.waitFor();
+  const colors = await host.evaluate(() => { const bg = selector => getComputedStyle(document.querySelector(selector)).backgroundColor; return { input: bg('.cloud-query-input'), editor: bg('.cloud-editor-surface'), query: bg('.cloud-query-button'), file: bg('.cloud-editor-toolbar .ant-btn') }; });
+  assert.equal(colors.input, colors.editor); assert.equal(colors.query, colors.file);
+  await host.screenshot({ path: path.join(output, 'cloud-query-aligned.png') });
+  console.log('PASS cloud query input and button match editor and toolbar surfaces');
+};

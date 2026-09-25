@@ -65,6 +65,7 @@ nextApp
     });
 
     mountAdminController(app, io);
+    chatController.mountCallSharing(app, io);
 
     app
       .get('/healthz', (_req, res) =>

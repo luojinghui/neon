@@ -1,6 +1,6 @@
 'use client';
 
-import { AudioMutedOutlined, AudioOutlined, CloseOutlined, ExpandOutlined, LoadingOutlined, PhoneOutlined, SettingOutlined, ShrinkOutlined, SwapOutlined, TeamOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { AudioMutedOutlined, AudioOutlined, CloseOutlined, DesktopOutlined, ExpandOutlined, LoadingOutlined, PhoneOutlined, SettingOutlined, ShrinkOutlined, SwapOutlined, TeamOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { Modal } from 'antd';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
@@ -10,6 +10,7 @@ import type { CallMode, CallParticipant, CallView, PeerView } from '@/modules/we
 import { soulChat } from '../../core';
 import { CallEffectsPanel } from './CallEffectsPanel';
 import { MicrophoneLevel } from './MicrophoneLevel';
+import { ShareMenu, SharingStage } from './CallSharing';
 import { chatToolbarButtonClass as buttonClass } from './toolbarStyles';
 import './room-call.css';
 
@@ -144,13 +145,14 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const [effectsOpen, setEffectsOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [sharingOpen, setSharingOpen] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const joining = view.phase === 'joining';
   const remote = view.call?.participants.filter((member) => member.peerId !== view.selfId) || [];
   const self = view.call?.participants.find((member) => member.peerId === view.selfId);
   const members = [...remote, ...(self ? [self] : [])];
   const primaryPeer = members.some(member => member.peerId === selectedPeer) ? selectedPeer : (remote[0]?.peerId || self?.peerId);
-  const thumbnailPeers = members.filter(member => member.peerId !== primaryPeer).map(member => member.peerId);
+  const thumbnailPeers = members.filter(member => view.presentation || member.peerId !== primaryPeer).map(member => member.peerId);
   const connected = remote.some((member) => view.peers[member.peerId]?.connectionState === 'connected');
   const status = joining ? '准备中' : !remote.length ? '等待加入' : connected ? `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')} · ${remote.length + 1} 人` : '连接中';
 
@@ -179,9 +181,9 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
   }, [mini]);
 
   return <section ref={panel} tabIndex={-1} role={mini ? 'region' : 'dialog'} aria-modal={mini ? undefined : true} aria-label="星球通话" className={`soul-call-panel ${mini ? 'is-mini' : 'is-full'} ${effectsOpen ? 'is-editing' : ''}`} style={mini && position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : undefined} onKeyDown={(event) => {
-    if (event.key === 'Escape') { if (participantsOpen) setParticipantsOpen(false); else if (effectsOpen) setEffectsOpen(false); else onMini(!mini); }
+    if (event.key === 'Escape') { if (sharingOpen) setSharingOpen(false); else if (participantsOpen) setParticipantsOpen(false); else if (effectsOpen) setEffectsOpen(false); else onMini(!mini); }
     if (event.key === 'Tab' && !mini) {
-      const focusable = panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)');
+      const focusable = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([hidden]), select:not(:disabled)') || []).filter(element => element.getClientRects().length);
       if (!focusable?.length) return;
       const first = focusable[0], last = focusable[focusable.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { event.preventDefault(); last.focus(); }
@@ -201,14 +203,15 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       <div className="soul-call-header-actions">
         <button type="button" className="soul-call-view-button" disabled={joining} aria-label="参会者列表" aria-expanded={participantsOpen} aria-controls="call-participants" onClick={() => { onMini(false); setEffectsOpen(false); setParticipantsOpen(open => !open); }}><TeamOutlined /></button>
         <button type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); setParticipantsOpen(false); if (!effectsOpen) setSelectedPeer(view.selfId); setEffectsOpen(open => !open); }}><SettingOutlined /></button>
-        <button type="button" className="soul-call-view-button" onClick={() => { setEffectsOpen(false); setParticipantsOpen(false); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button>
+        <button type="button" className="soul-call-view-button" onClick={() => { setEffectsOpen(false); setParticipantsOpen(false); setSharingOpen(false); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button>
       </div>
     </header>
-    <div className={`soul-call-stage ${remote.length > 1 ? 'has-group' : ''} ${remote.length === 0 ? 'is-waiting' : ''}`} style={{ '--call-thumbnail-count': Math.max(1, thumbnailPeers.length) } as CSSProperties}>
+    <div className={`soul-call-stage ${remote.length > 1 ? 'has-group' : ''} ${remote.length === 0 && !view.presentation ? 'is-waiting' : ''} ${view.presentation ? 'has-sharing' : ''}`} style={{ '--call-thumbnail-count': Math.max(1, thumbnailPeers.length) } as CSSProperties}>
       {joining ? <div className="soul-call-waiting"><LoadingOutlined className="text-3xl" aria-label="准备设备" /></div> : <>
-        {remote.map((member) => <MediaTile key={member.peerId} participant={member} stream={view.peers[member.peerId]?.stream} state={view.peers[member.peerId]?.connectionState} compact={mini} primary={primaryPeer === member.peerId} slot={thumbnailPeers.indexOf(member.peerId) + 1} onSelect={() => setSelectedPeer(member.peerId)} />)}
-        {self && <MediaTile key="local" participant={{ ...self, microphoneEnabled: view.microphoneEnabled, cameraEnabled: view.cameraEnabled }} stream={view.localStream} local compact={mini} primary={primaryPeer === self.peerId} slot={thumbnailPeers.indexOf(self.peerId) + 1} onSelect={() => setSelectedPeer(self.peerId)} flipBusy={view.mediaBusy} onFlip={mobile ? () => { void session.toggleDevice('video', true); } : undefined} />}
-        {!remote.length && !view.cameraEnabled && <div className="soul-call-waiting"><div className="soul-call-orbit"><span>✦</span></div><h3>在星球的这一端</h3><p>等待伙伴加入，一起接通信号</p></div>}
+        {view.presentation && <SharingStage view={view} session={session} />}
+        {remote.map((member) => <MediaTile key={member.peerId} participant={member} stream={view.peers[member.peerId]?.stream} state={view.peers[member.peerId]?.connectionState} compact={mini} primary={!view.presentation && primaryPeer === member.peerId} slot={thumbnailPeers.indexOf(member.peerId) + 1} onSelect={() => setSelectedPeer(member.peerId)} />)}
+        {self && <MediaTile key="local" participant={{ ...self, microphoneEnabled: view.microphoneEnabled, cameraEnabled: view.cameraEnabled }} stream={view.localStream} local compact={mini} primary={!view.presentation && primaryPeer === self.peerId} slot={thumbnailPeers.indexOf(self.peerId) + 1} onSelect={() => setSelectedPeer(self.peerId)} flipBusy={view.mediaBusy} onFlip={mobile ? () => { void session.toggleDevice('video', true); } : undefined} />}
+        {!view.presentation && !remote.length && !view.cameraEnabled && <div className="soul-call-waiting"><div className="soul-call-orbit"><span>✦</span></div><h3>在星球的这一端</h3><p>等待伙伴加入，一起接通信号</p></div>}
       </>}
     </div>
     {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></button></div>}
@@ -216,9 +219,11 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       <div className="soul-call-controls">
         <button type="button" disabled={joining || view.mediaBusy} className={!view.microphoneEnabled ? 'is-off' : ''} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</button>
         <button type="button" disabled={joining || view.mediaBusy} className={!view.cameraEnabled ? 'is-off' : ''} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></button>
+        <button type="button" disabled={joining} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setEffectsOpen(false); setParticipantsOpen(false); setSharingOpen(open => !open); }}><DesktopOutlined /></button>
         <button type="button" className="is-hangup" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></button>
       </div>
     </footer>
+    {sharingOpen && <ShareMenu view={view} session={session} onClose={() => setSharingOpen(false)} />}
     {participantsOpen && <aside id="call-participants" className="soul-call-participants" aria-label="通话参会者">
       <header><h3>参会者 · {members.length} 人</h3><button type="button" aria-label="关闭参会者列表" onClick={() => setParticipantsOpen(false)}><CloseOutlined /></button></header>
       <ul>{members.map(member => {

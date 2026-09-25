@@ -1,4 +1,5 @@
 const { randomUUID, createHmac } = require('node:crypto');
+const { CallSharing } = require('./sharing');
 
 const MAX_PARTICIPANTS = 4;
 
@@ -32,6 +33,7 @@ class CallSignaling {
     this.calls = new Map();
     this.users = new Map();
     this.revision = 0;
+    this.sharing = new CallSharing(this, env);
   }
 
   snapshot(roomId, reason) {
@@ -57,6 +59,7 @@ class CallSignaling {
     call.timer = setTimeout(() => {
       if (this.calls.get(call.roomId) !== call) return;
       for (const member of call.members.values()) this.users.delete(member.userId);
+      this.sharing.dispose(call);
       this.calls.delete(call.roomId);
       this.broadcast(io, call.roomId, 'timeout');
     }, this.waitingTimeout);
@@ -68,6 +71,7 @@ class CallSignaling {
     const member = call?.members.get(socket.id);
     if (!member) return;
     call.members.delete(socket.id);
+    this.sharing.leave(io, call, socket.id);
     this.users.delete(member.userId);
     clearTimeout(call.timer);
     // A removed member also receives the state before its room membership is removed.
@@ -84,6 +88,7 @@ class CallSignaling {
   }
 
   bind(socket, io) {
+    this.sharing.bind(socket, io);
     const listen = (event, action) => socket.on(event, (payload, ack) => {
       try {
         // Bound signaling traffic independently of chat messages.
@@ -119,14 +124,14 @@ class CallSignaling {
       }
       if (!existing) {
         call.members.set(socket.id, {
-          userId: user.id, attemptId: payload.attemptId,
+          userId: user.id, attemptId: payload.attemptId, shareToken: this.sharing.token(),
           participant: { peerId: socket.id, userId: user.userId, name: user.name, avatarUrl: user.avatarUrl || '', microphoneEnabled: payload.microphoneEnabled, cameraEnabled: payload.cameraEnabled }
         });
         this.users.set(user.id, socket.id);
         this.scheduleWaiting(io, call);
         this.broadcast(io, call.roomId);
       }
-      return { ...this.snapshot(call.roomId), selfId: socket.id, configuration };
+      return { ...this.snapshot(call.roomId), selfId: socket.id, configuration, shareToken: call.members.get(socket.id).shareToken, sharing: this.sharing.snapshot(call), shareCapabilities: this.sharing.capabilities() };
     });
 
     listen('call:leave', (payload) => {
@@ -156,6 +161,10 @@ class CallSignaling {
         const { type, sdp } = payload.description;
         if (!['offer', 'answer'].includes(type) || typeof sdp !== 'string' || sdp.length > 65536) fail('无效的通话描述');
         signal.description = { type, sdp };
+        if (payload.screenStreamId !== undefined) {
+          if (typeof payload.screenStreamId !== 'string' || !/^[\w-]{1,80}$/.test(payload.screenStreamId)) fail('无效的共享轨道');
+          signal.screenStreamId = payload.screenStreamId;
+        }
       } else if (payload.candidate && !payload.description) {
         const { candidate, sdpMid, sdpMLineIndex, usernameFragment } = payload.candidate;
         if (typeof candidate !== 'string' || candidate.length > 4096 ||
