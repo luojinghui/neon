@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { FACE_EFFECTS, STICKERS, STICKER_COLORS } from '@/app/doodle/portrait/settings';
 import { CALL_BACKGROUNDS, DEFAULT_VIDEO_EFFECTS, FLAT_STICKERS, type VideoEffectsSettings, type VideoEffectsStatus } from '@/modules/video-effects/types';
 
-const tabs = ['美颜', '2D 贴纸', '3D 变身', '饰品', '背景'] as const;
+const tabs = ['美颜', '2D 贴纸', '卡通贴贴', '头顶挂件', '背景'] as const;
 export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClose }: { value: VideoEffectsSettings; status: VideoEffectsStatus; cameraEnabled: boolean; onChange: (value: Partial<VideoEffectsSettings>) => void; onClose: () => void }) {
   const [tab, setTab] = useState<typeof tabs[number]>('美颜');
   const tracked = value.sticker2d !== 'none' || value.faceEffect !== 'none' || value.accessory !== 'none';
@@ -18,10 +18,10 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
         {(['whitening', 'smoothing'] as const).map(field => <label className="soul-call-effect-slider" key={field}><span>{field === 'whitening' ? '美白' : '柔肤'}<output>{value[field]}</output></span><input type="range" min={0} max={100} value={value[field]} aria-label={field === 'whitening' ? '美白' : '柔肤'} onChange={event => onChange({ [field]: Number(event.target.value) })} /></label>)}
       </div>}
       {tab === '2D 贴纸' && <div className="soul-call-effect-grid">{FLAT_STICKERS.map(item => <button key={item.id} type="button" aria-label={`贴纸：${item.name}`} aria-pressed={value.sticker2d === item.id} onClick={() => onChange({ sticker2d: item.id })}><span className="soul-call-effect-preview" style={item.id === 'none' ? undefined : { backgroundImage: `url(/call-effects/${item.id}.svg)` }}>{item.id === 'none' ? '○' : ''}</span><span>{item.name}</span></button>)}</div>}
-      {tab === '3D 变身' && <div className="soul-call-effect-grid">{FACE_EFFECTS.map(item => <button key={item.id} type="button" aria-label={`变身：${item.name}`} aria-pressed={value.faceEffect === item.id} onClick={() => onChange({ faceEffect: item.id })}><span className="soul-call-effect-preview">{item.icon}</span><span>{item.name}</span></button>)}</div>}
-      {tab === '饰品' && <>
-        <div className="soul-call-effect-grid">{STICKERS.map(item => <button key={item.id} type="button" aria-label={`饰品：${item.name}`} aria-pressed={value.accessory === item.id} onClick={() => onChange({ accessory: item.id })}><span className="soul-call-effect-preview">{item.icon}</span><span>{item.name}</span></button>)}</div>
-        <div className="soul-call-effect-colors" role="group" aria-label="饰品颜色">{STICKER_COLORS.map(color => <button key={color} type="button" style={{ background: color }} aria-label={`饰品颜色 ${color}`} aria-pressed={value.color === color} onClick={() => onChange({ color })} />)}</div>
+      {tab === '卡通贴贴' && <div className="soul-call-effect-grid">{FACE_EFFECTS.map(item => <button key={item.id} type="button" aria-label={`卡通：${item.name}`} aria-pressed={value.faceEffect === item.id} onClick={() => onChange({ faceEffect: item.id })}><span className="soul-call-effect-preview" style={item.preview ? { backgroundImage: `url(${item.preview})` } : undefined}>{item.preview ? '' : item.icon}</span><span>{item.name}</span></button>)}</div>}
+      {tab === '头顶挂件' && <>
+        <div className="soul-call-effect-grid">{STICKERS.map(item => <button key={item.id} type="button" aria-label={`挂件：${item.name}`} aria-pressed={value.accessory === item.id} onClick={() => onChange({ accessory: item.id })}><span className="soul-call-effect-preview" style={item.preview ? { backgroundImage: `url(${item.preview})` } : undefined}>{item.preview ? '' : item.icon}</span><span>{item.name}</span></button>)}</div>
+        <div className="soul-call-effect-colors" role="group" aria-label="星光颜色">{STICKER_COLORS.map(color => <button key={color} type="button" style={{ background: color }} aria-label={`星光颜色 ${color}`} aria-pressed={value.color === color} onClick={() => onChange({ color })} />)}</div>
       </>}
       {tab === '背景' && <div className="soul-call-effect-grid">{CALL_BACKGROUNDS.map(item => <button key={item.id} type="button" aria-label={`背景：${item.name}`} aria-pressed={value.background === item.id} onClick={() => onChange({ background: item.id })}><span className="soul-call-effect-preview is-background" style={{ backgroundColor: item.color, ...(['sunroom', 'hills', 'grid'].includes(item.id) ? { backgroundImage: `url(/call-effects/${item.id}.svg)` } : {}) }}>{item.id === 'original' ? '○' : item.id === 'cosmos' ? '✦' : ''}</span><span>{item.name}</span></button>)}</div>}
     </div>

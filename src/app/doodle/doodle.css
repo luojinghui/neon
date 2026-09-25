@@ -136,6 +136,7 @@
 .portrait-sticker-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .4rem; margin: .65rem 0; }
 .portrait-sticker-grid button { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-height: 4rem; padding: .55rem .15rem; border: 1px solid transparent; border-radius: .75rem; background: hsl(var(--background-secondary)); font-size: .67rem; }
 .portrait-sticker-grid button > span { font-size: 1.5rem; }
+.portrait-sticker-preview { display: grid; place-items: center; width: 3rem; height: 3rem; background-size: contain; background-position: center; background-repeat: no-repeat; }
 .portrait-controls [aria-pressed='true'] { border-color: hsl(var(--primary)); box-shadow: 0 0 0 1px hsl(var(--primary)); }
 .portrait-colors { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .5rem 0; }
 .portrait-colors button, .portrait-colors input { width: 2rem; height: 2rem; border-radius: 50%; border: 2px solid hsl(var(--surface)); padding: 0; }

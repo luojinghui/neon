@@ -1,6 +1,5 @@
 import { visionFileset, visionModel } from '../visionRuntime';
 import { PortraitRenderer } from './renderer';
-import { faceTriangles } from './faceMesh';
 
 export type PortraitAnalysis = { renderer: PortraitRenderer | null; faceCount: number; segmented: boolean; message: string };
 
@@ -8,9 +7,9 @@ export async function analyzePortrait(source: HTMLCanvasElement): Promise<Portra
   let renderer: PortraitRenderer;
   try { renderer = new PortraitRenderer(source); } catch { return { renderer: null, faceCount: 0, segmented: false, message: '此设备暂不支持人像特效，可继续设计和保存卡片' }; }
   const failures: string[] = [];
+  try { await renderer.prepareStickers(); } catch { failures.push('贴纸暂时无法加载'); }
   try {
     const { FaceLandmarker, ImageSegmenter } = await import('@mediapipe/tasks-vision');
-    renderer.faceTriangles = faceTriangles(FaceLandmarker.FACE_LANDMARKS_TESSELATION);
     const vision = await visionFileset();
     try {
       const modelAssetBuffer = await visionModel('face_landmarker.task');
@@ -24,5 +23,5 @@ export async function analyzePortrait(source: HTMLCanvasElement): Promise<Portra
       try { segmenter.segment(source, result => renderer.captureMask(result)); } finally { segmenter.close(); }
     } catch { failures.push('肤色与轮廓检测暂不可用'); }
   } catch { failures.push('人像资源暂时无法加载'); }
-  return { renderer, faceCount: renderer.faces.length, segmented: renderer.segmented, message: failures.length ? `${failures.join('，')}，其他卡片功能仍可使用` : renderer.faces.length ? `已找到 ${renderer.faces.length} 张脸，开始你的角色搭配` : '没有找到正脸，换张自拍即可佩戴 3D 配件' };
+  return { renderer, faceCount: renderer.faces.length, segmented: renderer.segmented, message: failures.length ? `${failures.join('，')}，其他卡片功能仍可使用` : renderer.faces.length ? `已找到 ${renderer.faces.length} 张脸，开始你的角色搭配` : '没有找到正脸，换张自拍即可添加卡通贴纸' };
 }

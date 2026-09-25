@@ -105,15 +105,28 @@ async function waitFor(check, label, timeout = 30000) {
       assert.equal(await host.locator('.soul-call-effect-status .is-error').count(), 0, 'real models and GPU initialize');
       await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && !window.__tracks.includes(sender.track))), 'processed track sent to peers');
       await host.getByRole('tab', { name: '2D 贴纸', exact: true }).click(); await host.getByRole('button', { name: '贴纸：星星脸', exact: true }).click();
-      await host.getByRole('tab', { name: '饰品', exact: true }).click(); await host.getByRole('button', { name: '饰品：奶油猫耳', exact: true }).click();
+      await host.getByRole('tab', { name: '头顶挂件', exact: true }).click(); await host.getByRole('button', { name: '挂件：兔兔冒泡', exact: true }).click();
       await host.getByRole('tab', { name: '背景', exact: true }).click(); await host.getByRole('button', { name: '背景：日光窗', exact: true }).click();
       await waitFor(() => host.locator('.soul-call-effect-status').innerText().then(text => !text.includes('面对镜头')), 'real face detection');
       await new Promise(resolve => setTimeout(resolve, 800));
       await host.screenshot({ path: path.join(output, 'effects-settings.png') });
       await guest.screenshot({ path: path.join(output, 'effects-received.png') });
-      await host.getByRole('tab', { name: '3D 变身', exact: true }).click(); await host.getByRole('button', { name: '变身：森林小狐', exact: true }).click();
+      await host.getByRole('tab', { name: '卡通贴贴', exact: true }).click(); await host.getByRole('button', { name: '卡通：小狐探头', exact: true }).click();
       await new Promise(resolve => setTimeout(resolve, 400));
-      await guest.screenshot({ path: path.join(output, 'effects-3d.png') });
+      await guest.screenshot({ path: path.join(output, 'effects-cartoon.png') });
+      await host.getByRole('tab', { name: '美颜', exact: true }).click(); await host.getByRole('button', { name: '原貌', exact: true }).click();
+      await host.getByRole('tab', { name: '背景', exact: true }).click(); await host.getByRole('button', { name: '背景：原背景', exact: true }).click();
+      await host.getByRole('tab', { name: '2D 贴纸', exact: true }).click(); await host.getByRole('button', { name: '贴纸：无', exact: true }).click();
+      await new Promise(resolve => setTimeout(resolve, 600));
+      const skinDifference = await host.evaluate(() => {
+        const original = window.__tracks.find(track => track.kind === 'video' && track.readyState === 'live').canvas;
+        const processed = window.__peers[0].getSenders().find(sender => sender.track?.kind === 'video').track.canvas;
+        const a = original.getContext('2d').getImageData(290, 130, 60, 70).data;
+        const b = processed.getContext('2d').getImageData(290, 130, 60, 70).data;
+        let difference = 0; for (let i = 0; i < a.length; i++) if (i % 4 !== 3) difference += Math.abs(a[i] - b[i]);
+        return difference / (60 * 70 * 3);
+      });
+      assert.ok(skinDifference < 2, `cartoon stickers leave the central face unchanged: ${skinDifference}`);
       await host.getByRole('button', { name: '关闭画面设置', exact: true }).click();
       console.log('PASS real MediaPipe models, face tracking, WebGL effects and processed outgoing track');
     }
@@ -185,6 +198,28 @@ async function waitFor(check, label, timeout = 30000) {
     await host.getByRole('link', { name: '返回星球', exact: true }).click();
     await host.waitForURL(`${url}/soul`);
     assert.equal(await host.evaluate(() => window.__tracks.every((track) => track.readyState === 'ended')), true, 'leaving the room releases devices');
+    if (process.env.WEBRTC_EFFECTS_TEST_IMAGE) {
+      await host.goto(`${url}/doodle`);
+      await host.locator('input[type=file]').setInputFiles(process.env.WEBRTC_EFFECTS_TEST_IMAGE);
+      await host.locator('.portrait-controls').waitFor({ timeout: 120000 });
+      assert.match(await host.locator('.portrait-hint').innerText(), /已找到 1 张脸/);
+      await host.getByRole('button', { name: '兔兔冒泡', exact: true }).click();
+      for (const [name, id] of [['小狐探头', 'fox'], ['熊猫抱抱', 'panda'], ['独角兽之梦', 'unicorn']]) {
+        const previous = await host.locator('.doodle-result-image').getAttribute('src');
+        await host.getByRole('button', { name, exact: true }).click();
+        await host.waitForFunction(before => {
+          const result = document.querySelector('.doodle-result-image');
+          return result?.src !== before && result?.complete && result?.naturalWidth === 1080 && document.querySelector('.doodle-live-preview')?.style.opacity !== '1';
+        }, previous);
+        const data = await host.evaluate(async () => {
+          const blob = await (await fetch(document.querySelector('.doodle-result-image').src)).blob();
+          return new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result.split(',')[1]); reader.readAsDataURL(blob); });
+        });
+        fs.writeFileSync(path.join(output, `portrait-${id}.jpg`), Buffer.from(data, 'base64'));
+      }
+      await host.screenshot({ path: path.join(output, 'portrait-settings.png') });
+      console.log('PASS portrait and call share illustrated characters with original facial features preserved');
+    }
     assert.deepEqual(errors, [], 'no uncaught page errors');
     console.log('PASS hangup and room navigation cleanup; no uncaught page errors');
     console.log(`Screenshots: ${output}`);

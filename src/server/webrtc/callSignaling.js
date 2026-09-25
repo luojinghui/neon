@@ -25,7 +25,7 @@ function getIceConfiguration(env = process.env, now = Date.now()) {
 }
 
 class CallSignaling {
-  constructor({ requireJoinedRoom, waitingTimeout = 60000, env = process.env }) {
+  constructor({ requireJoinedRoom, waitingTimeout = 60 * 60 * 1000, env = process.env }) {
     this.requireJoinedRoom = requireJoinedRoom;
     this.waitingTimeout = waitingTimeout;
     this.env = env;

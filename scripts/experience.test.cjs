@@ -20,10 +20,9 @@ function load(relative, dependencies = {}) {
 const cache = load('src/app/soul/core/roomListCache.ts');
 const { useSoulStore: store } = load('src/app/soul/store.ts');
 const { fitPortraitFrame } = load('src/app/doodle/portrait/framing.ts');
-const { buildSticker } = load('src/app/doodle/portrait/meshes.ts');
+const { layoutCartoonStickers, CARTOON_ASSETS } = load('src/app/doodle/portrait/cartoonStickers.ts', { './framing': { fitPortraitFrame } });
 const settings = load('src/app/doodle/portrait/settings.ts');
 const { LivePreview } = load('src/app/doodle/portrait/livePreview.ts');
-const faceMesh = load('src/app/doodle/portrait/faceMesh.ts', { './meshes': load('src/app/doodle/portrait/meshes.ts') });
 const room = id => ({ id, name: id, description: 'test', tags: [], isPrivate: false, owner: { userId: 'test' }, membership: 'none' });
 function storage() {
   const values = new Map();
@@ -153,19 +152,26 @@ test('Ant Design runtime transformer preserves animations and focus without recu
   assert.ok(Object.keys(effects).some(key => key.includes('test-spin')));
 });
 
-test('3D accessories and portrait framing keep tilted, oversized geometry within the image', () => {
+function cartoonFace() {
+  const face = Array.from({ length: 478 }, () => ({ x: .5, y: .5, z: 0 }));
+  for (const [index, x, y] of [[10,.5,.15],[152,.5,.8],[234,.29,.5],[454,.71,.5],[33,.39,.36],[263,.61,.36]]) face[index] = { x, y, z: 0 };
+  return face;
+}
+test('illustrated headwear fits tilted photos and stays in the live frame without zooming the video', () => {
   for (const sticker of settings.STICKERS.filter(s => s.id !== 'none')) {
-    const geometry = buildSticker(sticker.id, '#ffadcb');
-    assert.ok(geometry.length > 100 && geometry.length < 300000);
-    assert.equal(geometry.length % 27, 0);
-    assert.ok(geometry.every(Number.isFinite));
-    const points = [];
-    for (let i = 0; i < geometry.length; i += 9) points.push([geometry[i] * 1.5 + .8, geometry[i + 1] * 1.5 + 1]);
-    const frame = fitPortraitFrame(points);
-    for (const p of [...points, [-1, -1], [1, 1]]) {
-      assert.ok(Math.abs(p[0] * frame.zoom + frame.offset[0]) <= .941);
-      assert.ok(Math.abs(p[1] * frame.zoom + frame.offset[1]) <= .941);
+    const value = { ...settings.DEFAULT_PORTRAIT, sticker: sticker.id, stickerScale: 1.5, stickerRotation: 45, stickerY: .5 };
+    const layout = layoutCartoonStickers(cartoonFace(), value, .75);
+    assert.ok(layout.layers.length > 0);
+    for (const layer of layout.layers) {
+      assert.equal(layer.vertices.length, 30); assert.ok(layer.vertices.every(Number.isFinite));
+      for (let i = 0; i < layer.vertices.length; i += 5) {
+        assert.ok(Math.abs(layer.vertices[i] * layout.view.zoom + layout.view.offset[0]) <= .941);
+        assert.ok(Math.abs(layer.vertices[i + 1] * layout.view.zoom + layout.view.offset[1]) <= .941);
+      }
     }
+    const live = layoutCartoonStickers(cartoonFace(), value, .75, false);
+    assert.equal(live.view.zoom, 1); assert.deepEqual(live.view.offset, [0, 0]);
+    for (const layer of live.layers) for (let i = 1; i < layer.vertices.length; i += 5) assert.ok(layer.vertices[i] <= .961);
   }
 });
 
@@ -230,19 +236,32 @@ test('live controls coalesce frames, discard stale encodes, and flush the latest
   } finally { scheduler.cancel(); global.requestAnimationFrame = oldFrame; global.cancelAnimationFrame = oldCancel; }
 });
 
-test('face effects fit actual MediaPipe surface triangles with finite normals and expression openings', async () => {
-  const { FaceLandmarker } = await import('@mediapipe/tasks-vision');
-  const topology = faceMesh.faceTriangles(FaceLandmarker.FACE_LANDMARKS_TESSELATION);
-  assert.ok(topology.length > 800);
-  assert.ok(topology.every(triangle => triangle.every(i => i >= 0 && i < 468)));
-  const face = Array.from({ length: 478 }, (_, i) => ({ x: .5 + Math.sin(i * 1.7) * .2, y: .5 + Math.cos(i * 2.3) * .25, z: Math.sin(i * .8) * .08 }));
-  for (const [i, x, y] of [[1,.5,.52],[10,.5,.25],[152,.5,.77],[234,.29,.5],[454,.71,.5],[33,.39,.43],[133,.45,.43],[159,.42,.418],[145,.42,.442],[362,.55,.43],[263,.61,.43],[386,.58,.418],[374,.58,.442],[61,.45,.62],[291,.55,.62],[0,.5,.605],[17,.5,.635]]) face[i] = { x, y, z: 0 };
-  const data = faceMesh.buildFaceMesh(face, topology, .75);
-  assert.equal(data.vertices.length, topology.length * 3 * 8);
-  assert.ok(data.vertices.every(Number.isFinite));
-  assert.equal(data.features.length, 12);
-  assert.ok(data.features.every(Number.isFinite));
-  for (let i = 0; i < 12; i += 4) assert.ok(data.features[i + 2] > 0 && data.features[i + 3] > 0);
+test('cartoon companions track the face while leaving its central features uncovered', () => {
+  for (const effect of settings.FACE_EFFECTS.filter(effect => effect.id !== 'none')) {
+    const face = cartoonFace(), value = { ...settings.DEFAULT_PORTRAIT, sticker: 'none', faceEffect: effect.id };
+    const { layers } = layoutCartoonStickers(face, value, 1, false);
+    assert.equal(layers.length, 3);
+    for (const layer of layers) {
+      assert.ok(layer.vertices.every(Number.isFinite));
+      const xs = Array.from(layer.vertices).filter((_, index) => index % 5 === 0);
+      assert.ok(Math.min(...xs) > .20 || Math.max(...xs) < -.20, 'stickers stay beside the central eyes/nose/mouth');
+    }
+    const moved = layoutCartoonStickers(face.map(point => ({ ...point, x: point.x + .1 })), value, 1, false);
+    assert.ok(Math.abs(moved.layers[0].vertices[0] - layers[0].vertices[0] - .2) < .00001);
+  }
+  assert.equal(layoutCartoonStickers([], settings.DEFAULT_PORTRAIT, 1).layers.length, 0);
+});
+
+test('every cartoon thumbnail and GPU texture is local, licensed and matches its pinned source', () => {
+  const root = path.join(__dirname, '../public/portrait-stickers');
+  const manifest = JSON.parse(readFileSync(path.join(root, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.license, 'MIT'); assert.match(readFileSync(path.join(root, 'LICENSE'), 'utf8'), /Microsoft Corporation/);
+  assert.equal(manifest.files.length, CARTOON_ASSETS.length);
+  for (const asset of CARTOON_ASSETS) {
+    const meta = manifest.files.find(file => file.file === `${asset}.png`), bytes = readFileSync(path.join(root, meta.file));
+    assert.equal(bytes.length, meta.bytes); assert.equal(createHash('sha256').update(bytes).digest('hex'), meta.sha256);
+  }
+  for (const item of [...settings.STICKERS, ...settings.FACE_EFFECTS]) if (item.preview) assert.ok(readFileSync(path.join(__dirname, '../public', item.preview)).length > 0);
 });
 
 test('local model/WASM manifest matches every committed binary', () => {

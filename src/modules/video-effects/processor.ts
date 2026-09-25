@@ -2,7 +2,6 @@ import type { FaceLandmarker, ImageSegmenter, NormalizedLandmark } from '@mediap
 import { visionAsset, visionFileset, VISION_ROOT } from '@/app/doodle/visionRuntime';
 import { PortraitRenderer } from '@/app/doodle/portrait/renderer';
 import { DEFAULT_PORTRAIT, type PortraitSettings } from '@/app/doodle/portrait/settings';
-import { faceTriangles } from '@/app/doodle/portrait/faceMesh';
 import { DEFAULT_VIDEO_EFFECTS, FLAT_STICKERS, type VideoEffectsSettings, type VideoEffectsStatus, type VideoProcessor } from './types';
 import manifest from '../../../public/mediapipe/0.10.35/manifest.json';
 
@@ -90,8 +89,8 @@ export class LiveVideoEffects implements VideoProcessor {
       });
       if (this.disposed) { segmenter.close(); this.ensureAlive(); }
       this.segmenter = segmenter;
-      this.renderer!.faceTriangles = faceTriangles(FaceLandmarker.FACE_LANDMARKS_TESSELATION);
       this.report({ progress: 96, message: '准备贴纸' });
+      await this.renderer!.prepareStickers(); this.ensureAlive();
       await Promise.all([...FLAT_STICKERS.filter(item => item.id !== 'none').map(item => item.id), 'sunroom', 'hills', 'grid'].map(async (name) => {
         const image = new Image(); image.src = `/call-effects/${name}.svg`; await image.decode(); this.ensureAlive(); this.images.set(name, image);
       }));

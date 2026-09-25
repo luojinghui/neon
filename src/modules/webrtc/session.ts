@@ -45,7 +45,7 @@ export class CallSession {
     this.revision = snapshot.revision;
     if (this.view.phase === 'active' && (snapshot.call?.id !== this.view.call?.id || !snapshot.call?.participants.some((member) => member.peerId === this.view.selfId))) {
       this.release();
-      this.update({ ...initialView(), error: snapshot.reason === 'timeout' ? '暂时没有其他成员加入，通话已结束' : '通话已结束' });
+      this.update({ ...initialView(), error: snapshot.reason === 'timeout' ? '已独自等待一小时，通话已结束' : '通话已结束' });
     }
     this.update({ call: snapshot.call });
     if (this.view.phase === 'active') this.syncPeers();

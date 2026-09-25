@@ -34,7 +34,7 @@ function nextEvent(socket, event, predicate = () => true) {
   });
 }
 
-async function fixture(t, waitingTimeout = 60000) {
+async function fixture(t, waitingTimeout) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neon-call-test-'));
   const io = new Server(http.createServer(), { transports: ['websocket'] });
   const sockets = [];
@@ -73,6 +73,26 @@ async function fixture(t, waitingTimeout = 60000) {
   }
   return { connect, controller: controllerModule.exports, io };
 }
+
+test('solo waiting lasts one hour, cancels with company and starts fresh after the last peer leaves', () => {
+  let now = 0, id = 0;
+  const timers = new Map(), events = [], timerModule = { exports: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'callSignaling.js'), 'utf8'), {
+    module: timerModule, require, process, setTimeout: (run, delay) => { const timer = ++id; timers.set(timer, { run, at: now + delay }); return timer; }, clearTimeout: timer => timers.delete(timer)
+  });
+  const service = new timerModule.exports.CallSignaling({ requireJoinedRoom() {} });
+  const io = { to: () => ({ emit: (_event, state) => events.push(state) }) };
+  const call = { roomId, id: 'one-hour-call', members: new Map([['host', { userId: 'host', participant: {} }]]) };
+  service.calls.set(roomId, call); service.users.set('host', 'host');
+  const advance = ms => { now += ms; for (const [key, timer] of timers) if (timer.at <= now) { timers.delete(key); timer.run(); } };
+  service.scheduleWaiting(io, call);
+  advance(5 * 60000); assert.ok(service.snapshot(roomId).call, 'five minutes of waiting must not end the call');
+  call.members.set('guest', { userId: 'guest', participant: {} }); service.scheduleWaiting(io, call);
+  advance(2 * 3600000); assert.ok(service.snapshot(roomId).call, 'a joined peer cancels the solo timer');
+  service.leave({ id: 'guest', data: { roomId } }, io);
+  advance(3599999); assert.ok(service.snapshot(roomId).call, 'remaining participant gets a full new hour');
+  advance(1); assert.equal(service.snapshot(roomId).call, null); assert.equal(events.at(-1).reason, 'timeout'); assert.equal(service.users.size, 0);
+});
 
 test('call signaling requires room access and actual call membership; never trusts caller identity', async (t) => {
   const { connect } = await fixture(t);

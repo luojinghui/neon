@@ -1,0 +1,73 @@
+{
+  "source": "https://github.com/microsoft/fluentui-emoji",
+  "revision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+  "license": "MIT",
+  "files": [
+    {
+      "file": "cat.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Cat%20face/3D/cat_face_3d.png",
+      "bytes": 37653,
+      "sha256": "d930f2aee8ae47cb3ca26f2594ddd15df42345d952b5903b776adf4a728860b5"
+    },
+    {
+      "file": "fox.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Fox/3D/fox_3d.png",
+      "bytes": 41966,
+      "sha256": "1a3bc43212405fb03d8d2bcc709c7f39c99d4a19af06d406cae4724e5fe2b0ad"
+    },
+    {
+      "file": "panda.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Panda/3D/panda_3d.png",
+      "bytes": 43603,
+      "sha256": "31524ed035f8d769bc7d437268f30a65eb309ea216e84c09823d4f36c2f97070"
+    },
+    {
+      "file": "rabbit.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Rabbit%20face/3D/rabbit_face_3d.png",
+      "bytes": 31679,
+      "sha256": "49e3894d0e17c2eeea2b81f50d36ff407731d8b1983f3b5d71a7f7304dcbd5b3"
+    },
+    {
+      "file": "bear.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Bear/3D/bear_3d.png",
+      "bytes": 41872,
+      "sha256": "8f108a036c28d25378e3970eea68d00fbf155228b349707f0456e557013a87c9"
+    },
+    {
+      "file": "unicorn.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Unicorn/3D/unicorn_3d.png",
+      "bytes": 35413,
+      "sha256": "7d4a8a3e1040e9ba2b5a562413e258ebacc812e5c6d87946b3de53a66d1736b4"
+    },
+    {
+      "file": "alien.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Alien/3D/alien_3d.png",
+      "bytes": 38905,
+      "sha256": "7b2318a60f36814c289e92643cbfa8d72caac26d98e955d8cae196d3db9abddf"
+    },
+    {
+      "file": "crown.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Crown/3D/crown_3d.png",
+      "bytes": 32050,
+      "sha256": "817095bb1423468afa155317ba04ca333957d51757a8d3326856ee8707c0edd6"
+    },
+    {
+      "file": "planet.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Ringed%20planet/3D/ringed_planet_3d.png",
+      "bytes": 30147,
+      "sha256": "e810d03a3d347da5d0cf50cace209c413c963bae9a3c72d7e396ef858574087d"
+    },
+    {
+      "file": "sparkles.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Sparkles/3D/sparkles_3d.png",
+      "bytes": 21948,
+      "sha256": "e4490c9ff74a3fd73a8f99c760d65b6ed51b8a3e4ad28da137fec050b77e1058"
+    },
+    {
+      "file": "hearts.png",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Two%20hearts/3D/two_hearts_3d.png",
+      "bytes": 30346,
+      "sha256": "b882b5354fd3da839dfb0d2dc0481dfbedddd0d4e91eef43a4894580199dbad9"
+    }
+  ]
+}

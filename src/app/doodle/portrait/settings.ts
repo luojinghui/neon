@@ -1,19 +1,19 @@
 export const STICKERS = [
-  { id: 'none', name: '不佩戴', icon: '○' },
-  { id: 'cat', name: '奶油猫耳', icon: '🐱' },
-  { id: 'bear', name: '软糖小熊', icon: '🐻' },
-  { id: 'rabbit', name: '云朵兔兔', icon: '🐰' },
-  { id: 'alien', name: '星际触角', icon: '👽' },
-  { id: 'crown', name: '幸运王冠', icon: '👑' },
-  { id: 'planet', name: '环游土星', icon: '🪐' }
+  { id: 'none', name: '不佩戴', icon: '○', preview: '' },
+  { id: 'cat', name: '猫咪发夹', icon: '🐱', preview: '/portrait-stickers/cat.png' },
+  { id: 'bear', name: '小熊陪伴', icon: '🐻', preview: '/portrait-stickers/bear.png' },
+  { id: 'rabbit', name: '兔兔冒泡', icon: '🐰', preview: '/portrait-stickers/rabbit.png' },
+  { id: 'alien', name: '星际搭子', icon: '👽', preview: '/portrait-stickers/alien.png' },
+  { id: 'crown', name: '软糖王冠', icon: '👑', preview: '/portrait-stickers/crown.png' },
+  { id: 'planet', name: '星球环游', icon: '🪐', preview: '/portrait-stickers/planet.png' }
 ] as const;
 export type StickerId = typeof STICKERS[number]['id'];
 export const FACE_EFFECTS = [
-  { id: 'none', name: '保留原貌', icon: '☺' },
-  { id: 'cat', name: '奶油猫脸', icon: '🐱' },
-  { id: 'fox', name: '森林小狐', icon: '🦊' },
-  { id: 'panda', name: '团子熊猫', icon: '🐼' },
-  { id: 'avatar', name: '漫画主角', icon: '🎭' }
+  { id: 'none', name: '不贴贴', icon: '○', preview: '' },
+  { id: 'cat', name: '猫咪贴贴', icon: '🐱', preview: '/portrait-stickers/cat.png' },
+  { id: 'fox', name: '小狐探头', icon: '🦊', preview: '/portrait-stickers/fox.png' },
+  { id: 'panda', name: '熊猫抱抱', icon: '🐼', preview: '/portrait-stickers/panda.png' },
+  { id: 'avatar', name: '独角兽之梦', icon: '🦄', preview: '/portrait-stickers/unicorn.png' }
 ] as const;
 export type FaceEffectId = typeof FACE_EFFECTS[number]['id'];
 export const BACKGROUNDS = [{ id: 'original', name: '原场景' }, { id: 'peach', name: '蜜桃云' }, { id: 'cosmos', name: '小宇宙' }, { id: 'mint', name: '薄荷岛' }] as const;
