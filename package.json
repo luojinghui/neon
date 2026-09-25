@@ -14,6 +14,8 @@
     "test:soul": "node --test src/server/chat/roomRepository.test.js src/server/chat/games.test.js src/server/chat/polls.test.js src/server/chat/pollSocket.test.js src/server/chat/roomPasswordSocket.test.js",
     "test:webrtc": "node --test src/server/webrtc/callSignaling.test.js scripts/webrtc.test.cjs",
     "test:webrtc:browser": "node scripts/webrtc-browser.cjs",
+    "test:video-effects": "node --test scripts/video-effects.test.cjs",
+    "test:video-effects:browser": "node scripts/video-effects-browser.cjs",
     "test:profile": "node --test src/server/user/profileRepository.test.js",
     "test:moments": "node --test src/server/moment/momentRepository.test.js",
     "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js",

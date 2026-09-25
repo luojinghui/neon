@@ -187,7 +187,7 @@ test('effects settings reject unknown assets and clamp device work; default sett
   assert.equal(effectsEnabled(DEFAULT_VIDEO_EFFECTS), false);
   const value = normalizeVideoEffects({ whitening: Infinity, smoothing: 300, sticker2d: '../../secret', color: 'red', background: 'https://elsewhere', accessory: 'unknown' });
   assert.equal(value.whitening, 0); assert.equal(value.smoothing, 100);
-  assert.equal(value.sticker2d, 'none'); assert.equal(value.background, 'original'); assert.equal(value.accessory, 'none');
+  assert.equal(value.sticker2d, 'none'); assert.equal(value.background, 'original'); assert.equal(value.accessory, undefined);
 });
 
 test('effects never open a camera, replace only the outgoing video, and reset preserves raw capture', async () => {
@@ -204,9 +204,9 @@ test('effects never open a camera, replace only the outgoing video, and reset pr
   assert.equal(processors.length, 1);
   assert.equal(media.stream.getVideoTracks()[0], processors[0].track);
   assert.equal(f.tracks[1].readyState, 'live', 'raw camera remains owned while processing');
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, accessory: 'cat' }); await flush();
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, faceEffect: 'cat' }); await flush();
   assert.equal(processors.length, 1, 'settings changes reuse the processor');
-  assert.equal(processors[0].settings.accessory, 'cat');
+  assert.equal(processors[0].settings.faceEffect, 'cat');
   media.setEffects(effectTypes.DEFAULT_VIDEO_EFFECTS); await flush();
   assert.equal(processors[0].disposed, true); assert.equal(media.stream.getVideoTracks()[0], f.tracks[1]);
   assert.equal(f.captures.length, 2, 'effects never call getUserMedia');

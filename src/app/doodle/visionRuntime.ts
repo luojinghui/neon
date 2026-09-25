@@ -28,7 +28,7 @@ export async function visionFileset() {
 }
 
 export function visionAsset(name: string, onProgress?: Progress): Promise<Uint8Array> {
-  if (!/^(?:wasm\/vision_wasm_(?:nosimd_|module_)?internal\.(?:js|wasm)|face_landmarker\.task|selfie_multiclass\.tflite)$/.test(name)) return Promise.reject(new Error('未知的人像资源'));
+  if (!/^(?:wasm\/vision_wasm_(?:nosimd_|module_)?internal\.(?:js|wasm)|face_landmarker\.task|selfie_(?:multiclass|segmenter_landscape)\.tflite)$/.test(name)) return Promise.reject(new Error('未知的人像资源'));
   let resource = resources.get(name);
   if (!resource) {
     const entry = { promise: Promise.resolve(new Uint8Array()), listeners: new Set<Progress>(), loaded: 0, total: 0 };

@@ -2,13 +2,12 @@
 
 import { CloseOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-import { FACE_EFFECTS, STICKERS, STICKER_COLORS } from '@/app/doodle/portrait/settings';
-import { CALL_BACKGROUNDS, DEFAULT_VIDEO_EFFECTS, FLAT_STICKERS, type VideoEffectsSettings, type VideoEffectsStatus } from '@/modules/video-effects/types';
+import { CALL_BACKGROUNDS, DEFAULT_VIDEO_EFFECTS, FLAT_STICKERS, MESH_AVATARS, type VideoEffectsSettings, type VideoEffectsStatus } from '@/modules/video-effects/types';
 
-const tabs = ['美颜', '2D 贴纸', '卡通贴贴', '头顶挂件', '背景'] as const;
+const tabs = ['美颜', '2D 贴纸', '面部化身', '背景'] as const;
 export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClose }: { value: VideoEffectsSettings; status: VideoEffectsStatus; cameraEnabled: boolean; onChange: (value: Partial<VideoEffectsSettings>) => void; onClose: () => void }) {
   const [tab, setTab] = useState<typeof tabs[number]>('美颜');
-  const tracked = value.sticker2d !== 'none' || value.faceEffect !== 'none' || value.accessory !== 'none';
+  const tracked = value.sticker2d !== 'none' || value.faceEffect !== 'none';
   return <aside className="soul-call-effects" aria-label="画面设置">
     <div className="soul-call-effects-heading"><h3>我的画面</h3><button type="button" aria-label="关闭画面设置" onClick={onClose}><CloseOutlined /></button></div>
     <div className="soul-call-effect-tabs" role="tablist" aria-label="效果类型">{tabs.map(name => <button key={name} type="button" role="tab" aria-selected={tab === name} onClick={() => setTab(name)}>{name}</button>)}</div>
@@ -18,13 +17,10 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
         {(['whitening', 'smoothing'] as const).map(field => <label className="soul-call-effect-slider" key={field}><span>{field === 'whitening' ? '美白' : '柔肤'}<output>{value[field]}</output></span><input type="range" min={0} max={100} value={value[field]} aria-label={field === 'whitening' ? '美白' : '柔肤'} onChange={event => onChange({ [field]: Number(event.target.value) })} /></label>)}
       </div>}
       {tab === '2D 贴纸' && <div className="soul-call-effect-grid">{FLAT_STICKERS.map(item => <button key={item.id} type="button" aria-label={`贴纸：${item.name}`} aria-pressed={value.sticker2d === item.id} onClick={() => onChange({ sticker2d: item.id })}><span className="soul-call-effect-preview" style={item.id === 'none' ? undefined : { backgroundImage: `url(/call-effects/${item.id}.svg)` }}>{item.id === 'none' ? '○' : ''}</span><span>{item.name}</span></button>)}</div>}
-      {tab === '卡通贴贴' && <div className="soul-call-effect-grid">{FACE_EFFECTS.map(item => <button key={item.id} type="button" aria-label={`卡通：${item.name}`} aria-pressed={value.faceEffect === item.id} onClick={() => onChange({ faceEffect: item.id })}><span className="soul-call-effect-preview" style={item.preview ? { backgroundImage: `url(${item.preview})` } : undefined}>{item.preview ? '' : item.icon}</span><span>{item.name}</span></button>)}</div>}
-      {tab === '头顶挂件' && <>
-        <div className="soul-call-effect-grid">{STICKERS.map(item => <button key={item.id} type="button" aria-label={`挂件：${item.name}`} aria-pressed={value.accessory === item.id} onClick={() => onChange({ accessory: item.id })}><span className="soul-call-effect-preview" style={item.preview ? { backgroundImage: `url(${item.preview})` } : undefined}>{item.preview ? '' : item.icon}</span><span>{item.name}</span></button>)}</div>
-        <div className="soul-call-effect-colors" role="group" aria-label="星光颜色">{STICKER_COLORS.map(color => <button key={color} type="button" style={{ background: color }} aria-label={`星光颜色 ${color}`} aria-pressed={value.color === color} onClick={() => onChange({ color })} />)}</div>
-      </>}
+      {tab === '面部化身' && <><div className="soul-call-effect-grid">{MESH_AVATARS.map(item => <button key={item.id} type="button" aria-label={`面部化身：${item.name}`} aria-pressed={value.faceEffect === item.id} onClick={() => onChange({ faceEffect: item.id })}><span className="soul-call-effect-preview">{item.icon}</span><span>{item.name}</span></button>)}</div><p className="soul-call-effect-hint">化身覆盖面部，跟随转头、眨眼和张嘴。</p></>}
       {tab === '背景' && <div className="soul-call-effect-grid">{CALL_BACKGROUNDS.map(item => <button key={item.id} type="button" aria-label={`背景：${item.name}`} aria-pressed={value.background === item.id} onClick={() => onChange({ background: item.id })}><span className="soul-call-effect-preview is-background" style={{ backgroundColor: item.color, ...(['sunroom', 'hills', 'grid'].includes(item.id) ? { backgroundImage: `url(/call-effects/${item.id}.svg)` } : {}) }}>{item.id === 'original' ? '○' : item.id === 'cosmos' ? '✦' : ''}</span><span>{item.name}</span></button>)}</div>}
     </div>
+    {cameraEnabled && status.phase === 'ready' && status.fps !== undefined && <p className="soul-call-effect-metrics">{status.fps} fps{status.maskAgeMs !== undefined && value.background !== 'original' ? ` · 分割延迟 ${status.maskAgeMs} ms` : ''}</p>}
     <div className="soul-call-effect-status" role="status">
       {!cameraEnabled ? <span>开启视频后生效</span> : status.phase === 'loading' ? <><span>{status.message}<span>{status.progress}%</span></span><progress aria-label="画面资源加载进度" max={100} value={status.progress} /></> : status.phase === 'error' ? <span className="is-error">{status.message}<button type="button" onClick={() => onChange(value)}>重试</button></span> : tracked && status.faceDetected === false ? <span>面对镜头，贴纸会跟着你</span> : <span>仅调整我的画面</span>}
     </div>

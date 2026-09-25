@@ -7,7 +7,8 @@ const root = path.join(__dirname, '..', 'public', 'mediapipe', VERSION);
 const packageRoot = path.dirname(require.resolve('@mediapipe/tasks-vision'));
 const models = {
   'face_landmarker.task': 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-  'selfie_multiclass.tflite': 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite'
+  'selfie_multiclass.tflite': 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite',
+  'selfie_segmenter_landscape.tflite': 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/1/selfie_segmenter_landscape.tflite'
 };
 function download(url) {
   return new Promise((resolve, reject) => https.get(url, response => {
@@ -23,6 +24,9 @@ function download(url) {
   if (pkg.version !== VERSION) throw new Error('Update the asset version together with the SDK');
   await fs.mkdir(path.join(root, 'wasm'), { recursive: true });
   const manifest = { version: VERSION, license: 'Apache-2.0', files: {} };
+  const bundle = await fs.readFile(path.join(packageRoot, 'vision_bundle.mjs'));
+  await fs.writeFile(path.join(root, 'vision_bundle.mjs'), bundle);
+  manifest.files['vision_bundle.mjs'] = { bytes: bundle.length, sha256: createHash('sha256').update(bundle).digest('hex') };
   for (const file of await fs.readdir(path.join(packageRoot, 'wasm'))) {
     const data = await fs.readFile(path.join(packageRoot, 'wasm', file));
     await fs.writeFile(path.join(root, 'wasm', file), data);

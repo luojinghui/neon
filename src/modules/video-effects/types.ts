@@ -15,26 +15,29 @@ export const CALL_BACKGROUNDS = [
   { id: 'hills', name: '小山丘', color: '#9cbaa5' },
   { id: 'grid', name: '奶油格', color: '#e5d7c6' }
 ] as const;
+export const MESH_AVATARS = [
+  { id: 'none', name: '原面容', icon: '○' },
+  { id: 'avatar', name: '星际旅人', icon: '✦' },
+  { id: 'cat', name: '星猫', icon: '🐱' },
+  { id: 'fox', name: '赤狐', icon: '🦊' },
+  { id: 'panda', name: '熊猫', icon: '🐼' }
+] as const;
 export type VideoEffectsSettings = {
   whitening: number;
   smoothing: number;
   sticker2d: typeof FLAT_STICKERS[number]['id'];
   faceEffect: 'none' | 'cat' | 'fox' | 'panda' | 'avatar';
-  accessory: 'none' | 'cat' | 'bear' | 'rabbit' | 'alien' | 'crown' | 'planet';
-  color: string;
   background: typeof CALL_BACKGROUNDS[number]['id'];
 };
-export const DEFAULT_VIDEO_EFFECTS: VideoEffectsSettings = { whitening: 0, smoothing: 0, sticker2d: 'none', faceEffect: 'none', accessory: 'none', color: '#ffdc7b', background: 'original' };
-export type VideoEffectsStatus = { phase: 'off' | 'loading' | 'ready' | 'error'; progress: number; message: string; faceDetected?: boolean };
-export const effectsEnabled = (value: VideoEffectsSettings) => value.whitening > 0 || value.smoothing > 0 || value.sticker2d !== 'none' || value.faceEffect !== 'none' || value.accessory !== 'none' || value.background !== 'original';
+export const DEFAULT_VIDEO_EFFECTS: VideoEffectsSettings = { whitening: 0, smoothing: 0, sticker2d: 'none', faceEffect: 'none', background: 'original' };
+export type VideoEffectsStatus = { phase: 'off' | 'loading' | 'ready' | 'error'; progress: number; message: string; faceDetected?: boolean; fps?: number; inferenceMs?: number; maskAgeMs?: number; backend?: 'worker' | 'main' };
+export const effectsEnabled = (value: VideoEffectsSettings) => value.whitening > 0 || value.smoothing > 0 || value.sticker2d !== 'none' || value.faceEffect !== 'none' || value.background !== 'original';
 export function normalizeVideoEffects(value: Partial<VideoEffectsSettings>): VideoEffectsSettings {
   const clamp = (n: unknown) => typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
   return {
     whitening: clamp(value.whitening), smoothing: clamp(value.smoothing),
     sticker2d: FLAT_STICKERS.some(item => item.id === value.sticker2d) ? value.sticker2d! : 'none',
     faceEffect: ['none', 'cat', 'fox', 'panda', 'avatar'].includes(value.faceEffect || '') ? value.faceEffect! : 'none',
-    accessory: ['none', 'cat', 'bear', 'rabbit', 'alien', 'crown', 'planet'].includes(value.accessory || '') ? value.accessory! : 'none',
-    color: /^#[0-9a-f]{6}$/i.test(value.color || '') ? value.color! : DEFAULT_VIDEO_EFFECTS.color,
     background: CALL_BACKGROUNDS.some(item => item.id === value.background) ? value.background! : 'original'
   };
 }

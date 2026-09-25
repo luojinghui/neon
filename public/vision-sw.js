@@ -8,7 +8,7 @@ self.addEventListener('activate', event => event.waitUntil((async () => {
 })()));
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.origin !== self.location.origin || !url.pathname.startsWith(ROOT) || !/\.(wasm|js|task|tflite)$/.test(url.pathname)) return;
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin || !url.pathname.startsWith(ROOT) || !/\.(wasm|m?js|task|tflite)$/.test(url.pathname)) return;
   event.respondWith((async () => {
     let cache;
     try {

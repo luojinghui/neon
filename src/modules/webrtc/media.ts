@@ -41,7 +41,7 @@ export class LocalMedia {
     const generation = this.generation;
     const acquired = await navigator.mediaDevices.getUserMedia(kind === 'audio'
       ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }
-      : { audio: false, video: { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24, max: 30 } } });
+      : { audio: false, video: { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 } } });
     if (this.disposed || generation !== this.generation) {
       acquired.getTracks().forEach((track) => track.stop());
       return;
