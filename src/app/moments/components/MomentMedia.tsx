@@ -3,6 +3,7 @@
 import { useCallback, useState, type CSSProperties } from 'react';
 import type { MomentMedia } from '../types';
 import { ImageViewer } from '@/components/image-viewer/ImageViewer';
+import { VideoPlayer } from '@/components/video-player/VideoPlayer';
 import './moment-media.css';
 
 type Props = {
@@ -70,20 +71,12 @@ export function MomentMediaView({ media, immersive = false }: Props) {
       {videos.length > 0 && (
         <div className="moment-media-video-list">
           {videos.map((item, index) => (
-            <figure key={item.id} className="moment-media-video-item">
-              <video
-                src={item.url}
-                className="moment-media-video"
-                controls
-                playsInline
-                preload="none"
-                aria-label={`心迹视频 ${index + 1}${item.name ? `：${item.name}` : ''}`}
-              />
-              <figcaption className="moment-media-video-caption">
-                <span>视频{videos.length > 1 ? ` ${index + 1} / ${videos.length}` : ''}</span>
-                {item.name && <span className="moment-media-video-name">{item.name}</span>}
-              </figcaption>
-            </figure>
+            <VideoPlayer
+              key={item.id}
+              src={item.url}
+              className="moment-media-video"
+              label={`心迹视频 ${index + 1}`}
+            />
           ))}
         </div>
       )}

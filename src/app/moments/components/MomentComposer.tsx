@@ -7,6 +7,7 @@ import { createMoment } from '../client';
 import { formatVoiceDuration } from '../format';
 import type { Moment, MomentLocation } from '../types';
 import { MomentVoicePlayer } from './MomentVoice';
+import { VideoCover } from '@/components/video-player/VideoPlayer';
 
 type Props = {
   appearance?: 'journal';
@@ -23,7 +24,7 @@ function FilePreview({ file }: { file: File }) {
     return () => URL.revokeObjectURL(next);
   }, [file]);
   if (!url) return <div className="moment-file-preview-loading"><LoadingOutlined /></div>;
-  return file.type.startsWith('video/') ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt={file.name} />; // eslint-disable-line @next/next/no-img-element
+  return file.type.startsWith('video/') ? <VideoCover src={url} /> : <img src={url} alt={file.name} />; // eslint-disable-line @next/next/no-img-element
 }
 
 function useObjectUrl(file: File | null) {

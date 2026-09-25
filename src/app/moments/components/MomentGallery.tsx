@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { formatMomentTime } from '../format';
 import type { Moment } from '../types';
 import { MomentViewer } from './MomentViewer';
+import { VideoCover } from '@/components/video-player/VideoPlayer';
 import './moment-gallery.css';
 
 type Props = {
@@ -39,7 +40,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
                   {firstMedia.type === 'image' ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={firstMedia.url} alt="" loading="lazy" />
-                  ) : <video src={firstMedia.url} muted playsInline preload="metadata" aria-hidden="true" />}
+                  ) : <VideoCover src={firstMedia.url} />}
                   <span className="moment-profile-media-badge">
                     {firstMedia.type === 'video' ? <PlayCircleFilled /> : <PictureOutlined />}
                     {moment.media.length > 1 ? `${moment.media.length} 项媒体` : firstMedia.type === 'video' ? '视频' : '图片'}

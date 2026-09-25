@@ -67,18 +67,19 @@
   overflow: hidden;
   border: 1px solid hsl(var(--border) / 0.65);
   border-radius: 1rem;
-  padding: 1.25rem 1.25rem 0.75rem;
+  padding: 1rem 1rem 0.45rem;
   background: hsl(var(--surface));
   box-shadow: 0 2px 8px hsl(var(--shadow-color) / 0.025);
 }
 
-.moments-screen .moment-card-head { min-height: 2.625rem; align-items: center; padding: 0; }
-.moment-card-byline { margin-top: 0.2rem; color: var(--moment-muted); font-size: 0.7rem; line-height: 1.5; }
+.moments-screen .moment-card-head { min-height: 2rem; align-items: center; padding: 0; }
+.moment-card-author { font-size: 0.8125rem; line-height: 1.4; }
+.moment-card-byline { margin-top: 0.1rem; color: var(--moment-muted); font-size: 0.65rem; line-height: 1.4; }
 .moment-card-byline time { white-space: nowrap; }
 .moments-screen .moment-icon-button { width: 2.25rem; height: 2.25rem; margin-right: -0.5rem; border: 0; background: transparent; color: var(--moment-muted); }
 .moments-screen .moment-icon-button:hover { background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
-.moment-entry-content { min-width: 0; margin: 1rem 0 0; }
-.moment-post-copy { margin-bottom: 1rem; }
+.moment-entry-content { min-width: 0; margin: 0.65rem 0 0; }
+.moment-post-copy { margin-bottom: 0.65rem; }
 .moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: 0.9375rem; line-height: 1.85; }
 .moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
 .moment-expand-button { min-height: 2rem; margin-top: 0.25rem; border: 0; padding: 0; background: transparent; color: hsl(var(--primary)); font-size: 0.75rem; }
@@ -87,12 +88,11 @@
 .moment-card-voice { padding: 0.25rem 0 0.5rem; }
 .moment-media-view + .moment-card-voice { margin-top: 0.75rem; }
 .moments-screen .moment-voice-player { border: 0; background: hsl(var(--background-secondary)); }
-.moments-screen .moment-card-meta { justify-content: flex-start; padding: 0.85rem 0 0; color: var(--moment-muted); font-size: 0.72rem; }
-.moments-screen .moment-actions { min-height: 2.75rem; justify-content: space-between; gap: 1rem; margin-top: 0.65rem; border: 0; padding: 0; }
-.moments-screen .moment-action { gap: 0.4rem; color: var(--moment-muted); font-size: 0.75rem; }
+.moments-screen .moment-card-meta { justify-content: flex-start; padding: 0.55rem 0 0; color: var(--moment-muted); font-size: 0.7rem; }
+.moments-screen .moment-actions { min-height: 2.75rem; justify-content: flex-start; gap: 0.65rem; margin-top: 0.25rem; border: 0; padding: 0; }
+.moments-screen .moment-action { gap: 0.35rem; color: var(--moment-muted); font-size: 0.72rem; }
 .moments-screen .moment-action:first-child { margin-left: -0.55rem; }
-.moments-screen .moment-action:last-child { margin-right: -0.55rem; }
-.moments-screen .moment-action > .anticon { font-size: 1.05rem; }
+.moments-screen .moment-action > .anticon { font-size: 1rem; }
 .moments-screen .moment-action:hover { color: hsl(var(--primary)); }
 .moments-screen .moment-action.is-liked { color: hsl(var(--danger)); }
 .moments-screen .moment-action-error { padding-left: 0; }
@@ -150,7 +150,7 @@
   .moment-journal-description { font-size: 0.78rem; }
   .moments-screen .moment-primary-button { min-height: 2.5rem; padding-inline: 0.85rem; }
   .moments-screen .moment-page-heading { margin-bottom: 0.75rem; }
-  .moments-screen .moment-card { padding: 1rem 1rem 0.65rem; }
+  .moments-screen .moment-card { padding: 0.85rem 0.85rem 0.35rem; }
   .moments-screen .moment-card-text { font-size: 0.9rem; }
 }
 

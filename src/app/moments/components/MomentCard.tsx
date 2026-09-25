@@ -54,10 +54,10 @@ export function MomentCard({ moment, onDeleted }: Props) {
   return (
     <article className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
       <header className="moment-card-head">
-        <div className="flex min-w-0 items-center gap-3">
-          <MomentAvatar author={moment.author} />
+        <div className="flex min-w-0 items-center gap-2">
+          <MomentAvatar author={moment.author} size={32} />
           <div className="min-w-0">
-            <Link href={createProfileHref(moment.author.userId, { returnTo: '/moments' })} title={`@${moment.author.userId}`} className="block truncate text-sm font-semibold text-foreground hover:text-primary">
+            <Link href={createProfileHref(moment.author.userId, { returnTo: '/moments' })} title={`@${moment.author.userId}`} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">
               {moment.author.name}
             </Link>
             <div className="moment-card-byline"><time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
