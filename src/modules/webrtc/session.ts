@@ -1,8 +1,9 @@
 import { assertMediaSupport, LocalMedia, mediaError } from './media';
 import { CallPeer } from './peer';
+import { DEFAULT_VIDEO_EFFECTS, normalizeVideoEffects, type VideoEffectsSettings } from '../video-effects/types';
 import type { CallMode, CallSignal, CallSnapshot, CallTransport, CallView, JoinCallResult } from './types';
 
-const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null });
+const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null, effects: { ...DEFAULT_VIDEO_EFFECTS }, effectsStatus: { phase: 'off', progress: 0, message: '' } });
 
 export class CallSession {
   private view = initialView();
@@ -69,6 +70,19 @@ export class CallSession {
     try {
       assertMediaSupport();
       const media = this.media = new LocalMedia();
+      media.onEffectsStatus = effectsStatus => { if (operation === this.operation) this.update({ effectsStatus }); };
+      media.onVideoEnded = () => {
+        if (operation !== this.operation || this.view.phase !== 'active') return;
+        this.publishMedia();
+        this.update({ error: '摄像头已停止' });
+      };
+      media.onVideoOutput = track => {
+        if (operation !== this.operation || this.view.phase !== 'active') return;
+        this.update({ localStream: new MediaStream(media.stream.getTracks()) });
+        void Promise.all([...this.peers.values()].map(peer => peer.replace('video', track))).catch(error => {
+          if (operation === this.operation) this.update({ error: mediaError(error) });
+        });
+      };
       await media.enable('audio');
       if (operation !== this.operation || this.disposed) return;
       // Selecting video is the explicit camera action; voice and incoming joins never capture video.
@@ -118,7 +132,7 @@ export class CallSession {
   }
 
   private watchTracks(): void {
-    this.media?.stream.getTracks().forEach((track) => {
+    this.media?.stream.getAudioTracks().forEach((track) => {
       track.onended = () => {
         if (this.view.phase !== 'active') return;
         this.media?.stream.removeTrack(track);
@@ -128,11 +142,18 @@ export class CallSession {
     });
   }
 
+  setEffects(settings: Partial<VideoEffectsSettings>): void {
+    if (this.view.phase !== 'active' || this.disposed) return;
+    const effects = normalizeVideoEffects({ ...this.view.effects, ...settings });
+    this.update({ effects });
+    this.media?.setEffects(effects);
+  }
+
   private publishMedia(): void {
     if (!this.media || this.view.phase !== 'active') return;
     const microphoneEnabled = this.media.stream.getAudioTracks().some((track) => track.readyState === 'live');
     const cameraEnabled = this.media.stream.getVideoTracks().some((track) => track.readyState === 'live');
-    this.update({ microphoneEnabled, cameraEnabled });
+    this.update({ microphoneEnabled, cameraEnabled, localStream: new MediaStream(this.media.stream.getTracks()) });
     const operation = this.operation;
     void this.transport.request('call:media', { roomId: this.roomId, callId: this.view.call?.id, microphoneEnabled, cameraEnabled }).catch((error) => {
       if (operation === this.operation) this.update({ error: mediaError(error) });

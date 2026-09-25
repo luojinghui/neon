@@ -24,9 +24,10 @@ function load(name, dependencies, globals) {
   const filename = path.join(__dirname, '../src/modules/webrtc', `${name}.ts`);
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } });
   const module = { exports: {} };
-  vm.runInNewContext(outputText, { module, exports: module.exports, require: (id) => dependencies[id], Error, setTimeout, clearTimeout, console, crypto: webcrypto, MediaStream: Stream, ...globals }, { filename });
+  vm.runInNewContext(outputText, { module, exports: module.exports, require: (id) => id === '../video-effects/types' ? effectTypes : dependencies[id], Error, setTimeout, clearTimeout, console, crypto: webcrypto, MediaStream: Stream, ...globals }, { filename });
   return module.exports;
 }
+const effectTypes = load('../video-effects/types', {});
 
 function fixture(acquire) {
   const captures = [], tracks = [], messages = [], peers = [];
@@ -179,4 +180,63 @@ test('perfect negotiation buffers ICE, resolves colliding offers and closes all 
   await impolite.receive({ description: { type: 'answer', sdp: 'v=0' } });
   assert.equal(second.candidates[0].candidate, 'ignored-offer-candidate', 'rollback may reuse candidates for the subsequent answer');
   impolite.close(); assert.equal(errors.length, 0);
+});
+
+test('effects settings reject unknown assets and clamp device work; default settings require no processor', () => {
+  const { normalizeVideoEffects, effectsEnabled, DEFAULT_VIDEO_EFFECTS } = effectTypes;
+  assert.equal(effectsEnabled(DEFAULT_VIDEO_EFFECTS), false);
+  const value = normalizeVideoEffects({ whitening: Infinity, smoothing: 300, sticker2d: '../../secret', color: 'red', background: 'https://elsewhere', accessory: 'unknown' });
+  assert.equal(value.whitening, 0); assert.equal(value.smoothing, 100);
+  assert.equal(value.sticker2d, 'none'); assert.equal(value.background, 'original'); assert.equal(value.accessory, 'none');
+});
+
+test('effects never open a camera, replace only the outgoing video, and reset preserves raw capture', async () => {
+  const f = fixture(); const outputs = [], processors = [];
+  const media = new f.media.LocalMedia(async (source) => {
+    const track = new Track('video');
+    const processor = { source, track, configure(settings) { this.settings = settings; }, async start() { return track; }, dispose() { track.stop(); this.disposed = true; } };
+    processors.push(processor); return processor;
+  });
+  media.onVideoOutput = track => outputs.push(track);
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, sticker2d: 'hearts' });
+  await flush(); assert.equal(f.captures.length, 0); assert.equal(processors.length, 0);
+  await media.enable('audio'); await media.enable('video'); await flush();
+  assert.equal(processors.length, 1);
+  assert.equal(media.stream.getVideoTracks()[0], processors[0].track);
+  assert.equal(f.tracks[1].readyState, 'live', 'raw camera remains owned while processing');
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, accessory: 'cat' }); await flush();
+  assert.equal(processors.length, 1, 'settings changes reuse the processor');
+  assert.equal(processors[0].settings.accessory, 'cat');
+  media.setEffects(effectTypes.DEFAULT_VIDEO_EFFECTS); await flush();
+  assert.equal(processors[0].disposed, true); assert.equal(media.stream.getVideoTracks()[0], f.tracks[1]);
+  assert.equal(f.captures.length, 2, 'effects never call getUserMedia');
+  media.dispose(); assert.ok(f.tracks.every(track => track.readyState === 'ended'));
+});
+
+test('closing the camera while models start releases raw and late processed tracks, without touching audio', async () => {
+  const f = fixture(); const pending = deferred(), processed = new Track('video'); let disposed = 0;
+  const media = new f.media.LocalMedia(async () => ({ configure() {}, start: () => pending.promise, dispose() { disposed++; processed.stop(); } }));
+  await media.enable('audio'); await media.enable('video');
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, background: 'sunroom' }); await flush();
+  media.disable('video'); pending.resolve(processed); await flush();
+  assert.ok(disposed > 0); assert.equal(processed.readyState, 'ended'); assert.equal(f.tracks[1].readyState, 'ended');
+  assert.equal(f.tracks[0].readyState, 'live'); assert.equal(media.stream.getVideoTracks().length, 0);
+  media.dispose();
+});
+
+test('initialization/runtime failures restore raw video and allow retry without re-acquiring a camera', async () => {
+  const f = fixture(); let fail, attempts = 0; const statuses = [];
+  const media = new f.media.LocalMedia(async (_source, _status, failed) => {
+    if (++attempts === 1) throw new Error('model unavailable');
+    fail = failed; const track = new Track('video');
+    return { configure() {}, async start() { return track; }, dispose() { track.stop(); } };
+  });
+  media.onEffectsStatus = status => statuses.push(status);
+  await media.enable('video');
+  const settings = { ...effectTypes.DEFAULT_VIDEO_EFFECTS, whitening: 20 };
+  media.setEffects(settings); await flush();
+  assert.equal(statuses.at(-1).phase, 'error'); assert.equal(media.stream.getVideoTracks()[0], f.tracks[0]);
+  media.setEffects(settings); await flush(); assert.notEqual(media.stream.getVideoTracks()[0], f.tracks[0]);
+  fail(new Error('GPU context lost')); assert.equal(media.stream.getVideoTracks()[0], f.tracks[0]);
+  assert.equal(f.captures.length, 1); media.dispose();
 });

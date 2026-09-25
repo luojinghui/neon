@@ -15,7 +15,8 @@ void main(){ color=vec4(clamp(texture(bodyMask,uv).r+texture(faceMask,uv).r,0.,1
 const PHOTO = `#version 300 es
 precision highp float;
 in vec2 uv; out vec4 color;
-uniform sampler2D photo,mask;
+uniform sampler2D photo,mask,backdropImage;
+uniform bool hasBackdropImage;
 uniform vec2 size;
 uniform float viewZoom;
 uniform vec2 viewOffset;
@@ -48,7 +49,8 @@ void main(){
   if(background==1) backdrop=mix(vec3(1.,.77,.79),vec3(1.,.95,.81),p.y);
   if(background==2) { backdrop=mix(vec3(.12,.10,.25),vec3(.38,.26,.58),p.y); vec2 cell=floor(p*vec2(75.,100.)); backdrop+=step(.985,hash(cell))*smoothstep(.15,0.,length(fract(p*vec2(75.,100.))-.5))*.7; }
   if(background==3) backdrop=mix(vec3(.53,.86,.78),vec3(.85,.97,.86),p.y);
-  processed=mix(backdrop,processed,background!=0 ? smoothstep(.2,.85,m.g) : inside);
+  if(hasBackdropImage) backdrop=texture(backdropImage,p).rgb;
+  processed=mix(backdrop,processed,(background!=0 || hasBackdropImage) ? smoothstep(.2,.85,m.g) : inside);
   float outer=0.;
   for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++) outer=max(outer,personAt(p+vec2(x,y)*pixel*(2.+outline*5.)));
   processed=mix(processed,vec3(1.,.96,.87),max(0.,outer-m.g)*outline*.85);
@@ -146,6 +148,8 @@ export class PortraitRenderer {
   private faceProgram: WebGLProgram;
   private photo: WebGLTexture;
   private mask: WebGLTexture;
+  private backdrop: WebGLTexture;
+  private hasBackdrop = false;
   private fbo: WebGLFramebuffer;
   private quad: WebGLVertexArrayObject;
   private mesh: WebGLVertexArrayObject;
@@ -181,6 +185,8 @@ export class PortraitRenderer {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     this.mask = this.texture();
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 255, 0, 255]));
+    this.backdrop = this.texture();
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
     this.fbo = gl.createFramebuffer()!;
     this.mesh = gl.createVertexArray()!;
     this.meshBuffer = gl.createBuffer()!;
@@ -231,7 +237,26 @@ export class PortraitRenderer {
     this.segmented = true;
   }
 
-  render(settings: PortraitSettings) {
+  /** Live sources reuse the same textures and programs; static portrait behavior is unchanged. */
+  updateSource(source: HTMLVideoElement | HTMLCanvasElement) {
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.photo);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+  }
+
+  updateFaces(faces: NormalizedLandmark[][]) { this.faces = faces; this.faceKey = ''; }
+
+  setBackdrop(source: HTMLImageElement | null) {
+    this.hasBackdrop = Boolean(source);
+    if (!source) return;
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.backdrop);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+  }
+
+  render(settings: PortraitSettings, autoFrame = true) {
     const gl = this.gl;
     if (this.disposed || gl.isContextLost()) throw new Error('人像渲染已中断，请重新选择照片');
     if (this.canvas.width !== this.width || this.canvas.height !== this.height) { this.canvas.width = this.width; this.canvas.height = this.height; }
@@ -240,11 +265,14 @@ export class PortraitRenderer {
     gl.colorMask(true, true, true, true); gl.depthMask(true);
     const face = this.faces[Math.min(this.faces.length - 1, Math.floor(settings.faceIndex))];
     const sticker = face && settings.sticker !== 'none' ? this.layoutSticker(face, settings) : null;
+    if (sticker && !autoFrame) sticker.view = { zoom: 1, offset: [0, 0] };
     const view = sticker?.view || { zoom: 1, offset: [0, 0] };
     gl.useProgram(this.photoProgram); gl.bindVertexArray(this.quad);
     gl.uniform1f(gl.getUniformLocation(this.photoProgram, 'viewZoom'), view.zoom);
     gl.uniform2f(gl.getUniformLocation(this.photoProgram, 'viewOffset'), view.offset[0], view.offset[1]);
     this.bindTexture(this.photoProgram, 'photo', this.photo, 0); this.bindTexture(this.photoProgram, 'mask', this.mask, 1);
+    this.bindTexture(this.photoProgram, 'backdropImage', this.backdrop, 2);
+    gl.uniform1i(gl.getUniformLocation(this.photoProgram, 'hasBackdropImage'), this.hasBackdrop && this.segmented ? 1 : 0);
     gl.uniform2f(gl.getUniformLocation(this.photoProgram, 'size'), this.width, this.height);
     for (const key of ['whitening', 'smoothing', 'cartoon', 'outline'] as const) gl.uniform1f(gl.getUniformLocation(this.photoProgram, key), settings[key] / 100);
     gl.uniform1i(gl.getUniformLocation(this.photoProgram, 'background'), this.segmented ? ['original', 'peach', 'cosmos', 'mint'].indexOf(settings.background) : 0);
@@ -328,7 +356,7 @@ export class PortraitRenderer {
     this.disposed = true;
     const gl = this.gl;
     [this.photoProgram, this.maskProgram, this.meshProgram, this.faceProgram].forEach(p => gl.deleteProgram(p));
-    [this.photo, this.mask].forEach(t => gl.deleteTexture(t));
+    [this.photo, this.mask, this.backdrop].forEach(t => gl.deleteTexture(t));
     gl.deleteFramebuffer(this.fbo); gl.deleteBuffer(this.meshBuffer); gl.deleteVertexArray(this.quad); gl.deleteVertexArray(this.mesh);
     gl.deleteBuffer(this.faceBuffer); gl.deleteVertexArray(this.faceMesh);
     gl.getExtension('WEBGL_lose_context')?.loseContext();

@@ -53,4 +53,7 @@ export interface CallView {
   peers: Record<string, PeerView>;
   error: string;
   joinedAt: number | null;
+  effects: VideoEffectsSettings;
+  effectsStatus: VideoEffectsStatus;
 }
+import type { VideoEffectsSettings, VideoEffectsStatus } from '../video-effects/types';

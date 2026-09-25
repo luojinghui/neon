@@ -30,6 +30,28 @@ function storage() {
   return { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key), key: index => [...values.keys()][index], get length() { return values.size; } };
 }
 
+test('vision downloads share in-flight bytes, report progress, reuse cache and retry failed resources', async () => {
+  const filename = path.resolve(__dirname, '../src/app/doodle/visionRuntime.ts');
+  const { outputText } = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } });
+  const exports = {}, requests = [], cached = new Map(); let fail = false;
+  vm.runInNewContext(outputText, { exports, navigator: {}, Uint8Array,
+    caches: { open: async () => ({ match: async url => cached.has(url) ? new Response(cached.get(url)) : undefined, put: async (url, response) => { cached.set(url, await response.arrayBuffer()); } }) },
+    fetch: async url => {
+      requests.push(url);
+      if (fail) return new Response('<html>not a model</html>', { headers: { 'content-type': 'text/html' } });
+      return new Response(new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array([1, 2])); controller.enqueue(new Uint8Array([3, 4])); controller.close(); } }), { headers: { 'content-length': '4' } });
+    }
+  }, { filename });
+  const first = [], second = [];
+  const [a, b] = await Promise.all([exports.visionAsset('face_landmarker.task', n => first.push(n)), exports.visionModel('face_landmarker.task'), exports.visionAsset('face_landmarker.task', n => second.push(n))]);
+  assert.deepEqual([...a], [1, 2, 3, 4]); assert.equal(a, b); assert.equal(requests.length, 1);
+  assert.ok(first.includes(2) && second.includes(2)); assert.equal(first.at(-1), 4); assert.equal(second.at(-1), 4);
+  assert.equal(cached.size, 1); await exports.visionAsset('face_landmarker.task'); assert.equal(requests.length, 1);
+  fail = true; await assert.rejects(exports.visionModel('selfie_multiclass.tflite'), /暂时无法加载/);
+  fail = false; assert.deepEqual([...await exports.visionModel('selfie_multiclass.tflite')], [1, 2, 3, 4]);
+  await assert.rejects(exports.visionAsset('../secret'), /未知/); assert.equal(requests.length, 3);
+});
+
 test('planet cache isolates identities, retains an empty result and rejects stale/corrupt data', () => {
   const s = storage();
   cache.writeRoomListCache('a', [room('first')], s);
