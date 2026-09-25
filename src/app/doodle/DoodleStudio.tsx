@@ -231,6 +231,7 @@ export default function DoodleStudio() {
   const [resultUrl, setResultUrl] = useState('');
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState({ value: 0, message: '正在准备照片' });
   const [shareInfo, setShareInfo] = useState<ShareInfo | null>(null);
   const [portrait, setPortrait] = useState<PortraitSettings>(DEFAULT_PORTRAIT);
   const [analysis, setAnalysis] = useState<PortraitAnalysis | null>(null);
@@ -358,18 +359,26 @@ export default function DoodleStudio() {
       const previousAnalysis = analysisRef.current;
       const request = ++analysisRequestRef.current;
       rawCanvasRef.current = rawCanvas;
+      setProcessingProgress({ value: 5, message: '正在准备照片' });
       setMode('processing');
       setBusy(true);
       try {
         await waitForPaint();
-        const detected = await analyzePortrait(rawCanvas);
+        const detected = await analyzePortrait(rawCanvas, (value, message) => {
+          if (request === analysisRequestRef.current) setProcessingProgress(current => ({ value: Math.max(current.value, Math.round(value)), message }));
+        });
         if (request !== analysisRequestRef.current) { detected.renderer?.dispose(); return false; }
         analysisRef.current = detected;
         setAnalysis(detected);
         capturedAtRef.current = new Date();
         const key = window.crypto.randomUUID();
+        setProcessingProgress({ value: 90, message: '正在生成角色卡片' });
+        await waitForPaint();
         const original = await canvasToBlob(rawCanvas, 0.92);
         const processed = await renderResult(title, themeId, templateId);
+        if (request !== analysisRequestRef.current) return false;
+        setProcessingProgress({ value: 100, message: '角色卡片已就绪' });
+        await waitForPaint();
         previousAnalysis?.renderer?.dispose();
         const reviewContext: ReviewContext = {
           id: '',
@@ -539,6 +548,7 @@ export default function DoodleStudio() {
       stopCamera();
       setCountdown(0);
       setCameraError('');
+      setProcessingProgress({ value: 0, message: '正在读取照片' });
       setMode('processing');
       setBusy(true);
       try {
@@ -770,7 +780,7 @@ export default function DoodleStudio() {
               <div className="absolute -right-4 bottom-20 z-10 rotate-12 text-5xl text-[#8b74ff]"><StarFilled /></div>
               <div className="rotate-2 rounded-[34px] border-[6px] border-[#201a17] bg-[#ffd84d] p-5 shadow-[14px_14px_0_#201a17]">
                 <div className="aspect-[3/4] overflow-hidden rounded-[24px] border-4 border-[#201a17] bg-[linear-gradient(145deg,#ff7ba8_0_50%,#79e7c2_50%)] p-6">
-                  <div className="flex h-full flex-col items-center justify-center rounded-[999px_999px_80px_80px] border-4 border-dashed border-[#201a17]/70 bg-white/35 text-center">
+                  <div className="flex h-full flex-col items-center justify-center rounded-[999px_999px_80px_80px] border-4 border-dashed border-[#201a17]/70 bg-white/35 text-center text-[#201a17]">
                     <SmileOutlined className="text-8xl" />
                     <span className="mt-5 rotate-[-3deg] rounded-full border-4 border-[#201a17] bg-white px-6 py-3 text-xl font-black shadow-[5px_5px_0_#201a17]">笑一下，咔嚓！</span>
                   </div>
@@ -810,7 +820,12 @@ export default function DoodleStudio() {
           <section className="flex min-h-[65vh] flex-col items-center justify-center text-center">
             <div className="doodle-processing-orbit mb-8"><Spin indicator={<LoadingOutlined spin />} size="large" /></div>
             <h1 className="text-3xl font-black">正在领取你的今日角色…</h1>
-            <p className="mt-3 font-semibold text-[#665750] dark:text-[#ccb9ad]">寻找五官与人物轮廓，为你的新角色准备配件</p>
+            <p className="mt-3 font-semibold text-[#665750] dark:text-[#ccb9ad]" role="status">{processingProgress.message}</p>
+            <div className="mt-7 w-full max-w-sm px-5">
+              <div className="mb-2 flex justify-between text-sm text-foreground-secondary"><span>角色生成进度</span><span className="tabular-nums">{processingProgress.value}%</span></div>
+              <div role="progressbar" aria-label="角色生成进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={processingProgress.value} aria-valuetext={`${processingProgress.value}%，${processingProgress.message}`} className="h-2.5 overflow-hidden rounded-full bg-surface-active"><div className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${processingProgress.value}%` }} /></div>
+              <p className="mt-3 text-xs leading-5 text-foreground-secondary">首次准备可能需要一点时间，请稍候，照片正在变成你的专属角色。</p>
+            </div>
           </section>
         )}
 
