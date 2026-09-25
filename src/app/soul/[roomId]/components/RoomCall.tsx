@@ -2,7 +2,7 @@
 
 import { AudioMutedOutlined, AudioOutlined, CloseOutlined, ExpandOutlined, LoadingOutlined, PhoneOutlined, SettingOutlined, ShrinkOutlined, SwapOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { Modal } from 'antd';
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { isMobileDevice } from '@/modules/webrtc/media';
 import { CallSession } from '@/modules/webrtc/session';
@@ -104,7 +104,7 @@ export function RoomCallNotice() {
   </>;
 }
 
-function MediaTile({ participant, stream, state, local, compact, speakingMirror, onFlip, flipBusy }: { participant: CallParticipant; stream?: MediaStream | null; state?: PeerView['connectionState']; local?: boolean; compact: boolean; speakingMirror?: boolean; onFlip?: () => void; flipBusy?: boolean }) {
+function MediaTile({ participant, stream, state, local, compact, speakingMirror, onFlip, flipBusy, primary, slot, onSelect }: { participant: CallParticipant; stream?: MediaStream | null; state?: PeerView['connectionState']; local?: boolean; compact: boolean; speakingMirror?: boolean; onFlip?: () => void; flipBusy?: boolean; primary: boolean; slot: number; onSelect: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
   const [playBlocked, setPlayBlocked] = useState(false);
@@ -122,9 +122,10 @@ function MediaTile({ participant, stream, state, local, compact, speakingMirror,
     if (stream) void element.play().then(() => setPlayBlocked(false)).catch(() => setPlayBlocked(true));
     return () => { element.srcObject = null; };
   }, [stream, local]);
-  return <div className={`soul-call-tile ${local ? 'is-local' : ''} ${compact ? 'is-compact' : ''}`}>
+  return <div className={`soul-call-tile ${local ? 'is-local' : ''} ${compact ? 'is-compact' : ''} ${primary ? 'is-primary' : 'is-thumbnail'}`} style={{ '--tile-slot': slot } as CSSProperties}>
     <video ref={video} autoPlay playsInline muted aria-label={`${participant.name}的视频`} className={`soul-call-video ${participant.cameraEnabled ? '' : 'is-hidden'} ${speakingMirror ? 'is-mirrored' : ''}`} />
     {!local && <audio ref={audio} autoPlay />}
+    {!primary && <button type="button" className="soul-call-select-tile" aria-label={`将${local ? '我的' : participant.name + '的'}画面放大`} onClick={onSelect}><span>放大画面 <ExpandOutlined /></span></button>}
     {!participant.cameraEnabled && <div className="soul-call-person"><div className="soul-call-avatar">{participant.name.slice(0, 1) || '星'}{participant.avatarUrl && (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={participant.avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
@@ -142,9 +143,13 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const [mirrored, setMirrored] = useState(true);
   const [effectsOpen, setEffectsOpen] = useState(false);
+  const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const joining = view.phase === 'joining';
   const remote = view.call?.participants.filter((member) => member.peerId !== view.selfId) || [];
   const self = view.call?.participants.find((member) => member.peerId === view.selfId);
+  const members = [...remote, ...(self ? [self] : [])];
+  const primaryPeer = members.some(member => member.peerId === selectedPeer) ? selectedPeer : (remote[0]?.peerId || self?.peerId);
+  const thumbnailPeers = members.filter(member => member.peerId !== primaryPeer).map(member => member.peerId);
   const connected = remote.some((member) => view.peers[member.peerId]?.connectionState === 'connected');
   const status = joining ? '准备中' : !remote.length ? '等待加入' : connected ? `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')} · ${remote.length + 1} 人` : '连接中';
 
@@ -187,14 +192,14 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       if (!drag.current || !panel.current) return;
       setPosition({ x: Math.max(8, Math.min(window.innerWidth - panel.current.offsetWidth - 8, drag.current.left + event.clientX - drag.current.x)), y: Math.max(8, Math.min(window.innerHeight - panel.current.offsetHeight - 8, drag.current.top + event.clientY - drag.current.y)) });
     }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
-      <div className="min-w-0"><h2>{roomName || '星球通话'}</h2><p className="soul-call-status" role="status"><span />{status}</p></div>
-      <div className="soul-call-header-actions"><button type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" title="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); setEffectsOpen(open => !open); }}><SettingOutlined /></button><button type="button" className="soul-call-view-button" onClick={() => { setEffectsOpen(false); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'} title={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button></div>
+      <div className="min-w-0"><p className="soul-call-eyebrow">PLANET CONNECTION</p><h2>{roomName || '星球通话'}</h2><p className="soul-call-status" role="status"><span />{status}</p></div>
+      <div className="soul-call-header-actions"><button type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" title="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); if (!effectsOpen) setSelectedPeer(view.selfId); setEffectsOpen(open => !open); }}><SettingOutlined /></button><button type="button" className="soul-call-view-button" onClick={() => { setEffectsOpen(false); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'} title={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button></div>
     </header>
-    <div className={`soul-call-stage ${remote.length > 1 ? 'has-group' : ''} ${remote.length === 0 ? 'is-waiting' : ''}`}>
+    <div className={`soul-call-stage ${remote.length > 1 ? 'has-group' : ''} ${remote.length === 0 ? 'is-waiting' : ''}`} style={{ '--call-thumbnail-count': Math.max(1, thumbnailPeers.length) } as CSSProperties}>
       {joining ? <div className="soul-call-waiting"><LoadingOutlined className="text-3xl" aria-label="准备设备" /></div> : <>
-        {remote.map((member) => <MediaTile key={member.peerId} participant={member} stream={view.peers[member.peerId]?.stream} state={view.peers[member.peerId]?.connectionState} compact={mini} />)}
-        {self && <MediaTile key="local" participant={{ ...self, microphoneEnabled: view.microphoneEnabled, cameraEnabled: view.cameraEnabled }} stream={view.localStream} local compact={mini} speakingMirror={mirrored} flipBusy={view.mediaBusy} onFlip={mobile ? () => { setMirrored(value => !value); void session.toggleDevice('video', true); } : undefined} />}
-        {!remote.length && <div className="soul-call-waiting"><div className="soul-call-orbit"><PhoneOutlined /></div></div>}
+        {remote.map((member) => <MediaTile key={member.peerId} participant={member} stream={view.peers[member.peerId]?.stream} state={view.peers[member.peerId]?.connectionState} compact={mini} primary={primaryPeer === member.peerId} slot={thumbnailPeers.indexOf(member.peerId) + 1} onSelect={() => setSelectedPeer(member.peerId)} />)}
+        {self && <MediaTile key="local" participant={{ ...self, microphoneEnabled: view.microphoneEnabled, cameraEnabled: view.cameraEnabled }} stream={view.localStream} local compact={mini} primary={primaryPeer === self.peerId} slot={thumbnailPeers.indexOf(self.peerId) + 1} onSelect={() => setSelectedPeer(self.peerId)} speakingMirror={mirrored} flipBusy={view.mediaBusy} onFlip={mobile ? () => { setMirrored(value => !value); void session.toggleDevice('video', true); } : undefined} />}
+        {!remote.length && !view.cameraEnabled && <div className="soul-call-waiting"><div className="soul-call-orbit"><span>✦</span></div><h3>在星球的这一端</h3><p>等待伙伴加入，一起接通信号</p></div>}
       </>}
     </div>
     {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></button></div>}

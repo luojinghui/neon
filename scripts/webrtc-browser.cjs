@@ -79,6 +79,10 @@ async function waitFor(check, label, timeout = 30000) {
       assert.equal(await page.evaluate(() => window.__captures.length), 0, 'room arrival must not capture devices');
       return page;
     }
+    if (process.env.WEBRTC_CLIPBOARD_ONLY) {
+      await require('./clipboard-browser.cjs')(await participant(), url, output);
+      assert.deepEqual(errors, []); return;
+    }
     const host = await participant();
     const guest = await participant();
     await host.getByRole('button', { name: '语音通话', exact: true }).click();
@@ -97,6 +101,12 @@ async function waitFor(check, label, timeout = 30000) {
       const stats = await window.__peers[0].getStats(); return [...stats.values()].some((stat) => stat.type === 'inbound-rtp' && stat.kind === 'video' && stat.framesDecoded > 0);
     }), 'video frames decoded');
     await guest.screenshot({ path: path.join(output, 'desktop-video.png') });
+    await host.getByRole('button', { name: '将我的画面放大', exact: true }).click();
+    assert.equal(await host.locator('.is-local.is-primary').count(), 1);
+    await host.locator('.is-thumbnail .soul-call-select-tile').click();
+    assert.equal(await host.locator('.is-local.is-thumbnail').count(), 1);
+    assert.equal(await host.evaluate(() => window.__peers.length), 1, 'swapping tiles preserves the peer connection');
+    assert.equal(await host.evaluate(() => window.__captures.length), 2, 'swapping tiles never reacquires devices');
     if (process.env.WEBRTC_EFFECTS_TEST_IMAGE) {
       await host.getByRole('button', { name: '画面设置', exact: true }).click();
       await host.getByRole('button', { name: '自然', exact: true }).click();
@@ -105,28 +115,34 @@ async function waitFor(check, label, timeout = 30000) {
       assert.equal(await host.locator('.soul-call-effect-status .is-error').count(), 0, 'real models and GPU initialize');
       await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && !window.__tracks.includes(sender.track))), 'processed track sent to peers');
       await host.getByRole('tab', { name: '2D 贴纸', exact: true }).click(); await host.getByRole('button', { name: '贴纸：星星脸', exact: true }).click();
-      await host.getByRole('tab', { name: '头顶挂件', exact: true }).click(); await host.getByRole('button', { name: '挂件：兔兔冒泡', exact: true }).click();
+      await host.getByRole('tab', { name: '面部化身', exact: true }).click(); await host.getByRole('button', { name: '面部化身：星猫', exact: true }).click();
       await host.getByRole('tab', { name: '背景', exact: true }).click(); await host.getByRole('button', { name: '背景：日光窗', exact: true }).click();
+      await waitFor(() => host.getByRole('progressbar').count().then(count => count === 0), 'background model initialization', 120000);
+      assert.equal(await host.locator('.soul-call-effect-status .is-error').count(), 0);
       await waitFor(() => host.locator('.soul-call-effect-status').innerText().then(text => !text.includes('面对镜头')), 'real face detection');
       await new Promise(resolve => setTimeout(resolve, 800));
       await host.screenshot({ path: path.join(output, 'effects-settings.png') });
       await guest.screenshot({ path: path.join(output, 'effects-received.png') });
-      await host.getByRole('tab', { name: '卡通贴贴', exact: true }).click(); await host.getByRole('button', { name: '卡通：小狐探头', exact: true }).click();
+      await host.getByRole('tab', { name: '面部化身', exact: true }).click(); await host.getByRole('button', { name: '面部化身：赤狐', exact: true }).click();
       await new Promise(resolve => setTimeout(resolve, 400));
       await guest.screenshot({ path: path.join(output, 'effects-cartoon.png') });
       await host.getByRole('tab', { name: '美颜', exact: true }).click(); await host.getByRole('button', { name: '原貌', exact: true }).click();
       await host.getByRole('tab', { name: '背景', exact: true }).click(); await host.getByRole('button', { name: '背景：原背景', exact: true }).click();
       await host.getByRole('tab', { name: '2D 贴纸', exact: true }).click(); await host.getByRole('button', { name: '贴纸：无', exact: true }).click();
+      await waitFor(() => host.getByRole('progressbar').count().then(count => count === 0), 'latest effects ready', 120000);
       await new Promise(resolve => setTimeout(resolve, 600));
-      const skinDifference = await host.evaluate(() => {
+      const faceDifference = await host.evaluate(() => {
         const original = window.__tracks.find(track => track.kind === 'video' && track.readyState === 'live').canvas;
-        const processed = window.__peers[0].getSenders().find(sender => sender.track?.kind === 'video').track.canvas;
+        const output = document.querySelector('.is-local video');
+        const snapshot = document.createElement('canvas'); snapshot.width = 640; snapshot.height = 480;
+        const context = snapshot.getContext('2d'); context.drawImage(output, 0, 0, 640, 480);
         const a = original.getContext('2d').getImageData(290, 130, 60, 70).data;
-        const b = processed.getContext('2d').getImageData(290, 130, 60, 70).data;
+        const b = context.getImageData(290, 130, 60, 70).data;
         let difference = 0; for (let i = 0; i < a.length; i++) if (i % 4 !== 3) difference += Math.abs(a[i] - b[i]);
         return difference / (60 * 70 * 3);
       });
-      assert.ok(skinDifference < 2, `cartoon stickers leave the central face unchanged: ${skinDifference}`);
+      assert.ok(faceDifference > 15, `mesh avatar covers the face: ${faceDifference}`);
+      await host.getByRole('tab', { name: '面部化身', exact: true }).click(); await host.getByRole('button', { name: '面部化身：原面容', exact: true }).click();
       await host.getByRole('button', { name: '关闭画面设置', exact: true }).click();
       console.log('PASS real MediaPipe models, face tracking, WebGL effects and processed outgoing track');
     }
@@ -198,6 +214,7 @@ async function waitFor(check, label, timeout = 30000) {
     await host.getByRole('link', { name: '返回星球', exact: true }).click();
     await host.waitForURL(`${url}/soul`);
     assert.equal(await host.evaluate(() => window.__tracks.every((track) => track.readyState === 'ended')), true, 'leaving the room releases devices');
+    await require('./clipboard-browser.cjs')(host, url, output);
     if (process.env.WEBRTC_EFFECTS_TEST_IMAGE) {
       await host.goto(`${url}/doodle`);
       await host.locator('input[type=file]').setInputFiles(process.env.WEBRTC_EFFECTS_TEST_IMAGE);
@@ -218,7 +235,7 @@ async function waitFor(check, label, timeout = 30000) {
         fs.writeFileSync(path.join(output, `portrait-${id}.jpg`), Buffer.from(data, 'base64'));
       }
       await host.screenshot({ path: path.join(output, 'portrait-settings.png') });
-      console.log('PASS portrait and call share illustrated characters with original facial features preserved');
+      console.log('PASS static portrait editor remains unchanged by the independent call renderer');
     }
     assert.deepEqual(errors, [], 'no uncaught page errors');
     console.log('PASS hangup and room navigation cleanup; no uncaught page errors');
