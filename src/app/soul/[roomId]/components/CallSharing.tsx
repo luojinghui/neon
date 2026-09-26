@@ -1,6 +1,6 @@
 'use client';
 
-import { CloseOutlined, DesktopOutlined, EditOutlined, FileOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { DesktopOutlined, EditOutlined, FileOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
 import { useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type WheelEvent } from 'react';
 import dynamic from 'next/dynamic';
 import type { CallSession } from '@/modules/webrtc/session';
@@ -16,13 +16,18 @@ const SharedResource = dynamic(() => import('./SharedResource').then(module => m
 export function ShareMenu({ view, session, onClose }: { view: CallView; session: CallSession; onClose: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const screenAvailable = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getDisplayMedia;
-  return <aside className="call-share-menu" aria-label="共享内容">
-    <header><h3>与大家共享</h3><button type="button" aria-label="关闭共享菜单" onClick={onClose}><CloseOutlined /></button></header>
-    <button type="button" aria-label="共享屏幕" disabled={!screenAvailable || view.shareBusy || !!view.presentation} onClick={() => { void session.startScreen(); onClose(); }}><DesktopOutlined /><span>共享屏幕</span></button>
-    <button type="button" aria-label="共享白板" disabled={view.shareBusy || !!view.presentation} onClick={() => { void session.startWhiteboard(); onClose(); }}><EditOutlined /><span>共享白板</span></button>
-    <button type="button" aria-label="共享文件" disabled={view.shareBusy || !!view.presentation} onClick={() => input.current?.click()}><FileOutlined /><span>共享文件</span></button>
-    <input ref={input} type="file" hidden aria-label="选择共享文件" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.ppt,.pptx,.log,.txt,.md,.markdown,.html,.htm" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) { void session.shareFile(file); onClose(); } }} />
-  </aside>;
+  const canSwitch = !view.presentation || view.presentation.ownerId === view.selfId;
+  return <div className="call-share-popover-layer" onPointerDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <aside className="call-share-menu" aria-label="共享内容">
+      <header><h3>{view.presentation && canSwitch ? '切换共享' : '共享内容'}</h3></header>
+      <div className="call-share-options">
+        <button type="button" aria-label="共享屏幕" aria-pressed={view.presentation?.kind === 'screen'} disabled={!screenAvailable || view.shareBusy || !canSwitch} onClick={() => { void session.startScreen(); onClose(); }}><span className="call-share-option-icon"><DesktopOutlined /></span><span>屏幕</span></button>
+        <button type="button" aria-label="共享白板" aria-pressed={view.presentation?.kind === 'whiteboard'} disabled={view.shareBusy || !canSwitch} onClick={() => { void session.startWhiteboard(); onClose(); }}><span className="call-share-option-icon"><EditOutlined /></span><span>白板</span></button>
+        <button type="button" aria-label="共享文件" aria-pressed={view.presentation?.kind === 'resource'} disabled={view.shareBusy || !canSwitch} onClick={() => input.current?.click()}><span className="call-share-option-icon"><FileOutlined /></span><span>文件</span></button>
+      </div>
+      <input ref={input} type="file" hidden aria-label="选择共享文件" accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,.ppt,.pptx,.log,.txt,.md,.markdown,.html,.htm" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) { void session.shareFile(file); onClose(); } }} />
+    </aside>
+  </div>;
 }
 
 function ZoomableSurface({ children, whiteboard = false }: { children: ReactNode; whiteboard?: boolean }) {

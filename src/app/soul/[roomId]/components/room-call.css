@@ -53,6 +53,7 @@
 .soul-call-controls > button.is-off { color: hsl(var(--foreground-muted)); background: hsl(var(--surface-hover)); }
 .soul-call-controls > button.is-hangup { background: #e7676b; color: #fff; }
 .soul-call-controls > button.is-hangup:hover { background: #d45157; }
+.soul-call-controls > button.is-sharing { border-color: hsl(var(--primary) / .5); color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
 .soul-call-camera-icon { position: relative; display: inline-flex; }
 .soul-call-camera-icon i { position: absolute; top: 50%; left: -2px; width: 24px; height: 1.5px; background: currentColor; transform: rotate(-45deg); box-shadow: 0 1px 0 #1a262b; }
 .soul-call-privacy { margin-top: 14px; text-align: center; font-size: 11px; color: #859c96; }
@@ -138,9 +139,9 @@
 .soul-call-effect-loading { position: absolute; z-index: 4; top: 92px; left: 32px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; background: hsl(var(--surface)); font-size: 11px; color: hsl(var(--foreground-secondary)); }
 .is-mini .soul-call-effect-loading { top: 62px; left: 12px; font-size: 10px; padding: 4px 6px; }
 @media (max-width: 600px) {
-  .soul-call-effects { top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); right: 10px; left: 10px; width: auto; max-height: 52dvh; padding: 14px; }
+  .is-full .soul-call-effects { position: relative; inset: auto; flex: 0 1 auto; width: 100%; max-height: min(44dvh, 420px); margin-top: 8px; padding: 14px; border-radius: 16px; }
   .soul-call-effect-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .soul-call-effects-body { min-height: 140px; }
+  .soul-call-effects-body { min-height: 0; margin-top: 10px; }
   .soul-call-effects-heading { margin-bottom: 8px; }
   .soul-call-effect-reset { margin-top: 8px; padding: 8px; }
   .soul-call-effect-status { margin-top: 10px; }
@@ -177,10 +178,9 @@
 .soul-call-participants li .is-connected { color: hsl(var(--success)); }
 .soul-call-participants small { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; color: hsl(var(--foreground-secondary)); font-size: 11px; }
 @media (max-width: 600px) {
-  .is-full.is-editing .soul-call-stage { flex: none; height: calc(48dvh - 96px); min-height: 100px; }
+  .is-full.is-editing .soul-call-stage { flex: 1 1 0; height: auto; min-height: 100px; }
   .is-full.is-editing .soul-call-stage.has-group { grid-template-rows: minmax(0, 1fr) 70px; }
-  .is-full.is-editing .soul-call-footer { margin-top: auto; }
-  .is-full.is-editing .soul-call-effects { max-height: 43dvh; }
+  .is-full.is-editing .soul-call-footer { flex: none; margin-top: 0; }
   .is-full .soul-call-stage.has-group { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) 116px; }
   .is-full .soul-call-stage.has-group .is-primary { grid-column: 1 / -1; grid-row: 1; }
   .is-full .soul-call-stage.has-group .is-thumbnail { grid-column: var(--tile-slot); grid-row: 2; }

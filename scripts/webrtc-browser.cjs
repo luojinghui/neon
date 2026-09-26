@@ -41,15 +41,19 @@ async function waitFor(check, label, timeout = 30000) {
   try {
     await waitFor(async () => (await fetch(`${url}/healthz`)).ok, 'test server');
     browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}), args: ['--enable-unsafe-swiftshader', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
-    async function participant(mobile = false) {
+    async function participant(mobile = false, permissions = true) {
       const context = await browser.newContext(mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1' } : { viewport: { width: 1280, height: 900 } });
-      await context.grantPermissions(['microphone', 'camera'], { origin: url });
+      if (permissions) await context.grantPermissions(['microphone', 'camera'], { origin: url });
       const page = await context.newPage(); pages.push(page);
       page.on('pageerror', (error) => errors.push(error.message));
       const portrait = process.env.WEBRTC_EFFECTS_TEST_IMAGE ? `data:image/jpeg;base64,${fs.readFileSync(process.env.WEBRTC_EFFECTS_TEST_IMAGE).toString('base64')}` : null;
-      await page.addInitScript(({ portrait }) => {
+      await page.addInitScript(({ portrait, permissions }) => {
         window.__captures = []; window.__tracks = []; window.__peers = []; window.__canvasTracks = []; window.__microphones = [];
         window.__screenTracks = [];
+        if (!permissions) {
+          const query = navigator.permissions.query.bind(navigator.permissions);
+          navigator.permissions.query = descriptor => ['microphone', 'camera'].includes(descriptor.name) ? Promise.resolve({ state: 'prompt' }) : query(descriptor);
+        }
         navigator.mediaDevices.getDisplayMedia = async () => {
           const canvas = document.createElement('canvas'); canvas.width = 960; canvas.height = 540;
           const paint = () => { const ctx = canvas.getContext('2d'); ctx.fillStyle = '#eb7042'; ctx.fillRect(0, 0, 960, 540); ctx.fillStyle = '#fff'; ctx.font = '40px sans-serif'; ctx.fillText('Shared screen', 60, 100); };
@@ -89,7 +93,7 @@ async function waitFor(check, label, timeout = 30000) {
           async setRemoteDescription(description) { this.trace.push({ event: 'remote-description', description }); return super.setRemoteDescription(description); }
           async addIceCandidate(candidate) { this.trace.push({ event: 'remote-candidate', candidate }); return super.addIceCandidate(candidate); }
         };
-      }, { portrait });
+      }, { portrait, permissions });
       await page.goto(`${url}/soul/soul-harbor`);
       await waitFor(() => page.getByRole('button', { name: '语音通话', exact: true }).isEnabled(), 'room join');
       assert.equal(await page.evaluate(() => window.__captures.length), 0, 'room arrival must not capture devices');
@@ -203,7 +207,7 @@ async function waitFor(check, label, timeout = 30000) {
     assert.equal(await host.evaluate(() => window.__canvasTracks.every(track => track.readyState === 'ended')), true, 'camera off stops processed output immediately');
     assert.equal(await host.evaluate(() => window.__tracks.some((track) => track.kind === 'audio' && track.readyState === 'live')), true);
     console.log('PASS real video frames, full/mini continuity, camera stop preserves voice');
-    const mobile = await participant(true);
+    const mobile = await participant(true, false);
     await mobile.getByRole('button', { name: '加入', exact: true }).click();
     await mobile.getByText('允许通话权限', { exact: true }).waitFor();
     await waitFor(() => mobile.locator('.ant-modal').evaluate((element) => {
@@ -215,7 +219,7 @@ async function waitFor(check, label, timeout = 30000) {
     await mobile.getByRole('button', { name: '取消', exact: true }).click();
     assert.equal(await mobile.evaluate(() => window.__captures.length), 0, 'declining reminder never captures');
     await mobile.getByRole('button', { name: '加入', exact: true }).click();
-    await mobile.getByRole('button', { name: '开始语音', exact: true }).click();
+    assert.equal(await mobile.getByText('允许通话权限', { exact: true }).count(), 0, 'permission reminder appears only once per day');
     await waitFor(() => mobile.evaluate(() => window.__peers.length === 2 && window.__peers.every((peer) => peer.connectionState === 'connected')), 'three-party mesh');
     await mobile.screenshot({ path: path.join(output, 'mobile-group.png') });
     const beforeSettings = await mobile.evaluate(() => window.__captures.length);

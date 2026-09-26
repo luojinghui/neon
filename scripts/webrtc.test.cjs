@@ -105,6 +105,17 @@ test('screen permission denial is quiet and leaves the ongoing call intact', asy
   assert.equal(f.session.getSnapshot().shareBusy, false); f.session.dispose();
 });
 
+test('cancelling a screen switch preserves the current presentation and capture', async () => {
+  const original = new Track('video'); let request = 0;
+  const f = fixture(undefined, () => ++request === 1 ? Promise.resolve(new Stream([original])) : Promise.reject(new DOMException('denied', 'NotAllowedError')));
+  await f.session.join('audio'); await f.session.startScreen();
+  await f.session.startScreen();
+  assert.equal(original.readyState, 'live');
+  assert.equal(f.session.getSnapshot().presentation.kind, 'screen');
+  assert.equal(f.messages.filter(message => message.event === 'share:stop').length, 0);
+  f.session.dispose();
+});
+
 test('entering a room does not capture devices; voice captures audio only and camera toggles stop/reacquire', async () => {
   const f = fixture();
   await f.session.connect();

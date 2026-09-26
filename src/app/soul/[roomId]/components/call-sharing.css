@@ -1,8 +1,12 @@
-.call-share-menu { position: absolute; z-index: 8; bottom: calc(94px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(380px, calc(100% - 24px)); max-height: calc(100% - 170px); overflow: auto; padding: 16px; border: 1px solid hsl(var(--border)); border-radius: 18px; background: hsl(var(--surface)); box-shadow: 0 12px 40px #0002; }
-.call-share-menu header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
-.call-share-menu header button { padding: 6px; }
-.call-share-menu > button { display: flex; gap: 12px; align-items: center; width: 100%; padding: 12px 8px; border-radius: 10px; text-align: left; font-size: 14px; }
-.call-share-menu > button:hover { background: hsl(var(--surface-hover)); }
+.call-share-popover-layer { position: absolute; z-index: 8; inset: 0; }
+.call-share-menu { position: absolute; bottom: calc(82px + env(safe-area-inset-bottom)); left: 50%; width: min(320px, calc(100% - 24px)); padding: 14px; border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--surface)); box-shadow: 0 12px 40px #0003; transform: translateX(-50%); }
+.call-share-menu header { margin-bottom: 12px; padding: 0 2px; font-size: 13px; font-weight: 500; }
+.call-share-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.call-share-options > button { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 8px; padding: 10px 6px 8px; border: 1px solid transparent; border-radius: 12px; color: hsl(var(--foreground-secondary)); font-size: 11px; }
+.call-share-options > button:hover { background: hsl(var(--surface-hover)); }
+.call-share-options > button[aria-pressed=true] { border-color: hsl(var(--primary) / .35); color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
+.call-share-option-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: hsl(var(--background-secondary)); color: hsl(var(--foreground)); font-size: 21px; }
+.call-share-options > button[aria-pressed=true] .call-share-option-icon { color: hsl(var(--primary)); background: hsl(var(--surface)); }
 .soul-call-panel .soul-call-stage.has-sharing { grid-template-columns: minmax(0, 1fr) clamp(110px, 18%, 200px); grid-template-rows: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); }
 .soul-call-panel .soul-call-stage.has-sharing > .soul-call-tile { position: relative; grid-column: 2; grid-row: var(--tile-slot); top: auto; right: auto; width: auto; height: auto; box-shadow: none; }
 .has-sharing .soul-call-select-tile { display: none; }
@@ -58,7 +62,7 @@
 .is-mini :is(.call-sharing-heading button,.call-share-tools,.call-share-caption,.call-share-zoom-controls) { display: none; }
 .is-mini .call-whiteboard-canvas { pointer-events: none; }
 @media (max-width: 600px) {
-  .soul-call-panel.is-full .soul-call-stage.has-sharing { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) 64px; gap: 6px; overflow: hidden; }
+  .soul-call-panel.is-full .soul-call-stage.has-sharing { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) clamp(52px, 8dvh, 64px); gap: 6px; min-height: 0; overflow: hidden; }
   .is-full .call-sharing-stage { grid-column: 1 / -1; grid-row: 1; border-radius: 12px; }
   .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile { grid-column: var(--tile-slot); grid-row: 2; min-height: 0; max-height: 64px; overflow: hidden; border-radius: 12px; }
   .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile .soul-call-avatar { width: 36px; height: 36px; font-size: 16px; }
@@ -69,6 +73,7 @@
   .call-share-viewport.has-board-toolbar .call-share-zoom-controls { top: 48px; }
   .call-resource-scroll { padding: 8px; }
   .has-sharing .soul-call-tile-caption { padding: 12px 8px 6px; font-size: 10px; }
+  .call-share-menu { bottom: calc(70px + env(safe-area-inset-bottom)); width: min(300px, calc(100% - 24px)); }
 }
 @media (max-height: 500px) and (min-width: 601px) {
   .is-full .soul-call-header { padding-block: 8px; }

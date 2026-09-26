@@ -41,8 +41,14 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   await guest.getByRole('button', { name: '加入', exact: true }).click();
   await waitFor(() => guest.evaluate(() => window.__peers.some(peer => peer.connectionState === 'connected')), 'call connected');
   await menu(host);
+  assert.equal(await host.getByRole('button', { name: '关闭共享菜单', exact: true }).count(), 0, 'sharing popover has no close button');
+  assert.equal(await host.locator('.call-share-options > button').count(), 3, 'sharing popover uses compact option tiles');
   assert.equal(await host.locator('.call-share-menu small, .call-share-menu > p').count(), 0, 'sharing menu has no helper copy');
   assert.equal((await host.locator('.call-share-menu').innerText()).includes('服务器'), false);
+  await host.screenshot({ path: path.join(output, 'sharing-menu.png') });
+  await host.mouse.click(4, 4);
+  assert.equal(await host.locator('.call-share-menu').count(), 0, 'clicking outside dismisses sharing popover');
+  await menu(host);
   await host.getByRole('button', { name: '共享白板', exact: true }).click();
   await guest.locator('.call-whiteboard-canvas').waitFor();
   const draw = async (page, x, y) => {
@@ -69,7 +75,6 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   await guest.mouse.down(); await guest.mouse.move(handleBounds.x + handleBounds.width / 2 + 90, handleBounds.y + handleBounds.height / 2 + 90, { steps: 5 }); await guest.mouse.up();
   await waitFor(() => remoteText.locator('text').getAttribute('font-size').then(value => Number(value) > originalSize), 'whiteboard text resized');
   await mobile.getByRole('button', { name: '加入', exact: true }).click();
-  await mobile.getByRole('button', { name: '开始语音', exact: true }).click();
   await mobile.locator('.call-whiteboard-canvas').getByText('来自伙伴的文字').waitFor();
   assert.equal(await mobile.locator('[data-board-item]').count(), 3, 'late join receives both strokes and text');
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -111,8 +116,15 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   assert.equal(await host.evaluate(() => window.__tracks.every(track => track.readyState === 'live')), true, 'screen sharing preserves camera and mic');
   const pixels = await guest.getByLabel('共享屏幕画面').evaluate(video => { const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1; canvas.getContext('2d').drawImage(video, 400, 400, 1, 1, 0, 0, 1, 1); return Array.from(canvas.getContext('2d').getImageData(0, 0, 1, 1).data); });
   assert.ok(pixels[0] > 210 && pixels[1] < 145, `screen pixels: ${pixels}`);
+  await menu(host);
+  assert.equal(await host.getByRole('button', { name: '共享内容', exact: true }).isDisabled(), false, 'sharing control stays enabled during a presentation');
+  assert.equal(await host.getByRole('button', { name: '共享屏幕', exact: true }).getAttribute('aria-pressed'), 'true');
+  await host.getByRole('button', { name: '共享白板', exact: true }).click();
+  await guest.locator('.call-whiteboard-canvas').waitFor();
+  assert.equal(await host.evaluate(() => window.__screenTracks.at(-1).readyState), 'ended', 'switching share stops the previous screen track');
+  await menu(host); await host.getByRole('button', { name: '共享屏幕', exact: true }).click();
+  await waitFor(() => guest.getByLabel('共享屏幕画面').evaluate(video => video.videoWidth === 960 && video.readyState >= 2), 'switching back to screen succeeds');
   await mobile.getByRole('button', { name: '加入', exact: true }).click();
-  await mobile.getByRole('button', { name: '开始语音', exact: true }).click();
   await waitFor(() => mobile.getByLabel('共享屏幕画面').evaluate(video => video.videoWidth === 960 && video.readyState >= 2), 'late mobile join receives screen');
   const sharedStage = await mobile.locator('.call-sharing-stage').boundingBox();
   const mobileTiles = await mobile.locator('.soul-call-stage.has-sharing > .soul-call-tile').evaluateAll(elements => elements.map(element => { const box = element.getBoundingClientRect(); return { top: box.top, bottom: box.bottom, height: box.height }; }));

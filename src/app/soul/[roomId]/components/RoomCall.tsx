@@ -22,6 +22,34 @@ interface CallContextValue {
 }
 const CallContext = createContext<CallContextValue>({ session: null, view: null, start: () => undefined, expand: () => undefined });
 
+const CALL_PERMISSION_NOTICE_KEY = 'soul-call-permission-notice-date';
+
+function todayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+async function callPermissionsGranted(mode: CallMode) {
+  if (!navigator.permissions?.query) return false;
+  const names = mode === 'video' ? ['microphone', 'camera'] : ['microphone'];
+  try {
+    const states = await Promise.all(names.map(name => navigator.permissions.query({ name } as PermissionDescriptor)));
+    return states.every(permission => permission.state === 'granted');
+  } catch {
+    return false;
+  }
+}
+
+function permissionNoticeShownToday() {
+  try { return localStorage.getItem(CALL_PERMISSION_NOTICE_KEY) === todayKey(); }
+  catch { return false; }
+}
+
+function rememberPermissionNotice() {
+  try { localStorage.setItem(CALL_PERMISSION_NOTICE_KEY, todayKey()); }
+  catch { /* Storage may be unavailable in private browsing. */ }
+}
+
 export function RoomCallProvider({ roomId, roomName, ready, children }: { roomId: string; roomName: string; ready: boolean; children: ReactNode }) {
   const [session, setSession] = useState<CallSession | null>(null);
   const [view, setView] = useState<CallView | null>(null);
@@ -47,11 +75,16 @@ export function RoomCallProvider({ roomId, roomName, ready, children }: { roomId
   }, [roomId, ready]);
 
   const expand = useCallback(() => setMini(false), []);
-  const start = (mode: CallMode) => {
+  const start = async (mode: CallMode) => {
     if (!session) return;
     if (view?.phase !== 'idle') { expand(); return; }
-    if (mobile) setPermission(mode);
-    else { setMini(false); void session.join(mode); }
+    if (mobile && !permissionNoticeShownToday() && !(await callPermissionsGranted(mode))) {
+      rememberPermissionNotice();
+      setPermission(mode);
+      return;
+    }
+    setMini(false);
+    void session.join(mode);
   };
   const toggleCamera = () => { void session?.toggleDevice('video'); };
   const active = view && view.phase !== 'idle';
@@ -215,11 +248,12 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       </>}
     </div>
     {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></button></div>}
+    {effectsOpen && <CallEffectsPanel value={view.effects} status={view.effectsStatus} cameraEnabled={view.cameraEnabled} onChange={value => session.setEffects(value)} onClose={() => setEffectsOpen(false)} />}
     <footer className="soul-call-footer">
       <div className="soul-call-controls">
         <button type="button" disabled={joining || view.mediaBusy} className={!view.microphoneEnabled ? 'is-off' : ''} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</button>
         <button type="button" disabled={joining || view.mediaBusy} className={!view.cameraEnabled ? 'is-off' : ''} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></button>
-        <button type="button" disabled={joining} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setEffectsOpen(false); setParticipantsOpen(false); setSharingOpen(open => !open); }}><DesktopOutlined /></button>
+        <button type="button" disabled={joining || view.shareBusy} className={view.presentation ? 'is-sharing' : ''} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setEffectsOpen(false); setParticipantsOpen(false); setSharingOpen(open => !open); }}><DesktopOutlined /></button>
         <button type="button" className="is-hangup" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></button>
       </div>
     </footer>
@@ -237,6 +271,5 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     </aside>}
     {view.effectsStatus.phase === 'loading' && !effectsOpen && <div className="soul-call-effect-loading" role="status"><LoadingOutlined /> {view.effectsStatus.progress}%</div>}
     {view.effectsStatus.phase === 'error' && !effectsOpen && <button type="button" className="soul-call-effect-loading" onClick={() => { onMini(false); setEffectsOpen(true); }}>效果未启用</button>}
-    {effectsOpen && <CallEffectsPanel value={view.effects} status={view.effectsStatus} cameraEnabled={view.cameraEnabled} onChange={value => session.setEffects(value)} onClose={() => setEffectsOpen(false)} />}
   </section>;
 }

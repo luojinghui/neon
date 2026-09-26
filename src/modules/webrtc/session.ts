@@ -243,7 +243,11 @@ export class CallSession {
   }
 
   async startWhiteboard(): Promise<void> {
-    if (this.view.shareBusy || this.view.presentation) return;
+    if (this.view.shareBusy || (this.view.presentation && this.view.presentation.ownerId !== this.view.selfId)) return;
+    if (this.view.presentation) {
+      await this.stopSharing();
+      if (this.view.presentation) return;
+    }
     const operation = ++this.shareOperation;
     this.update({ shareBusy: true, error: '' });
     try { await this.beginShare('whiteboard'); }
@@ -252,32 +256,43 @@ export class CallSession {
   }
 
   async startScreen(): Promise<void> {
-    if (this.view.phase !== 'active' || this.view.shareBusy || this.view.presentation) return;
-    const operation = ++this.shareOperation;
+    if (this.view.phase !== 'active' || this.view.shareBusy || (this.view.presentation && this.view.presentation.ownerId !== this.view.selfId)) return;
+    let operation = 0;
     let shareId = '';
+    let pendingDisplay: MediaStream | null = null;
     this.update({ shareBusy: true, error: '' });
     try {
       if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('当前浏览器不支持发起屏幕共享，请使用桌面版 Chrome、Edge 或 Firefox；你仍可观看其他人的共享');
       // Must be called directly from the click, before any network await.
-      const display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-      if (operation !== this.shareOperation || this.view.phase !== 'active') { display.getTracks().forEach(track => track.stop()); return; }
-      this.display = display;
-      const track = display.getVideoTracks()[0];
+      pendingDisplay = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+      const track = pendingDisplay.getVideoTracks()[0];
       if (!track || track.readyState === 'ended') throw new Error('没有可共享的画面');
+      if (this.view.phase !== 'active') return;
+      if (this.view.presentation) {
+        await this.stopSharing();
+        if (this.view.presentation || this.view.phase !== 'active') return;
+      }
+      operation = ++this.shareOperation;
+      this.update({ shareBusy: true });
+      this.display = pendingDisplay;
+      pendingDisplay = null;
       track.contentHint = 'detail';
       track.onended = () => { void this.stopSharing(); };
-      this.update({ screenStream: display });
+      this.update({ screenStream: this.display });
       const result = await this.beginShare('screen');
       shareId = result.presentation?.id || '';
       if (operation !== this.shareOperation) { if (shareId) await this.requestShare('share:stop', { shareId }).catch(() => undefined); return; }
       await Promise.all([...this.peers.values()].map(peer => peer.replace('screen', track)));
     } catch (error) {
-      if (operation === this.shareOperation) {
+      if (operation && operation === this.shareOperation) {
         this.releaseScreen();
         if (shareId) await this.requestShare('share:stop', { shareId }).then(state => this.receiveSharing(state as ShareSnapshot)).catch(() => undefined);
-        if (!(error instanceof DOMException && error.name === 'NotAllowedError')) this.update({ error: mediaError(error) });
       }
-    } finally { if (operation === this.shareOperation) this.update({ shareBusy: false }); }
+      if (!(error instanceof DOMException && error.name === 'NotAllowedError')) this.update({ error: mediaError(error) });
+    } finally {
+      pendingDisplay?.getTracks().forEach(track => track.stop());
+      if (!operation || operation === this.shareOperation) this.update({ shareBusy: false });
+    }
   }
 
   private releaseScreen(publish = true): void {
@@ -298,7 +313,11 @@ export class CallSession {
   }
 
   async shareFile(file: File): Promise<void> {
-    if (this.view.phase !== 'active' || this.view.shareBusy || this.view.presentation) return;
+    if (this.view.phase !== 'active' || this.view.shareBusy || (this.view.presentation && this.view.presentation.ownerId !== this.view.selfId)) return;
+    if (this.view.presentation) {
+      await this.stopSharing();
+      if (this.view.presentation) return;
+    }
     const operation = ++this.shareOperation;
     let shareId = '';
     this.update({ shareBusy: true, shareProgress: 0, error: '' });
