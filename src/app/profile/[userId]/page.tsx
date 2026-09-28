@@ -18,6 +18,10 @@ import { ProfileBannerView } from '../components/ProfileBanner';
 import { ProfileEditor } from '../components/ProfileEditor';
 import { getProfileAvatar, type PublicProfile } from '../types';
 import { createProfileHref, getProfileBackLabel, sanitizeProfileReturnTo } from '../navigation';
+import { ContactActions } from '@/app/social/ContactActions';
+import { SocialPanel } from '@/app/social/SocialPanel';
+import { useSocialStore } from '@/app/social/client';
+import { ProfileShortcut } from '../components/ProfileShortcut';
 
 function formatJoinedDate(value: string): string {
   const date = new Date(value);
@@ -36,7 +40,8 @@ export default function ProfilePage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeSection, setActiveSection] = useState<'profile' | 'moments'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'moments' | 'messages' | 'friends'>('profile');
+  const unread = useSocialStore((state) => state.conversations.reduce((total, item) => total + item.unreadCount, 0));
   const [moments, setMoments] = useState<Moment[]>([]);
   const [momentsLoading, setMomentsLoading] = useState(false);
   const [momentsLoaded, setMomentsLoaded] = useState(false);
@@ -49,6 +54,7 @@ export default function ProfilePage() {
   const userId = decodeURIComponent(params.userId || '');
   const publicKey = searchParams.get('key') || '';
   const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
+  const requestedSection = searchParams.get('section');
 
   useEffect(() => {
     let active = true;
@@ -74,6 +80,7 @@ export default function ProfilePage() {
         activeProfileKey.current = result.profile.publicKey;
         setProfile(result.profile);
         setIsOwner(result.isOwner);
+        if (result.isOwner && requestedSection === 'messages') setActiveSection('messages');
         setLoading(false);
         if (result.profile.userId.toLowerCase() !== userId.toLowerCase()) {
           router.replace(createProfileHref(result.profile.userId, { returnTo }));
@@ -89,7 +96,7 @@ export default function ProfilePage() {
       momentsRequest.current += 1;
       activeProfileKey.current = '';
     };
-  }, [publicKey, returnTo, router, userId]);
+  }, [publicKey, returnTo, router, userId, requestedSection]);
 
   const copyProfileLink = async () => {
     if (!profile) return;
@@ -139,6 +146,7 @@ export default function ProfilePage() {
         backLabel={getProfileBackLabel(returnTo)}
         right={
           <div className="flex items-center gap-2">
+            <ProfileShortcut returnTo={returnTo} />
             {profile && !loading && (
               <button
                 type="button"
@@ -215,6 +223,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-5 max-w-2xl">
+                  {!isOwner && !profile.isSystem && <ContactActions key={profile.publicKey} contact={profile} />}
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{profile.name}</h1>
                     {profile.isSystem && <span className="rounded-full bg-primary-soft px-2 py-1 text-[11px] font-medium text-primary">官方</span>}
@@ -226,7 +235,8 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-6 border-t border-border pt-5">
-                  <div className="flex gap-2" role="group" aria-label="个人主页内容">
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="个人主页内容">
+                    {isOwner && (['messages', 'friends'] as const).map((section) => <button key={section} type="button" aria-pressed={activeSection === section} onClick={() => setActiveSection(section)} className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm ${activeSection === section ? 'bg-primary-soft font-medium text-primary' : 'text-foreground-muted hover:bg-surface-hover'}`}>{section === 'messages' ? '私信' : '好友收藏'}{section === 'messages' && unread > 0 && <span className="rounded-full bg-red-500 px-1.5 text-xs text-white">{unread}</span>}</button>)}
                     <button
                       type="button"
                       onClick={() => setActiveSection('profile')}
@@ -246,7 +256,7 @@ export default function ProfilePage() {
                     </button>
                   </div>
 
-                  {activeSection === 'profile' ? (
+                  {isOwner && (activeSection === 'messages' || activeSection === 'friends') ? <SocialPanel section={activeSection} /> : activeSection === 'profile' ? (
                     <div className="grid gap-x-10 gap-y-6 pb-1 pt-6 sm:grid-cols-2">
                       <div className="flex items-start gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">✦</div>

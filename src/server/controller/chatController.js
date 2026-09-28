@@ -45,6 +45,10 @@ function respond(ack, action) {
 
 function requireUser(socket) {
   if (!socket.data.user) throw new Error(socket.data.identityError || '用户身份无效，请刷新页面重试');
+  const uuid = /^guest-([0-9a-f-]{36})$/i.exec(socket.data.user.id)?.[1];
+  const profile = uuid && profileRepository.getByUuid(uuid);
+  if (!profile) throw new Error('个人资料不存在，请刷新页面重试');
+  socket.data.user = { ...socket.data.user, userId: profile.userId, publicKey: profile.publicKey, name: profile.name, avatarUrl: profile.avatarUrl || '' };
   return socket.data.user;
 }
 
@@ -81,6 +85,12 @@ function getMembership(room, user, admin = false) {
 }
 
 function presentRoom(room, user, admin = false) {
+  if (room.kind === 'direct') {
+    const peer = repository.publicPerson(room.participantKeys.find((key) => key !== user?.publicKey));
+    return { ...repository.toPublicRoom(room), name: peer?.name || '私信', peer,
+      onlineCount: roomMembers.get(room.id)?.size || 0, status: 'online', isOwner: false,
+      isCreator: false, membership: 'approved', owner: peer, pendingRequestCount: 0 };
+  }
   const isCreator = !room.isFixed && room.ownerId === user?.id;
   return {
     ...repository.toPublicRoom(room),
@@ -116,6 +126,14 @@ function getRooms(user, admin = false) {
 
 function broadcastRoomsChanged(io) {
   io.emit('rooms:changed');
+}
+
+function notifyDirectChanged(io, roomId) {
+  const room = repository.getRoom(roomId);
+  if (room?.kind !== 'direct') return;
+  for (const socket of io.sockets.sockets.values()) {
+    if (room.participantKeys.includes(socket.data.user?.publicKey)) socket.emit('social:changed');
+  }
 }
 
 function broadcastPollMessage(io, message) {
@@ -239,6 +257,27 @@ const onSocket = (socket, io) => {
   }
 
   socket.on('rooms:list', (ack) => respond(ack, () => getRooms(requireUser(socket), isSuperAdmin(socket))));
+  socket.on('social:list', (ack) => respond(ack, () => {
+    const user = requireUser(socket);
+    return { conversations: repository.listDirects(user), favorites: repository.listFavorites(user) };
+  }));
+  socket.on('direct:open', (payload, ack) => respond(ack, () => {
+    const room = repository.openDirect(requireUser(socket), payload?.publicKey);
+    notifyDirectChanged(io, room.id);
+    return { roomId: room.id };
+  }));
+  socket.on('direct:read', (payload, ack) => respond(ack, () => {
+    const user = requireJoinedRoom(socket, payload?.roomId);
+    repository.markDirectRead(payload.roomId, user, payload?.messageId);
+    notifyDirectChanged(io, payload.roomId);
+    return null;
+  }));
+  socket.on('favorite:set', (payload, ack) => respond(ack, () => {
+    const user = requireUser(socket);
+    const favorites = repository.setFavorite(user, payload?.publicKey, payload?.favorite);
+    emitToUser(io, user.id, 'social:changed');
+    return favorites;
+  }));
   calls.bind(socket, io);
 
   socket.on('rooms:search', (payload, ack) => {
@@ -417,6 +456,7 @@ const onSocket = (socket, io) => {
       const user = requireJoinedRoom(socket, payload?.roomId);
       const message = repository.addMessage(socket.data.roomId, user, payload);
       io.to(socket.data.roomId).emit('chat:message', message);
+      notifyDirectChanged(io, socket.data.roomId);
       broadcastRoomsChanged(io);
       return message;
     });
@@ -446,6 +486,7 @@ const onSocket = (socket, io) => {
       const user = requireJoinedRoom(socket, payload?.roomId);
       const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, user, { isAdmin: isSuperAdmin(socket) });
       io.to(socket.data.roomId).emit('chat:deleted', { roomId: socket.data.roomId, messageId: message.id });
+      notifyDirectChanged(io, socket.data.roomId);
       broadcastRoomsChanged(io);
       return { roomId: socket.data.roomId, messageId: message.id };
     });
@@ -456,6 +497,7 @@ const onSocket = (socket, io) => {
       const user = requireJoinedRoom(socket, payload?.roomId);
       const message = repository.recallMessage(socket.data.roomId, payload?.messageId, user);
       io.to(socket.data.roomId).emit('chat:recalled', { roomId: socket.data.roomId, messageId: message.id });
+      notifyDirectChanged(io, socket.data.roomId);
       broadcastRoomsChanged(io);
       return { roomId: socket.data.roomId, messageId: message.id };
     });
@@ -504,6 +546,7 @@ function adminDeleteRoom(roomId, io) {
 function adminDeleteUserData(profile, io) {
   const deletedUserId = profile?.uuid ? `guest-${profile.uuid}` : '';
   const result = repository.deleteUserData(profile);
+  io.emit('social:changed');
   for (const room of result.deletedRooms) {
     io.to(room.id).emit('room:deleted', { roomId: room.id });
     removeDeletedRoomMembers(room.id, io);
@@ -519,6 +562,11 @@ function adminDeleteUserData(profile, io) {
 }
 
 module.exports = {
+  adminListDirects: () => repository.listDirects(null, { isAdmin: true }),
+  adminDirectHistory: (roomId, before) => {
+    if (repository.getRoomOrThrow(roomId).kind !== 'direct') throw new RoomRepositoryError('私信不存在', 'ROOM_NOT_FOUND');
+    return repository.getHistory(roomId, { before });
+  },
   mountCallSharing: (app, io) => calls.sharing.mount(app, io),
   adminChangeRoomAccess,
   adminDeleteRoom,

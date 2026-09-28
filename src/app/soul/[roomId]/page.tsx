@@ -2,13 +2,15 @@
 
 import '@/styles/index.css';
 import { useEffect, useState } from 'react';
-import { InfoCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import { Badge, Tooltip } from 'antd';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { createProfileHref } from '@/app/profile/navigation';
+import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
+import { ContactActions } from '@/app/social/ContactActions';
 import { soulChat } from '../core';
 import { useSoulStore } from '../store';
 import { MessageList } from './components/MessageList';
@@ -26,6 +28,7 @@ function ChatRoomPage() {
   const accessState = useSoulStore((s) => s.accessState);
   const connected = useSoulStore((s) => s.connectionState === 'connected');
   const [roomInfoOpen, setRoomInfoOpen] = useState(false);
+  const direct = room?.kind === 'direct' || params.roomId.startsWith('dm-');
 
   useEffect(() => {
     const inviteToken = new URLSearchParams(window.location.search).get('invite') || '';
@@ -37,11 +40,11 @@ function ChatRoomPage() {
   }, [params.roomId]);
 
   useEffect(() => {
-    if (accessState === 'deleted') router.replace('/soul');
-  }, [accessState, router]);
+    if (accessState === 'deleted') router.replace(direct ? '/profile' : '/soul');
+  }, [accessState, router, direct]);
 
   return (
-    <RoomCallProvider roomId={params.roomId} roomName={roomName} ready={connected && accessState === 'granted'}>
+    <RoomCallProvider roomId={params.roomId} roomName={roomName} ready={!direct && connected && accessState === 'granted'}>
     <div
       className="app-screen soul-page soul-room-page flex w-full select-none flex-col bg-background"
       onContextMenu={(event) => {
@@ -51,7 +54,7 @@ function ChatRoomPage() {
     >
       <TopBar
         middle={
-          <Tooltip title="星球信息" placement="bottom">
+          direct ? <div className="flex min-w-0 flex-col items-center"><span className="truncate text-sm font-medium">{roomName || '私信'}</span><span className="text-[10px] text-foreground-muted">一对一私信</span></div> : <Tooltip title="星球信息" placement="bottom">
             <button
               type="button"
               onClick={() => setRoomInfoOpen(true)}
@@ -68,18 +71,12 @@ function ChatRoomPage() {
         }
         right={
           <div className="flex items-center gap-2">
-            <Link
-              href={createProfileHref('', { returnTo: `/soul/${params.roomId}` })}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface/60 text-foreground-secondary transition-colors hover:bg-surface-hover hover:text-primary"
-              aria-label="个人中心"
-            >
-              <UserOutlined className="text-sm" />
-            </Link>
+            <ProfileShortcut returnTo={`/soul/${params.roomId}`} />
             <ThemeToggle />
           </div>
         }
-        backHref="/soul"
-        backLabel="星球"
+        backHref={direct ? '/profile?section=messages' : '/soul'}
+        backLabel={direct ? '个人中心' : '星球'}
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -87,7 +84,7 @@ function ChatRoomPage() {
 
         {accessState === 'granted' && (
           <div className="app-content-width shrink-0 pb-3 pt-2">
-            <RoomCallNotice />
+            {direct && room?.peer ? <div className="flex flex-wrap items-center justify-between gap-2"><Link className="text-xs text-primary" href={createProfileHref(room.peer.userId, { publicKey: room.peer.publicKey, returnTo: `/soul/${params.roomId}` })}>查看对方主页</Link><ContactActions contact={room.peer} showMessage={false} /></div> : <RoomCallNotice />}
             <div className="rounded-2xl border border-border bg-surface p-2.5 transition-colors focus-within:border-border-focus">
               <ChatInput />
               <ChatToolbar />
@@ -96,8 +93,8 @@ function ChatRoomPage() {
         )}
       </div>
 
-      <RoomAccessModal onBack={() => router.replace('/soul')} />
-      <RoomInfoModal room={room} open={roomInfoOpen} onClose={() => setRoomInfoOpen(false)} />
+      <RoomAccessModal onBack={() => router.replace(direct ? '/profile' : '/soul')} />
+      {!direct && <RoomInfoModal room={room} open={roomInfoOpen} onClose={() => setRoomInfoOpen(false)} />}
     </div>
     </RoomCallProvider>
   );

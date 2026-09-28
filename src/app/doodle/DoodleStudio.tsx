@@ -19,6 +19,7 @@ import { App, Button, QRCode, Spin, Switch } from 'antd';
 import NextImage from 'next/image';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import { TopBar } from '@/components/topbar';
+import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createDoodleReview, createDoodleShare, deleteDoodleShare, updateDoodleReview, updateDoodleShare } from './client';
@@ -743,7 +744,7 @@ export default function DoodleStudio() {
           });
         }}
       />
-      <TopBar middle="漫游相机" position="sticky" right={<ThemeToggle />} />
+      <TopBar middle="漫游相机" position="sticky" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
 
       <div className="app-content-width py-6 sm:py-8">
         {mode === 'welcome' && (

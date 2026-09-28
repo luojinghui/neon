@@ -27,10 +27,11 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { AdminApiError, adminRequest } from './client';
+import { DirectDataTable, DoodleShareTable, MomentDataTable } from './ContentTables';
 import type { AdminCloudItem, AdminDoodleItem, AdminIdentity, AdminProfileItem, AdminRoomAccessItem, AdminRoomItem } from './types';
 
 type Notice = { type: 'error' | 'success'; text: string } | null;
-type AdminTab = 'cloud' | 'rooms' | 'access' | 'users' | 'doodles';
+type AdminTab = 'cloud' | 'rooms' | 'access' | 'users' | 'doodles' | 'directs' | 'moments' | 'shares';
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -713,7 +714,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
         <div>
           <div className="font-medium text-foreground">{item.title}</div>
           <div className="mt-1 text-xs text-foreground-muted">{doodleTemplateNames[item.template] || item.template} · {doodleThemeNames[item.style] || item.style}</div>
-          {item.shareId && <div className="mt-1 text-[11px] text-primary">含公开分享副本</div>}
+          {item.shares?.map((share) => <a key={share.id} href={share.url} target="_blank" rel="noreferrer" className="mt-1 block break-all text-[11px] text-primary">查看分享链接 · {share.state === 'active' ? '有效' : share.state === 'expired' ? '已过期' : '已删除'}</a>)}
         </div>
       )
     },
@@ -771,9 +772,12 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
   const tabs: Array<{ key: AdminTab; label: string; icon: React.ReactNode }> = [
     { key: 'cloud', label: '云传数据', icon: <CloudOutlined /> },
     { key: 'rooms', label: '聊天室', icon: <GlobalOutlined /> },
+    { key: 'directs', label: '全部私信', icon: <SolutionOutlined /> },
+    { key: 'moments', label: '心迹管理', icon: <PictureOutlined /> },
     { key: 'access', label: '访问申请', icon: <SolutionOutlined /> },
     { key: 'users', label: '人员数据', icon: <TeamOutlined /> },
-    { key: 'doodles', label: '漫游作品', icon: <PictureOutlined /> }
+    { key: 'doodles', label: '漫游作品', icon: <PictureOutlined /> },
+    { key: 'shares', label: '相机分享链接', icon: <PictureOutlined /> }
   ];
 
   useEffect(() => {
@@ -836,6 +840,9 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
 
         <div className="min-w-0 rounded-2xl border border-border/70 bg-surface/70 p-4 sm:p-5">
           {tab === 'cloud' && <CloudDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
+          {tab === 'directs' && <DirectDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
+          {tab === 'moments' && <MomentDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
+          {tab === 'shares' && <DoodleShareTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
           {tab === 'rooms' && <RoomDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'access' && <RoomAccessTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'users' && <UserDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}

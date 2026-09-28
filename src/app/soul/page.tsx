@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { createProfileHref } from '../profile/navigation';
+import { ProfileShortcut } from '../profile/components/ProfileShortcut';
 import { ChatRoomGrid } from './components/ChatRoomGrid';
 import { ChatRoomCardSkeleton } from './components/ChatRoomCardSkeleton';
 import { CreateRoomModal } from './components/CreateRoomModal';
@@ -86,6 +87,7 @@ function SoulPage() {
         backLabel="首页"
         right={
           <div className="flex items-center gap-2">
+            <ProfileShortcut returnTo="/soul" />
             <Tooltip title="搜索星球" placement="bottom">
               <button
                 type="button"

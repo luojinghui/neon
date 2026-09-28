@@ -109,8 +109,10 @@ class MomentRepository {
     const ownerUuid = options.ownerUuid ? this.requireUuid(options.ownerUuid) : '';
     const page = Math.max(1, Number.parseInt(options.page, 10) || 1);
     const pageSize = Math.max(1, Math.min(100, Number.parseInt(options.pageSize, 10) || 20));
+    const search = String(options.search || '').trim().toLowerCase().slice(0, 100);
     const all = [...this.moments.values()]
       .filter((moment) => !ownerUuid || moment.ownerUuid === ownerUuid)
+      .filter((moment) => !search || moment.text.toLowerCase().includes(search) || moment.id.toLowerCase().includes(search))
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id.localeCompare(a.id));
     const offset = (page - 1) * pageSize;
     return {

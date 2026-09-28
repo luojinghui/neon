@@ -51,6 +51,8 @@ export interface ChatUser {
 }
 
 export interface ChatRoom {
+  kind?: 'planet' | 'direct';
+  peer?: { publicKey: string; userId: string; name: string; avatarUrl: string };
   id: string;
   code: string;
   name: string;

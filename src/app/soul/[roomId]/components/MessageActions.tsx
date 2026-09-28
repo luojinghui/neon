@@ -28,6 +28,7 @@ const quickReplies = [
 
 export function MessageActions({ messageId, messageType, hasAttachment, isLocal, game }: MessageActionsProps) {
   const canDelete = useSoulStore((state) => state.room?.isOwner === true);
+  const direct = useSoulStore((state) => state.room?.kind === 'direct');
   const connected = useSoulStore((state) => state.connectionState === 'connected');
   const isSending = useSoulStore((state) => state.isSending);
   const canAccess = useSoulStore((state) => state.accessState === 'granted');
@@ -44,7 +45,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   const replyPendingRef = useRef(false);
   const canCopy = messageType === 'text';
   const canDownload = hasAttachment && ['image', 'gif', 'file'].includes(messageType);
-  const canShare = canDownload;
+  const canShare = canDownload && !direct;
   const actionClass =
     'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-foreground-secondary transition-colors hover:bg-surface-active hover:text-foreground';
 

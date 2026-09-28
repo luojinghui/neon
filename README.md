@@ -24,3 +24,7 @@ $ pnpm build
 ## 星球通话
 
 - 音视频模块、交互、TURN 部署和设备验收见 [星球音视频通话](docs/planet-calls.md)。
+
+## 私信与内容管理
+
+- 私信、好友收藏、未读提醒和后台心迹/分享链接管理见 [功能与数据说明](docs/direct-messages.md)。

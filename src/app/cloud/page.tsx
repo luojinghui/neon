@@ -14,6 +14,7 @@ import HistoryModal from './components/HistoryModal';
 import JsonModal from './components/JsonModal';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
+import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import VersionModal from './components/VersionModal';
 import './cloud.css';
 
@@ -70,7 +71,7 @@ function CloudPage() {
 
   return (
     <div className="cloud-page app-screen w-full bg-background flex flex-col select-none">
-      <TopBar middle="云传" backHref="/" backLabel="首页" right={<ThemeToggle />} />
+      <TopBar middle="云传" backHref="/" backLabel="首页" right={<><ProfileShortcut returnTo="/cloud" /><ThemeToggle /></>} />
 
       {/* Content */}
       <div ref={contentRef} className="content w-full pt-[var(--app-page-top)] pb-8 flex-1 overflow-y-auto overflow-x-hidden">

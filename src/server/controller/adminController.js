@@ -11,6 +11,7 @@ const { profileRepository } = require('../user/profileRepository');
 const { doodleReviewRepository } = require('../doodle/reviewRepository');
 const { doodleShareRepository } = require('../doodle/shareRepository');
 const { momentRepository } = require('../moment/momentRepository');
+const { presentMoment } = require('../moment/presenter');
 const {
   ADMIN_SESSION_TTL_MS,
   authenticateCookieHeader,
@@ -165,7 +166,7 @@ function adminError(error) {
   const message = error instanceof Error ? error.message : '管理操作失败';
   const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError', 'MomentRepositoryError'].includes(error?.name);
   const status =
-    code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND'
+    code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND' || code === 'MOMENT_NOT_FOUND' || code === 'COMMENT_NOT_FOUND'
       ? 404
       : code === 'USER_ID_TAKEN'
         ? 409
@@ -257,6 +258,43 @@ function mountAdminController(app, io) {
   );
 
   router.use(asyncRoute(requireAdmin));
+  router.use((_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
+
+  router.get('/directs', (_req, res) => res.json({ items: chatController.adminListDirects() }));
+  router.get('/directs/:roomId/messages', asyncRoute(async (req, res) => {
+    const page = chatController.adminDirectHistory(req.params.roomId, req.query.before);
+    await audit(req, 'direct.view', 'direct', req.params.roomId);
+    return res.json(page);
+  }));
+
+  router.get('/moments', (req, res, next) => {
+    try {
+      const page = momentRepository.listMoments({ page: req.query.page, pageSize: req.query.pageSize, search: req.query.search });
+      return res.json({ ...page, items: page.items.map((item) => presentMoment(item, { isAdmin: true })) });
+    } catch (error) { next(error); }
+  });
+  router.get('/moments/:id', (req, res, next) => {
+    try {
+      const moment = momentRepository.getMoment(req.params.id);
+      if (!moment) return res.status(404).json({ error: '心迹不存在', code: 'MOMENT_NOT_FOUND' });
+      return res.json({ item: presentMoment(moment, { isAdmin: true }) });
+    } catch (error) { next(error); }
+  });
+  router.delete('/moments/:id', asyncRoute(async (req, res) => {
+    await momentRepository.deleteMoment(req.params.id, '', { isAdmin: true });
+    await audit(req, 'moment.delete', 'moment', req.params.id);
+    return res.status(204).end();
+  }));
+  router.delete('/moments/:id/comments/:commentId', asyncRoute(async (req, res) => {
+    await momentRepository.deleteComment(req.params.id, req.params.commentId, '', { isAdmin: true });
+    await audit(req, 'moment.comment.delete', 'moment', req.params.id, { commentId: req.params.commentId });
+    return res.status(204).end();
+  }));
+
+  router.get('/doodle-shares', (_req, res) => res.json({ items: doodleShareRepository.listAdminShares().map((share) => {
+    const owner = profileRepository.getByUuid(share.ownerUuid);
+    return { ...share, ownerName: owner?.name || '未知人员', ownerUserId: owner?.userId || '', shareUrl: `/doodle/s/${encodeURIComponent(share.id)}` };
+  }) }));
 
   router.get(
     '/cloud',
@@ -334,10 +372,13 @@ function mountAdminController(app, io) {
     asyncRoute(async (_req, res) => {
       try {
         const reviews = await doodleReviewRepository.listAdminReviews();
+        const shares = doodleShareRepository.listAdminShares();
         const items = reviews.map((review) => {
           const owner = profileRepository.getByUuid(review.ownerUuid);
           return {
             ...review,
+            shares: shares.filter((share) => share.id === review.shareId || (review.reviewKey && share.reviewKey === review.reviewKey))
+              .map((share) => ({ id: share.id, state: share.state, url: `/doodle/s/${encodeURIComponent(share.id)}` })),
             ownerName: owner?.name || '未知人员',
             ownerUserId: owner?.userId || ''
           };
@@ -510,8 +551,8 @@ function mountAdminController(app, io) {
   );
 
   router.use((error, _req, res, _next) => {
-    console.error('Admin API failed:', error);
-    res.status(500).json({ error: '管理服务暂时不可用', code: 'ADMIN_INTERNAL_ERROR' });
+    const response = adminError(error);
+    res.status(response.status).json(response.body);
   });
 
   app.use('/api/admin', router);

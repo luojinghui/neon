@@ -20,6 +20,7 @@ export function ChatToolbar() {
   const connected = useSoulStore((state) => state.connectionState === 'connected');
   const canAccess = useSoulStore((state) => state.accessState === 'granted');
   const isSending = useSoulStore((state) => state.isSending);
+  const direct = useSoulStore((state) => state.room?.kind === 'direct');
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -40,10 +41,10 @@ export function ChatToolbar() {
           <PaperClipOutlined className="text-base" />
         </button>
 
-        <span className="w-1" aria-hidden />
+        {!direct && <><span className="w-1" aria-hidden />
         <button type="button" onClick={() => setPollOpen(true)} disabled={!connected || !canAccess || isSending} aria-label="发起投票" title="发起投票" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"><BarChartOutlined className="text-base" /><span className="hidden sm:inline">投票</span></button>
         <GameLauncher />
-        <RoomCallButtons />
+        <RoomCallButtons /></>}
 
         <input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleFile} className="hidden" />
         <input ref={fileInputRef} type="file" onChange={handleFile} className="hidden" />

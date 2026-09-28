@@ -14,6 +14,7 @@ type MessageListProps = {
 
 export function MessageList({ className = '' }: MessageListProps) {
   const messages = useSoulStore((s) => s.messages);
+  const direct = useSoulStore((s) => s.room?.kind === 'direct');
   const hasNewMessage = useSoulStore((s) => s.hasNewMessage);
   const hasMoreHistory = useSoulStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useSoulStore((s) => s.isLoadingHistory);
@@ -42,6 +43,7 @@ export function MessageList({ className = '' }: MessageListProps) {
 
     if (isNearBottomRef.current) {
       useSoulStore.getState().setHasNewMessage(false);
+      void soulChat.markDirectRead();
     }
   }, []);
 
@@ -61,6 +63,13 @@ export function MessageList({ className = '' }: MessageListProps) {
       });
     });
   }, [handleScroll]);
+
+  useEffect(() => {
+    const read = () => { if (isNearBottomRef.current) void soulChat.markDirectRead(); };
+    read();
+    document.addEventListener('visibilitychange', read);
+    return () => document.removeEventListener('visibilitychange', read);
+  }, [messages, connectionState]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -126,7 +135,7 @@ export function MessageList({ className = '' }: MessageListProps) {
           {messages.length === 0 && connectionState === 'connected' && (
             <div className="flex flex-1 flex-col items-center justify-center pb-20 text-center">
               <div className="text-sm font-medium text-foreground">这里还很安静</div>
-              <div className="mt-1 text-xs text-foreground-muted">发送第一条消息，开启这个星球的话题。</div>
+              <div className="mt-1 text-xs text-foreground-muted">{direct ? '发送第一条私信，和对方打个招呼。' : '发送第一条消息，开启这个星球的话题。'}</div>
             </div>
           )}
           {messages.map((msg) => (

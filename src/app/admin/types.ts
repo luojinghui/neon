@@ -78,6 +78,7 @@ export type AdminProfileItem = {
 };
 
 export type AdminDoodleItem = {
+  shares: Array<{ id: string; state: 'active' | 'expired' | 'deleted'; url: string }>;
   id: string;
   title: string;
   style: string;

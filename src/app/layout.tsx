@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import ClientThemeWrapper from '../components/theme/theme-wrapper';
 import { PWA_ICON_VERSION, PWA_NAME, PWA_THEME_COLORS } from '@/lib/pwa';
 import '@/styles/index.css';
+import { SocialProvider } from './social/SocialProvider';
 
 export const metadata: Metadata = {
   title: 'Soul',
@@ -48,7 +49,7 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning className={cn('font-sans antialiased bg-background text-foreground')}>
         <Suspense fallback={null}>
-          <ClientThemeWrapper>{children}</ClientThemeWrapper>
+          <ClientThemeWrapper><SocialProvider />{children}</ClientThemeWrapper>
         </Suspense>
       </body>
     </html>

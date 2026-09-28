@@ -70,6 +70,7 @@ class RoomRepository {
     this.messages = new Map(DEFAULT_ROOMS.map((room) => [room.id, DEFAULT_MESSAGES.filter((message) => message.roomId === room.id)]));
     this.roomAccess = new Map();
     this.passwordAccess = new Map();
+    this.favorites = new Map();
     this.gameActivity = new Map();
     this.writeQueue = Promise.resolve();
     this.cleanupQueue = Promise.resolve();
@@ -131,7 +132,16 @@ class RoomRepository {
           delete room.passwordSalt;
           migrated = true;
         }
-        if (room.isPrivate && !this.isInviteToken(room.inviteToken)) {
+        if (room.kind === 'direct') {
+          if (!Array.isArray(room.participantKeys) || room.participantKeys.length !== 2 || new Set(room.participantKeys).size !== 2 ||
+              (this.resolveProfile && room.participantKeys.some((publicKey) => !this.resolveProfile({ publicKey })))) {
+            migrated = true;
+            continue;
+          }
+          room.isPrivate = true;
+          delete room.inviteToken;
+        }
+        if (room.kind !== 'direct' && room.isPrivate && !this.isInviteToken(room.inviteToken)) {
           room.inviteToken = this.generateInviteToken();
           migrated = true;
         }
@@ -147,7 +157,7 @@ class RoomRepository {
       }
       for (const storedAccess of Array.isArray(data.roomAccess) ? data.roomAccess : []) {
         const room = this.rooms.get(storedAccess?.roomId);
-        if (!room?.isPrivate || !storedAccess?.requesterId || room.ownerId === storedAccess.requesterId) {
+        if (!room?.isPrivate || room.kind === 'direct' || !storedAccess?.requesterId || room.ownerId === storedAccess.requesterId) {
           migrated = true;
           continue;
         }
@@ -210,6 +220,11 @@ class RoomRepository {
           migrated = true;
         }
       }
+      for (const record of Array.isArray(data.favorites) ? data.favorites : []) {
+        if (typeof record.ownerKey === 'string' && Array.isArray(record.keys)) {
+          this.favorites.set(record.ownerKey, new Set(record.keys.filter((key) => typeof key === 'string' && key !== record.ownerKey)));
+        }
+      }
       if (migrated) this.persist();
     } catch (error) {
       console.error('Soul chat data could not be loaded:', error.message);
@@ -217,7 +232,7 @@ class RoomRepository {
   }
 
   listRooms(user, options = {}) {
-    return this.sortRooms([...this.rooms.values()].filter((room) => this.canViewRoom(room, user, options.isAdmin === true)));
+    return this.sortRooms([...this.rooms.values()].filter((room) => room.kind !== 'direct' && this.canViewRoom(room, user, options.isAdmin === true)));
   }
 
   sortRooms(rooms) {
@@ -229,13 +244,95 @@ class RoomRepository {
     });
   }
 
+  requirePlanetRoom(room) {
+    if (room.kind === 'direct') throw new RoomRepositoryError('私信仅限固定两人，不支持成员、邀请或星球管理', 'DIRECT_MANAGEMENT_FORBIDDEN');
+    return room;
+  }
+
+  requireDirectParticipant(roomId, user) {
+    const room = this.getRoomOrThrow(roomId);
+    if (room.kind !== 'direct' || !room.participantKeys.includes(user?.publicKey)) {
+      throw new RoomRepositoryError('无权访问此私信', 'DIRECT_FORBIDDEN');
+    }
+    return room;
+  }
+
+  publicPerson(publicKey) {
+    const profile = this.resolveProfile?.({ publicKey });
+    return profile ? { publicKey: profile.publicKey, userId: profile.userId, name: profile.name, avatarUrl: profile.avatarUrl || '' } : null;
+  }
+
+  requireContact(user, publicKey) {
+    const profile = typeof publicKey === 'string' ? this.resolveProfile?.({ publicKey }) : null;
+    if (!profile || profile.isSystem) throw new RoomRepositoryError('该用户无法接收私信或收藏', 'CONTACT_NOT_FOUND');
+    if (profile.publicKey === user.publicKey) throw new RoomRepositoryError('不能给自己发送私信或收藏自己', 'CONTACT_SELF');
+    return profile;
+  }
+
+  openDirect(user, publicKey) {
+    const target = this.requireContact(user, publicKey);
+    const keys = [user.publicKey, target.publicKey].sort();
+    const existing = [...this.rooms.values()].find((room) => room.kind === 'direct' && room.participantKeys.every((key, index) => key === keys[index]));
+    if (existing) return existing;
+    const room = {
+      id: `dm-${randomUUID()}`, code: this.generateRoomCode(), kind: 'direct',
+      name: '私信', description: '', tags: [], isPrivate: true, isFixed: false,
+      ownerId: user.id, participantKeys: keys, readCursors: {},
+      createdAt: new Date().toISOString(), lastMessageAt: null
+    };
+    this.rooms.set(room.id, room);
+    this.messages.set(room.id, []);
+    this.persist();
+    return room;
+  }
+
+  listDirects(user, { isAdmin = false } = {}) {
+    return this.sortRooms([...this.rooms.values()].filter((room) => room.kind === 'direct' && (isAdmin || this.canViewRoom(room, user))))
+      .map((room) => {
+        const messages = this.messages.get(room.id) || [];
+        const last = messages.at(-1);
+        return {
+          id: room.id, createdAt: room.createdAt, lastMessageAt: room.lastMessageAt,
+          participants: room.participantKeys.map((key) => this.publicPerson(key)).filter(Boolean),
+          peer: this.publicPerson(room.participantKeys.find((key) => key !== user?.publicKey)),
+          messageCount: messages.length,
+          lastMessage: last ? this.toPublicMessage(last) : null,
+          unreadCount: isAdmin ? 0 : messages.filter((message) => message.senderKey !== user.publicKey && message.timestamp > (room.readCursors?.[user.publicKey] || 0)).length
+        };
+      });
+  }
+
+  markDirectRead(roomId, user, messageId) {
+    const room = this.requireDirectParticipant(roomId, user);
+    const message = this.getStoredMessage(roomId, messageId);
+    if (!message) return;
+    const previous = room.readCursors?.[user.publicKey] || 0;
+    if (message.timestamp <= previous) return;
+    this.rooms.set(roomId, { ...room, readCursors: { ...room.readCursors, [user.publicKey]: message.timestamp } });
+    this.persist();
+  }
+
+  listFavorites(user) {
+    return [...(this.favorites.get(user.publicKey) || [])].map((key) => this.publicPerson(key)).filter(Boolean);
+  }
+
+  setFavorite(user, publicKey, favorite) {
+    if (typeof favorite !== 'boolean') throw new RoomRepositoryError('收藏操作无效', 'CONTACT_INVALID');
+    if (favorite) this.requireContact(user, publicKey);
+    const keys = this.favorites.get(user.publicKey) || new Set();
+    if (favorite) keys.add(publicKey); else keys.delete(publicKey);
+    this.favorites.set(user.publicKey, keys);
+    this.persist();
+    return this.listFavorites(user);
+  }
+
   getRoom(roomId) {
     return this.rooms.get(roomId) || null;
   }
 
   searchRoom(query) {
     const normalized = this.requireText(query, '星球 ID', 80).toUpperCase();
-    return [...this.rooms.values()].find((item) => item.id.toUpperCase() === normalized || item.code.toUpperCase() === normalized) || null;
+    return [...this.rooms.values()].find((item) => item.kind !== 'direct' && (item.id.toUpperCase() === normalized || item.code.toUpperCase() === normalized)) || null;
   }
 
   createRoom(input, user) {
@@ -274,6 +371,7 @@ class RoomRepository {
   }
 
   updateRoomRecord(room, input) {
+    this.requirePlanetRoom(room);
     const wasPrivate = room.isPrivate === true;
     const updated = {
       ...room,
@@ -301,6 +399,7 @@ class RoomRepository {
   deleteRoomAsAdmin(roomId) {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    this.requirePlanetRoom(room);
     return this.deleteRoomRecord(room);
   }
 
@@ -317,6 +416,7 @@ class RoomRepository {
   verifyRoomAccess(roomId, password, options = {}) {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    if (room.kind === 'direct') return this.requireDirectParticipant(roomId, options.user);
     if (room.isPrivate) {
       if (!this.canViewRoom(room, options.user, options.isAdmin === true) && this.isValidInviteToken(room, options.inviteToken)) {
         this.grantRoomAccessByInvite(room, options.user);
@@ -364,6 +464,7 @@ class RoomRepository {
 
   requestRoomAccess(roomId, user) {
     const room = this.getRoomOrThrow(roomId);
+    this.requirePlanetRoom(room);
     const requester = this.normalizeUser(user);
     if (!room.isPrivate) throw new RoomRepositoryError('公开星球无需申请', 'ROOM_ACCESS_NOT_REQUIRED');
     if (room.ownerId === requester.id || this.hasApprovedAccess(room.id, requester.id)) {
@@ -472,6 +573,7 @@ class RoomRepository {
 
   addMessage(roomId, user, input) {
     if (!this.rooms.has(roomId)) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    if (this.rooms.get(roomId).kind === 'direct') this.requireDirectParticipant(roomId, user);
     if (input?.type === 'game') throw new RoomRepositoryError('请通过小游戏入口发起游戏', 'GAME_CREATE_REQUIRED');
     if (input?.type === 'poll' || input?.type === 'poll-result') throw new RoomRepositoryError('请通过投票入口发起投票', 'POLL_CREATE_REQUIRED');
     const sender = this.normalizeUser(user);
@@ -498,10 +600,13 @@ class RoomRepository {
   storeMessage(message) {
     const { roomId } = message;
     const roomMessages = this.messages.get(roomId) || [];
+    // Strictly increasing timestamps keep pagination and read cursors lossless.
+    const room = this.rooms.get(roomId);
+    message.timestamp = Math.max(message.timestamp, (room.lastMessageTimestamp || roomMessages.at(-1)?.timestamp || 0) + 1);
     roomMessages.push(message);
-    this.trimRoomMessages(roomMessages, new Set([message.id]));
+    if (this.rooms.get(roomId)?.kind !== 'direct') this.trimRoomMessages(roomMessages, new Set([message.id]));
     this.messages.set(roomId, roomMessages);
-    this.rooms.set(roomId, { ...this.rooms.get(roomId), lastMessageAt: new Date(message.timestamp).toISOString() });
+    this.rooms.set(roomId, { ...room, lastMessageTimestamp: message.timestamp, lastMessageAt: new Date(message.timestamp).toISOString() });
     this.persist();
     return this.toPublicMessage(message);
   }
@@ -526,7 +631,7 @@ class RoomRepository {
   }
 
   createPoll(roomId, user, input) {
-    this.getRoomOrThrow(roomId);
+    this.requirePlanetRoom(this.getRoomOrThrow(roomId));
     const sender = this.normalizeUser(user);
     const question = this.requirePollText(input?.question, '问题', 200, 'POLL_QUESTION_INVALID');
     if (!Array.isArray(input?.options) || input.options.length < 2 || input.options.length > 10) {
@@ -704,7 +809,7 @@ class RoomRepository {
   }
 
   createGame(roomId, user, input) {
-    this.getRoomOrThrow(roomId);
+    this.requirePlanetRoom(this.getRoomOrThrow(roomId));
     const sender = this.normalizeUser(user);
     let game;
     const privateState = { hostId: sender.id };
@@ -964,7 +1069,7 @@ class RoomRepository {
   }
 
   getAdminRooms() {
-    return this.sortRooms([...this.rooms.values()]).map((room) => {
+    return this.sortRooms([...this.rooms.values()].filter((room) => room.kind !== 'direct')).map((room) => {
       const messages = this.messages.get(room.id) || [];
       const attachments = messages.map((message) => message.attachment).filter(Boolean);
       return {
@@ -985,7 +1090,7 @@ class RoomRepository {
     const ownerId = profile?.uuid ? `guest-${profile.uuid}` : '';
     let deletedAccessCount = 0;
     for (const room of [...this.rooms.values()]) {
-      if (ownerId && room.ownerId === ownerId) {
+      if ((ownerId && room.ownerId === ownerId) || (room.kind === 'direct' && room.participantKeys.includes(profile?.publicKey))) {
         deletedRooms.push(this.deleteRoomRecord(room));
         continue;
       }
@@ -1016,7 +1121,9 @@ class RoomRepository {
         deletedAccessCount += 1;
       }
     }
-    if (deletedRooms.length > 0 || deletedMessages.length > 0 || deletedAccessCount > 0) this.persist();
+    this.favorites.delete(profile?.publicKey);
+    for (const keys of this.favorites.values()) keys.delete(profile?.publicKey);
+    this.persist();
     return { deletedRooms, deletedMessages: deletedMessages.map((message) => this.toPublicMessage(message)), deletedAccessCount };
   }
 
@@ -1031,6 +1138,7 @@ class RoomRepository {
 
   toPublicRoom(room) {
     return {
+      kind: room.kind === 'direct' ? 'direct' : 'planet',
       id: room.id,
       code: room.code,
       name: room.name,
@@ -1074,6 +1182,7 @@ class RoomRepository {
   }
 
   canViewRoom(room, user, isAdmin = false) {
+    if (room?.kind === 'direct') return room.participantKeys.includes(user?.publicKey);
     return Boolean(room) && (!room.isPrivate || isAdmin || room.ownerId === user?.id || this.hasApprovedAccess(room.id, user?.id));
   }
 
@@ -1109,6 +1218,7 @@ class RoomRepository {
 
   requireManagedRoom(roomId, actor, isAdmin = false) {
     const room = this.getRoomOrThrow(roomId);
+    this.requirePlanetRoom(room);
     if (!isAdmin && (room.isFixed || room.ownerId !== actor?.id)) {
       throw new RoomRepositoryError('只有星球创建者或超管可以管理访问权限', 'ROOM_OWNER_REQUIRED');
     }
@@ -1116,6 +1226,7 @@ class RoomRepository {
   }
 
   grantRoomAccessByInvite(room, user) {
+    this.requirePlanetRoom(room);
     const requester = this.normalizeUser(user);
     const key = this.accessKey(room.id, requester.id);
     const current = this.roomAccess.get(key);
@@ -1259,6 +1370,7 @@ class RoomRepository {
   requireOwnedRoom(roomId, user) {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
+    this.requirePlanetRoom(room);
     if (room.isFixed || room.ownerId !== user?.id) throw new RoomRepositoryError('只有星球创建者可以执行此操作', 'ROOM_OWNER_REQUIRED');
     return room;
   }
@@ -1325,7 +1437,8 @@ class RoomRepository {
         rooms: this.sortRooms([...this.rooms.values()]),
         messages: [...this.messages.values()].flat(),
         roomAccess: [...this.roomAccess.values()],
-        passwordAccess: [...this.passwordAccess.values()]
+        passwordAccess: [...this.passwordAccess.values()],
+        favorites: [...this.favorites].map(([ownerKey, keys]) => ({ ownerKey, keys: [...keys] }))
       },
       null,
       2

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import Link from 'next/link';
 import { TopBar } from '@/components/topbar';
+import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { doodleShareRepository } from '@/server/doodle/shareRepository';
 import ShareActions from './ShareActions';
@@ -58,7 +59,7 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
 
   return (
     <main className="app-page doodle-page bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
-      <TopBar middle="漫游相机" position="sticky" backHref="/doodle" backLabel="漫游相机" right={<ThemeToggle />} />
+      <TopBar middle="漫游相机" position="sticky" backHref="/doodle" backLabel="漫游相机" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
 
       <div className="app-content-width grid items-center gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-8">
         <div className="mx-auto w-full max-w-[560px] overflow-hidden rounded-[28px] border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">

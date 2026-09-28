@@ -238,7 +238,13 @@ export class SocketChatTransport {
     };
   }
 
-  private emitWithAck<T>(event: string, payload?: unknown): Promise<T> {
+  public onSocialChanged(listener: () => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('social:changed', listener);
+    return () => { socket.off('social:changed', listener); };
+  }
+
+  public emitWithAck<T>(event: string, payload?: unknown): Promise<T> {
     const socket = this.requireSocket();
     if (!socket.connected) return Promise.reject(new Error('聊天服务未连接'));
 

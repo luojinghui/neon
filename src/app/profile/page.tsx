@@ -11,12 +11,13 @@ export default function MyProfileRedirectPage() {
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
   const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
+  const section = searchParams.get('section') === 'messages' ? '&section=messages' : '';
 
   useEffect(() => {
     let active = true;
     ensureCurrentProfile()
       .then((profile) => {
-        if (active) router.replace(createProfileHref(profile.userId, { returnTo }));
+        if (active) router.replace(`${createProfileHref(profile.userId, { returnTo })}${section}`);
       })
       .catch((profileError) => {
         if (active) setError(profileError instanceof Error ? profileError.message : '个人资料加载失败');
@@ -24,7 +25,7 @@ export default function MyProfileRedirectPage() {
     return () => {
       active = false;
     };
-  }, [returnTo, router]);
+  }, [returnTo, router, section]);
 
   return (
     <main className="app-screen flex items-center justify-center bg-background px-5 text-center">

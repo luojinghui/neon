@@ -113,6 +113,13 @@ export class SoulChat {
     return this.transport.callTransport();
   }
 
+  public async markDirectRead(): Promise<void> {
+    const store = useSoulStore.getState();
+    const last = store.messages.at(-1);
+    if (store.room?.kind !== 'direct' || store.accessState !== 'granted' || !last || document.visibilityState !== 'visible') return;
+    await this.transport.emitWithAck('direct:read', { roomId: this.roomId, messageId: last.id }).catch(() => undefined);
+  }
+
   public async loadRooms(silent = false): Promise<void> {
     const store = useSoulStore.getState();
     const session = this.sessionId;
