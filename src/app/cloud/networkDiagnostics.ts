@@ -13,7 +13,9 @@ export interface IceAddress {
 
 export interface IceProbe {
   status: ProbeStatus;
+  stunServer: string;
   candidates: IceAddress[];
+  mappedIps: string[];
   localIps: string[];
   mdnsNames: string[];
   errors: string[];
@@ -36,6 +38,7 @@ export interface NetworkDiagnostics {
 }
 
 const PROBE_TIMEOUT_MS = 8000;
+const STUN_SERVER = 'stun:8.137.55.241:3478';
 
 export function classifyAddress(address: string): AddressKind {
   const value = address.toLowerCase();
@@ -107,7 +110,9 @@ export function collectIce(signal: AbortSignal, timeoutMs = PROBE_TIMEOUT_MS): P
       cleanup();
       resolve({
         status,
+        stunServer: STUN_SERVER,
         candidates,
+        mappedIps: [...new Set(candidates.filter(item => item.type === 'srflx' && !['mdns', 'unknown'].includes(item.kind)).map(item => item.address))],
         localIps: [...new Set(candidates.filter(item => item.type === 'host' && ['private', 'link-local'].includes(item.kind)).map(item => item.address))],
         mdnsNames: [...new Set(candidates.filter(item => item.kind === 'mdns').map(item => item.address))],
         errors
@@ -125,8 +130,8 @@ export function collectIce(signal: AbortSignal, timeoutMs = PROBE_TIMEOUT_MS): P
     if (typeof RTCPeerConnection === 'undefined') { finish('unsupported'); return; }
 
     try {
-      // Host-only discovery needs no media permission or external STUN/TURN service.
-      peer = new RTCPeerConnection({ iceServers: [], iceTransportPolicy: 'all' });
+      // Gather local candidates and the address observed by our STUN server without media access.
+      peer = new RTCPeerConnection({ iceServers: [{ urls: STUN_SERVER }], iceTransportPolicy: 'all' });
       peer.onicecandidate = ({ candidate }) => {
         if (!candidate) { finish('complete'); return; }
         const item = readIceAddress(candidate);

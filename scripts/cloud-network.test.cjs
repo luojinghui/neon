@@ -51,12 +51,38 @@ test('ICE preserves separate sources and raw candidates without treating mDNS or
   peer.complete();
   const result = await promise;
   assert.equal(result.status, 'complete');
+  assert.equal(result.stunServer, 'stun:8.137.55.241:3478');
   assert.deepEqual(Array.from(result.localIps), ['192.168.1.20', 'fd00::1']);
+  assert.deepEqual(Array.from(result.mappedIps), ['198.51.100.3']);
   assert.deepEqual(Array.from(result.mdnsNames), ['masked.local']);
   assert.equal(result.candidates.length, 4);
-  assert.equal(peer.configuration.iceServers.length, 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(peer.configuration)), {
+    iceServers: [{ urls: 'stun:8.137.55.241:3478' }],
+    iceTransportPolicy: 'all'
+  });
   assert.ok(peer.closed && peer.channelClosed);
   assert.equal(peer.onicecandidate, null);
+});
+
+test('STUN mappings deduplicate IPs across ports and protocols while preserving candidate details', async () => {
+  const fake = rtc(), { collectIce } = load(fake);
+  const promise = collectIce(new AbortController().signal);
+  const peer = fake.instances[0];
+  peer.emit('198.51.100.7', 'srflx', 'udp', 1234);
+  peer.emit('198.51.100.7', 'srflx', 'udp', 5678);
+  peer.emit('198.51.100.7', 'srflx', 'tcp', 5678);
+  peer.emit('2001:db8::7', 'srflx');
+  peer.emit('192.168.200.1', 'srflx');
+  peer.emit('masked.local', 'srflx');
+  peer.emit('999.1.1.1', 'srflx');
+  peer.emit('203.0.113.7', 'host');
+  peer.emit('203.0.113.8', 'relay');
+  peer.complete();
+  const result = await promise;
+  assert.deepEqual(Array.from(result.mappedIps), ['198.51.100.7', '2001:db8::7', '192.168.200.1']);
+  assert.deepEqual(Array.from(result.localIps), []);
+  assert.equal(result.candidates.filter(candidate => candidate.address === '198.51.100.7').length, 3);
+  assert.equal(result.candidates.length, 9);
 });
 
 test('older candidate shape falls back to SDP without dropping the source', () => {
@@ -70,8 +96,10 @@ test('ICE timeout retains partial results and closes the peer', async () => {
   const fake = rtc(), { collectIce } = load(fake);
   const promise = collectIce(new AbortController().signal, 10);
   fake.instances[0].emit('partial.local');
+  fake.instances[0].emit('198.51.100.5', 'srflx');
   const result = await promise;
-  assert.equal(result.status, 'timeout'); assert.equal(result.candidates.length, 1);
+  assert.equal(result.status, 'timeout'); assert.equal(result.candidates.length, 2);
+  assert.deepEqual(Array.from(result.mappedIps), ['198.51.100.5']);
   assert.ok(fake.instances[0].closed);
 });
 

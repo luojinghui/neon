@@ -62,10 +62,13 @@ export default function NetworkInfo() {
           <section className="cloud-network-section" aria-label="WebRTC ICE 探测结果">
             <h3>浏览器 · WebRTC ICE <Tag color={result.ice.status === 'complete' ? 'green' : 'orange'}>{statusLabels[result.ice.status]}</Tag></h3>
             <dl>
+              <ValueRow label="STUN 映射 IP" value={result.ice.mappedIps.join('、')} />
+              <ValueRow label="STUN 服务" value={result.ice.stunServer} />
               <ValueRow label="内网 / 局域网 IP" value={result.ice.localIps.join('、')} />
               <ValueRow label="mDNS 名称" value={result.ice.mdnsNames.join('、')} />
             </dl>
-            <p className="cloud-network-note">收集本机 host 候选，不请求摄像头或麦克风，不使用 STUN / TURN。若只有 .local 名称，说明浏览器隐藏了真实 IP；探测完成不代表能读取全部网卡。</p>
+            <p className="cloud-network-note">STUN 映射 IP 来自 srflx 候选，是 STUN 服务看到的网络出口地址，可能与 HTTP 请求来源不同。探测不请求摄像头或麦克风，不使用 TURN 中继；浏览器仍可能用 .local 名称隐藏内网 IP。</p>
+            {result.ice.mappedIps.length === 0 && <p className="cloud-network-note">未获取到 STUN 映射 IP，可能受浏览器策略或网络限制；收集完成不代表 STUN 可达。</p>}
             {result.ice.candidates.length === 0 && <p className="cloud-network-note">没有获取到 ICE 候选地址。</p>}
             {result.ice.candidates.map((item, index) => <div className="cloud-network-candidate" key={item.candidate}>
               <div className="flex flex-wrap items-center gap-2"><strong>候选 {index + 1}</strong><Tag>{item.type}</Tag><span>{kindLabels[item.kind]}</span></div>
