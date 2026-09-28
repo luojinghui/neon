@@ -1,10 +1,13 @@
 .wrapper {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .overlay {
   position: absolute;
   box-sizing: border-box;
+  max-width: 100%;
   overflow: auto;
   scrollbar-width: none;
   /* Native text stays visible, so input, selection and theme styling are untouched. */
