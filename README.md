@@ -6,6 +6,9 @@
 $ pnpm start
 ```
 
+- 首次配置或更换电脑见 [本地开发配置清单](docs/local-development-setup.md)。
+- Windows 自动初始化见 [Windows 本地开发](docs/windows-dev-codex.md)。
+
 ## 构建
 
 ```bash
