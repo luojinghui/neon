@@ -16,6 +16,7 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import VersionModal from './components/VersionModal';
+import NetworkInfo from './components/NetworkInfo';
 import './cloud.css';
 
 function CloudPage() {
@@ -71,7 +72,7 @@ function CloudPage() {
 
   return (
     <div className="cloud-page app-screen w-full bg-background flex flex-col select-none">
-      <TopBar middle="云传" backHref="/" backLabel="首页" right={<><ProfileShortcut returnTo="/cloud" /><ThemeToggle /></>} />
+      <TopBar middle={<div className="flex items-center justify-center gap-1"><span className="text-base font-semibold">云传</span><NetworkInfo /></div>} backHref="/" backLabel="首页" right={<><ProfileShortcut returnTo="/cloud" /><ThemeToggle /></>} />
 
       {/* Content */}
       <div ref={contentRef} className="content w-full pt-[var(--app-page-top)] pb-8 flex-1 overflow-y-auto overflow-x-hidden">

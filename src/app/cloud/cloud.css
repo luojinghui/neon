@@ -1,5 +1,22 @@
 .cloud-page .content { min-width: 0; min-height: 0; max-width: 100%; }
 
+.cloud-network-trigger { width: 2rem; height: 2rem; font-size: 1rem; }
+.cloud-network-body { max-height: 65dvh; overflow-y: auto; color: hsl(var(--foreground)); user-select: text; }
+.cloud-network-loading { display: flex; align-items: center; gap: 0.75rem; padding: 2rem 0; }
+.cloud-network-section { margin-top: 1rem; border: 1px solid hsl(var(--border)); border-radius: 0.75rem; padding: 1rem; }
+.cloud-network-section h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; }
+.cloud-network-row { display: grid; grid-template-columns: minmax(0, 10rem) minmax(0, 1fr); gap: 0.75rem; padding: 0.35rem 0; }
+.cloud-network-row dt, .cloud-network-note { color: hsl(var(--foreground-secondary)); font-size: 0.8125rem; }
+.cloud-network-row dd { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; font-family: monospace; }
+.cloud-network-note { margin-top: 0.5rem; line-height: 1.6; }
+.cloud-network-candidate { margin-top: 0.75rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.75rem; }
+.cloud-network-section summary { cursor: pointer; }
+.cloud-network-json { margin-top: 0.75rem; font-size: 0.75rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .cloud-network-row { grid-template-columns: minmax(0, 1fr); gap: 0.125rem; }
+  .cloud-network-section { padding: 0.75rem; }
+}
+
 /* Long editor content must not contribute to the sticky toolbar's inline size. */
 .cloud-page .content > .app-content-width {
   width: min(100%, var(--app-content-max));
