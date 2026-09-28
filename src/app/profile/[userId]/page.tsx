@@ -1,8 +1,6 @@
 'use client';
 
-import { AppstoreOutlined, CheckOutlined, CopyOutlined, EditOutlined, PlusOutlined, ReloadOutlined, UserOutlined } from '@ant-design/icons';
-import Image from 'next/image';
-import { ImagePreview } from '@/components/image-viewer/ImagePreview';
+import { CheckOutlined, CopyOutlined, ReloadOutlined, CalendarOutlined, CompassOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,14 +12,13 @@ import { MomentGallery } from '@/app/moments/components/MomentGallery';
 import type { Moment } from '@/app/moments/types';
 import '@/app/moments/moments.css';
 import { getPublicProfile } from '../client';
-import { ProfileBannerView } from '../components/ProfileBanner';
-import { ProfileEditor } from '../components/ProfileEditor';
-import { getProfileAvatar, type PublicProfile } from '../types';
+import { ProfileIdentity } from '../components/ProfileIdentity';
+import type { PublicProfile } from '../types';
 import { createProfileHref, getProfileBackLabel, sanitizeProfileReturnTo } from '../navigation';
-import { ContactActions } from '@/app/social/ContactActions';
 import { SocialPanel } from '@/app/social/SocialPanel';
 import { useSocialStore } from '@/app/social/client';
 import { ProfileShortcut } from '../components/ProfileShortcut';
+import '../profile.css';
 
 function formatJoinedDate(value: string): string {
   const date = new Date(value);
@@ -37,11 +34,12 @@ export default function ProfilePage() {
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [editorOpen, setEditorOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'moments' | 'messages' | 'friends'>('profile');
   const unread = useSocialStore((state) => state.conversations.reduce((total, item) => total + item.unreadCount, 0));
+  const friendCount = useSocialStore((state) => state.favorites.length);
+  const socialReady = useSocialStore((state) => state.ready);
   const [moments, setMoments] = useState<Moment[]>([]);
   const [momentsLoading, setMomentsLoading] = useState(false);
   const [momentsLoaded, setMomentsLoaded] = useState(false);
@@ -67,7 +65,6 @@ export default function ProfilePage() {
     setIsOwner(false);
     setLoading(true);
     setError('');
-    setEditorOpen(false);
     setComposerOpen(false);
     setActiveSection('profile');
     setMoments([]);
@@ -139,7 +136,7 @@ export default function ProfilePage() {
   }, [activeSection, loadMoments, loading, momentsError, momentsLoaded, momentsLoading]);
 
   return (
-    <div className="app-screen flex w-full flex-col bg-background">
+    <div className="profile-page app-screen flex w-full flex-col">
       <TopBar
         middle="个人主页"
         backHref={returnTo}
@@ -164,7 +161,7 @@ export default function ProfilePage() {
       />
 
       <main className="chat-scrollbar flex-1 overflow-y-auto overflow-x-hidden pb-12 pt-[var(--app-page-top)]">
-        <div className="app-content-width">
+        <div className="profile-shell">
           {loading ? (
             <div className="animate-pulse overflow-hidden rounded-2xl border border-border bg-surface">
               <div className="h-40 bg-background-tertiary sm:h-56" />
@@ -190,84 +187,44 @@ export default function ProfilePage() {
               </div>
             </div>
           ) : (
-            <article className="overflow-hidden rounded-2xl border border-border bg-surface">
-              <ProfileBannerView banner={profile.banner} className="h-40 sm:h-56 lg:h-60" />
+            <article className="profile-card">
+              <ProfileIdentity
+                key={profile.publicKey}
+                profile={profile}
+                isOwner={isOwner}
+                onCompose={() => setComposerOpen(true)}
+                onSaved={(updated) => {
+                  if (updated.publicKey !== activeProfileKey.current) return;
+                  setProfile(updated);
+                  if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo }));
+                }}
+              />
+              <div className="profile-sections">
+                <nav className="profile-tabs" aria-label="个人主页内容">
+                  {([
+                    { id: 'profile', label: '资料' },
+                    { id: 'moments', label: '心迹' },
+                    ...(isOwner ? [{ id: 'messages', label: '私信' }, { id: 'friends', label: '好友收藏' }] as const : [])
+                  ] as const).map((section) => <button key={section.id} type="button" className="profile-tab" aria-pressed={activeSection === section.id} onClick={() => setActiveSection(section.id)}>
+                    {section.label}
+                    {section.id === 'moments' && momentsLoaded && moments.length > 0 && <span className="profile-tab-count">{moments.length}</span>}
+                    {section.id === 'messages' && unread > 0 && <span className="profile-tab-unread">{unread > 99 ? '99+' : unread}</span>}
+                    {section.id === 'friends' && socialReady && friendCount > 0 && <span className="profile-tab-count">{friendCount}</span>}
+                  </button>)}
+                </nav>
 
-              <div className="relative px-5 pb-6 sm:px-7 sm:pb-7">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="relative -mt-14 h-28 w-28 shrink-0 sm:-mt-16 sm:h-32 sm:w-32">
-                    <ImagePreview images={[{ id: 'avatar', url: getProfileAvatar(profile), name: `${profile.name}的头像` }]} imageId="avatar" className="relative h-full w-full rounded-full" title="头像">
-                    <Image
-                      src={getProfileAvatar(profile)}
-                      alt={`${profile.name}的头像`}
-                      fill
-                      sizes="128px"
-                      priority
-                      unoptimized
-                      className="rounded-full border-[5px] border-surface bg-surface-active object-cover"
-                    />
-                    </ImagePreview>
-                    {isOwner && <span className="absolute bottom-1 right-1 h-5 w-5 rounded-full border-4 border-surface bg-success" title="这是你" />}
-                  </div>
-
-                  {isOwner && !profile.isSystem && (
-                    <div className="mb-1 mt-4 flex flex-wrap justify-end gap-2">
-                      <button type="button" onClick={() => setEditorOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover">
-                        <EditOutlined /> 编辑资料
-                      </button>
-                      <button type="button" onClick={() => setComposerOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover">
-                        <PlusOutlined /> 发布心迹
-                      </button>
+                {isOwner && (activeSection === 'messages' || activeSection === 'friends') ? <SocialPanel section={activeSection} /> : activeSection === 'profile' ? (
+                  <dl className="profile-details">
+                    <div className="profile-detail">
+                      <span className="profile-detail-icon"><CalendarOutlined /></span>
+                      <div><dt>星球旅程</dt><dd>{formatJoinedDate(profile.createdAt)}</dd></div>
                     </div>
-                  )}
-                </div>
-
-                <div className="mt-5 max-w-2xl">
-                  {!isOwner && !profile.isSystem && <ContactActions key={profile.publicKey} contact={profile} />}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{profile.name}</h1>
-                    {profile.isSystem && <span className="rounded-full bg-primary-soft px-2 py-1 text-[11px] font-medium text-primary">官方</span>}
-                  </div>
-                  <div className="mt-1.5 font-mono text-sm text-foreground-muted">@{profile.userId}</div>
-                  <p className={`mt-5 whitespace-pre-wrap text-[15px] leading-7 ${profile.bio ? 'text-foreground-secondary' : 'italic text-foreground-muted'}`}>
-                    {profile.bio || (isOwner ? '还没有写个人描述，留一句此刻想说的话吧。' : '这个人还没有留下个人描述。')}
-                  </p>
-                </div>
-
-                <div className="mt-6 border-t border-border pt-5">
-                  <div className="flex flex-wrap gap-2" role="group" aria-label="个人主页内容">
-                    {isOwner && (['messages', 'friends'] as const).map((section) => <button key={section} type="button" aria-pressed={activeSection === section} onClick={() => setActiveSection(section)} className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm ${activeSection === section ? 'bg-primary-soft font-medium text-primary' : 'text-foreground-muted hover:bg-surface-hover'}`}>{section === 'messages' ? '私信' : '好友收藏'}{section === 'messages' && unread > 0 && <span className="rounded-full bg-red-500 px-1.5 text-xs text-white">{unread}</span>}</button>)}
-                    <button
-                      type="button"
-                      onClick={() => setActiveSection('profile')}
-                      aria-pressed={activeSection === 'profile'}
-                      className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition-colors ${activeSection === 'profile' ? 'bg-primary-soft font-medium text-primary' : 'text-foreground-muted hover:bg-surface-hover hover:text-foreground'}`}
-                    >
-                      <UserOutlined /> 资料
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveSection('moments')}
-                      aria-pressed={activeSection === 'moments'}
-                      className={`inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm transition-colors ${activeSection === 'moments' ? 'bg-primary-soft font-medium text-primary' : 'text-foreground-muted hover:bg-surface-hover hover:text-foreground'}`}
-                    >
-                      <AppstoreOutlined /> 心迹
-                      {momentsLoaded && <span className="text-xs text-foreground-muted">{moments.length}</span>}
-                    </button>
-                  </div>
-
-                  {isOwner && (activeSection === 'messages' || activeSection === 'friends') ? <SocialPanel section={activeSection} /> : activeSection === 'profile' ? (
-                    <div className="grid gap-x-10 gap-y-6 pb-1 pt-6 sm:grid-cols-2">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">✦</div>
-                        <div><div className="text-sm font-medium text-foreground">星球旅程</div><div className="mt-1 text-xs leading-relaxed text-foreground-muted">{formatJoinedDate(profile.createdAt)}</div></div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">@</div>
-                        <div><div className="text-sm font-medium text-foreground">专属 ID</div><div className="mt-1 font-mono text-xs leading-relaxed text-foreground-muted">@{profile.userId}</div></div>
-                      </div>
+                    <div className="profile-detail">
+                      <span className="profile-detail-icon"><CompassOutlined /></span>
+                      <div><dt>在这里，相遇</dt><dd>分享日常，也发现同频的人。<br /><Link href="/soul" className="text-foreground-secondary hover:text-primary">去星球逛逛 →</Link></dd></div>
                     </div>
-                  ) : (
+                  </dl>
+                ) : (
                     <MomentGallery
                       key={profile.publicKey}
                       moments={moments}
@@ -279,26 +236,16 @@ export default function ProfilePage() {
                         setMoments((current) => current.filter((moment) => moment.id !== id));
                       }}
                     />
-                  )}
-                </div>
+                )}
               </div>
             </article>
           )}
+          {!loading && profile && !error && <p className="profile-footnote">每一颗星，都有自己的故事</p>}
         </div>
       </main>
 
       {profile && isOwner && !profile.isSystem && (
         <>
-          <ProfileEditor
-            open={editorOpen}
-            profile={profile}
-            onClose={() => setEditorOpen(false)}
-            onSaved={(updated) => {
-              setProfile(updated);
-              setEditorOpen(false);
-              if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo }));
-            }}
-          />
           <MomentComposer
             appearance="journal"
             open={composerOpen}
