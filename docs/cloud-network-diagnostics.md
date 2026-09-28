@@ -4,7 +4,7 @@
 
 ## 数据来源
 
-- `ice.stunServer`：本次使用的 STUN 服务，当前固定为 `stun:8.137.55.241:3478`（UDP，无需用户名或密码）。
+- `ice.stunServer`：本次使用的 STUN 服务，来自 `src/constants/webrtc.js` 的共享默认值，当前为 `stun:8.137.55.241:3478`（UDP，无需用户名或密码）。星球通话默认复用此地址，通话服务端可用 `WEBRTC_STUN_URLS` 覆盖。
 - `ice.localIps`：host 候选中的私有地址与链路本地地址，去重后的数组。内网和局域网属于同一分类。回环地址单独保留在 candidates 中。
 - `ice.mappedIps`：STUN 返回的 srflx（server-reflexive）候选 IP，按地址去重；同一 IP 的不同协议和端口仍分别保留在 candidates 中。排除 mDNS 名称和无法分类的地址。这是 STUN 服务器观察到的客户端映射地址，通常为公网出口 IP；映射地址也可能属于私网，不能一概视为公网地址，也不并入本机内网 IP。
 - `ice.mdnsNames`：浏览器隐藏 IP 后提供的 `.local` 名称，不作为真实 IP 使用。

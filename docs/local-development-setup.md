@@ -110,7 +110,7 @@ node --env-file=.env.local src/server.js
 | `APP_PORT` | `3000` | 端口冲突时改；不是 `PORT` |
 | `ALLOWED_ORIGINS` | 空；Socket.IO 跨域来源，多个用逗号分隔 | 同源开发不填；不是通用 API 跨域开关 |
 | `CLOUD_TRUSTED_PROXIES` | 空；云传网络诊断仅使用 TCP 对端地址 | 经可信反向代理测试来源 IP 时配置代理 IP/CIDR；同机代理可用 `loopback` |
-| `WEBRTC_STUN_URLS` | `stun:stun.l.google.com:19302`；通话 STUN 地址，多个用逗号分隔 | 按测试网络改为可达服务 |
+| `WEBRTC_STUN_URLS` | `stun:8.137.55.241:3478`；与云传共用默认 STUN 地址，多个用逗号分隔 | 可覆盖为其他可达服务 |
 | `WEBRTC_TURN_URLS` | 空；通话 TURN 地址，多个用逗号分隔 | 跨网络通话需配置可达中继 |
 | `WEBRTC_TURN_SECRET` | 空；coturn 的共享认证密钥 | 配置 TURN 时必填，仅存服务端本地环境文件 |
 | `WEBRTC_RELAY_ONLY` | `false`；仅值为 `true` 时强制中继 | 验收 TURN 时设 `true`，需同时配置 TURN |
@@ -131,7 +131,7 @@ node --env-file=.env.local src/server.js
 
 `DOODLE_UPLOAD_DIRECTORY` 改到 `public/` 之外后，分享 URL 仍为 `/uploads/doodle/...`，当前服务没有为任意自定义涂鸦目录增加静态映射；本地保持默认最直接。心迹自定义目录则已有 Express 映射。
 
-`CLOUD_TRUSTED_PROXIES` 只影响云传网络诊断，按实际代理拓扑配置。云传 ICE 探测使用固定 STUN 服务，与通话的 `WEBRTC_STUN_URLS` 独立；见 [云传网络探测](cloud-network-diagnostics.md)、[通话配置](planet-calls.md) 与 [通话共享](call-sharing.md)。STUN 只提供地址发现，不能保证任意跨网络通话成功。
+`CLOUD_TRUSTED_PROXIES` 只影响云传网络诊断，按实际代理拓扑配置。云传 ICE 探测与星球通话共用 STUN 默认值，`WEBRTC_STUN_URLS` 只覆盖通话的配置，不影响云传；见 [云传网络探测](cloud-network-diagnostics.md)、[通话配置](planet-calls.md) 与 [通话共享](call-sharing.md)。STUN 只提供地址发现，不能保证任意跨网络通话成功。
 
 **5. 初始化网页管理员**
 

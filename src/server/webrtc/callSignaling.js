@@ -1,5 +1,6 @@
 const { randomUUID, createHmac } = require('node:crypto');
 const { CallSharing } = require('./sharing');
+const { DEFAULT_STUN_URL } = require('../../constants/webrtc');
 
 const MAX_PARTICIPANTS = 4;
 
@@ -9,7 +10,7 @@ function fail(message, code = 'CALL_INVALID') {
 
 // TURN shared secrets stay on the server. Only short-lived credentials reach members.
 function getIceConfiguration(env = process.env, now = Date.now()) {
-  const stun = (env.WEBRTC_STUN_URLS || 'stun:stun.l.google.com:19302').split(',').map((url) => url.trim()).filter(Boolean);
+  const stun = (env.WEBRTC_STUN_URLS || DEFAULT_STUN_URL).split(',').map((url) => url.trim()).filter(Boolean);
   const turns = (env.WEBRTC_TURN_URLS || '').split(',').map((url) => url.trim()).filter(Boolean);
   if (stun.some((url) => !/^stuns?:[^\s]+$/.test(url)) || turns.some((url) => !/^turns?:[^\s]+$/.test(url))) {
     fail('通话网络配置无效，请联系管理员', 'CALL_CONFIG');

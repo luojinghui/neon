@@ -54,6 +54,19 @@
 
 本机 `localhost` 可开发；手机访问内网 HTTP 地址不能使用摄像头/麦克风，应部署 HTTPS。生产网络尤其移动网络和对称 NAT 需要可达的 TURN，仅配置 STUN 不能保证互通。
 
+星球通话默认与云传网络探测共用 `src/constants/webrtc.js` 中的 `stun:8.137.55.241:3478`，使用 `iceTransportPolicy: all`。服务端在 `call:join` 成功后下发配置，客户端将其传给每条通话 PeerConnection。已有部署如果设置了 `WEBRTC_STUN_URLS`，该值仍优先；需要复用云传服务时将其改为上述地址并重启应用。此服务器当前只启用了 STUN，不提供 TURN 中继，不能将其改写成 `turn:` 或强制 `relay`。部署信息见 [STUN 服务配置与运维](stun-server.md)。
+
+只使用现有 STUN 的配置：
+
+```dotenv
+WEBRTC_STUN_URLS=stun:8.137.55.241:3478
+WEBRTC_TURN_URLS=
+WEBRTC_TURN_SECRET=
+WEBRTC_RELAY_ONLY=false
+```
+
+另行部署 TURN 后，按实际地址和共享密钥配置：
+
 ```dotenv
 WEBRTC_STUN_URLS=stun:your-turn.example.com:3478
 WEBRTC_TURN_URLS=turn:your-turn.example.com:3478?transport=udp,turns:your-turn.example.com:5349?transport=tcp

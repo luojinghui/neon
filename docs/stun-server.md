@@ -38,7 +38,7 @@ await pc.setLocalDescription(await pc.createOffer());
 
 不要将 `iceTransportPolicy` 设为 `"relay"`：此模式只允许中继候选，与本次 STUN-only 服务不匹配。界面显示 `Done` 仅表示收集结束，还需检查是否存在该服务器产生的 `srflx`。即使收集成功，也应以两端实际 ICE 连接和数据传输验证业务通路。
 
-云传网络探测已在客户端固定使用此地址，操作和结果字段见 [云传网络探测调试](cloud-network-diagnostics.md)。星球通话单独读取服务端的 `WEBRTC_STUN_URLS`；若要使用本服务，可设置 `WEBRTC_STUN_URLS=stun:8.137.55.241:3478` 并重启应用。TURN 配置与跨网络通话验收见 [星球音视频通话](planet-calls.md)。
+云传网络探测与星球通话共用 `src/constants/webrtc.js` 中的默认地址，操作和结果字段见 [云传网络探测调试](cloud-network-diagnostics.md)。星球通话允许服务端的 `WEBRTC_STUN_URLS` 覆盖默认值；已有部署若设置了其他地址，可改为 `WEBRTC_STUN_URLS=stun:8.137.55.241:3478` 并重启应用。TURN 配置与跨网络通话验收见 [星球音视频通话](planet-calls.md)。
 
 ## 安装与文件位置
 

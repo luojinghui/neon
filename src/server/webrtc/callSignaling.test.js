@@ -104,6 +104,10 @@ test('call signaling requires room access and actual call membership; never trus
     for (const event of ['call:state', 'call:join', 'call:media', 'call:signal']) await rejected(socket, event, joinPayload('attempt-one'), 'ROOM_JOIN_REQUIRED');
   }
   const first = await accepted(host, 'call:join', joinPayload('attempt-one', { name: 'forged', userId: 'forged' }));
+  assert.deepEqual(first.configuration, {
+    iceServers: [{ urls: ['stun:8.137.55.241:3478'] }],
+    iceTransportPolicy: 'all'
+  }, 'joining a planet call receives the hosted STUN configuration used by cloud diagnostics');
   assert.equal(first.call.participants[0].name, profiles[0].name);
   assert.equal(first.call.participants[0].cameraEnabled, false);
   const signal = { roomId, callId: first.call.id, to: host.id, description: { type: 'offer', sdp: 'v=0' } };
@@ -192,6 +196,14 @@ test('private access revocation and room deletion terminate participants through
   const deleted = nextEvent(host, 'call:state', (state) => !state.call);
   controller.adminDeleteRoom(room.id, io);
   await deleted;
+});
+
+test('planet deployments can override the shared STUN default without enabling TURN', () => {
+  const configuration = getIceConfiguration({ WEBRTC_STUN_URLS: ' stun:first.example:3478, stun:second.example:3478 ' });
+  assert.deepEqual(configuration, {
+    iceServers: [{ urls: ['stun:first.example:3478', 'stun:second.example:3478'] }],
+    iceTransportPolicy: 'all'
+  });
 });
 
 test('TURN credentials are temporary, signed server-side and fail closed on invalid deployment configuration', () => {

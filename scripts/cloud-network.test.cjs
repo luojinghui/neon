@@ -3,6 +3,7 @@ const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { createRequire } = require('node:module');
 const ts = require('typescript');
 const express = require('express');
 const { createCloudNetworkApp } = require('../src/server/controller/cloudNetworkController');
@@ -13,7 +14,7 @@ function load(globals = {}) {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS }
   });
   const exports = {};
-  vm.runInNewContext(outputText, { exports, URL, AbortController, DOMException, setTimeout, clearTimeout, ...globals });
+  vm.runInNewContext(outputText, { exports, require: createRequire(file), URL, AbortController, DOMException, setTimeout, clearTimeout, ...globals });
   return exports;
 }
 

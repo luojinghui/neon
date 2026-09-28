@@ -1,3 +1,5 @@
+import { DEFAULT_STUN_URL } from '../../constants/webrtc';
+
 export type ProbeStatus = 'complete' | 'timeout' | 'unsupported' | 'error';
 export type AddressKind = 'private' | 'link-local' | 'loopback' | 'public' | 'mdns' | 'unknown';
 
@@ -38,7 +40,7 @@ export interface NetworkDiagnostics {
 }
 
 const PROBE_TIMEOUT_MS = 8000;
-const STUN_SERVER = 'stun:8.137.55.241:3478';
+const STUN_SERVER = DEFAULT_STUN_URL;
 
 export function classifyAddress(address: string): AddressKind {
   const value = address.toLowerCase();
