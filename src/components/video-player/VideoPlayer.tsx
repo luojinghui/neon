@@ -1,6 +1,6 @@
 'use client';
 
-import { FullscreenExitOutlined, FullscreenOutlined, LoadingOutlined, MutedOutlined, PauseOutlined, CaretRightFilled, ReloadOutlined, SoundOutlined } from '@ant-design/icons';
+import { FullscreenExitOutlined, FullscreenOutlined, LoadingOutlined, PauseOutlined, CaretRightFilled, ReloadOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { formatVideoTime, useVideoPreview } from './useVideoPreview';
 import './video-player.css';
@@ -22,7 +22,6 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [waiting, setWaiting] = useState(false);
-  const [muted, setMuted] = useState(false);
   const [time, setTime] = useState(0);
   const [error, setError] = useState('');
   const [fullscreen, setFullscreen] = useState(false);
@@ -141,7 +140,6 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
         onWaiting={() => { if (started) setWaiting(true); }}
         onCanPlay={() => setWaiting(false)}
         onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
-        onVolumeChange={(event) => setMuted(event.currentTarget.muted)}
         onError={() => { setWaiting(false); setPlaying(false); setError('视频无法加载，请重试或打开原视频'); }}
       />
       {!started && cover && /* eslint-disable-next-line @next/next/no-img-element */
@@ -161,7 +159,6 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
           {started && <>
             <button type="button" aria-label={playing ? '暂停' : '继续播放'} onClick={togglePlayback}>{playing ? <PauseOutlined /> : <CaretRightFilled />}</button>
             <span className="video-player-time">{formatVideoTime(time)} / {formatVideoTime(duration)}</span>
-            <button type="button" aria-label={muted ? '开启声音' : '静音'} aria-pressed={muted} onClick={() => { if (videoRef.current) videoRef.current.muted = !videoRef.current.muted; }}>{muted ? <MutedOutlined /> : <SoundOutlined />}</button>
           </>}
           <button ref={fullscreenButtonRef} type="button" className="video-player-fullscreen" aria-label={fullscreen || expanded ? '退出全屏' : '全屏播放'} onClick={() => void toggleFullscreen()}>{fullscreen || expanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />}</button>
         </div>

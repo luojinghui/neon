@@ -81,7 +81,7 @@
 .moment-entry-content { min-width: 0; margin: 0.65rem 0 0; }
 .moment-post-copy { margin-bottom: 0.65rem; }
 .moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: 0.9375rem; line-height: 1.85; }
-.moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
+.moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 10; }
 .moment-expand-button { min-height: 2rem; margin-top: 0.25rem; border: 0; padding: 0; background: transparent; color: hsl(var(--primary)); font-size: 0.75rem; }
 .moment-expand-button:hover { color: hsl(var(--primary-hover)); }
 .moments-screen .moment-media-view { margin: 0; }

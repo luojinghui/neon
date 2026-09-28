@@ -30,7 +30,7 @@
 .cloud-page .cloud-editor-input textarea::placeholder { color: hsl(var(--foreground-muted)); }
 .cloud-page .cloud-editor-input.ant-input-textarea-affix-wrapper .ant-input-suffix .ant-input-clear-icon { inset-block-start: 0.8rem; inset-inline-end: 0.8rem; }
 
-.cloud-editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; }
+.cloud-editor-toolbar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid hsl(var(--border)); padding-block: 0.75rem; background: hsl(var(--surface)); }
 .cloud-page .cloud-query-button,
 .cloud-page .cloud-editor-toolbar .ant-btn { height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); box-shadow: none; }
 .cloud-page .cloud-share-panel .ant-btn { height: 2.25rem; box-shadow: none; }

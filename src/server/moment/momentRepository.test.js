@@ -196,6 +196,22 @@ test('rejects empty moments and unsupported attachments', async () => {
   }
 });
 
+test('persists 2000-character moments and rejects text beyond the limit', async () => {
+  const fixture = createFixture();
+  try {
+    const text = '心'.repeat(2000);
+    const moment = await fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text });
+    const reloaded = new MomentRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.repository.uploadDirectory });
+    assert.equal(reloaded.getMoment(moment.id).text, text);
+    await assert.rejects(
+      () => fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text: `${text}迹` }),
+      { code: 'MOMENT_TEXT_INVALID', message: '心迹文字不能超过 2000 个字符' }
+    );
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
 test('likes are idempotent, independent per viewer, private, and persistent', async () => {
   const fixture = createFixture();
   try {

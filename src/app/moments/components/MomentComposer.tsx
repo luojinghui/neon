@@ -279,8 +279,8 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
         <div className="moment-composer-body">
           <label className="moment-composer-text">
             <span className="sr-only">心迹文字</span>
-            <textarea value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={500} rows={5} placeholder="此刻，想说点什么……" autoFocus />
-            <span>{text.length}/500</span>
+            <textarea value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={2000} rows={5} placeholder="此刻，想说点什么……" autoFocus />
+            <span>{text.length}/2000</span>
           </label>
 
           {media.length > 0 && (

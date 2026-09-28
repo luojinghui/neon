@@ -6,7 +6,7 @@ const { runFileExclusive, writeFileAtomic } = require('../storage/filePersistenc
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ID_PATTERN = /^[A-Za-z0-9_-]{16}$/;
 const UPLOAD_PATTERN = /^\/uploads\/moments\/([A-Za-z0-9_-]{16}-[A-Za-z0-9_-]{8}\.(?:jpg|png|webp|gif|mp4|webm|mov|m4a|mp3|ogg|wav|aac))$/;
-const MAX_TEXT_LENGTH = 500;
+const MAX_TEXT_LENGTH = 2000;
 const MAX_COMMENT_LENGTH = 500;
 const MAX_MEDIA_ITEMS = 9;
 
@@ -131,7 +131,7 @@ class MomentRepository {
 
   async createMoment(input = {}, attachments = {}) {
     const ownerUuid = this.requireUuid(input.ownerUuid);
-    const text = this.optionalText(input.text, MAX_TEXT_LENGTH, '心迹文字不能超过 500 个字符', 'MOMENT_TEXT_INVALID');
+    const text = this.optionalText(input.text, MAX_TEXT_LENGTH, `心迹文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
     const location = this.normalizeLocation(input.location);
     const mediaInput = Array.isArray(attachments.media) ? attachments.media : [];
     const voiceInput = attachments.voice || null;

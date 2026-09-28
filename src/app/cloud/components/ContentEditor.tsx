@@ -124,7 +124,7 @@ export default function ContentEditor() {
             neonCloud.addClipboardImages(images);
           }}
           spellCheck={false}
-          showCount={{ formatter: ({ count }) => `${count} 字` }}
+          showCount={{ formatter: ({ count }) => count >= 200 ? `${count} 字` : null }}
           className="cloud-editor-input w-full"
           styles={{
             textarea: { padding: '14px 40px 32px 16px', lineHeight: 1.75 },
