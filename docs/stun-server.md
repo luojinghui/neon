@@ -1,5 +1,7 @@
 # STUN 服务配置与运维
 
+> **状态更新（2026-10-26）**：现有 coturn 已升级为带鉴权的 TURN UDP/TCP 服务，星球应用已接入，安全组已补齐；本次公网 UDP/TCP 鉴权、独立 peer 双向中继传包，以及 Chrome 分别强制 UDP/TCP relay 的音视频验收完成。验证范围为同机双 Peer 经公网 coturn，加独立公网 UDP peer，不替代 Wi-Fi／蜂窝两台真机验收。用户选择暂不启用 TLS，不纳入本次验收，也不开放 TCP 5349。当前配置、结果和回退说明见 [TURN 部署与运维](turn-server.md)。本文保留 2026-09-28 的 STUN-only 历史记录，其中“TURN 未启用”和端口说明不代表更新后的配置。
+
 部署验收日期：2026-09-28。以下记录当次部署与验收结果：**公网 STUN Binding 和浏览器 srflx 验证通过**，服务已启用开机启动与异常退出自动重启。
 
 本次按《WebRTC世界-STUN_TURN服务介绍和搭建.pdf》涉及的 STUN 场景部署 coturn，只提供 STUN Binding 地址发现。STUN 帮助客户端取得服务器观察到的地址与端口；媒体连接由 ICE 检查选择路径。它不保证所有 NAT 或防火墙环境都能直连，受限网络可能仍需另外部署 TURN 中继。[STUN 标准 RFC 8489](https://datatracker.ietf.org/doc/html/rfc8489)
