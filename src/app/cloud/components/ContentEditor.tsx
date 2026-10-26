@@ -131,7 +131,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
         onDrop={(e) => controller.handleDrop(e)}
       >
         <LinkTextArea
-          autoSize={{ minRows: 6, maxRows: 22 }}
+          autoSize={{ minRows: 4, maxRows: 22 }}
           variant="borderless"
           aria-label="发送内容"
           placeholder="输入文字、粘贴图片，也可以将文件拖到这里"

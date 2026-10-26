@@ -90,6 +90,8 @@
 .cloud-tabs { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem; border: 1px solid hsl(var(--border) / 0.7); border-radius: 0.75rem; background: hsl(var(--background-secondary) / 0.65); }
 .cloud-tabs a { display: inline-flex; justify-content: center; align-items: center; min-width: 4.25rem; height: 2rem; padding: 0 0.875rem; border-radius: 0.5rem; color: hsl(var(--foreground-muted)); font-size: 0.875rem; transition: color 150ms, background 150ms; }
 .cloud-tabs a.is-active { background: hsl(var(--surface)); color: hsl(var(--foreground)); font-weight: 600; box-shadow: 0 1px 3px hsl(var(--foreground) / 0.06); }
+.cloud-page .app-topbar-grid { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.cloud-page .app-topbar-controls { gap: 0.5rem; }
 .cloud-page .app-topbar-controls .cloud-network-trigger { width: 2rem; height: 2rem; border: 0; background: transparent; }
 .cloud-tabs a:focus-visible, .plaza-page a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .plaza-page .app-content-width { max-width: 1040px; }
@@ -155,6 +157,7 @@
   .plaza-expand:hover, .plaza-back:hover { color: hsl(var(--primary)); }
 }
 @media (max-width: 640px) {
+  .cloud-page .app-topbar-controls { gap: 0.375rem; }
   .cloud-page .app-topbar-controls :where(a, button) { width: 2rem; height: 2rem; }
   .cloud-page .app-topbar-controls .cloud-network-trigger { width: 1.5rem; }
   .cloud-tabs { gap: 0.125rem; padding: 0.1875rem; }
@@ -172,6 +175,11 @@
   .plaza-card-actions { gap: 0.125rem; }
   .plaza-card-actions button { padding-inline: 0.5rem; }
   .plaza-card-actions button:first-child { margin-left: -0.5rem; }
+}
+@media (max-width: 360px) {
+  .cloud-page .app-topbar-controls :where(a, button) { width: 1.75rem; height: 1.75rem; }
+  .cloud-page .app-topbar-controls .cloud-network-trigger { width: 1.5rem; }
+  .cloud-tabs a { min-width: 2.5rem; padding-inline: 0.375rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cloud-tabs a, .plaza-icon-button, .plaza-card-actions button { transition: none; }
