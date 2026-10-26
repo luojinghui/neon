@@ -5,6 +5,7 @@ import { Dropdown, type MenuProps } from 'antd';
 import Link from 'next/link';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { createProfileHref } from '@/app/profile/navigation';
+import { LinkifiedText } from '@/components/LinkifiedText';
 import { deleteMoment } from '../client';
 import { formatMomentTime } from '../format';
 import type { Moment } from '../types';
@@ -88,7 +89,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
       <div className="moment-entry-content">
         {moment.text && (
           <div className="moment-post-copy">
-            <p ref={textRef} id={textId} className={`moment-card-text${!expanded ? ' is-collapsed' : ''}`}>{moment.text}</p>
+            <p ref={textRef} id={textId} className={`moment-card-text${!expanded ? ' is-collapsed' : ''}`}><LinkifiedText content={moment.text} /></p>
             {canExpand && <button type="button" className="moment-expand-button" aria-expanded={expanded} aria-controls={textId} onClick={() => setExpanded((value) => !value)}>{expanded ? '收起' : '展开全文'}</button>}
           </div>
         )}

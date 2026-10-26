@@ -100,6 +100,8 @@
 .moment-viewer-modal .ant-modal-close { color: hsl(var(--foreground)); }
 .moment-viewer { min-width: 0; }
 .moment-viewer-author { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.moment-viewer-text,
+.moment-viewer-text * { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
 .moment-viewer-text { margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.95rem; line-height: 1.85; color: hsl(var(--foreground-secondary)); }
 .moment-viewer-voice { margin-top: 1rem; }
 .moment-viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; border-top: 0; padding-top: 0.6rem; }

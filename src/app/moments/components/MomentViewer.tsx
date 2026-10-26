@@ -3,6 +3,7 @@
 import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Modal } from 'antd';
 import { useState } from 'react';
+import { LinkifiedText } from '@/components/LinkifiedText';
 import { deleteMoment } from '../client';
 import { formatMomentTime } from '../format';
 import type { Moment } from '../types';
@@ -42,7 +43,7 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
           <MomentAvatar author={moment.author} size={38} />
           <div className="min-w-0"><div className="truncate text-sm font-medium text-foreground">{moment.author.name}</div><time className="text-xs text-foreground-muted" dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
         </header>
-        {moment.text && <p className="moment-viewer-text">{moment.text}</p>}
+        {moment.text && <p className="moment-viewer-text"><LinkifiedText content={moment.text} /></p>}
         {moment.media.length > 0 && <MomentMediaView media={moment.media} immersive />}
         {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
         {(moment.location || moment.canDelete) && <footer className="moment-viewer-footer">

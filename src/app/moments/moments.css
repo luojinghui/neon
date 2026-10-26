@@ -105,6 +105,13 @@
   color: hsl(var(--primary));
 }
 
+.moment-card-text,
+.moment-card-text * {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 .moment-card-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
