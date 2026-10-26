@@ -326,7 +326,7 @@ export class NeonCloud {
   public handleCopyFormattedJson(): void {
     const jsonObject = useCloudStore.getState().jsonObject;
 
-    if (!jsonObject) return;
+    if (jsonObject === undefined) return;
 
     const formattedJson = JSON.stringify(jsonObject, null, 2);
     navigator.clipboard.writeText(formattedJson);

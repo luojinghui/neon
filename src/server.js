@@ -9,6 +9,8 @@ const { authenticateCookieHeader } = require('./server/admin/auth');
 const { doodleShareRepository } = require('./server/doodle/shareRepository');
 const { doodleReviewRepository } = require('./server/doodle/reviewRepository');
 const { momentRepository } = require('./server/moment/momentRepository');
+const { plazaRepository } = require('./server/cloud/plazaRepository');
+const { connectDB } = require('./server/models');
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -35,6 +37,14 @@ const doodleCleanupTimer = setInterval(() => {
 }, 60 * 60 * 1000);
 doodleCleanupTimer.unref();
 
+// Reclaim files before removing expired records. Reads enforce expiry independently.
+const cleanupPlaza = () => {
+  if (!process.env.MONGODB_URI) return;
+  return connectDB().then(() => plazaRepository.cleanupExpired()).catch(error => console.error('Plaza cleanup failed:', error.message));
+};
+const plazaCleanupTimer = setInterval(cleanupPlaza, 15 * 60 * 1000);
+plazaCleanupTimer.unref();
+
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('APP_PORT must be an integer between 1 and 65535');
 }
@@ -47,6 +57,7 @@ server.on('error', (error) => {
 nextApp
   .prepare()
   .then(() => {
+    void cleanupPlaza();
     const stopPollScheduler = chatController.startPollScheduler(io);
     server.once('close', stopPollScheduler);
 

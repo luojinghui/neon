@@ -22,6 +22,7 @@
     "test:moments": "node --test src/server/moment/momentRepository.test.js scripts/moments-cache.test.cjs",
     "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js",
     "test:experience": "node --test scripts/experience.test.cjs",
+    "test:cloud": "node --test scripts/cloud-input.test.cjs scripts/cloud-plaza.test.cjs",
     "prepare:vision": "node scripts/prepare-vision-assets.cjs"
   },
   "dependencies": {

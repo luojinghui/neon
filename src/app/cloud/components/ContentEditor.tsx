@@ -5,7 +5,7 @@
  * Last modified  : 2026-03-17 18:25:32
  */
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 import { Button, Input } from 'antd';
 import {
   ClearOutlined,
@@ -19,7 +19,7 @@ import {
   LoadingOutlined
 } from '@ant-design/icons';
 import { useCloudStore, FileItem } from '../store';
-import { neonCloud } from '../core';
+import { neonCloud, type NeonCloud } from '../core';
 import LinkTextArea from './LinkTextArea';
 import { clipboardImages } from '@/lib/clipboardImages';
 import { ImageAttachmentDraft } from '@/components/image-viewer/ImageAttachmentDraft';
@@ -52,8 +52,6 @@ function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: strin
 }
 
 export default function ContentEditor() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { text, password, queryPassword, textHistory, files, isDragging, isSending, uploadProgress, showContentInfo } = useCloudStore((state) => ({
     text: state.text,
     password: state.password,
@@ -66,13 +64,46 @@ export default function ContentEditor() {
     showContentInfo: state.showContentInfo
   }));
 
+  return <ContentEditorView
+    controller={neonCloud}
+    text={text} files={files} isDragging={isDragging} isSending={isSending} uploadProgress={uploadProgress}
+    showClearButton={!!text.trim() || files.length > 0 || (showContentInfo && !!password)}
+    showHistoryButton={textHistory.length > 0}
+    queryControls={<div className="cloud-query-controls">
+      <Input placeholder="查询密码" aria-label="查询密码" variant="outlined" maxLength={4}
+        onChange={(e) => neonCloud.handleQueryPasswordChange(e)} value={queryPassword} className="cloud-query-input"
+        onPressEnter={() => neonCloud.queryMessage()} />
+      <Button onClick={() => neonCloud.queryMessage()} className="cloud-query-button">查询</Button>
+    </div>}
+  />;
+}
+
+export type EditorController = Pick<NeonCloud,
+  'handleTextChange' | 'handleDragEnter' | 'handleDragOver' | 'handleDragLeave' | 'handleDrop' |
+  'addClipboardImages' | 'removeFile' | 'handleFileSelect' | 'sendMessage' | 'clear' |
+  'handleCopyText' | 'parseJson' | 'showHistoryModal'>;
+
+type EditorProps = {
+  controller: EditorController;
+  text: string;
+  files: FileItem[];
+  isDragging: boolean;
+  isSending: boolean;
+  uploadProgress: number;
+  showClearButton: boolean;
+  showHistoryButton: boolean;
+  queryControls?: ReactNode;
+  description?: string;
+};
+
+/** Shared writing surface; each destination retains its own state and send behavior. */
+export function ContentEditorView({ controller, text, files, isDragging, isSending, uploadProgress, showClearButton, showHistoryButton, queryControls, description }: EditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const hasFiles = files.length > 0;
   const showProgress = isSending && hasFiles;
   const trimmedText = text.trim();
   const hasText = trimmedText.length > 0;
-  const hasInputContent = hasText || hasFiles;
-  const isContentInfoVisible = showContentInfo && !!password;
-  const showClearButton = hasInputContent || isContentInfoVisible;
   const canShowJsonParseButton = useMemo(() => {
     if (!hasText) return false;
 
@@ -88,29 +119,16 @@ export default function ContentEditor() {
     <section aria-labelledby="cloud-editor-heading" className="cloud-panel cloud-editor">
       <div className="cloud-editor-heading">
         <h1 id="cloud-editor-heading" className="text-base font-semibold text-foreground">发送内容</h1>
-        <div className="cloud-query-controls">
-          <Input
-            placeholder="查询密码"
-            aria-label="查询密码"
-            variant="outlined"
-            maxLength={4}
-            onChange={(e) => neonCloud.handleQueryPasswordChange(e)}
-            value={queryPassword}
-            className="cloud-query-input"
-            onPressEnter={() => neonCloud.queryMessage()}
-          />
-          <Button onClick={() => neonCloud.queryMessage()} className="cloud-query-button">
-            查询
-          </Button>
-        </div>
+        {queryControls}
+        {description && <span className="plaza-editor-note">{description}</span>}
       </div>
       {/* 拖拽区域包裹 TextArea */}
       <div
         className="cloud-editor-surface relative"
-        onDragEnter={(e) => neonCloud.handleDragEnter(e)}
-        onDragOver={(e) => neonCloud.handleDragOver(e)}
-        onDragLeave={(e) => neonCloud.handleDragLeave(e)}
-        onDrop={(e) => neonCloud.handleDrop(e)}
+        onDragEnter={(e) => controller.handleDragEnter(e)}
+        onDragOver={(e) => controller.handleDragOver(e)}
+        onDragLeave={(e) => controller.handleDragLeave(e)}
+        onDrop={(e) => controller.handleDrop(e)}
       >
         <LinkTextArea
           autoSize={{ minRows: 6, maxRows: 22 }}
@@ -121,7 +139,7 @@ export default function ContentEditor() {
             const images = clipboardImages(event.clipboardData);
             if (!images.length) return;
             event.preventDefault();
-            neonCloud.addClipboardImages(images);
+            controller.addClipboardImages(images);
           }}
           spellCheck={false}
           showCount={{ formatter: ({ count }) => count >= 200 ? `${count} 字` : null }}
@@ -131,7 +149,7 @@ export default function ContentEditor() {
             count: { bottom: 12, insetInlineEnd: 16, fontSize: 12, color: 'hsl(var(--foreground-muted))' }
           }}
           allowClear
-          onChange={(e) => neonCloud.handleTextChange(e)}
+          onChange={(e) => controller.handleTextChange(e)}
           value={text}
         />
 
@@ -154,7 +172,7 @@ export default function ContentEditor() {
           </div>
           <div className="max-h-[160px] overflow-y-auto flex flex-wrap gap-2">
             {files.map((item) => (
-              item.type.startsWith('image/') ? <ImageAttachmentDraft key={item.id} file={item.file} onRemove={() => neonCloud.removeFile(item.id)} disabled={isSending} /> : <FileListItem key={item.id} item={item} onRemove={(id) => neonCloud.removeFile(id)} />
+              item.type.startsWith('image/') ? <ImageAttachmentDraft key={item.id} file={item.file} onRemove={() => controller.removeFile(item.id)} disabled={isSending} /> : <FileListItem key={item.id} item={item} onRemove={(id) => controller.removeFile(id)} />
             ))}
           </div>
         </div>
@@ -164,7 +182,7 @@ export default function ContentEditor() {
       <div className="cloud-editor-toolbar">
         <button
           type="button"
-          onClick={() => neonCloud.sendMessage()}
+          onClick={() => controller.sendMessage()}
           disabled={isSending}
           className="send-btn cloud-send-button relative inline-flex h-9 min-w-24 shrink-0 items-center justify-center px-5 rounded-lg text-sm font-medium text-white overflow-hidden bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed"
           style={showProgress ? { background: `linear-gradient(90deg, hsl(var(--primary)) ${uploadProgress}%, hsl(var(--border)) ${uploadProgress}%)` } : undefined}
@@ -178,28 +196,28 @@ export default function ContentEditor() {
           文件
         </Button>
         {showClearButton && (
-          <Button icon={<ClearOutlined />} onClick={() => neonCloud.clear()}>
+          <Button icon={<ClearOutlined />} onClick={() => controller.clear()}>
             清空
           </Button>
         )}
         {hasText && (
-          <Button aria-label="复制内容" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyText()}>
+          <Button aria-label="复制内容" icon={<CopyOutlined />} onClick={() => controller.handleCopyText()}>
             复制
           </Button>
         )}
         {canShowJsonParseButton && (
-          <Button icon={<FileTextOutlined />} onClick={() => neonCloud.parseJson()}>
+          <Button icon={<FileTextOutlined />} onClick={() => controller.parseJson()}>
             JSON解析
           </Button>
         )}
-        {textHistory.length > 0 && (
-          <Button icon={<HistoryOutlined />} onClick={() => neonCloud.showHistoryModal()}>
+        {showHistoryButton && (
+          <Button icon={<HistoryOutlined />} onClick={() => controller.showHistoryModal()}>
             历史
           </Button>
         )}
       </div>
 
-      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => neonCloud.handleFileSelect(e)} />
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => controller.handleFileSelect(e)} />
     </section>
   );
 }

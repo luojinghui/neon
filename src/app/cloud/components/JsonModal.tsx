@@ -18,17 +18,22 @@ export default function JsonModal() {
     jsonObject: state.jsonObject
   }));
 
+  return <JsonViewerModal open={isJsonModalOpen} value={jsonObject} onClose={() => neonCloud.closeJsonModal()} onCopy={() => neonCloud.handleCopyFormattedJson()} />;
+}
+
+export function JsonViewerModal({ open, value, onClose, onCopy }: { open: boolean; value: unknown; onClose: () => void; onCopy: () => void }) {
+
   return (
     <Modal
       title="JSON格式化"
-      open={isJsonModalOpen}
-      onCancel={() => neonCloud.closeJsonModal()}
+      open={open}
+      onCancel={onClose}
       footer={[
         <Space key="footer">
-          <Button key="copy" icon={<CopyOutlined />} onClick={() => neonCloud.handleCopyFormattedJson()}>
+          <Button key="copy" icon={<CopyOutlined />} onClick={onCopy}>
             复制JSON
           </Button>
-          <Button key="close" type="text" onClick={() => neonCloud.closeJsonModal()}>
+          <Button key="close" type="text" onClick={onClose}>
             关闭
           </Button>
         </Space>
@@ -37,22 +42,20 @@ export default function JsonModal() {
       centered
     >
       <div className="max-h-[70vh] overflow-y-auto">
-        {jsonObject && (
           <div className="space-y-4">
-            <div className="select-text rounded-lg p-4 bg-white [&_*]:select-text">
-              <JsonView
-                value={jsonObject}
+            <div className="cloud-json-view select-text rounded-lg p-4 [&_*]:select-text">
+              {typeof value === 'object' && value !== null ? <JsonView
+                value={value}
                 displayDataTypes={false}
                 enableClipboard={true}
                 beforeCopy={(copyText, _keyName, value) => (typeof value === 'string' ? value : copyText)}
                 collapsed={false}
                 shortenTextAfterLength={99999}
                 displayObjectSize={true}
-                style={{ fontSize: '13px' }}
-              />
+                style={{ fontSize: '13px', backgroundColor: 'transparent' }}
+              /> : <pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(value, null, 2)}</pre>}
             </div>
           </div>
-        )}
       </div>
     </Modal>
   );
