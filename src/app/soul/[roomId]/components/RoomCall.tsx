@@ -29,9 +29,9 @@ function todayKey() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
-async function callPermissionsGranted(mode: CallMode) {
+async function callPermissionsGranted(devices: { microphoneEnabled: boolean; cameraEnabled: boolean }) {
   if (!navigator.permissions?.query) return false;
-  const names = mode === 'video' ? ['microphone', 'camera'] : ['microphone'];
+  const names = [...(devices.microphoneEnabled ? ['microphone'] : []), ...(devices.cameraEnabled ? ['camera'] : [])];
   try {
     const states = await Promise.all(names.map(name => navigator.permissions.query({ name } as PermissionDescriptor)));
     return states.every(permission => permission.state === 'granted');
@@ -78,7 +78,8 @@ export function RoomCallProvider({ roomId, roomName, ready, children }: { roomId
   const start = async (mode: CallMode) => {
     if (!session) return;
     if (view?.phase !== 'idle') { expand(); return; }
-    if (mobile && !permissionNoticeShownToday() && !(await callPermissionsGranted(mode))) {
+    const devices = session.getJoinDevices(mode);
+    if (mobile && (devices.microphoneEnabled || devices.cameraEnabled) && !permissionNoticeShownToday() && !(await callPermissionsGranted(devices))) {
       rememberPermissionNotice();
       setPermission(mode);
       return;
@@ -88,6 +89,8 @@ export function RoomCallProvider({ roomId, roomName, ready, children }: { roomId
   };
   const toggleCamera = () => { void session?.toggleDevice('video'); };
   const active = view && view.phase !== 'idle';
+  const permissionDevices = permission && session?.getJoinDevices(permission);
+  const permissionMessage = permissionDevices?.microphoneEnabled && permissionDevices?.cameraEnabled ? '需要麦克风和摄像头权限。' : permissionDevices?.cameraEnabled ? '需要摄像头权限。' : '需要麦克风权限。';
 
   return (
     <CallContext.Provider value={{ session, view, start, expand }}>
@@ -96,7 +99,7 @@ export function RoomCallProvider({ roomId, roomName, ready, children }: { roomId
       <Modal title="允许通话权限" open={permission !== null} onCancel={() => setPermission(null)} footer={null} centered width={340} destroyOnHidden>
         <div className="space-y-4 pt-2">
           <p className="text-sm leading-6 text-foreground-secondary">
-            {permission === 'audio' ? '需要麦克风权限，摄像头保持关闭。' : '需要麦克风和摄像头权限。'}请在浏览器弹窗中选择“允许”。
+            {permissionMessage}请在浏览器弹窗中选择“允许”。
           </p>
           <button type="button" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-medium text-white" onClick={() => {
             const requested = permission;
@@ -176,9 +179,11 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
   const [elapsed, setElapsed] = useState(0);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
-  const [effectsOpen, setEffectsOpen] = useState(false);
-  const [participantsOpen, setParticipantsOpen] = useState(false);
-  const [sharingOpen, setSharingOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<'effects' | 'participants' | 'sharing' | null>(null);
+  const effectsOpen = activePanel === 'effects';
+  const participantsOpen = activePanel === 'participants';
+  const sharingOpen = activePanel === 'sharing';
+  const closePanel = () => { setActivePanel(null); panel.current?.focus({ preventScroll: true }); };
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const joining = view.phase === 'joining';
   const remote = view.call?.participants.filter((member) => member.peerId !== view.selfId) || [];
@@ -201,12 +206,43 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     return () => window.removeEventListener('resize', reset);
   }, []);
   useLayoutEffect(() => {
+    const element = panel.current;
+    const viewport = window.visualViewport;
+    if (mini || !element || !viewport) return;
+    // iOS can resize only the visual viewport when its keyboard opens.
+    // Updating CSS properties keeps the existing media elements mounted.
+    let mounted = true;
+    const updateViewport = () => {
+      if (!mounted || viewport.height <= 0) return;
+      element.style.setProperty('--call-visible-height', `${viewport.height}px`);
+      element.style.setProperty('--call-visible-top', `${Math.max(0, viewport.offsetTop)}px`);
+      const typing = element.contains(document.activeElement) && document.activeElement?.matches('textarea, input:not([type=range]):not([type=color])');
+      element.classList.toggle('is-keyboard-open', Boolean(typing && Math.abs(viewport.scale - 1) < .02 && viewport.height < window.innerHeight - 100));
+    };
+    const updateFocus = () => queueMicrotask(updateViewport);
+    updateViewport();
+    element.addEventListener('focusin', updateFocus);
+    element.addEventListener('focusout', updateFocus);
+    viewport.addEventListener('resize', updateViewport);
+    viewport.addEventListener('scroll', updateViewport);
+    return () => {
+      mounted = false;
+      element.removeEventListener('focusin', updateFocus);
+      element.removeEventListener('focusout', updateFocus);
+      viewport.removeEventListener('resize', updateViewport);
+      viewport.removeEventListener('scroll', updateViewport);
+      element.style.removeProperty('--call-visible-height');
+      element.style.removeProperty('--call-visible-top');
+      element.classList.remove('is-keyboard-open');
+    };
+  }, [mini]);
+  useLayoutEffect(() => {
     if (mini) return;
     const previous = document.activeElement as HTMLElement | null;
     const element = panel.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    panel.current?.focus();
+    panel.current?.focus({ preventScroll: true });
     return () => {
       document.body.style.overflow = previousOverflow;
       if (previous?.isConnected && element?.contains(document.activeElement)) previous.focus({ preventScroll: true });
@@ -214,9 +250,9 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
   }, [mini]);
 
   return <section ref={panel} tabIndex={-1} role={mini ? 'region' : 'dialog'} aria-modal={mini ? undefined : true} aria-label="星球通话" className={`soul-call-panel ${mini ? 'is-mini' : 'is-full'} ${effectsOpen ? 'is-editing' : ''}`} style={mini && position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : undefined} onKeyDown={(event) => {
-    if (event.key === 'Escape') { if (sharingOpen) setSharingOpen(false); else if (participantsOpen) setParticipantsOpen(false); else if (effectsOpen) setEffectsOpen(false); else onMini(!mini); }
+    if (event.key === 'Escape') { event.preventDefault(); if (activePanel) closePanel(); else onMini(!mini); }
     if (event.key === 'Tab' && !mini) {
-      const focusable = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([hidden]), select:not(:disabled)') || []).filter(element => element.getClientRects().length);
+      const focusable = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([hidden]), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]') || []).filter(element => element.getClientRects().length);
       if (!focusable?.length) return;
       const first = focusable[0], last = focusable[focusable.length - 1];
       if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) { event.preventDefault(); last.focus(); }
@@ -234,11 +270,12 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
       <div className="min-w-0"><p className="soul-call-eyebrow">PLANET CONNECTION</p><h2>{roomName || '星球通话'}</h2><p className="soul-call-status" role="status"><span />{status}</p></div>
       <div className="soul-call-header-actions">
-        <button type="button" className="soul-call-view-button" disabled={joining} aria-label="参会者列表" aria-expanded={participantsOpen} aria-controls="call-participants" onClick={() => { onMini(false); setEffectsOpen(false); setParticipantsOpen(open => !open); }}><TeamOutlined /></button>
-        <button type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); setParticipantsOpen(false); if (!effectsOpen) setSelectedPeer(view.selfId); setEffectsOpen(open => !open); }}><SettingOutlined /></button>
-        <button type="button" className="soul-call-view-button" onClick={() => { setEffectsOpen(false); setParticipantsOpen(false); setSharingOpen(false); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button>
+        <button type="button" className="soul-call-view-button" disabled={joining} aria-label="参会者列表" aria-expanded={participantsOpen} aria-controls="call-participants" onClick={() => { onMini(false); setActivePanel(open => open === 'participants' ? null : 'participants'); }}><TeamOutlined /></button>
+        <button type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); if (!effectsOpen) setSelectedPeer(view.selfId); setActivePanel(open => open === 'effects' ? null : 'effects'); }}><SettingOutlined /></button>
+        <button type="button" className="soul-call-view-button" onClick={() => { setActivePanel(null); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button>
       </div>
     </header>
+    <div className={`soul-call-workspace ${effectsOpen || participantsOpen ? 'has-side-panel' : ''}`}>
     <div className={`soul-call-stage ${remote.length > 1 ? 'has-group' : ''} ${remote.length === 0 && !view.presentation ? 'is-waiting' : ''} ${view.presentation ? 'has-sharing' : ''}`} style={{ '--call-thumbnail-count': Math.max(1, thumbnailPeers.length) } as CSSProperties}>
       {joining ? <div className="soul-call-waiting"><LoadingOutlined className="text-3xl" aria-label="准备设备" /></div> : <>
         {view.presentation && <SharingStage view={view} session={session} />}
@@ -247,19 +284,9 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
         {!view.presentation && !remote.length && !view.cameraEnabled && <div className="soul-call-waiting"><div className="soul-call-orbit"><span>✦</span></div><h3>在星球的这一端</h3><p>等待伙伴加入，一起接通信号</p></div>}
       </>}
     </div>
-    {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></button></div>}
-    {effectsOpen && <CallEffectsPanel value={view.effects} status={view.effectsStatus} cameraEnabled={view.cameraEnabled} onChange={value => session.setEffects(value)} onClose={() => setEffectsOpen(false)} />}
-    <footer className="soul-call-footer">
-      <div className="soul-call-controls">
-        <button type="button" disabled={joining || view.mediaBusy} className={!view.microphoneEnabled ? 'is-off' : ''} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</button>
-        <button type="button" disabled={joining || view.mediaBusy} className={!view.cameraEnabled ? 'is-off' : ''} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></button>
-        <button type="button" disabled={joining || view.shareBusy} className={view.presentation ? 'is-sharing' : ''} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setEffectsOpen(false); setParticipantsOpen(false); setSharingOpen(open => !open); }}><DesktopOutlined /></button>
-        <button type="button" className="is-hangup" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></button>
-      </div>
-    </footer>
-    {sharingOpen && <ShareMenu view={view} session={session} onClose={() => setSharingOpen(false)} />}
+    {effectsOpen && <CallEffectsPanel value={view.effects} status={view.effectsStatus} cameraEnabled={view.cameraEnabled} onChange={value => session.setEffects(value)} onClose={closePanel} />}
     {participantsOpen && <aside id="call-participants" className="soul-call-participants" aria-label="通话参会者">
-      <header><h3>参会者 · {members.length} 人</h3><button type="button" aria-label="关闭参会者列表" onClick={() => setParticipantsOpen(false)}><CloseOutlined /></button></header>
+      <header><h3>参会者 · {members.length} 人</h3><button type="button" aria-label="关闭参会者列表" onClick={closePanel}><CloseOutlined /></button></header>
       <ul>{members.map(member => {
         const local = member.peerId === view.selfId;
         const state = local ? 'connected' : view.peers[member.peerId]?.connectionState;
@@ -269,7 +296,18 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
         return <li key={member.peerId}><span className="soul-call-member-avatar" aria-hidden="true">{member.name.slice(0, 1) || '星'}</span><div><p>{member.name}{local ? '（我）' : ''}</p><span className={state === 'connected' ? 'is-connected' : ''}>{connection}</span><small>{microphone ? <AudioOutlined /> : <AudioMutedOutlined />}{microphone ? '麦克风开启' : '已静音'}<VideoCameraOutlined />{camera ? '视频开启' : '视频关闭'}</small></div></li>;
       })}</ul>
     </aside>}
+    </div>
+    {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></button></div>}
+    <footer className="soul-call-footer">
+      <div className="soul-call-controls">
+        <button type="button" disabled={joining || view.mediaBusy} className={!view.microphoneEnabled ? 'is-off' : ''} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</button>
+        <button type="button" disabled={joining || view.mediaBusy} className={!view.cameraEnabled ? 'is-off' : ''} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></button>
+        <button type="button" disabled={joining || view.shareBusy} className={view.presentation ? 'is-sharing' : ''} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setActivePanel(open => open === 'sharing' ? null : 'sharing'); }}><DesktopOutlined /></button>
+        <button type="button" className="is-hangup" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></button>
+      </div>
+    </footer>
+    {sharingOpen && <ShareMenu view={view} session={session} onClose={closePanel} />}
     {view.effectsStatus.phase === 'loading' && !effectsOpen && <div className="soul-call-effect-loading" role="status"><LoadingOutlined /> {view.effectsStatus.progress}%</div>}
-    {view.effectsStatus.phase === 'error' && !effectsOpen && <button type="button" className="soul-call-effect-loading" onClick={() => { onMini(false); setEffectsOpen(true); }}>效果未启用</button>}
+    {view.effectsStatus.phase === 'error' && !effectsOpen && <button type="button" className="soul-call-effect-loading" onClick={() => { onMini(false); setActivePanel('effects'); }}>效果未启用</button>}
   </section>;
 }

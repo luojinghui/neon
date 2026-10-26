@@ -272,7 +272,7 @@ node --test scripts/deployment-data-backup.test.cjs
 pnpm build
 ```
 
-浏览器回归可按 [通话文档](planet-calls.md) 配置 Playwright 后运行 `pnpm test:webrtc:browser` 或 `pnpm test:video-effects:browser`。Windows 初始化逻辑另有 `node --test scripts/windows-dev.test.cjs`。这些命令是验收步骤；本文不代表它们已在目标电脑执行通过。
+浏览器回归可按 [通话文档](planet-calls.md) 配置 Playwright 后运行 `pnpm test:webrtc:browser` 或 `pnpm test:video-effects:browser`。美颜独立测试会生成合成图像，无需设置人像图片，也不采集真实设备或加载模型。Windows 初始化逻辑另有 `node --test scripts/windows-dev.test.cjs`。这些命令是验收步骤；本文不代表它们已在目标电脑执行通过。
 
 **10. 按需工具与已发现的文档差异**
 
@@ -294,7 +294,7 @@ pnpm build
 
 | 旧说明 | 当前代码 |
 | --- | --- |
-| Next 15.2.6 | `package.json` 是 15.5.24 |
+| Next 15.2.6 | 以 `package.json` 锁定的 15.5 补丁版本为准 |
 | 用 `PORT` 改端口 | 读取 `APP_PORT` |
 | Socket.IO 固定 `cors: true` | 仅在 `ALLOWED_ORIGINS` 非空时配置 |
 | `pnpm dev` 自动启用 polling watcher | 当前脚本及配置没有这项设置 |

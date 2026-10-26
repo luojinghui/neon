@@ -3,6 +3,7 @@ import { CallPeer } from './peer';
 import { DEFAULT_VIDEO_EFFECTS, normalizeVideoEffects, type VideoEffectsSettings } from '../video-effects/types';
 import type { CallMode, CallSignal, CallSnapshot, CallTransport, CallView, JoinCallResult } from './types';
 import { applyBoardAction, type BoardItem, type Presentation, type ShareSnapshot } from './sharing';
+import { preferredCallDevices, rememberCallDevice } from './devicePreferences';
 
 const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null, effects: { ...DEFAULT_VIDEO_EFFECTS }, effectsStatus: { phase: 'off', progress: 0, message: '' }, presentation: null, screenStream: null, shareBusy: false, shareProgress: 0, shareCapabilities: { powerPoint: false, maxFileSize: 20 * 1024 * 1024 } });
 
@@ -37,6 +38,7 @@ export class CallSession {
     this.listeners.forEach((listener) => listener());
   }
   clearError = (): void => this.update({ error: '' });
+  getJoinDevices = (mode: CallMode) => preferredCallDevices(mode);
 
   async connect(): Promise<void> {
     this.unsubscribers.push(this.transport.onState(this.receiveState), this.transport.onSignal(this.receiveSignal), this.transport.onSharing(this.receiveSharing));
@@ -83,6 +85,7 @@ export class CallSession {
     this.update({ phase: 'joining', error: '' });
     try {
       assertMediaSupport();
+      const devices = this.getJoinDevices(mode);
       const media = this.media = new LocalMedia();
       media.onEffectsStatus = effectsStatus => { if (operation === this.operation) this.update({ effectsStatus }); };
       media.onVideoEnded = () => {
@@ -97,12 +100,13 @@ export class CallSession {
           if (operation === this.operation) this.update({ error: mediaError(error) });
         });
       };
-      await media.enable('audio');
+      if (devices.microphoneEnabled) await media.enable('audio');
       if (operation !== this.operation || this.disposed) return;
-      // Selecting video is the explicit camera action; voice and incoming joins never capture video.
-      if (mode === 'video') await media.enable('video');
+      if (devices.cameraEnabled) await media.enable('video');
       if (operation !== this.operation || this.disposed) return;
-      const result = await this.transport.request<JoinCallResult>('call:join', { roomId: this.roomId, callId: expectedCallId, attemptId, mode, microphoneEnabled: true, cameraEnabled: mode === 'video' });
+      const microphoneEnabled = media.stream.getAudioTracks().some(track => track.readyState === 'live');
+      const cameraEnabled = media.stream.getVideoTracks().some(track => track.readyState === 'live');
+      const result = await this.transport.request<JoinCallResult>('call:join', { roomId: this.roomId, callId: expectedCallId, attemptId, mode, microphoneEnabled, cameraEnabled });
       if (operation !== this.operation || this.disposed) { this.leaveAttempt(attemptId); return; }
       // A newer end/kick event can overtake the acknowledgement.
       const call = this.revision > result.revision ? this.view.call : result.call;
@@ -110,7 +114,7 @@ export class CallSession {
       this.revision = Math.max(this.revision, result.revision);
       this.configuration = result.configuration;
       this.shareToken = result.shareToken;
-      this.update({ phase: 'active', call, selfId: result.selfId, localStream: media.stream, microphoneEnabled: true, cameraEnabled: mode === 'video', joinedAt: Date.now(), ...(result.shareCapabilities ? { shareCapabilities: result.shareCapabilities } : {}) });
+      this.update({ phase: 'active', call, selfId: result.selfId, localStream: media.stream, microphoneEnabled, cameraEnabled, joinedAt: Date.now(), ...(result.shareCapabilities ? { shareCapabilities: result.shareCapabilities } : {}) });
       if (result.sharing) this.receiveSharing(result.sharing);
       for (const state of this.earlySharing.splice(0)) this.receiveSharing(state);
       this.watchTracks();
@@ -187,6 +191,7 @@ export class CallSession {
       if (enabled) {
         // Stop immediately, even if replacing a sender or requesting the other camera fails.
         media.disable(kind);
+        if (!switchCamera) rememberCallDevice(kind, false);
         this.publishMedia();
         await Promise.all([...this.peers.values()].map((peer) => peer.replace(kind, null)));
       }
@@ -197,6 +202,8 @@ export class CallSession {
         if (operation !== this.operation || this.disposed) return;
         const track = media.stream.getTracks().find((entry) => entry.kind === kind) || null;
         await Promise.all([...this.peers.values()].map((peer) => peer.replace(kind, track)));
+        if (operation !== this.operation || this.disposed) return;
+        if (!switchCamera && track?.readyState === 'live') rememberCallDevice(kind, true);
         this.watchTracks();
       }
     } catch (error) {

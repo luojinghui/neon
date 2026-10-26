@@ -14,6 +14,9 @@ const FILE_TYPES = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', we
 const invalid = (message) => { throw new Error(message); };
 const idValid = value => typeof value === 'string' && /^[\w-]{8,80}$/.test(value);
 const finite = (value, low, high) => typeof value === 'number' && Number.isFinite(value) && value >= low && value <= high;
+// Camera movement is local to each participant. Shared drawing coordinates are
+// independent of the viewport and include negative space around the origin.
+const boardCoordinate = value => finite(value, -1000000, 1000000);
 
 function fileInfo(file) {
   if (!file || typeof file.name !== 'string' || file.name.length > 180 || !Number.isInteger(file.size) || file.size < 1 || file.size > MAX_FILE) invalid('请选择不超过 20 MB 的文件');
@@ -153,13 +156,16 @@ class CallSharing {
         if (index < 0 && board.items.length >= 400) invalid('画板已满，请撤销或清空后继续');
         let item = { id: value.id, authorId: socket.id, color: value.color, kind: value.kind };
         if (value.kind === 'stroke') {
-          if (!finite(value.width, 1, 16) || !Array.isArray(value.points) || value.points.length < 1 || value.points.length > 512 || value.points.some(p => !Array.isArray(p) || p.length !== 2 || !finite(p[0], 0, 1000) || !finite(p[1], 0, 600))) invalid('无效的笔迹');
+          if (!finite(value.width, 1, 16) || !Array.isArray(value.points) || value.points.length < 1 || value.points.length > 512 || value.points.some(p => !Array.isArray(p) || p.length !== 2 || !boardCoordinate(p[0]) || !boardCoordinate(p[1]))) invalid('无效的笔迹');
           const points = board.items.reduce((sum, item) => sum + (item.id !== value.id ? item.points?.length || 0 : 0), 0);
           if (points + value.points.length > 24000) invalid('画板已满，请撤销或清空后继续');
           item = { ...item, width: value.width, points: value.points };
         } else if (value.kind === 'text') {
-          if (typeof value.text !== 'string' || !value.text.trim() || value.text.length > 200 || !finite(value.x, 0, 1000) || !finite(value.y, 0, 600) || !finite(value.fontSize, 12, 96)) invalid('白板文字无效');
+          if (typeof value.text !== 'string' || !value.text.trim() || value.text.length > 200 || !boardCoordinate(value.x) || !boardCoordinate(value.y) || !finite(value.fontSize, 12, 96)) invalid('白板文字无效');
           item = { ...item, text: value.text.trim(), x: value.x, y: value.y, fontSize: value.fontSize };
+        } else if (value.kind === 'shape') {
+          if (!['rectangle', 'ellipse', 'line', 'arrow'].includes(value.shape) || ![value.x, value.y, value.endX, value.endY].every(boardCoordinate) || !finite(value.width, 1, 16) || typeof value.fill !== 'boolean') invalid('白板图形无效');
+          item = { ...item, shape: value.shape, x: value.x, y: value.y, endX: value.endX, endY: value.endY, width: value.width, fill: value.fill };
         } else invalid('无效的白板内容');
         if (index < 0) board.items.push(item); else board.items[index] = item;
         action = { type: 'put', item };

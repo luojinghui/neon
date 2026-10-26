@@ -7,8 +7,7 @@ const root = path.join(__dirname, '..', 'public', 'mediapipe', VERSION);
 const packageRoot = path.dirname(require.resolve('@mediapipe/tasks-vision'));
 const models = {
   'face_landmarker.task': 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-  'selfie_multiclass.tflite': 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite',
-  'selfie_segmenter_landscape.tflite': 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/1/selfie_segmenter_landscape.tflite'
+  'selfie_multiclass.tflite': 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite'
 };
 function download(url) {
   return new Promise((resolve, reject) => https.get(url, response => {

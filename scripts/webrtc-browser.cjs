@@ -20,7 +20,7 @@ async function waitFor(check, label, timeout = 30000) {
 
 (async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neon-webrtc-browser-'));
-  const output = path.resolve('.cache/webrtc-qa'); fs.mkdirSync(output, { recursive: true });
+  const output = path.resolve(process.env.WEBRTC_QA_OUTPUT || '.cache/webrtc-qa'); fs.mkdirSync(output, { recursive: true });
   const probe = net.createServer();
   await new Promise((resolve) => probe.listen(0, '127.0.0.1', resolve));
   const port = probe.address().port; await new Promise((resolve) => probe.close(resolve));
@@ -108,7 +108,7 @@ async function waitFor(check, label, timeout = 30000) {
       assert.deepEqual(errors, []); return;
     }
     if (process.env.WEBRTC_SHARING_ONLY) {
-      await require('./sharing-browser.cjs')(await participant(), await participant(), await participant(true), url, output, waitFor);
+      await require('./sharing-browser.cjs')(await participant(), await participant(), await participant(true), url, output, waitFor, await participant(true));
       assert.deepEqual(errors, []); return;
     }
     const host = await participant();
@@ -150,45 +150,17 @@ async function waitFor(check, label, timeout = 30000) {
     assert.equal(await host.locator('.is-local.is-thumbnail').count(), 1);
     assert.equal(await host.evaluate(() => window.__peers.length), 1, 'swapping tiles preserves the peer connection');
     assert.equal(await host.evaluate(() => window.__captures.length), 2, 'swapping tiles never reacquires devices');
-    if (process.env.WEBRTC_EFFECTS_TEST_IMAGE) {
-      await host.getByRole('button', { name: '画面设置', exact: true }).click();
-      await host.getByRole('button', { name: '自然', exact: true }).click();
-      await host.getByRole('progressbar', { name: '画面资源加载进度' }).waitFor();
-      await host.getByRole('progressbar', { name: '画面资源加载进度' }).waitFor({ state: 'hidden', timeout: 120000 });
-      assert.equal(await host.locator('.soul-call-effect-status .is-error').count(), 0, 'real models and GPU initialize');
-      await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && !window.__tracks.includes(sender.track))), 'processed track sent to peers');
-      await host.getByRole('tab', { name: '2D 贴纸', exact: true }).click(); await host.getByRole('button', { name: '贴纸：星星脸', exact: true }).click();
-      await host.getByRole('tab', { name: '面部化身', exact: true }).click(); await host.getByRole('button', { name: '面部化身：星猫', exact: true }).click();
-      await host.getByRole('tab', { name: '背景', exact: true }).click(); await host.getByRole('button', { name: '背景：日光窗', exact: true }).click();
-      await waitFor(() => host.getByRole('progressbar').count().then(count => count === 0), 'background model initialization', 120000);
-      assert.equal(await host.locator('.soul-call-effect-status .is-error').count(), 0);
-      await waitFor(() => host.locator('.soul-call-effect-status').innerText().then(text => !text.includes('面对镜头')), 'real face detection');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      await host.screenshot({ path: path.join(output, 'effects-settings.png') });
-      await guest.screenshot({ path: path.join(output, 'effects-received.png') });
-      await host.getByRole('tab', { name: '面部化身', exact: true }).click(); await host.getByRole('button', { name: '面部化身：赤狐', exact: true }).click();
-      await new Promise(resolve => setTimeout(resolve, 400));
-      await guest.screenshot({ path: path.join(output, 'effects-cartoon.png') });
-      await host.getByRole('tab', { name: '美颜', exact: true }).click(); await host.getByRole('button', { name: '原貌', exact: true }).click();
-      await host.getByRole('tab', { name: '背景', exact: true }).click(); await host.getByRole('button', { name: '背景：原背景', exact: true }).click();
-      await host.getByRole('tab', { name: '2D 贴纸', exact: true }).click(); await host.getByRole('button', { name: '贴纸：无', exact: true }).click();
-      await waitFor(() => host.getByRole('progressbar').count().then(count => count === 0), 'latest effects ready', 120000);
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const faceDifference = await host.evaluate(() => {
-        const original = window.__tracks.find(track => track.kind === 'video' && track.readyState === 'live').canvas;
-        const output = document.querySelector('.is-local video');
-        const snapshot = document.createElement('canvas'); snapshot.width = 640; snapshot.height = 480;
-        const context = snapshot.getContext('2d'); context.drawImage(output, 0, 0, 640, 480);
-        const a = original.getContext('2d').getImageData(290, 130, 60, 70).data;
-        const b = context.getImageData(290, 130, 60, 70).data;
-        let difference = 0; for (let i = 0; i < a.length; i++) if (i % 4 !== 3) difference += Math.abs(a[i] - b[i]);
-        return difference / (60 * 70 * 3);
-      });
-      assert.ok(faceDifference > 15, `mesh avatar covers the face: ${faceDifference}`);
-      await host.getByRole('tab', { name: '面部化身', exact: true }).click(); await host.getByRole('button', { name: '面部化身：原面容', exact: true }).click();
-      await host.getByRole('button', { name: '关闭画面设置', exact: true }).click();
-      console.log('PASS real MediaPipe models, face tracking, WebGL effects and processed outgoing track');
-    }
+    await host.getByRole('button', { name: '画面设置', exact: true }).click();
+    assert.equal(await host.getByRole('tab').count(), 0, 'beauty settings contain no removed effect tabs');
+    await host.getByRole('button', { name: '自然', exact: true }).click();
+    await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && !window.__tracks.includes(sender.track))), 'beauty output sent to peers');
+    assert.equal(await host.evaluate(() => window.__captures.length), 2, 'beauty never opens another camera');
+    await host.screenshot({ path: path.join(output, 'beauty-settings-desktop.png') });
+    await guest.screenshot({ path: path.join(output, 'beauty-received.png') });
+    await host.getByRole('button', { name: '原貌', exact: true }).click();
+    await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && window.__tracks.includes(sender.track))), 'original camera track restored');
+    await host.getByRole('button', { name: '关闭画面设置', exact: true }).click();
+    console.log('PASS beauty outgoing track, raw reset and no removed effects UI');
     await host.getByRole('button', { name: '缩小到聊天室', exact: true }).click();
     const miniHeader = host.locator('.is-mini .soul-call-header');
     const headerBounds = await miniHeader.boundingBox();
@@ -224,16 +196,32 @@ async function waitFor(check, label, timeout = 30000) {
     await mobile.screenshot({ path: path.join(output, 'mobile-group.png') });
     const beforeSettings = await mobile.evaluate(() => window.__captures.length);
     await mobile.getByRole('button', { name: '画面设置', exact: true }).click();
-    await mobile.getByRole('tab', { name: '背景', exact: true }).click();
-    await mobile.getByRole('button', { name: '背景：小山丘', exact: true }).click();
+    await mobile.getByRole('button', { name: '自然', exact: true }).click();
     assert.equal(await mobile.evaluate(() => window.__captures.length), beforeSettings, 'choosing effects with camera off never acquires it');
-    assert.equal(await mobile.getByRole('progressbar').count(), 0, 'no model initialization with camera off');
+    assert.equal(await mobile.getByRole('progressbar').count(), 0, 'no rendering initialization with camera off');
     await mobile.screenshot({ path: path.join(output, 'mobile-settings.png') });
     const settingsBounds = await mobile.locator('.soul-call-effects').boundingBox();
     const controlsBounds = await mobile.locator('.soul-call-controls').boundingBox();
     const selfBounds = await mobile.locator('.is-local').boundingBox();
     assert.ok(settingsBounds.y + settingsBounds.height <= controlsBounds.y + 1, 'mobile settings leave call controls reachable');
     assert.ok(selfBounds.y + selfBounds.height <= settingsBounds.y, 'mobile personal preview stays above settings');
+    for (const size of [{ width: 320, height: 568 }, { width: 375, height: 667 }, { width: 430, height: 932 }, { width: 812, height: 375 }]) {
+      await mobile.setViewportSize(size);
+      await waitFor(() => mobile.locator('.soul-call-panel').evaluate(element => element.getBoundingClientRect().bottom <= innerHeight + 1 && Math.abs(element.getBoundingClientRect().height - (window.visualViewport?.height || innerHeight)) < 2), 'call follows resized visual viewport');
+      const geometry = await mobile.evaluate(() => {
+        const rect = selector => { const box = document.querySelector(selector).getBoundingClientRect(); return { top: box.top, right: box.right, bottom: box.bottom, left: box.left, height: box.height }; };
+        return { panel: rect('.soul-call-panel'), settings: rect('.soul-call-effects'), footer: rect('.soul-call-footer'), width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth };
+      });
+      assert.ok(geometry.panel.left >= -1 && geometry.panel.right <= geometry.width + 1 && geometry.panel.bottom <= geometry.height + 1, JSON.stringify(geometry));
+      assert.ok(geometry.settings.bottom <= geometry.footer.top + 1 && geometry.footer.bottom <= geometry.height + 1, `settings and footer stay separate: ${JSON.stringify(geometry)}`);
+      assert.ok(geometry.scrollWidth <= geometry.width, 'call never widens a mobile viewport');
+      await mobile.screenshot({ path: path.join(output, `beauty-mobile-${size.width}x${size.height}.png`) });
+    }
+    await mobile.setViewportSize({ width: 390, height: 844 });
+    await mobile.getByRole('button', { name: '参会者列表', exact: true }).click();
+    assert.equal(await mobile.locator('.soul-call-effects').count(), 0, 'participants and beauty never stack');
+    await mobile.getByRole('button', { name: '关闭参会者列表', exact: true }).click();
+    await mobile.getByRole('button', { name: '画面设置', exact: true }).click();
     await mobile.getByRole('button', { name: /恢复原貌/ }).click();
     await mobile.getByRole('button', { name: '关闭画面设置', exact: true }).click();
     await mobile.getByRole('button', { name: '开启摄像头', exact: true }).click();
@@ -255,6 +243,18 @@ async function waitFor(check, label, timeout = 30000) {
     await require('./experience-fixes-browser.cjs')(host, guest, url, output, waitFor);
     await host.getByRole('button', { name: '视频通话', exact: true }).click();
     await host.getByRole('button', { name: '挂断通话', exact: true }).waitFor();
+    assert.equal(await host.getByRole('button', { name: '开启摄像头', exact: true }).count(), 1, 'camera remains off on the next video call');
+    await host.getByRole('button', { name: '关闭麦克风', exact: true }).click();
+    await host.getByRole('button', { name: '挂断通话', exact: true }).click();
+    await host.reload();
+    await waitFor(() => host.getByRole('button', { name: '视频通话', exact: true }).isEnabled(), 'room reconnect after reload');
+    const beforeMutedJoin = await host.evaluate(() => window.__captures.length);
+    await host.getByRole('button', { name: '视频通话', exact: true }).click();
+    await host.getByRole('button', { name: '挂断通话', exact: true }).waitFor();
+    assert.equal(await host.evaluate(() => window.__captures.length), beforeMutedJoin, 'muted camera/microphone persist across reload without hardware capture');
+    await host.getByRole('button', { name: '开启麦克风', exact: true }).click();
+    await host.getByRole('button', { name: '开启摄像头', exact: true }).click();
+    console.log('PASS microphone and camera preferences persist across calls and reload');
     await host.getByRole('button', { name: '缩小到聊天室', exact: true }).click();
     await host.getByRole('link', { name: '返回星球', exact: true }).click();
     await host.waitForURL(`${url}/soul`);

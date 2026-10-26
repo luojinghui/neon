@@ -1,6 +1,7 @@
 export type BoardItem = { id: string; authorId: string; color: string } & (
   { kind: 'stroke'; width: number; points: [number, number][] } |
-  { kind: 'text'; text: string; x: number; y: number; fontSize: number }
+  { kind: 'text'; text: string; x: number; y: number; fontSize: number } |
+  { kind: 'shape'; shape: 'rectangle' | 'ellipse' | 'line' | 'arrow'; x: number; y: number; endX: number; endY: number; width: number; fill: boolean }
 );
 export interface Presentation {
   id: string;

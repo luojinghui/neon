@@ -29,7 +29,7 @@ function load(name, dependencies, globals) {
 }
 const effectTypes = load('../video-effects/types', {});
 
-function fixture(acquire, acquireDisplay) {
+function fixture(acquire, acquireDisplay, storage) {
   const captures = [], tracks = [], messages = [], peers = [];
   const media = load('media', {}, {
     window: { isSecureContext: true }, RTCPeerConnection: class {},
@@ -66,13 +66,71 @@ function fixture(acquire, acquireDisplay) {
     }
   };
   const displays = [];
-  const { CallSession } = load('session', { './media': media, './peer': { CallPeer: Peer }, './sharing': load('sharing', {}) }, { DOMException, navigator: { mediaDevices: { getDisplayMedia: async () => {
+  const { CallSession } = load('session', { './media': media, './peer': { CallPeer: Peer }, './sharing': load('sharing', {}), './devicePreferences': load('devicePreferences', {}, { localStorage: storage }) }, { DOMException, navigator: { mediaDevices: { getDisplayMedia: async () => {
     if (acquireDisplay) return acquireDisplay();
     const stream = new Stream([new Track('video')]); displays.push(stream); return stream;
   } } } });
   const session = new CallSession('room', transport);
   return { session, media, captures, tracks, displays, messages, peers, result, share: state => onSharing?.(state), emit: (state) => onState?.(state), delayJoin: () => { joinRequest = deferred(); return joinRequest; } };
 }
+
+function preferenceStorage(value) {
+  const data = new Map(value === undefined ? [] : [['soul-call-device-preferences-v1', value]]);
+  return { data, getItem: key => data.get(key) ?? null, setItem: (key, item) => data.set(key, item) };
+}
+
+test('device preferences validate saved values and voice never turns on a remembered camera', () => {
+  const preferences = load('devicePreferences', {});
+  const storage = preferenceStorage('{"microphoneEnabled":false,"cameraEnabled":true}');
+  assert.deepEqual({ ...preferences.preferredCallDevices('audio', storage) }, { microphoneEnabled: false, cameraEnabled: false });
+  assert.deepEqual({ ...preferences.preferredCallDevices('video', storage) }, { microphoneEnabled: false, cameraEnabled: true });
+  for (const value of ['not-json', 'null', '[]', '{"microphoneEnabled":"false","cameraEnabled":0}']) {
+    storage.setItem(preferences.CALL_DEVICE_PREFERENCES_KEY, value);
+    assert.deepEqual({ ...preferences.preferredCallDevices('video', storage) }, { microphoneEnabled: true, cameraEnabled: true });
+  }
+  const unavailable = { getItem() { throw Error('blocked'); }, setItem() { throw Error('blocked'); } };
+  assert.equal(preferences.preferredCallDevices('audio', unavailable).microphoneEnabled, true);
+  assert.doesNotThrow(() => preferences.rememberCallDevice('audio', false, unavailable));
+});
+
+test('closing both devices survives hangup and a new session without acquiring hardware', async () => {
+  const storage = preferenceStorage();
+  const first = fixture(undefined, undefined, storage);
+  await first.session.join('video');
+  await first.session.toggleDevice('audio'); await first.session.toggleDevice('video');
+  first.session.hangup(); first.session.dispose();
+  const next = fixture(undefined, undefined, storage);
+  await next.session.join('video');
+  assert.equal(next.session.getSnapshot().phase, 'active');
+  assert.equal(next.captures.length, 0, 'remembered closed devices never call getUserMedia');
+  const joined = next.messages.find(message => message.event === 'call:join').payload;
+  assert.equal(joined.microphoneEnabled, false); assert.equal(joined.cameraEnabled, false);
+  assert.equal(next.peers.length, 1, 'receive-only participants still connect');
+  await next.session.toggleDevice('audio'); await next.session.toggleDevice('video');
+  next.session.dispose();
+  const restored = fixture(undefined, undefined, storage);
+  await restored.session.join('video');
+  assert.equal(restored.captures.length, 2, 'successfully reopened devices are remembered');
+  restored.session.dispose();
+  const voice = fixture(undefined, undefined, storage); await voice.session.join('audio');
+  assert.equal(voice.captures.length, 1); assert.equal(voice.captures[0].video, false);
+  voice.session.dispose();
+  assert.equal(JSON.parse(storage.getItem('soul-call-device-preferences-v1')).cameraEnabled, true, 'voice mode does not overwrite video preference');
+});
+
+test('permission denial and ended tracks do not overwrite deliberate device preferences', async () => {
+  const storage = preferenceStorage('{"microphoneEnabled":false,"cameraEnabled":false}');
+  const denied = fixture(() => Promise.reject(Object.assign(new Error('denied'), { name: 'NotAllowedError' })), undefined, storage);
+  await denied.session.join('video'); await denied.session.toggleDevice('audio');
+  assert.equal(JSON.parse(storage.getItem('soul-call-device-preferences-v1')).microphoneEnabled, false);
+  denied.session.dispose();
+  const defaults = preferenceStorage();
+  const call = fixture(undefined, undefined, defaults); await call.session.join('video');
+  call.tracks.find(track => track.kind === 'audio').onended();
+  call.tracks.find(track => track.kind === 'video').onended();
+  call.session.dispose();
+  assert.equal(defaults.data.size, 0, 'hardware endings and hangup are not persisted as user mute choices');
+});
 
 test('screen uses an independent sender; browser stop preserves microphone and camera', async () => {
   const f = fixture(); await f.session.connect(); await f.session.join('video');
@@ -266,12 +324,13 @@ test('perfect negotiation buffers ICE, resolves colliding offers and closes all 
   impolite.close(); assert.equal(errors.length, 0);
 });
 
-test('effects settings reject unknown assets and clamp device work; default settings require no processor', () => {
+test('beauty settings discard removed effects and clamp levels; defaults require no processor', () => {
   const { normalizeVideoEffects, effectsEnabled, DEFAULT_VIDEO_EFFECTS } = effectTypes;
   assert.equal(effectsEnabled(DEFAULT_VIDEO_EFFECTS), false);
   const value = normalizeVideoEffects({ whitening: Infinity, smoothing: 300, sticker2d: '../../secret', color: 'red', background: 'https://elsewhere', accessory: 'unknown' });
   assert.equal(value.whitening, 0); assert.equal(value.smoothing, 100);
-  assert.equal(value.sticker2d, 'none'); assert.equal(value.background, 'original'); assert.equal(value.accessory, undefined);
+  assert.equal(value.sticker2d, undefined); assert.equal(value.background, undefined); assert.equal(value.accessory, undefined);
+  assert.deepEqual(Object.keys(value).sort(), ['smoothing', 'whitening']);
 });
 
 test('effects never open a camera, replace only the outgoing video, and reset preserves raw capture', async () => {
@@ -282,26 +341,26 @@ test('effects never open a camera, replace only the outgoing video, and reset pr
     processors.push(processor); return processor;
   });
   media.onVideoOutput = track => outputs.push(track);
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, sticker2d: 'hearts' });
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, smoothing: 35 });
   await flush(); assert.equal(f.captures.length, 0); assert.equal(processors.length, 0);
   await media.enable('audio'); await media.enable('video'); await flush();
   assert.equal(processors.length, 1);
   assert.equal(media.stream.getVideoTracks()[0], processors[0].track);
   assert.equal(f.tracks[1].readyState, 'live', 'raw camera remains owned while processing');
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, faceEffect: 'cat' }); await flush();
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, whitening: 25 }); await flush();
   assert.equal(processors.length, 1, 'settings changes reuse the processor');
-  assert.equal(processors[0].settings.faceEffect, 'cat');
+  assert.equal(processors[0].settings.whitening, 25);
   media.setEffects(effectTypes.DEFAULT_VIDEO_EFFECTS); await flush();
   assert.equal(processors[0].disposed, true); assert.equal(media.stream.getVideoTracks()[0], f.tracks[1]);
   assert.equal(f.captures.length, 2, 'effects never call getUserMedia');
   media.dispose(); assert.ok(f.tracks.every(track => track.readyState === 'ended'));
 });
 
-test('closing the camera while models start releases raw and late processed tracks, without touching audio', async () => {
+test('closing the camera while beauty rendering starts releases raw and late processed tracks, without touching audio', async () => {
   const f = fixture(); const pending = deferred(), processed = new Track('video'); let disposed = 0;
   const media = new f.media.LocalMedia(async () => ({ configure() {}, start: () => pending.promise, dispose() { disposed++; processed.stop(); } }));
   await media.enable('audio'); await media.enable('video');
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, background: 'sunroom' }); await flush();
+  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, whitening: 30 }); await flush();
   media.disable('video'); pending.resolve(processed); await flush();
   assert.ok(disposed > 0); assert.equal(processed.readyState, 'ended'); assert.equal(f.tracks[1].readyState, 'ended');
   assert.equal(f.tracks[0].readyState, 'live'); assert.equal(media.stream.getVideoTracks().length, 0);
@@ -311,7 +370,7 @@ test('closing the camera while models start releases raw and late processed trac
 test('initialization/runtime failures restore raw video and allow retry without re-acquiring a camera', async () => {
   const f = fixture(); let fail, attempts = 0; const statuses = [];
   const media = new f.media.LocalMedia(async (_source, _status, failed) => {
-    if (++attempts === 1) throw new Error('model unavailable');
+    if (++attempts === 1) throw new Error('renderer unavailable');
     fail = failed; const track = new Track('video');
     return { configure() {}, async start() { return track; }, dispose() { track.stop(); } };
   });

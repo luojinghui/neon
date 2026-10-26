@@ -1,6 +1,6 @@
 'use client';
 
-import { DesktopOutlined, EditOutlined, FileOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { CloseOutlined, DesktopOutlined, EditOutlined, FileOutlined, MinusOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode, type WheelEvent } from 'react';
 import dynamic from 'next/dynamic';
 import type { CallSession } from '@/modules/webrtc/session';
@@ -19,7 +19,7 @@ export function ShareMenu({ view, session, onClose }: { view: CallView; session:
   const canSwitch = !view.presentation || view.presentation.ownerId === view.selfId;
   return <div className="call-share-popover-layer" onPointerDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <aside className="call-share-menu" aria-label="共享内容">
-      <header><h3>{view.presentation && canSwitch ? '切换共享' : '共享内容'}</h3></header>
+      <header><h3>{view.presentation && canSwitch ? '切换共享' : '共享内容'}</h3><button type="button" aria-label="关闭共享菜单" onClick={onClose}><CloseOutlined /></button></header>
       <div className="call-share-options">
         <button type="button" aria-label="共享屏幕" aria-pressed={view.presentation?.kind === 'screen'} disabled={!screenAvailable || view.shareBusy || !canSwitch} onClick={() => { void session.startScreen(); onClose(); }}><span className="call-share-option-icon"><DesktopOutlined /></span><span>屏幕</span></button>
         <button type="button" aria-label="共享白板" aria-pressed={view.presentation?.kind === 'whiteboard'} disabled={view.shareBusy || !canSwitch} onClick={() => { void session.startWhiteboard(); onClose(); }}><span className="call-share-option-icon"><EditOutlined /></span><span>白板</span></button>
@@ -30,7 +30,7 @@ export function ShareMenu({ view, session, onClose }: { view: CallView; session:
   </div>;
 }
 
-function ZoomableSurface({ children, whiteboard = false }: { children: ReactNode; whiteboard?: boolean }) {
+function ZoomableSurface({ children }: { children: ReactNode }) {
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -42,7 +42,7 @@ function ZoomableSurface({ children, whiteboard = false }: { children: ReactNode
     if (next <= 1) setOffset({ x: 0, y: 0 });
   };
   const begin = (event: PointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest('button,input,textarea,select,.call-whiteboard-canvas') || event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('button,input,textarea,select') || event.button !== 0) return;
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
     const values = [...pointers.current.values()];
@@ -70,7 +70,7 @@ function ZoomableSurface({ children, whiteboard = false }: { children: ReactNode
     event.preventDefault();
     zoom(scale + (event.deltaY < 0 ? .25 : -.25));
   };
-  return <div className={`call-share-viewport ${scale > 1 ? 'is-zoomed' : ''} ${whiteboard ? 'has-board-toolbar' : ''}`} onPointerDown={begin} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onWheel={wheel} onDoubleClick={event => { if (!(event.target as HTMLElement).closest('button,input,textarea,select')) zoom(scale === 1 ? 2 : 1); }}>
+  return <div className={`call-share-viewport ${scale > 1 ? 'is-zoomed' : ''}`} onPointerDown={begin} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onWheel={wheel} onDoubleClick={event => { if (!(event.target as HTMLElement).closest('button,input,textarea,select')) zoom(scale === 1 ? 2 : 1); }}>
     <div className="call-share-zoom-controls" aria-label="共享画面缩放">
       <button type="button" aria-label="缩小共享画面" disabled={scale <= .5} onClick={() => zoom(scale - .25)}><MinusOutlined /></button>
       <button type="button" aria-label="恢复共享画面大小" onClick={() => zoom(1)}>{Math.round(scale * 100)}%</button>
@@ -97,11 +97,10 @@ export function SharingStage({ view, session }: { view: CallView; session: CallS
   if (!presentation) return null;
   const owner = presentation.ownerId === view.selfId;
   return <div className="call-sharing-stage" aria-label="共享演示">
-    <header className="call-sharing-heading"><strong>{presentation.kind === 'whiteboard' ? '协作白板' : presentation.kind === 'screen' ? '屏幕共享' : presentation.file?.name}</strong>{owner && <button type="button" onClick={() => void session.stopSharing()}>结束共享</button>}</header>
-    <ZoomableSurface whiteboard={presentation.kind === 'whiteboard'}>
+    <header className="call-sharing-heading"><strong><span aria-hidden="true">{presentation.kind === 'whiteboard' ? <EditOutlined /> : presentation.kind === 'screen' ? <DesktopOutlined /> : <FileOutlined />}</span>{presentation.kind === 'whiteboard' ? '协作白板' : presentation.kind === 'screen' ? '屏幕共享' : presentation.file?.name}</strong>{owner && <button type="button" aria-label="结束共享" onClick={() => void session.stopSharing()}><StopOutlined /><span>结束共享</span></button>}</header>
+    {presentation.kind === 'whiteboard' ? <SharedWhiteboard key={presentation.id} presentation={presentation} session={session} selfId={view.selfId} /> : <ZoomableSurface>
       {presentation.kind === 'screen' && <Screen stream={owner ? view.screenStream : view.peers[presentation.ownerId]?.screenStream} />}
-      {presentation.kind === 'whiteboard' && <SharedWhiteboard key={presentation.id} presentation={presentation} session={session} selfId={view.selfId} />}
       {presentation.kind === 'resource' && (owner && !presentation.ready ? <div className="call-share-loading" role="status"><progress max={100} value={view.shareProgress} aria-label="共享文件上传进度" /><span>{view.shareProgress}%</span></div> : <SharedResource key={presentation.id} presentation={presentation} session={session} owner={owner} />)}
-    </ZoomableSurface>
+    </ZoomableSurface>}
   </div>;
 }

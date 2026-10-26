@@ -11,7 +11,7 @@ function pdfFixture() {
   return Buffer.from(source);
 }
 
-module.exports = async function sharingBrowser(host, guest, mobile, url, output, waitFor) {
+module.exports = async function sharingBrowser(host, guest, mobile, url, output, waitFor, fourth) {
   const menu = async page => page.getByRole('button', { name: '共享内容', exact: true }).click();
   const stop = async () => { await host.getByRole('button', { name: '结束共享', exact: true }).click(); await waitFor(() => guest.locator('.call-sharing-stage').count().then(n => !n), 'share ended'); };
   const share = async (name, buffer) => {
@@ -41,7 +41,7 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   await guest.getByRole('button', { name: '加入', exact: true }).click();
   await waitFor(() => guest.evaluate(() => window.__peers.some(peer => peer.connectionState === 'connected')), 'call connected');
   await menu(host);
-  assert.equal(await host.getByRole('button', { name: '关闭共享菜单', exact: true }).count(), 0, 'sharing popover has no close button');
+  assert.equal(await host.getByRole('button', { name: '关闭共享菜单', exact: true }).count(), 1, 'sharing menu has an accessible close action');
   assert.equal(await host.locator('.call-share-options > button').count(), 3, 'sharing popover uses compact option tiles');
   assert.equal(await host.locator('.call-share-menu small, .call-share-menu > p').count(), 0, 'sharing menu has no helper copy');
   assert.equal((await host.locator('.call-share-menu').innerText()).includes('服务器'), false);
@@ -58,13 +58,51 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   };
   await Promise.all([draw(host, .3, .4), draw(guest, .5, .5)]);
   await waitFor(() => guest.locator('[data-board-item]').count().then(n => n === 2), 'both whiteboard drawings');
+  await host.getByRole('button', { name: '放大白板', exact: true }).click();
+  const transform = await host.locator('.call-whiteboard-canvas').evaluate(element => ({ scale: Number(element.dataset.scale), x: Number(element.dataset.offsetX), y: Number(element.dataset.offsetY), width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
+  assert.equal(transform.scale, 1.25);
+  assert.equal(await host.locator('.call-share-zoom-content').count(), 0, 'whiteboard owns its viewport without a second scaling layer');
+  await draw(host, .2, .25);
+  await waitFor(() => guest.locator('[data-board-kind=stroke]').count().then(n => n === 3), 'drawing after zoom synchronized');
+  const zoomedStroke = host.locator('[data-board-kind=stroke]').last().locator('polyline');
+  const [firstPoint] = (await zoomedStroke.getAttribute('points')).split(' ').map(point => point.split(',').map(Number));
+  assert.ok(Math.abs(firstPoint[0] - (transform.width * .2 - transform.x) / transform.scale) < 2, 'pen X follows inverse viewport transform');
+  assert.ok(Math.abs(firstPoint[1] - (transform.height * .25 - transform.y) / transform.scale) < 2, 'pen Y follows inverse viewport transform');
+  assert.equal(await zoomedStroke.getAttribute('vector-effect'), 'non-scaling-stroke', 'zoom preserves the screen brush width');
+  await host.getByRole('button', { name: '移动白板画布', exact: true }).click();
+  const boardBounds = await host.locator('.call-whiteboard-canvas').boundingBox();
+  await host.mouse.move(boardBounds.x + boardBounds.width * .4, boardBounds.y + boardBounds.height * .5);
+  await host.mouse.down(); await host.mouse.move(boardBounds.x + boardBounds.width * .4 + 100, boardBounds.y + boardBounds.height * .5 + 50, { steps: 6 }); await host.mouse.up();
+  const panX = Number(await host.locator('.call-whiteboard-canvas').getAttribute('data-offset-x'));
+  assert.ok(panX > transform.x + 95, 'canvas can pan freely beyond the initial page');
+  await host.getByRole('button', { name: '白板画笔', exact: true }).click();
+  await draw(host, .1, .2);
+  await waitFor(() => guest.locator('[data-board-kind=stroke]').count().then(n => n === 4), 'negative world coordinate drawing synchronized');
+  const pannedPoints = await host.locator('[data-board-kind=stroke]').last().locator('polyline').getAttribute('points');
+  assert.ok(pannedPoints.split(' ').some(point => Number(point.split(',')[0]) < 0), 'negative world coordinates are accepted');
+  await host.getByRole('button', { name: '白板图形', exact: true }).click();
+  await host.getByRole('button', { name: '矩形', exact: true }).click();
+  const reverseBounds = await host.locator('.call-whiteboard-canvas').boundingBox();
+  await host.mouse.move(reverseBounds.x + reverseBounds.width * .65, reverseBounds.y + reverseBounds.height * .35);
+  await host.mouse.down(); await host.mouse.move(reverseBounds.x + reverseBounds.width * .55, reverseBounds.y + reverseBounds.height * .25, { steps: 6 }); await host.mouse.up();
+  await waitFor(() => guest.locator('[data-board-kind=shape]').count().then(n => n === 1), 'reverse-drawn shape synchronized');
+  await host.getByRole('button', { name: '选择白板内容', exact: true }).click();
+  const shape = host.locator('[data-board-kind=shape]'), shapeRect = shape.locator('rect').first();
+  const originalShape = { width: Number(await shapeRect.getAttribute('width')), height: Number(await shapeRect.getAttribute('height')) };
+  const shapeBox = await shapeRect.boundingBox();
+  await host.mouse.click(shapeBox.x + shapeBox.width / 2, shapeBox.y + 1);
+  const shapeHandle = await shape.locator('.call-board-resize').boundingBox();
+  await host.mouse.move(shapeHandle.x + shapeHandle.width / 2, shapeHandle.y + shapeHandle.height / 2);
+  await host.mouse.down(); await host.mouse.move(shapeHandle.x + shapeHandle.width / 2 + 50, shapeHandle.y + shapeHandle.height / 2 + 40, { steps: 6 }); await host.mouse.up();
+  await waitFor(() => guest.locator('[data-board-kind=shape] rect').evaluate((element, before) => Number(element.getAttribute('width')) > before.width + 25 && Number(element.getAttribute('height')) > before.height + 20, originalShape), 'reverse-drawn shape grows from its visible resize handle without collapsing');
   await guest.getByRole('button', { name: '添加白板文字', exact: true }).click();
   await guest.getByRole('textbox', { name: '编辑白板文字', exact: true }).fill('来自伙伴的文字');
   await guest.getByRole('textbox', { name: '编辑白板文字', exact: true }).press('Enter');
   await host.locator('.call-whiteboard-canvas').getByText('来自伙伴的文字').waitFor();
-  const remoteText = host.locator('.call-board-text');
+  const remoteText = host.locator('[data-board-kind=text]');
   const startX = Number(await remoteText.locator('text').getAttribute('x'));
-  const localText = guest.locator('.call-board-text');
+  await guest.getByRole('button', { name: '选择白板内容', exact: true }).click();
+  const localText = guest.locator('[data-board-kind=text]');
   const textBounds = await localText.boundingBox();
   await guest.mouse.move(textBounds.x + textBounds.width / 2, textBounds.y + textBounds.height / 2);
   await guest.mouse.down(); await guest.mouse.move(textBounds.x + textBounds.width / 2 + 60, textBounds.y + textBounds.height / 2 + 30, { steps: 5 }); await guest.mouse.up();
@@ -76,14 +114,71 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   await waitFor(() => remoteText.locator('text').getAttribute('font-size').then(value => Number(value) > originalSize), 'whiteboard text resized');
   await mobile.getByRole('button', { name: '加入', exact: true }).click();
   await mobile.locator('.call-whiteboard-canvas').getByText('来自伙伴的文字').waitFor();
-  assert.equal(await mobile.locator('[data-board-item]').count(), 3, 'late join receives both strokes and text');
+  assert.equal(await mobile.locator('[data-board-item]').count(), 6, 'late join receives all world-coordinate strokes, shape and text');
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  for (const size of [{ width: 320, height: 568 }, { width: 375, height: 667 }, { width: 390, height: 844 }, { width: 812, height: 375 }]) {
+    await mobile.setViewportSize(size);
+    const geometry = await mobile.evaluate(() => {
+      const box = selector => { const value = document.querySelector(selector).getBoundingClientRect(); return { left: value.left, top: value.top, right: value.right, bottom: value.bottom, height: value.height }; };
+      return { board: box('.call-board-viewport'), shared: box('.call-sharing-stage'), footer: box('.soul-call-footer'), width: innerWidth, height: innerHeight, pageWidth: document.documentElement.scrollWidth };
+    });
+    assert.ok(geometry.board.height >= 70 && geometry.shared.bottom <= geometry.footer.top + 1 && geometry.footer.bottom <= geometry.height + 1 && geometry.pageWidth <= geometry.width, `usable mobile sharing: ${JSON.stringify(geometry)}`);
+    await mobile.screenshot({ path: path.join(output, `whiteboard-mobile-${size.width}x${size.height}.png`) });
+  }
+  await mobile.setViewportSize({ width: 390, height: 844 });
+  await mobile.getByRole('button', { name: '白板画笔', exact: true }).click();
+  const touchBounds = await mobile.locator('.call-whiteboard-canvas').boundingBox();
+  const beforePinch = Number(await mobile.locator('.call-whiteboard-canvas').getAttribute('data-scale'));
+  const touchSession = await mobile.context().newCDPSession(mobile);
+  const center = { x: touchBounds.x + touchBounds.width / 2, y: touchBounds.y + touchBounds.height * .35 };
+  const touchPoints = distance => [{ id: 1, x: center.x - distance, y: center.y }, { id: 2, x: center.x + distance, y: center.y }];
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touchPoints(35) });
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: touchPoints(70) });
+  await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await touchSession.detach();
+  await waitFor(() => mobile.locator('.call-whiteboard-canvas').getAttribute('data-scale').then(value => Number(value) > beforePinch * 1.8), 'real two-finger pinch changes only the viewport');
+  assert.equal(await mobile.locator('[data-board-item]').count(), 6, 'pinching does not leave accidental pen dots');
+  await mobile.getByRole('button', { name: '适应全部白板内容', exact: true }).click();
+  await mobile.getByRole('button', { name: '添加白板文字', exact: true }).click();
+  await mobile.getByRole('textbox', { name: '编辑白板文字', exact: true }).fill('手机键盘适配');
+  const mediaBeforeKeyboard = await mobile.evaluate(() => ({ captures: window.__captures.length, peers: window.__peers.length }));
+  await mobile.evaluate(() => {
+    const viewport = window.visualViewport;
+    window.__viewportHeightDescriptor = Object.getOwnPropertyDescriptor(viewport, 'height');
+    Object.defineProperty(viewport, 'height', { configurable: true, value: 400 });
+    viewport.dispatchEvent(new Event('resize'));
+  });
+  await waitFor(() => mobile.locator('.soul-call-panel').evaluate(element => element.classList.contains('is-keyboard-open') && element.getBoundingClientRect().height <= 401), 'mobile call follows keyboard visual viewport');
+  await waitFor(() => mobile.getByRole('button', { name: '保存白板文字', exact: true }).evaluate(element => {
+    const box = element.getBoundingClientRect(), canvas = document.querySelector('.call-board-viewport').getBoundingClientRect(), footer = document.querySelector('.soul-call-footer').getBoundingClientRect();
+    return box.top >= canvas.top && box.bottom <= canvas.bottom + 1 && box.bottom <= footer.top + 1;
+  }), 'whiteboard text actions remain inside the keyboard viewport');
+  await mobile.screenshot({ path: path.join(output, 'whiteboard-mobile-keyboard.png') });
+  await mobile.getByRole('button', { name: '取消白板文字', exact: true }).click();
+  await mobile.evaluate(() => {
+    const viewport = window.visualViewport;
+    if (window.__viewportHeightDescriptor) Object.defineProperty(viewport, 'height', window.__viewportHeightDescriptor);
+    else delete viewport.height;
+    viewport.dispatchEvent(new Event('resize'));
+  });
+  await waitFor(() => mobile.locator('.soul-call-panel').evaluate(element => !element.classList.contains('is-keyboard-open') && element.getBoundingClientRect().height > 800), 'call recovers full height after keyboard closes');
+  assert.deepEqual(await mobile.evaluate(() => ({ captures: window.__captures.length, peers: window.__peers.length })), mediaBeforeKeyboard, 'keyboard layout never recreates media or peers');
+  if (fourth) {
+    await fourth.getByRole('button', { name: '加入', exact: true }).click();
+    await waitFor(() => fourth.locator('[data-board-item]').count().then(n => n === 6), 'fourth participant receives full board');
+    assert.equal(await mobile.locator('.soul-call-stage.has-sharing > .soul-call-tile').count(), 4);
+    await host.screenshot({ path: path.join(output, 'whiteboard-desktop-four-people.png') });
+    await mobile.screenshot({ path: path.join(output, 'whiteboard-mobile-four-people.png') });
+    await fourth.getByRole('button', { name: '挂断通话', exact: true }).click();
+  }
   await mobile.screenshot({ path: path.join(output, 'sharing-mobile-whiteboard.png') });
   await host.screenshot({ path: path.join(output, 'sharing-desktop-whiteboard.png') });
-  await guest.getByRole('button', { name: '撤销', exact: true }).click();
-  await waitFor(() => host.locator('[data-board-item]').count().then(n => n === 2), 'undo synchronized');
+  await guest.getByRole('button', { name: '撤销白板操作', exact: true }).click();
+  await waitFor(() => host.locator('[data-board-item]').count().then(n => n === 5), 'undo synchronized and preserves other authors');
+  await host.getByRole('button', { name: '清空白板', exact: true }).click();
+  await waitFor(() => mobile.locator('[data-board-item]').count().then(n => n === 0), 'clear synchronized with new epoch');
   await stop();
-  console.log('PASS simultaneous whiteboard drawing, guest text, undo and late mobile join');
+  console.log('PASS infinite board pan/zoom pen alignment, shapes, guest text editing, author undo, clear and late join');
 
   await share('document.md', Buffer.from('# 协作笔记\n\n| 人员 | 状态 |\n|---|---|\n| 伙伴 | 在线 |\n\n**一起编辑画板，一起阅读资料**'));
   await guest.getByRole('heading', { name: '协作笔记' }).waitFor();
@@ -129,7 +224,7 @@ module.exports = async function sharingBrowser(host, guest, mobile, url, output,
   const sharedStage = await mobile.locator('.call-sharing-stage').boundingBox();
   const mobileTiles = await mobile.locator('.soul-call-stage.has-sharing > .soul-call-tile').evaluateAll(elements => elements.map(element => { const box = element.getBoundingClientRect(); return { top: box.top, bottom: box.bottom, height: box.height }; }));
   const footer = await mobile.locator('.soul-call-footer').boundingBox();
-  assert.ok(mobileTiles.every(tile => tile.height <= 65 && tile.top >= sharedStage.y + sharedStage.height - 1 && tile.bottom <= footer.y + 1), JSON.stringify({ mobileTiles, sharedStage, footer }));
+  assert.ok(mobileTiles.every(tile => tile.height >= 48 && tile.top >= sharedStage.y + sharedStage.height - 1 && tile.bottom <= footer.y + 1), JSON.stringify({ mobileTiles, sharedStage, footer }));
   await mobile.getByRole('button', { name: '放大共享画面', exact: true }).click();
   assert.match(await mobile.locator('.call-share-zoom-content').getAttribute('style'), /scale\(1\.25\)/);
   await mobile.getByRole('button', { name: '缩小共享画面', exact: true }).click();

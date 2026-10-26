@@ -54,14 +54,51 @@ test('whiteboard merges simultaneous authors, enforces ownership, clears stale s
   assert.equal(board.ownerId, b.socket.id); assert.equal(board.epoch, 1); assert.deepEqual(board.items, []);
 });
 
-test('whiteboard validates bounded coordinates, text, total strokes and author-only undo', async t => {
+test('whiteboard validates finite world coordinates, text and bounded stroke payloads', async t => {
   const f = await fixture(t), a = await f.connect(); const callId = a.joined.call.id;
   const state = await a.accepted('share:start', { callId, kind: 'whiteboard' });
   const base = { callId, shareId: state.presentation.id, epoch: 0, action: 'put' };
-  const stroke = { id: 'stroke-valid', kind: 'stroke', color: '#123456', width: 4, points: [[10, 20], [30, 40]] };
+  const stroke = { id: 'stroke-valid', kind: 'stroke', color: '#123456', width: 4, points: [[-2400, -1800], [1300, 900]] };
   await a.accepted('share:board', { ...base, item: stroke });
-  for (const patch of [{ color: 'red' }, { points: [[-1, 2]] }, { points: [[Infinity, 2]] }, { points: Array(513).fill([1, 2]) }, { kind: 'text', text: 'x'.repeat(201), x: 1, y: 2, fontSize: 28 }, { kind: 'text', text: 'text', x: 1, y: 2, fontSize: 120 }, { width: 999 }]) assert.equal((await a.request('share:board', { ...base, item: { ...stroke, ...patch } })).ok, false);
+  for (const patch of [{ color: 'red' }, { points: [[-1000001, 2]] }, { points: [[Infinity, 2]] }, { points: [[NaN, 2]] }, { points: Array(513).fill([1, 2]) }, { kind: 'text', text: 'x'.repeat(201), x: 1, y: 2, fontSize: 28 }, { kind: 'text', text: 'text', x: 1, y: 2, fontSize: 120 }, { width: 999 }]) assert.equal((await a.request('share:board', { ...base, item: { ...stroke, ...patch } })).ok, false);
   assert.equal((await a.accepted('share:state', { callId })).presentation.items.length, 1);
+});
+
+test('whiteboard synchronizes editable shapes and text beyond the old page with server-owned authors', async t => {
+  const f = await fixture(t), a = await f.connect(), b = await f.connect(); const callId = a.joined.call.id;
+  const state = await a.accepted('share:start', { callId, kind: 'whiteboard' });
+  const base = { callId, shareId: state.presentation.id, epoch: 0, action: 'put' };
+  const shape = { id: 'shape-rectangle', authorId: 'forged', kind: 'shape', shape: 'rectangle', color: '#2563eb', width: 4, fill: true, x: -12000, y: 8400, endX: -18000, endY: 10000 };
+  for (const kind of ['rectangle', 'ellipse', 'line', 'arrow']) await a.accepted('share:board', { ...base, item: { ...shape, id: 'shape-' + kind, shape: kind } });
+  await b.accepted('share:board', { ...base, item: { id: 'text-infinite', kind: 'text', text: '远处的想法\n第二行', color: '#334155', x: -30000, y: -18000, fontSize: 28 } });
+  assert.equal((await b.request('share:board', { ...base, item: { ...shape, color: '#ffffff' } })).ok, false);
+  await a.accepted('share:board', { ...base, item: { ...shape, endX: 60000, endY: -40000 } });
+  for (const patch of [{ shape: 'image' }, { fill: '#ff0000' }, { x: 1000001 }, { endY: NaN }, { width: 0 }, { fill: undefined }]) assert.equal((await a.request('share:board', { ...base, item: { ...shape, ...patch } })).ok, false);
+  const c = await f.connect();
+  const board = c.joined.sharing.presentation;
+  assert.equal(board.items.length, 5);
+  assert.equal(board.items.find(item => item.id === shape.id).authorId, a.socket.id);
+  assert.equal(board.items.find(item => item.id === shape.id).endX, 60000);
+  assert.equal(board.items.find(item => item.id === 'text-infinite').y, -18000);
+  await b.accepted('share:board', { ...base, action: 'undo' });
+  assert.equal((await a.accepted('share:state', { callId })).presentation.items.length, 4);
+});
+
+test('whiteboard quotas count stroke replacements once and include shapes in the item limit', async t => {
+  const f = await fixture(t), a = await f.connect(); const callId = a.joined.call.id;
+  const state = await a.accepted('share:start', { callId, kind: 'whiteboard' });
+  const base = { callId, shareId: state.presentation.id, epoch: 0, action: 'put' };
+  const board = f.calls.calls.get('room').presentation;
+  board.items = Array.from({ length: 46 }, (_, i) => ({ id: 'seed-stroke-' + i, authorId: a.socket.id, kind: 'stroke', color: '#334155', width: 4, points: Array(512).fill([i, i]) }));
+  const stroke = { id: 'stroke-at-limit', kind: 'stroke', color: '#334155', width: 4, points: Array(448).fill([-8000, 10000]) };
+  await a.accepted('share:board', { ...base, item: stroke });
+  await a.accepted('share:board', { ...base, item: { ...stroke, color: '#2563eb' } });
+  assert.equal((await a.request('share:board', { ...base, item: { ...stroke, points: Array(449).fill([0, 0]) } })).ok, false);
+  board.items = Array.from({ length: 400 }, (_, i) => ({ id: 'seed-text-' + i, authorId: a.socket.id, kind: 'text', color: '#334155', text: 'x', fontSize: 28, x: i, y: -i }));
+  const shape = { id: 'shape-over-limit', kind: 'shape', shape: 'ellipse', color: '#334155', width: 4, fill: false, x: -10, y: 0, endX: 10, endY: 20 };
+  assert.equal((await a.request('share:board', { ...base, item: shape })).ok, false);
+  await a.accepted('share:board', { ...base, item: { ...board.items[0], x: -4000 } });
+  assert.equal(board.items.length, 400);
 });
 
 test('private resource transfer permits current call members only and synchronizes presenter navigation', async t => {

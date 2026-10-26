@@ -1,29 +1,40 @@
 'use client';
 
-import { CloseOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useState } from 'react';
-import { CALL_BACKGROUNDS, DEFAULT_VIDEO_EFFECTS, FLAT_STICKERS, MESH_AVATARS, type VideoEffectsSettings, type VideoEffectsStatus } from '@/modules/video-effects/types';
+import { BulbOutlined, CheckOutlined, CloseOutlined, LoadingOutlined, ReloadOutlined, SkinOutlined } from '@ant-design/icons';
+import { DEFAULT_VIDEO_EFFECTS, type VideoEffectsSettings, type VideoEffectsStatus } from '@/modules/video-effects/types';
+import './beauty-panel.css';
 
-const tabs = ['美颜', '2D 贴纸', '面部化身', '背景'] as const;
+const presets = [
+  { name: '原貌', whitening: 0, smoothing: 0 },
+  { name: '自然', whitening: 25, smoothing: 30 },
+  { name: '清透', whitening: 45, smoothing: 50 }
+] as const;
+
 export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClose }: { value: VideoEffectsSettings; status: VideoEffectsStatus; cameraEnabled: boolean; onChange: (value: Partial<VideoEffectsSettings>) => void; onClose: () => void }) {
-  const [tab, setTab] = useState<typeof tabs[number]>('美颜');
-  const tracked = value.sticker2d !== 'none' || value.faceEffect !== 'none';
-  return <aside className="soul-call-effects" aria-label="画面设置">
-    <div className="soul-call-effects-heading"><h3>我的画面</h3><button type="button" aria-label="关闭画面设置" onClick={onClose}><CloseOutlined /></button></div>
-    <div className="soul-call-effect-tabs" role="tablist" aria-label="效果类型">{tabs.map(name => <button key={name} type="button" role="tab" aria-selected={tab === name} onClick={() => setTab(name)}>{name}</button>)}</div>
-    <div className="soul-call-effects-body" role="tabpanel" aria-label={tab}>
-      {tab === '美颜' && <div className="soul-call-beauty">
-        <div className="soul-call-beauty-presets">{([{ name: '原貌', whitening: 0, smoothing: 0 }, { name: '自然', whitening: 25, smoothing: 20 }, { name: '清透', whitening: 45, smoothing: 35 }] as const).map(preset => <button type="button" key={preset.name} aria-pressed={value.whitening === preset.whitening && value.smoothing === preset.smoothing} onClick={() => onChange({ whitening: preset.whitening, smoothing: preset.smoothing })}>{preset.name}</button>)}</div>
-        {(['whitening', 'smoothing'] as const).map(field => <label className="soul-call-effect-slider" key={field}><span>{field === 'whitening' ? '美白' : '柔肤'}<output>{value[field]}</output></span><input type="range" min={0} max={100} value={value[field]} aria-label={field === 'whitening' ? '美白' : '柔肤'} onChange={event => onChange({ [field]: Number(event.target.value) })} /></label>)}
-      </div>}
-      {tab === '2D 贴纸' && <div className="soul-call-effect-grid">{FLAT_STICKERS.map(item => <button key={item.id} type="button" aria-label={`贴纸：${item.name}`} aria-pressed={value.sticker2d === item.id} onClick={() => onChange({ sticker2d: item.id })}><span className="soul-call-effect-preview" style={item.id === 'none' ? undefined : { backgroundImage: `url(/call-effects/${item.id}.svg)` }}>{item.id === 'none' ? '○' : ''}</span><span>{item.name}</span></button>)}</div>}
-      {tab === '面部化身' && <><div className="soul-call-effect-grid">{MESH_AVATARS.map(item => <button key={item.id} type="button" aria-label={`面部化身：${item.name}`} aria-pressed={value.faceEffect === item.id} onClick={() => onChange({ faceEffect: item.id })}><span className="soul-call-effect-preview">{item.icon}</span><span>{item.name}</span></button>)}</div><p className="soul-call-effect-hint">化身覆盖面部，跟随转头、眨眼和张嘴。</p></>}
-      {tab === '背景' && <div className="soul-call-effect-grid">{CALL_BACKGROUNDS.map(item => <button key={item.id} type="button" aria-label={`背景：${item.name}`} aria-pressed={value.background === item.id} onClick={() => onChange({ background: item.id })}><span className="soul-call-effect-preview is-background" style={{ backgroundColor: item.color, ...(['sunroom', 'hills', 'grid'].includes(item.id) ? { backgroundImage: `url(/call-effects/${item.id}.svg)` } : {}) }}>{item.id === 'original' ? '○' : item.id === 'cosmos' ? '✦' : ''}</span><span>{item.name}</span></button>)}</div>}
+  return <aside className="soul-call-effects beauty-panel" aria-label="画面设置">
+    <header className="beauty-panel-heading">
+      <div><span className="beauty-panel-symbol"><SkinOutlined /></span><h3>美颜设置</h3></div>
+      <button type="button" className="beauty-panel-icon" aria-label="关闭画面设置" onClick={onClose}><CloseOutlined /></button>
+    </header>
+    <div className="beauty-panel-presets" role="group" aria-label="美颜预设">
+      {presets.map(preset => {
+        const selected = value.whitening === preset.whitening && value.smoothing === preset.smoothing;
+        return <button type="button" key={preset.name} aria-pressed={selected} onClick={() => onChange({ whitening: preset.whitening, smoothing: preset.smoothing })}>
+          <span>{preset.name}</span>{selected && <CheckOutlined />}
+        </button>;
+      })}
     </div>
-    {cameraEnabled && status.phase === 'ready' && status.fps !== undefined && <p className="soul-call-effect-metrics">{status.fps} fps{status.maskAgeMs !== undefined && value.background !== 'original' ? ` · 分割延迟 ${status.maskAgeMs} ms` : ''}</p>}
-    <div className="soul-call-effect-status" role="status">
-      {!cameraEnabled ? <span>开启视频后生效</span> : status.phase === 'loading' ? <><span>{status.message}<span>{status.progress}%</span></span><progress aria-label="画面资源加载进度" max={100} value={status.progress} /></> : status.phase === 'error' ? <span className="is-error">{status.message}<button type="button" onClick={() => onChange(value)}>重试</button></span> : tracked && status.faceDetected === false ? <span>面对镜头，贴纸会跟着你</span> : <span>仅调整我的画面</span>}
+    <div className="beauty-panel-sliders">
+      {(['smoothing', 'whitening'] as const).map(field => <label className="beauty-panel-slider" key={field}>
+        <span className="beauty-panel-slider-label"><span>{field === 'whitening' ? <BulbOutlined /> : <SkinOutlined />}{field === 'whitening' ? '美白' : '柔肤'}</span><output>{value[field]}<small>%</small></output></span>
+        <input type="range" min={0} max={100} step={1} value={value[field]} aria-label={field === 'whitening' ? '美白' : '柔肤'} onChange={event => onChange({ [field]: Number(event.target.value) })} />
+      </label>)}
     </div>
-    <button type="button" className="soul-call-effect-reset" onClick={() => onChange({ ...DEFAULT_VIDEO_EFFECTS })}><ReloadOutlined /> 恢复原貌</button>
+    <footer className="beauty-panel-footer">
+      <div className="beauty-panel-status" role="status">
+        {!cameraEnabled ? '开启摄像头后生效' : status.phase === 'loading' ? <><LoadingOutlined />正在开启</> : status.phase === 'error' ? <><span>{status.message}</span><button type="button" onClick={() => onChange(value)}>重试</button></> : <><span className="beauty-panel-dot" />{value.whitening || value.smoothing ? '已应用到我的画面' : '保持自然原貌'}</>}
+      </div>
+      <button type="button" className="beauty-panel-reset" aria-label="恢复原貌" onClick={() => onChange({ ...DEFAULT_VIDEO_EFFECTS })}><ReloadOutlined /><span>重置</span></button>
+    </footer>
   </aside>;
 }
