@@ -24,6 +24,7 @@
     "test:experience": "node --test scripts/experience.test.cjs",
     "test:cloud": "node --test scripts/cloud-input.test.cjs scripts/cloud-plaza.test.cjs",
     "test:cloud:browser": "node scripts/cloud-navigation-browser.cjs",
+    "test:cloud:editor": "node scripts/cloud-editor-browser.cjs",
     "prepare:vision": "node scripts/prepare-vision-assets.cjs"
   },
   "dependencies": {

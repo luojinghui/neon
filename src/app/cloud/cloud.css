@@ -1,4 +1,5 @@
-/* Keep the editor's sticky controls below the fixed topbar while scrolling. */
+/* Keep scrolling content below the fixed topbar's stacking context. */
+.cloud-page { height: min(var(--app-content-height), var(--cloud-editor-viewport-height, var(--app-content-height))); }
 .cloud-page .content { min-width: 0; min-height: 0; max-width: 100%; isolation: isolate; }
 
 .cloud-network-trigger { width: 2rem; height: 2rem; font-size: 1rem; }
@@ -18,7 +19,7 @@
   .cloud-network-section { padding: 0.75rem; }
 }
 
-/* Long editor content must not contribute to the sticky toolbar's inline size. */
+/* Long editor content must not contribute to the page's inline size. */
 .cloud-page .content > .app-content-width {
   width: min(100%, var(--app-content-max));
   min-width: 0;
@@ -46,6 +47,8 @@
   margin-bottom: 1rem;
 }
 .cloud-editor-heading h1 { flex-shrink: 0; }
+.cloud-editor-heading-actions { display: flex; min-width: 0; align-items: center; gap: 0.5rem; }
+.cloud-page .cloud-editor-expand { width: 1.75rem; height: 2rem; flex-shrink: 0; padding: 0; color: hsl(var(--foreground-secondary)); }
 
 .cloud-query-controls { display: flex; min-width: 0; align-items: center; gap: 0.5rem; }
 .cloud-page .cloud-query-input { width: 8rem; height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--background-secondary) / 0.65); }
@@ -60,12 +63,25 @@
 .cloud-page .cloud-editor-input { border-radius: 0.75rem; background: transparent; }
 .cloud-page .cloud-editor-input,
 .cloud-page .cloud-editor-input textarea { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; }
-.cloud-page .cloud-editor-input textarea { color: hsl(var(--foreground)); }
+.cloud-page .cloud-editor-input textarea { color: hsl(var(--foreground)); transition: none; }
 .cloud-page .cloud-editor-input textarea::placeholder { color: hsl(var(--foreground-muted)); }
 .cloud-page .cloud-editor-input.ant-input-textarea-affix-wrapper .ant-input-suffix .ant-input-clear-icon { inset-block-start: 0.8rem; inset-inline-end: 0.8rem; }
 
-/* Share the panel's bottom inset so the sticky footer does not double its whitespace. */
-.cloud-editor-toolbar { position: sticky; bottom: 0; z-index: 20; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; margin-bottom: calc(-1 * var(--cloud-panel-padding)); border-top: 1px solid hsl(var(--border)); padding-block: 0.75rem var(--cloud-panel-padding); background: hsl(var(--surface)); }
+/* Text and actions occupy separate space; the panel owns the bottom inset. */
+.cloud-editor-toolbar { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.75rem; background: hsl(var(--surface)); }
+.cloud-editor-attachments { margin-top: 1rem; }
+.cloud-editor-attachments[hidden], .cloud-editor-file-list[hidden] { display: none; }
+.cloud-editor-file-summary { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.cloud-editor-file-toggle { flex-shrink: 0; min-height: 1.5rem; font-size: 0.75rem; color: hsl(var(--foreground-secondary)); }
+.cloud-editor-file-list { display: flex; flex-wrap: wrap; gap: 0.5rem; max-height: 6rem; overflow-y: auto; margin-top: 0.5rem; }
+.cloud-expanded-surface { position: relative; flex: 1; min-height: 0; width: 100%; }
+.cloud-expanded-surface > div, .cloud-expanded-root .cloud-editor-input, .cloud-expanded-root .cloud-editor-input textarea { height: 100%; min-height: 0; }
+.cloud-expanded-root .cloud-editor-input { border-radius: 0.75rem; background: transparent; }
+.cloud-expanded-root .cloud-editor-input textarea { resize: none; color: hsl(var(--foreground)); transition: none; }
+.cloud-expanded-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.cloud-expanded-footer > span { font-size: 0.75rem; color: hsl(var(--foreground-muted)); }
+.cloud-expanded-root .cloud-editor-input textarea::placeholder { color: hsl(var(--foreground-muted)); }
+.cloud-expanded-root .ant-modal-container { background: hsl(var(--surface)); }
 .cloud-page .cloud-query-button,
 .cloud-page .cloud-editor-toolbar .ant-btn { height: 2.25rem; border-color: hsl(var(--border)); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); box-shadow: none; }
 .cloud-page .cloud-share-panel .ant-btn { height: 2.25rem; box-shadow: none; }
@@ -82,7 +98,7 @@
 @media (max-width: 640px) {
   .cloud-page .cloud-panel { --cloud-panel-padding: 0.875rem; border-radius: 0.875rem; }
   .cloud-editor-heading { gap: 0.625rem; margin-bottom: 0.875rem; }
-  .cloud-page .cloud-query-input { width: clamp(4.5rem, calc(100vw - 14rem), 7rem); }
+  .cloud-page .cloud-query-input { width: clamp(4.5rem, calc(100vw - 16.5rem), 7rem); }
   .cloud-editor-toolbar { margin-top: 0.875rem; }
 }
 
