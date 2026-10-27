@@ -16,13 +16,28 @@ function load(file, dependencies = {}, globals = {}) {
 }
 
 test('JSON parsing supports objects, arrays and all valid scalar values without rewriting source', () => {
-  const { parseJson } = load('src/app/cloud/plaza/types.ts');
+  const { parseJson } = load('src/app/cloud/plaza/types.ts', { '../navigation': load('src/app/cloud/navigation.ts') });
   for (const text of ['{"x":1}', '[1,null]', '0', 'false', 'null', '"hello"', '""']) {
     const parsed = parseJson(text);
     assert.equal(parsed.valid, true);
     assert.equal(JSON.stringify(parsed.value), JSON.stringify(JSON.parse(text)));
   }
   for (const text of ['', ' ', '{broken}', 'undefined']) assert.equal(parseJson(text).valid, false);
+});
+
+test('plaza links use query parameters and accept both short and legacy message IDs', () => {
+  const { CLOUD_PATH, PLAZA_PATH, plazaSharePath, isPlazaMessageId } = load('src/app/cloud/navigation.ts');
+  assert.equal(CLOUD_PATH, '/cloud');
+  assert.equal(PLAZA_PATH, '/cloud?tab=plaza');
+  for (const id of ['Ab_cd-12', 'a'.repeat(32)]) {
+    const url = new URL(plazaSharePath(id), 'https://neon.example');
+    assert.equal(url.pathname, '/cloud');
+    assert.equal(url.searchParams.get('tab'), 'plaza');
+    assert.equal(url.searchParams.get('id'), id);
+    assert.equal(isPlazaMessageId(id), true);
+  }
+  for (const id of ['', '../bad-id', 'x'.repeat(9), 'A'.repeat(32)]) assert.equal(isPlazaMessageId(id), false);
+  assert.equal(new URL(plazaSharePath('a&tab=cloud'), 'https://neon.example').searchParams.get('id'), 'a&tab=cloud');
 });
 
 test('folder drops snapshot entries synchronously and continue across directory batches', async () => {

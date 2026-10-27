@@ -11,7 +11,7 @@ export type PlazaMessage = {
 export type PlazaPage = { items: PlazaMessage[]; nextCursor: string | null; serverNow: string };
 export type PlazaDetail = { item: PlazaMessage; serverNow: string };
 export const plazaFileUrl = (fileId: string, preview = false) => `/api/cloud/plaza/file/${encodeURIComponent(fileId)}${preview ? '?preview=1' : ''}`;
-export const plazaSharePath = (messageId: string) => `/cloud/plaza/${encodeURIComponent(messageId)}`;
+export { plazaSharePath } from '../navigation';
 export const isPreviewImage = (mime: string) => /^image\/(png|jpeg|gif|webp|avif|bmp)$/.test(mime);
 
 export function parseJson(text: string): { valid: true; value: unknown } | { valid: false } {

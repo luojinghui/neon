@@ -69,7 +69,7 @@ export default function PlazaEditor() {
   return <>
     <ContentEditorView controller={controller} text={state.text} files={state.files} isDragging={state.isDragging}
       isSending={state.isSending} uploadProgress={state.uploadProgress} showClearButton={!!state.text || state.files.length > 0}
-      showHistoryButton={state.textHistory.length > 0} description="公开可见 · 保留 48 小时" />
+      showHistoryButton={state.textHistory.length > 0} description="保留 48 小时" />
     <JsonViewerModal open={json !== null} value={json?.value} onClose={() => setJson(null)} onCopy={() => void copy(JSON.stringify(json?.value, null, 2))} />
     <Modal title="输入历史" open={historyOpen} onCancel={() => setHistoryOpen(false)} footer={null} width={640}>
       <div className="plaza-history">

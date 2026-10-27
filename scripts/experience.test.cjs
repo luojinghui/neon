@@ -37,6 +37,27 @@ test('cloud queries are anchored and case insensitive for generated and older mi
   assert.equal(query.test('abc'), false);
 });
 
+test('profile return links preserve plaza query destinations and reject unsafe or unknown parameters', () => {
+  const { sanitizeProfileReturnTo, getProfileBackLabel, createProfileHref } = load('src/app/profile/navigation.ts', {
+    '../cloud/navigation': load('src/app/cloud/navigation.ts')
+  });
+  for (const destination of ['/cloud?tab=plaza', '/cloud?tab=plaza&id=Ab_cd-12', `/cloud?tab=plaza&id=${'a'.repeat(32)}`]) {
+    assert.equal(sanitizeProfileReturnTo(destination), destination);
+    assert.equal(getProfileBackLabel(destination), '广场');
+    const profileUrl = new URL(createProfileHref('', { returnTo: destination }), 'https://neon.example');
+    assert.equal(profileUrl.searchParams.get('from'), destination);
+  }
+  for (const destination of [
+    'https://evil.example/cloud?tab=plaza', '//evil.example/cloud?tab=plaza', '/cloud?tab=other',
+    '/cloud?tab=plaza&next=//evil.example', '/cloud?tab=plaza&tab=plaza', '/cloud?tab=plaza&id=',
+    '/cloud?tab=plaza&id=../bad-id', '/cloud?tab=plaza&id=Ab_cd-12&next=/',
+    '/cloud?tab=plaza&id=Ab_cd-12#extra', `/cloud?tab=plaza&id=${'A'.repeat(32)}`
+  ]) assert.equal(sanitizeProfileReturnTo(destination), '/');
+  assert.equal(sanitizeProfileReturnTo('/cloud'), '/cloud');
+  assert.equal(getProfileBackLabel('/cloud'), '云传');
+  assert.equal(sanitizeProfileReturnTo('/soul/room_123'), '/soul/room_123');
+});
+
 test('vision downloads share in-flight bytes, report progress, reuse cache and retry failed resources', async () => {
   const filename = path.resolve(__dirname, '../src/app/doodle/visionRuntime.ts');
   const { outputText } = ts.transpileModule(readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } });

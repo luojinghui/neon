@@ -4,8 +4,11 @@ const { randomBytes } = require('node:crypto');
 const { CloudPlazaMessage } = require('../models/cloudPlaza');
 
 const PLAZA_LIFETIME_MS = 48 * 60 * 60 * 1000;
-const ID_PATTERN = /^[a-f0-9]{32}$/;
-const newId = () => randomBytes(16).toString('hex');
+const FILE_ID_PATTERN = /^[a-f0-9]{32}$/;
+const ID_PATTERN = /^(?:[A-Za-z0-9_-]{8}|[a-f0-9]{32})$/;
+const newFileId = () => randomBytes(16).toString('hex');
+const newMessageId = () => randomBytes(6).toString('base64url');
+const MESSAGE_ID_ATTEMPTS = 5;
 
 class PlazaError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -22,10 +25,11 @@ function publicMessage(record) {
 }
 
 class PlazaRepository {
-  constructor({ model = CloudPlazaMessage, uploadDirectory = process.env.CLOUD_PLAZA_UPLOAD_DIRECTORY || path.join(process.cwd(), 'upload', 'cloud-plaza'), now = Date.now } = {}) {
+  constructor({ model = CloudPlazaMessage, uploadDirectory = process.env.CLOUD_PLAZA_UPLOAD_DIRECTORY || path.join(process.cwd(), 'upload', 'cloud-plaza'), now = Date.now, messageIdGenerator = newMessageId } = {}) {
     this.model = model;
     this.uploadDirectory = uploadDirectory;
     this.now = now;
+    this.messageIdGenerator = messageIdGenerator;
     this.cleanupPromise = null;
   }
 
@@ -52,14 +56,13 @@ class PlazaRepository {
 
   async create(content, files = [], relativePaths = []) {
     if (typeof content !== 'string' || (!content.trim() && !files.length)) throw new PlazaError('请输入内容或选择文件');
-    const messageId = newId();
     const written = [];
     const records = [];
     try {
       if (files.length) await fs.mkdir(this.uploadDirectory, { recursive: true });
       for (let index = 0; index < files.length; index++) {
         const file = files[index];
-        const fileId = newId();
+        const fileId = newFileId();
         const extension = path.extname(file.name);
         const storagePath = `${fileId}${/^\.[a-zA-Z0-9]{1,12}$/.test(extension) ? extension : ''}`;
         const filePath = path.join(this.uploadDirectory, storagePath);
@@ -70,8 +73,16 @@ class PlazaRepository {
       }
       // Upload time does not reduce the card's lifetime.
       const createdAt = new Date(this.now());
-      const record = await this.model.create({ messageId, content, files: records, createdAt, expireAt: new Date(createdAt.getTime() + PLAZA_LIFETIME_MS), deletedAt: null });
-      return publicMessage(record);
+      for (let attempt = 0; attempt < MESSAGE_ID_ATTEMPTS; attempt++) {
+        const messageId = this.messageIdGenerator();
+        try {
+          const record = await this.model.create({ messageId, content, files: records, createdAt, expireAt: new Date(createdAt.getTime() + PLAZA_LIFETIME_MS), deletedAt: null });
+          return publicMessage(record);
+        } catch (error) {
+          const collision = error.code === 11000 && (error.keyPattern?.messageId || error.keyValue?.messageId !== undefined);
+          if (!collision || attempt === MESSAGE_ID_ATTEMPTS - 1) throw error;
+        }
+      }
     } catch (error) {
       await Promise.all(written.map(filePath => fs.unlink(filePath).catch(cleanupError => {
         if (cleanupError.code !== 'ENOENT') console.error('Plaza upload rollback failed:', cleanupError.code);
@@ -93,7 +104,7 @@ class PlazaRepository {
   }
 
   async getFile(fileId) {
-    if (!ID_PATTERN.test(fileId)) throw new PlazaError('附件不存在或已失效', 404);
+    if (!FILE_ID_PATTERN.test(fileId)) throw new PlazaError('附件不存在或已失效', 404);
     const record = await this.model.findOne({ 'files.fileId': fileId, ...this.activeFilter() }).lean();
     if (!record) throw new PlazaError('附件不存在或已失效', 404);
     const file = record.files.find(item => item.fileId === fileId);

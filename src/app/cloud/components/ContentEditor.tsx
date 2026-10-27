@@ -5,7 +5,7 @@
  * Last modified  : 2026-03-17 18:25:32
  */
 
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useId, useMemo, useRef, type ReactNode } from 'react';
 import { Button, Input } from 'antd';
 import {
   ClearOutlined,
@@ -99,6 +99,7 @@ type EditorProps = {
 /** Shared writing surface; each destination retains its own state and send behavior. */
 export function ContentEditorView({ controller, text, files, isDragging, isSending, uploadProgress, showClearButton, showHistoryButton, queryControls, description }: EditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const headingId = useId();
 
   const hasFiles = files.length > 0;
   const showProgress = isSending && hasFiles;
@@ -116,9 +117,9 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
   }, [hasText, trimmedText]);
 
   return (
-    <section aria-labelledby="cloud-editor-heading" className="cloud-panel cloud-editor">
+    <section aria-labelledby={headingId} className="cloud-panel cloud-editor">
       <div className="cloud-editor-heading">
-        <h1 id="cloud-editor-heading" className="text-base font-semibold text-foreground">发送内容</h1>
+        <h1 id={headingId} className="text-base font-semibold text-foreground">发送内容</h1>
         {queryControls}
         {description && <span className="plaza-editor-note">{description}</span>}
       </div>

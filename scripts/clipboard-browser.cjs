@@ -53,7 +53,7 @@ module.exports = async function testClipboard(page, url, output) {
   await page.locator('.cloud-editor img').waitFor();
   assert.equal(await page.getByRole('textbox', { name: '发送内容' }).inputValue(), '云传图文');
   await page.screenshot({ path: path.join(output, 'clipboard-cloud.png') });
-  await page.locator('.cloud-send-button').click();
+  await page.locator('[data-cloud-view="cloud"] .cloud-send-button').click();
   await page.locator('.cloud-editor img').waitFor({ state: 'hidden' });
   assert.match(cloudBody, /image\/png/); assert.match(cloudBody, /filename=/);
   await page.unroute('**/api/cloud');
