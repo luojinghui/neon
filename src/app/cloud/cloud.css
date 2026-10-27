@@ -1,4 +1,5 @@
-.cloud-page .content { min-width: 0; min-height: 0; max-width: 100%; }
+/* Keep the editor's sticky controls below the fixed topbar while scrolling. */
+.cloud-page .content { min-width: 0; min-height: 0; max-width: 100%; isolation: isolate; }
 
 .cloud-network-trigger { width: 2rem; height: 2rem; font-size: 1rem; }
 .cloud-network-body { max-height: 65dvh; overflow-y: auto; color: hsl(var(--foreground)); user-select: text; }
@@ -112,6 +113,7 @@
 .plaza-expand { display: inline-flex; min-height: 2.5rem; align-items: center; margin-top: 0.375rem; font-size: 0.8125rem; color: hsl(var(--foreground-secondary)); }
 .plaza-files { display: grid; gap: 0.5rem; margin-top: 1.125rem; }
 .plaza-file { display: flex; min-width: 0; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 0.625rem; background: hsl(var(--background-secondary) / 0.6); }
+.plaza-files > .plaza-file { width: fit-content; max-width: 100%; }
 .plaza-file-icon { flex-shrink: 0; color: hsl(var(--foreground-muted)); }
 .plaza-file-info { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 0.25rem; }
 .plaza-file-info > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; user-select: text; }
