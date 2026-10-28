@@ -11,9 +11,9 @@ function createMomentService(options = {}) {
 
   return {
     async publishMoment(input = {}) {
-      // 身份由服务端配置锁定，调用方不能通过工具参数冒用其他用户。
+      // 身份来自已验证的请求凭据，调用方不能通过工具参数冒用其他用户。
       const profile = ownerUuid ? profiles.getByUuid(ownerUuid) : null;
-      if (!profile) throw Object.assign(new Error('请先在网站创建个人资料，并配置 MCP_OWNER_UUID 后再发布心迹'), { code: 'MCP_PROFILE_REQUIRED' });
+      if (!profile) throw Object.assign(new Error('个人资料不存在，请在网站个人中心复制自己的 UUID 后重新连接'), { code: 'MCP_PROFILE_REQUIRED' });
       const media = [];
       const files = [];
       for (const file of input.files || []) {

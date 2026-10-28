@@ -1,21 +1,16 @@
 #!/usr/bin/env node
 'use strict';
 
-// 标准输出专供 MCP JSON-RPC，现有数据库连接日志也统一转到标准错误。
+// 标准输出专供 MCP JSON-RPC，本地进程只代理远程网站工具。
 console.log = console.info = console.debug = (...args) => console.error(...args);
-const path = require('node:path');
-process.chdir(path.resolve(__dirname, '..'));
 
 async function main() {
   if (Number(process.versions.node.split('.')[0]) < 20) throw new Error('Neon MCP 需要 Node.js 20 或更高版本');
   const { serveStdio, StdioServerTransport } = require('@modelcontextprotocol/server/stdio');
-  const { createNeonMcpServer, MAX_REQUEST_BYTES } = require('../src/server/mcp/server');
-  const { readMcpConfig, createServices } = require('../src/server/mcp/settings');
-  const { disconnectDB } = require('../src/server/models');
-  const config = readMcpConfig(process.env, { stdio: true });
-  const services = createServices(config);
+  const { readRemoteConfig, createRemoteGateway, MAX_REQUEST_BYTES } = require('../src/server/mcp/remote');
+  const gateway = await createRemoteGateway(readRemoteConfig());
   const transport = new StdioServerTransport(process.stdin, process.stdout, { maxBufferSize: MAX_REQUEST_BYTES });
-  const handle = serveStdio(() => createNeonMcpServer(services), {
+  const handle = serveStdio(() => gateway.createServer(), {
     transport,
     onerror: error => console.error('MCP 标准输入输出连接异常:', error.name)
   });
@@ -23,7 +18,7 @@ async function main() {
   const stop = async () => {
     if (stopping) return;
     stopping = true;
-    try { await handle.close(); } finally { await disconnectDB(); }
+    try { await handle.close(); } finally { await gateway.close(); }
   };
   const shutdown = () => stop().catch(() => {
     console.error('Neon MCP 连接关闭时清理失败');
@@ -35,7 +30,8 @@ async function main() {
   for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => { void shutdown(); });
 }
 
-main().catch(() => {
-  console.error('Neon MCP 启动失败：请检查 Node.js 版本、依赖和 MCP 环境变量配置');
+main().catch((error) => {
+  const message = /^(NEON_UUID_INVALID|NEON_URL_INVALID|NEON_REMOTE_UNAVAILABLE)$/.test(error?.code || '') ? error.message : 'Neon MCP 启动失败：需要 Node.js 20 或更新版本，请检查依赖与 NEON_UUID 配置';
+  console.error(message);
   process.exitCode = 1;
 });

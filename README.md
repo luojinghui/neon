@@ -35,4 +35,4 @@ $ pnpm build
 
 ## MCP
 
-- 云传发布与密码查询、广场发布、心迹图文附件发布及客户端配置见 [MCP 接入](docs/mcp.md)。
+- 用户只需个人中心 UUID，配置 `https://luojh.com/mcp` 即可使用四个工具，见 [MCP 集成指南](public/mcp-integration.md)；网站部署说明见 [MCP 接入与部署](docs/mcp.md)。

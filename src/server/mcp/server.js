@@ -79,7 +79,7 @@ function createNeonMcpServer({ cloudService, momentService }) {
     try { return successResult(await cloudService.readCloud(input)); } catch (error) { return errorResult(error); }
   });
   registerPublish('publish_plaza', '发布广场', '向公开广场发布文字、图片和附件，返回分享链接；所有访客可见，有效期 48 小时。', 100000, plazaOutput, input => cloudService.publishPlaza(input));
-  registerPublish('publish_moment', '发布心迹', '使用服务端配置的个人资料发布公开心迹，支持文字、图片、视频及普通附件。正文最多 2000 字，图片沿用网站媒体限制。返回帖子链接。', 2000, momentOutput, input => momentService.publishMoment(input));
+  registerPublish('publish_moment', '发布心迹', '使用当前请求 UUID 对应的个人资料发布公开心迹，支持文字、图片、视频及普通附件。正文最多 2000 字，图片沿用网站媒体限制。返回帖子链接。', 2000, momentOutput, input => momentService.publishMoment(input));
   return server;
 }
 

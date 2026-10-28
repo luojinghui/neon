@@ -30,6 +30,9 @@ importers:
       '@mediapipe/tasks-vision':
         specifier: 0.10.35
         version: 0.10.35
+      '@modelcontextprotocol/client':
+        specifier: 2.4.0
+        version: 2.4.0
       '@modelcontextprotocol/node':
         specifier: 2.1.2
         version: 2.1.2(@modelcontextprotocol/server@2.4.0)
@@ -91,9 +94,6 @@ importers:
         specifier: ^4.5.2
         version: 4.5.5(@types/react@19.0.8)(react@19.0.0)
     devDependencies:
-      '@modelcontextprotocol/client':
-        specifier: ^2.4.0
-        version: 2.4.0
       '@types/node':
         specifier: ^20
         version: 20.17.9
