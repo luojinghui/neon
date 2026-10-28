@@ -151,13 +151,14 @@ async function waitFor(check, label, timeout = 30000) {
     assert.equal(await host.evaluate(() => window.__peers.length), 1, 'swapping tiles preserves the peer connection');
     assert.equal(await host.evaluate(() => window.__captures.length), 2, 'swapping tiles never reacquires devices');
     await host.getByRole('button', { name: '画面设置', exact: true }).click();
-    assert.equal(await host.getByRole('tab').count(), 0, 'beauty settings contain no removed effect tabs');
-    await host.getByRole('button', { name: '自然', exact: true }).click();
+    assert.deepEqual(await host.getByRole('tab').allTextContents(), ['美颜', '背景', '贴纸', '头像']);
+    await host.getByRole('switch', { name: '美颜', exact: true }).click();
+    await host.getByRole('slider', { name: '增量', exact: true }).fill('40');
     await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && !window.__tracks.includes(sender.track))), 'beauty output sent to peers');
     assert.equal(await host.evaluate(() => window.__captures.length), 2, 'beauty never opens another camera');
     await host.screenshot({ path: path.join(output, 'beauty-settings-desktop.png') });
     await guest.screenshot({ path: path.join(output, 'beauty-received.png') });
-    await host.getByRole('button', { name: '原貌', exact: true }).click();
+    await host.getByRole('button', { name: '重置', exact: true }).click();
     await waitFor(() => host.evaluate(() => window.__peers[0].getSenders().some(sender => sender.track?.kind === 'video' && window.__tracks.includes(sender.track))), 'original camera track restored');
     await host.getByRole('button', { name: '关闭画面设置', exact: true }).click();
     console.log('PASS beauty outgoing track, raw reset and no removed effects UI');
@@ -196,7 +197,7 @@ async function waitFor(check, label, timeout = 30000) {
     await mobile.screenshot({ path: path.join(output, 'mobile-group.png') });
     const beforeSettings = await mobile.evaluate(() => window.__captures.length);
     await mobile.getByRole('button', { name: '画面设置', exact: true }).click();
-    await mobile.getByRole('button', { name: '自然', exact: true }).click();
+    await mobile.getByRole('switch', { name: '美颜', exact: true }).click();
     assert.equal(await mobile.evaluate(() => window.__captures.length), beforeSettings, 'choosing effects with camera off never acquires it');
     assert.equal(await mobile.getByRole('progressbar').count(), 0, 'no rendering initialization with camera off');
     await mobile.screenshot({ path: path.join(output, 'mobile-settings.png') });
@@ -222,7 +223,7 @@ async function waitFor(check, label, timeout = 30000) {
     assert.equal(await mobile.locator('.soul-call-effects').count(), 0, 'participants and beauty never stack');
     await mobile.getByRole('button', { name: '关闭参会者列表', exact: true }).click();
     await mobile.getByRole('button', { name: '画面设置', exact: true }).click();
-    await mobile.getByRole('button', { name: /恢复原貌/ }).click();
+    await mobile.getByRole('button', { name: '重置', exact: true }).click();
     await mobile.getByRole('button', { name: '关闭画面设置', exact: true }).click();
     await mobile.getByRole('button', { name: '开启摄像头', exact: true }).click();
     await waitFor(() => mobile.evaluate(() => window.__tracks.some((track) => track.kind === 'video' && track.readyState === 'live')), 'mobile camera enabled');

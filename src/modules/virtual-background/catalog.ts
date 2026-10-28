@@ -25,7 +25,7 @@ export const BACKGROUND_TILES: EffectTile[] = [
   { id: 'color', label: '纯色', selection: { type: 'COLOR', id: 'color', color: '#f08080' } }
 ];
 
-const faces = ['04', '05', '06', '07', '01', '02', '03', '08'];
+const faces = ['04', '05', '06', '07', '01', '08'];
 
 export const STICKER_TILES: EffectTile[] = [
   none(),
