@@ -19,15 +19,26 @@ class Stream {
   removeTrack(track) { this.tracks = this.tracks.filter((entry) => entry !== track); }
 }
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
-const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
-function load(name, dependencies, globals) {
-  const filename = path.join(__dirname, '../src/modules/webrtc', `${name}.ts`);
-  const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } });
+const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
+function loadFile(filename, dependencies = {}, globals = {}) {
+  const resolved = path.resolve(filename);
+  const { outputText } = ts.transpileModule(fs.readFileSync(resolved, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } });
   const module = { exports: {} };
-  vm.runInNewContext(outputText, { module, exports: module.exports, require: (id) => id === '../video-effects/types' ? effectTypes : dependencies[id], Error, setTimeout, clearTimeout, console, crypto: webcrypto, MediaStream: Stream, ...globals }, { filename });
+  const localRequire = (id) => {
+    if (dependencies && Object.prototype.hasOwnProperty.call(dependencies, id)) return dependencies[id];
+    if (id.startsWith('.')) {
+      const base = path.resolve(path.dirname(resolved), id);
+      return loadFile(fs.existsSync(`${base}.ts`) ? `${base}.ts` : base, {}, globals);
+    }
+    return require(id);
+  };
+  vm.runInNewContext(outputText, { module, exports: module.exports, require: localRequire, Error, setTimeout, clearTimeout, console, crypto: webcrypto, MediaStream: Stream, ...globals }, { filename: resolved });
   return module.exports;
 }
-const effectTypes = load('../video-effects/types', {});
+function load(name, dependencies, globals) {
+  return loadFile(path.join(__dirname, '../src/modules/webrtc', `${name}.ts`), dependencies, globals);
+}
+const effectTypes = load('../virtual-background/settings', {});
 
 function fixture(acquire, acquireDisplay, storage) {
   const captures = [], tracks = [], messages = [], peers = [];
@@ -324,13 +335,14 @@ test('perfect negotiation buffers ICE, resolves colliding offers and closes all 
   impolite.close(); assert.equal(errors.length, 0);
 });
 
-test('beauty settings discard removed effects and clamp levels; defaults require no processor', () => {
-  const { normalizeVideoEffects, effectsEnabled, DEFAULT_VIDEO_EFFECTS } = effectTypes;
-  assert.equal(effectsEnabled(DEFAULT_VIDEO_EFFECTS), false);
-  const value = normalizeVideoEffects({ whitening: Infinity, smoothing: 300, sticker2d: '../../secret', color: 'red', background: 'https://elsewhere', accessory: 'unknown' });
-  assert.equal(value.whitening, 0); assert.equal(value.smoothing, 100);
-  assert.equal(value.sticker2d, undefined); assert.equal(value.background, undefined); assert.equal(value.accessory, undefined);
-  assert.deepEqual(Object.keys(value).sort(), ['smoothing', 'whitening']);
+test('call video settings discard removed effects and clamp levels; defaults require no processor', () => {
+  const { normalizeCallVideo, callVideoEnabled, DEFAULT_CALL_VIDEO } = effectTypes;
+  assert.equal(callVideoEnabled(DEFAULT_CALL_VIDEO), false);
+  const value = normalizeCallVideo({ whitening: Infinity, brightness: 300, smoothing: 40, sticker2d: '../../secret', background: 'https://elsewhere', avatar: { type: 'HEAD_VIRTUAL', url: 'https://elsewhere/face.png' }, sticker: { type: 'FACE_STICKY', id: 'ok', url: '/virtual/assets/head-01.png' } });
+  assert.equal(value.whitening, 0); assert.equal(value.brightness, 100);
+  assert.equal(value.smoothing, undefined); assert.equal(value.background.type, 'NONE'); assert.equal(value.avatar.type, 'NONE');
+  assert.equal(value.sticker.url, '/virtual/assets/head-01.png');
+  assert.deepEqual(Object.keys(value).sort(), ['avatar', 'background', 'brightness', 'sticker', 'whitening']);
 });
 
 test('effects never open a camera, replace only the outgoing video, and reset preserves raw capture', async () => {
@@ -341,18 +353,22 @@ test('effects never open a camera, replace only the outgoing video, and reset pr
     processors.push(processor); return processor;
   });
   media.onVideoOutput = track => outputs.push(track);
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, smoothing: 35 });
+  media.setEffects({ ...effectTypes.DEFAULT_CALL_VIDEO, whitening: 35 });
   await flush(); assert.equal(f.captures.length, 0); assert.equal(processors.length, 0);
   await media.enable('audio'); await media.enable('video'); await flush();
   assert.equal(processors.length, 1);
   assert.equal(media.stream.getVideoTracks()[0], processors[0].track);
   assert.equal(f.tracks[1].readyState, 'live', 'raw camera remains owned while processing');
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, whitening: 25 }); await flush();
+  media.setEffects({ ...effectTypes.DEFAULT_CALL_VIDEO, whitening: 25 }); await flush();
   assert.equal(processors.length, 1, 'settings changes reuse the processor');
   assert.equal(processors[0].settings.whitening, 25);
-  media.setEffects(effectTypes.DEFAULT_VIDEO_EFFECTS); await flush();
+  media.setEffects(effectTypes.DEFAULT_CALL_VIDEO); await flush();
   assert.equal(processors[0].disposed, true); assert.equal(media.stream.getVideoTracks()[0], f.tracks[1]);
   assert.equal(f.captures.length, 2, 'effects never call getUserMedia');
+  const videoCapture = f.captures.find((item) => item.video);
+  assert.equal(videoCapture.video.width.ideal, 1280);
+  assert.equal(videoCapture.video.height.ideal, 720);
+  assert.equal(videoCapture.video.frameRate.max, 30);
   media.dispose(); assert.ok(f.tracks.every(track => track.readyState === 'ended'));
 });
 
@@ -360,7 +376,7 @@ test('closing the camera while beauty rendering starts releases raw and late pro
   const f = fixture(); const pending = deferred(), processed = new Track('video'); let disposed = 0;
   const media = new f.media.LocalMedia(async () => ({ configure() {}, start: () => pending.promise, dispose() { disposed++; processed.stop(); } }));
   await media.enable('audio'); await media.enable('video');
-  media.setEffects({ ...effectTypes.DEFAULT_VIDEO_EFFECTS, whitening: 30 }); await flush();
+  media.setEffects({ ...effectTypes.DEFAULT_CALL_VIDEO, whitening: 30 }); await flush();
   media.disable('video'); pending.resolve(processed); await flush();
   assert.ok(disposed > 0); assert.equal(processed.readyState, 'ended'); assert.equal(f.tracks[1].readyState, 'ended');
   assert.equal(f.tracks[0].readyState, 'live'); assert.equal(media.stream.getVideoTracks().length, 0);
@@ -376,10 +392,55 @@ test('initialization/runtime failures restore raw video and allow retry without 
   });
   media.onEffectsStatus = status => statuses.push(status);
   await media.enable('video');
-  const settings = { ...effectTypes.DEFAULT_VIDEO_EFFECTS, whitening: 20 };
+  const settings = { ...effectTypes.DEFAULT_CALL_VIDEO, whitening: 20 };
   media.setEffects(settings); await flush();
   assert.equal(statuses.at(-1).phase, 'error'); assert.equal(media.stream.getVideoTracks()[0], f.tracks[0]);
   media.setEffects(settings); await flush(); assert.notEqual(media.stream.getVideoTracks()[0], f.tracks[0]);
   fail(new Error('GPU context lost')); assert.equal(media.stream.getVideoTracks()[0], f.tracks[0]);
   assert.equal(f.captures.length, 1); media.dispose();
+});
+
+test('one video sender simulcasts 180 and 360 from the 720p capture', async () => {
+  const simulcast = loadFile(path.join(__dirname, '../src/modules/media-track/simulcast.ts'));
+  assert.deepEqual(JSON.parse(JSON.stringify(simulcast.peopleSimulcastEncodings(1280, 720).map((item) => item.scaleResolutionDownBy))), [4, 2, 1]);
+  assert.deepEqual(JSON.parse(JSON.stringify(simulcast.peopleSimulcastEncodings(1920, 1080).map((item) => [item.rid, item.scaleResolutionDownBy, item.maxFramerate]))), [['l', 6, 15], ['m', 3, 30], ['h', 1.5, 30]]);
+  assert.equal(simulcast.scaleForTarget(640, 480, 720), 1);
+  const pipelineModule = loadFile(path.join(__dirname, '../src/modules/media-track/pipeline.ts'));
+  const order = [];
+  const piped = await new pipelineModule.TrackPipeline()
+    .connect({ async process(input) { order.push('first'); return { ...input, width: input.width / 2 }; } })
+    .connect({ async process(input) { order.push(input.width); return input; } })
+    .run({ track: {}, width: 1280, height: 720 });
+  assert.deepEqual(order, ['first', 640]);
+  assert.equal(piped.height, 720);
+  const inits = [];
+  let videoSender;
+  class Connection {
+    close() {}
+    restartIce() {}
+    addTransceiver(_track, init) {
+      const encodings = (init?.sendEncodings || []).map((item) => ({ ...item }));
+      const sender = { getParameters: () => ({ encodings }), async setParameters(params) { sender.applied = JSON.parse(JSON.stringify(params.encodings.map((item) => item.scaleResolutionDownBy))); }, async replaceTrack() {} };
+      if (init?.sendEncodings) videoSender = sender;
+      inits.push(init);
+      return { sender };
+    }
+  }
+  const { CallPeer } = load('peer', {}, { RTCPeerConnection: Connection });
+  const peer = new CallPeer({ configuration: {}, localStream: new Stream(), polite: true, send: async () => {}, onChange() {}, onError() {} });
+  try {
+    assert.equal(inits.length, 3);
+    assert.equal(inits[0].sendEncodings, undefined);
+    assert.deepEqual(JSON.parse(JSON.stringify(inits[1].sendEncodings.map((item) => item.scaleResolutionDownBy))), [4, 2, 1]);
+    assert.deepEqual(JSON.parse(JSON.stringify(inits[1].sendEncodings.map((item) => item.rid))), ['l', 'm', 'h']);
+    assert.equal(inits[2].sendEncodings, undefined);
+    await peer.updateVideoEncodings(1920, 1080);
+    assert.deepEqual(JSON.parse(JSON.stringify(videoSender.applied)), [6, 3, 1.5]);
+  } finally { peer.close(); }
+  const extension = fs.readFileSync(path.join(__dirname, '../src/modules/virtual-background/plugin/core/extension.ts'), 'utf8');
+  assert.equal(extension.includes('XYDetector'), false);
+  assert.match(extension, /isSupportExtension\(\) \{\s*return true;/);
+  for (const file of ['xylink_segmenter.tflite', 'xylink_face.tflite', 'xylink_face_landmarker.task', 'xylink_vision.js', 'xylink_vision.wasm']) {
+    assert.equal(fs.existsSync(path.join(__dirname, '../public/virtual/model/v1.0.1', file)), true, file);
+  }
 });

@@ -1,11 +1,12 @@
 import { assertMediaSupport, LocalMedia, mediaError } from './media';
 import { CallPeer } from './peer';
-import { DEFAULT_VIDEO_EFFECTS, normalizeVideoEffects, type VideoEffectsSettings } from '../video-effects/types';
+import { DEFAULT_CALL_VIDEO, NONE_EFFECT, normalizeCallVideo, type CallVideoSettings } from '../virtual-background/settings';
 import type { CallMode, CallSignal, CallSnapshot, CallTransport, CallView, JoinCallResult } from './types';
 import { applyBoardAction, type BoardItem, type Presentation, type ShareSnapshot } from './sharing';
 import { preferredCallDevices, rememberCallDevice } from './devicePreferences';
 
-const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null, effects: { ...DEFAULT_VIDEO_EFFECTS }, effectsStatus: { phase: 'off', progress: 0, message: '' }, presentation: null, screenStream: null, shareBusy: false, shareProgress: 0, shareCapabilities: { powerPoint: false, maxFileSize: 20 * 1024 * 1024 } });
+const initialEffects = (): CallVideoSettings => ({ ...DEFAULT_CALL_VIDEO, background: { ...NONE_EFFECT }, sticker: { ...NONE_EFFECT }, avatar: { ...NONE_EFFECT } });
+const initialView = (): CallView => ({ phase: 'idle', call: null, selfId: '', localStream: null, microphoneEnabled: false, cameraEnabled: false, mediaBusy: false, peers: {}, error: '', joinedAt: null, effects: initialEffects(), effectsStatus: { phase: 'off', progress: 0, message: '' }, presentation: null, screenStream: null, shareBusy: false, shareProgress: 0, shareCapabilities: { powerPoint: false, maxFileSize: 20 * 1024 * 1024 } });
 
 export class CallSession {
   private view = initialView();
@@ -93,10 +94,10 @@ export class CallSession {
         this.publishMedia();
         this.update({ error: '摄像头已停止' });
       };
-      media.onVideoOutput = track => {
+      media.onVideoOutput = (track, size) => {
         if (operation !== this.operation || this.view.phase !== 'active') return;
         this.update({ localStream: new MediaStream(media.stream.getTracks()) });
-        void Promise.all([...this.peers.values()].map(peer => peer.replace('video', track))).catch(error => {
+        void this.replaceVideo(track, size).catch(error => {
           if (operation === this.operation) this.update({ error: mediaError(error) });
         });
       };
@@ -163,11 +164,21 @@ export class CallSession {
     });
   }
 
-  setEffects(settings: Partial<VideoEffectsSettings>): void {
+  setEffects(settings: Partial<CallVideoSettings>): void {
     if (this.view.phase !== 'active' || this.disposed) return;
-    const effects = normalizeVideoEffects({ ...this.view.effects, ...settings });
+    const merged = { ...this.view.effects, ...settings };
+    if (settings.sticker && settings.sticker.type !== 'NONE') merged.avatar = { ...NONE_EFFECT };
+    if (settings.avatar && settings.avatar.type !== 'NONE') merged.sticker = { ...NONE_EFFECT };
+    const effects = normalizeCallVideo(merged);
     this.update({ effects });
     this.media?.setEffects(effects);
+  }
+
+  private async replaceVideo(track: MediaStreamTrack | null, size = this.media?.videoSize()): Promise<void> {
+    await Promise.all([...this.peers.values()].map(async (peer) => {
+      await peer.replace('video', track);
+      if (track && size) await peer.updateVideoEncodings?.(size.width, size.height);
+    }));
   }
 
   private publishMedia(): void {
@@ -193,7 +204,8 @@ export class CallSession {
         media.disable(kind);
         if (!switchCamera) rememberCallDevice(kind, false);
         this.publishMedia();
-        await Promise.all([...this.peers.values()].map((peer) => peer.replace(kind, null)));
+        if (kind === 'video') await this.replaceVideo(null);
+        else await Promise.all([...this.peers.values()].map((peer) => peer.replace(kind, null)));
       }
       if (operation !== this.operation || this.disposed) return;
       if (!enabled || switchCamera) {
@@ -201,7 +213,8 @@ export class CallSession {
         await media.enable(kind, this.facingMode);
         if (operation !== this.operation || this.disposed) return;
         const track = media.stream.getTracks().find((entry) => entry.kind === kind) || null;
-        await Promise.all([...this.peers.values()].map((peer) => peer.replace(kind, track)));
+        if (kind === 'video') await this.replaceVideo(track, media.videoSize());
+        else await Promise.all([...this.peers.values()].map((peer) => peer.replace(kind, track)));
         if (operation !== this.operation || this.disposed) return;
         if (!switchCamera && track?.readyState === 'live') rememberCallDevice(kind, true);
         this.watchTracks();

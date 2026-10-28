@@ -120,7 +120,7 @@
   .is-full .soul-call-workspace { gap: 10px; }
   .is-full .soul-call-workspace.has-side-panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
   .is-full :is(.soul-call-effects, .soul-call-participants) { max-height: min(38dvh, 300px); padding: 14px; border-radius: 16px; }
-  .is-full .soul-call-effects { max-height: min(44dvh, 300px); }
+  .is-full .soul-call-effects { max-height: min(62dvh, 520px); }
   .is-full .soul-call-stage { gap: 8px; }
   .is-full .soul-call-tile { border-radius: 16px; }
   .is-full .soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { top: 10px; right: 10px; width: clamp(94px, 28%, 156px); height: clamp(96px, 24%, 160px); border-radius: 12px; }

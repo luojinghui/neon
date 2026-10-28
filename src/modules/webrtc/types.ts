@@ -59,7 +59,7 @@ export interface CallView {
   peers: Record<string, PeerView>;
   error: string;
   joinedAt: number | null;
-  effects: VideoEffectsSettings;
+  effects: CallVideoSettings;
   effectsStatus: VideoEffectsStatus;
   presentation: Presentation | null;
   screenStream: MediaStream | null;
@@ -68,4 +68,5 @@ export interface CallView {
   shareCapabilities: { powerPoint: boolean; maxFileSize: number };
 }
 import type { Presentation, ShareSnapshot } from './sharing';
-import type { VideoEffectsSettings, VideoEffectsStatus } from '../video-effects/types';
+import type { CallVideoSettings } from '../virtual-background/settings';
+import type { VideoEffectsStatus } from '../video-effects/types';

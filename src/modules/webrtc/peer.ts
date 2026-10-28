@@ -1,3 +1,4 @@
+import { peopleSimulcastEncodings, trackFrameSize } from '../media-track/simulcast';
 import type { CallSignal, PeerView } from './types';
 
 interface PeerOptions {
@@ -26,6 +27,7 @@ export class CallPeer {
   private signals: Promise<void> = Promise.resolve();
   private watchdog: ReturnType<typeof setTimeout> | undefined;
   private retries = 0;
+  private videoSize = { width: 1280, height: 720 };
 
   constructor(private readonly options: PeerOptions) {
     const pc = this.connection = new RTCPeerConnection(options.configuration);
@@ -59,7 +61,9 @@ export class CallPeer {
       else if (pc.connectionState === 'disconnected') this.armWatchdog(6000);
     };
     const audio = pc.addTransceiver(options.localStream.getAudioTracks()[0] || 'audio', { direction: 'sendrecv', streams: [options.localStream] }).sender;
-    const video = pc.addTransceiver(options.localStream.getVideoTracks()[0] || 'video', { direction: 'sendrecv', streams: [options.localStream] }).sender;
+    const videoTrack = options.localStream.getVideoTracks()[0];
+    this.videoSize = trackFrameSize(videoTrack);
+    const video = this.openVideoSender(pc, videoTrack);
     const screen = pc.addTransceiver(options.screenStream?.getVideoTracks()[0] || 'video', { direction: 'sendrecv', streams: [this.outgoingScreenStream] }).sender;
     this.senders = { audio, video, screen };
     this.armWatchdog(25000);
@@ -123,6 +127,35 @@ export class CallPeer {
 
   async replace(kind: 'audio' | 'video' | 'screen', track: MediaStreamTrack | null): Promise<void> {
     if (!this.closed) await this.senders[kind].replaceTrack(track);
+  }
+
+  /** 按当前画面尺寸刷新同一 sender 上 180/360/720 三层的缩放，不新增发送器。 */
+  async updateVideoEncodings(width: number, height: number): Promise<void> {
+    if (this.closed || !(width > 0) || !(height > 0)) return;
+    this.videoSize = { width, height };
+    const sender = this.senders.video;
+    const parameters = sender.getParameters?.();
+    const encodings = parameters?.encodings;
+    if (!parameters || !encodings?.length) return;
+    const next = peopleSimulcastEncodings(width, height);
+    const byRid = new Map(next.map((item) => [item.rid, item]));
+    encodings.forEach((encoding, index) => {
+      const layer = (encoding.rid && byRid.get(encoding.rid)) || (encodings.length === next.length ? next[index] : undefined);
+      if (!layer) return;
+      encoding.scaleResolutionDownBy = layer.scaleResolutionDownBy;
+      encoding.maxFramerate = layer.maxFramerate;
+    });
+    try { await sender.setParameters(parameters); } catch { /* 协商完成后浏览器可能暂时拒绝参数，保留已建立的联播层。 */ }
+  }
+
+  private openVideoSender(connection: RTCPeerConnection, track?: MediaStreamTrack): RTCRtpSender {
+    const streams = [this.options.localStream];
+    const sendEncodings = peopleSimulcastEncodings(this.videoSize.width, this.videoSize.height);
+    try {
+      return connection.addTransceiver(track || 'video', { direction: 'sendrecv', streams, sendEncodings }).sender;
+    } catch {
+      return connection.addTransceiver(track || 'video', { direction: 'sendrecv', streams }).sender;
+    }
   }
 
   private publish(): void {

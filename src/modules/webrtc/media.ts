@@ -1,4 +1,9 @@
-import { DEFAULT_VIDEO_EFFECTS, effectsEnabled, type VideoEffectsSettings, type VideoEffectsStatus, type VideoProcessor, type VideoProcessorFactory } from '../video-effects/types';
+import { CameraTrack } from '../media-track/camera-track';
+import type { TrackProcessor } from '../media-track/pipeline';
+import { trackFrameSize } from '../media-track/simulcast';
+import { callVideoEnabled, DEFAULT_CALL_VIDEO, type CallVideoProcessor, type CallVideoProcessorFactory, type CallVideoSettings } from '../virtual-background/settings';
+
+export type { CallVideoSettings };
 
 export function assertMediaSupport(): void {
   if (!window.isSecureContext) throw new Error('请使用 HTTPS 打开星球后通话');
@@ -17,48 +22,70 @@ export function isMobileDevice(): boolean {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
 }
 
-/** Each device is acquired only from a user action. Closing it releases hardware. */
+/** 每次只在用户操作后打开设备，关闭时释放硬件。视频采集交给 CameraTrack，效果通过处理链接入。 */
 export class LocalMedia {
   readonly stream = new MediaStream();
   private generation = 0;
   private disposed = false;
+  private cameraTrack: CameraTrack | null = null;
   private camera: MediaStreamTrack | null = null;
-  private processor: VideoProcessor | null = null;
+  private processor: CallVideoProcessor | null = null;
   private processing = false;
   private effectGeneration = 0;
-  private settings = { ...DEFAULT_VIDEO_EFFECTS };
-  onVideoOutput?: (track: MediaStreamTrack) => void;
+  private settings: CallVideoSettings = { ...DEFAULT_CALL_VIDEO, background: { ...DEFAULT_CALL_VIDEO.background }, sticker: { ...DEFAULT_CALL_VIDEO.sticker }, avatar: { ...DEFAULT_CALL_VIDEO.avatar } };
+  onVideoOutput?: (track: MediaStreamTrack, size: { width: number; height: number }) => void;
   onVideoEnded?: () => void;
-  onEffectsStatus?: (status: VideoEffectsStatus) => void;
+  onEffectsStatus?: (status: { phase: 'off' | 'loading' | 'ready' | 'error'; progress: number; message: string }) => void;
 
-  constructor(private createProcessor: VideoProcessorFactory = async (source, onStatus, onFailure) => {
-    const { LiveVideoEffects } = await import('../video-effects/processor');
-    return new LiveVideoEffects(source, onStatus, onFailure);
+  constructor(private createProcessor: CallVideoProcessorFactory = async (source, onStatus, onFailure) => {
+    const { createVirtualCallProcessor } = await import('../virtual-background/call-processor');
+    return createVirtualCallProcessor(source, onStatus, onFailure);
   }) {}
+
+  videoSize(): { width: number; height: number } {
+    return trackFrameSize(this.camera);
+  }
 
   async enable(kind: 'audio' | 'video', facingMode: 'user' | 'environment' = 'user'): Promise<void> {
     if (this.disposed) return;
     const generation = this.generation;
-    const acquired = await navigator.mediaDevices.getUserMedia(kind === 'audio'
-      ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }
-      : { audio: false, video: { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30, max: 30 } } });
-    if (this.disposed || generation !== this.generation) {
-      acquired.getTracks().forEach((track) => track.stop());
+    if (kind === 'audio') {
+      const acquired = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+      if (this.disposed || generation !== this.generation) {
+        acquired.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      this.disable('audio');
+      acquired.getTracks().forEach((track) => this.stream.addTrack(track));
       return;
     }
-    this.disable(kind);
-    acquired.getTracks().forEach((track) => this.stream.addTrack(track));
-    if (kind === 'video') {
-      this.camera = acquired.getVideoTracks()[0] || null;
-      if (this.camera) this.camera.onended = () => { this.disable('video'); this.onVideoEnded?.(); };
-      void this.applyEffects();
+    const cameraTrack = new CameraTrack();
+    let acquired: MediaStreamTrack;
+    try {
+      acquired = await cameraTrack.capture(facingMode);
+    } catch (error) {
+      cameraTrack.stop();
+      throw error;
     }
+    if (this.disposed || generation !== this.generation) {
+      cameraTrack.stop();
+      return;
+    }
+    this.disable('video');
+    this.cameraTrack = cameraTrack;
+    this.camera = acquired;
+    acquired.onended = () => { this.disable('video'); this.onVideoEnded?.(); };
+    this.stream.addTrack(acquired);
+    void this.applyEffects();
   }
 
   disable(kind: 'audio' | 'video'): void {
     if (kind === 'video') {
       this.stopProcessor();
-      if (this.camera) { this.camera.onended = null; this.camera.stop(); this.camera = null; }
+      if (this.camera) this.camera.onended = null;
+      this.cameraTrack?.stop();
+      this.cameraTrack = null;
+      this.camera = null;
       this.onEffectsStatus?.({ phase: 'off', progress: 0, message: '' });
     }
     for (const track of this.stream.getTracks().filter((track) => track.kind === kind)) {
@@ -67,27 +94,32 @@ export class LocalMedia {
     }
   }
 
-  setEffects(settings: VideoEffectsSettings): void {
-    this.settings = { ...settings };
+  setEffects(settings: CallVideoSettings): void {
+    this.settings = settings;
     void this.applyEffects();
   }
 
   private stopProcessor(): void {
     this.effectGeneration += 1;
-    this.processor?.dispose(); this.processor = null; this.processing = false;
+    this.processor?.dispose();
+    this.processor = null;
+    this.processing = false;
+    this.cameraTrack?.pipeline.reset();
   }
 
-  private outputVideo(track: MediaStreamTrack): void {
+  private outputVideo(track: MediaStreamTrack, size = trackFrameSize(this.camera)): void {
     for (const previous of this.stream.getVideoTracks()) this.stream.removeTrack(previous);
     this.stream.addTrack(track);
-    this.onVideoOutput?.(track);
+    this.onVideoOutput?.(track, size);
   }
 
   private async applyEffects(): Promise<void> {
     const camera = this.camera;
-    if (this.disposed || !camera || camera.readyState !== 'live') return;
-    if (!effectsEnabled(this.settings)) {
-      this.stopProcessor(); this.outputVideo(camera);
+    const cameraTrack = this.cameraTrack;
+    if (this.disposed || !camera || !cameraTrack || camera.readyState !== 'live') return;
+    if (!callVideoEnabled(this.settings)) {
+      this.stopProcessor();
+      this.outputVideo(camera);
       this.onEffectsStatus?.({ phase: 'off', progress: 0, message: '' });
       return;
     }
@@ -98,18 +130,25 @@ export class LocalMedia {
     const current = () => !this.disposed && generation === this.effectGeneration && this.camera === camera && camera.readyState === 'live';
     const failed = () => {
       if (!current()) return;
-      this.stopProcessor(); this.outputVideo(camera);
+      this.stopProcessor();
+      this.outputVideo(camera);
       this.onEffectsStatus?.({ phase: 'error', progress: 0, message: '效果暂不可用，已恢复原画' });
     };
     this.onEffectsStatus?.({ phase: 'loading', progress: 0, message: '准备效果' });
     try {
       const processor = await this.createProcessor(camera, status => { if (current()) this.onEffectsStatus?.(status); }, failed);
       if (!current()) { processor.dispose(); return; }
-      this.processor = processor; processor.configure(this.settings);
-      const track = await processor.start();
+      this.processor = processor;
+      const requested = this.settings;
+      processor.configure(requested);
+      const binding: TrackProcessor = { process: async (input) => ({ track: await processor.start(), width: input.width, height: input.height }) };
+      cameraTrack.pipeline.reset();
+      cameraTrack.connect(binding);
+      const output = await cameraTrack.output();
       if (!current()) { processor.dispose(); return; }
+      if (this.settings !== requested) processor.configure(this.settings);
       this.processing = false;
-      this.outputVideo(track);
+      this.outputVideo(output.track, { width: output.width, height: output.height });
     } catch { failed(); }
   }
 
