@@ -154,7 +154,13 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
     autoSize={fullScreen ? false : { minRows: layout.minRows, maxRows: layout.maxRows }}
     variant="borderless"
     aria-label={fullScreen ? '展开编辑内容' : '发送内容'}
-    placeholder="输入文字、粘贴图片，也可以将文件拖到这里"
+    placeholder="输入文字、粘贴图片，或将文件拖到这里，Shift+Enter 发送"
+    onKeyDown={event => {
+      // 普通换行仍用 Enter；Shift+Enter 直接发送，输入法组字过程中不触发。
+      if (event.key !== 'Enter' || !event.shiftKey || event.repeat || event.nativeEvent.isComposing) return;
+      event.preventDefault();
+      if (!isSending) void controller.sendMessage();
+    }}
     onPaste={event => {
       const images = clipboardImages(event.clipboardData);
       if (!images.length) return;

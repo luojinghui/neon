@@ -2,7 +2,7 @@
 
 import { App, Button, Input, Modal, QRCode } from 'antd';
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, LinkOutlined, PaperClipOutlined, ShareAltOutlined } from '@ant-design/icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import LinkifiedText from '../components/LinkifiedText';
 import { JsonViewerModal } from '../components/JsonModal';
@@ -21,10 +21,12 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
   const [jsonOpen, setJsonOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+  const [singleRatio, setSingleRatio] = useState(4 / 3);
   const json = useMemo(() => parseJson(item.content), [item.content]);
   const isLong = item.content.length > 1000 || item.content.split('\n').length > 12;
   const visibleFiles = allFiles ? item.files : item.files.slice(0, 6);
   const images = item.files.filter(file => isPreviewImage(file.mimeType)).map(file => ({ id: file.fileId, url: plazaFileUrl(file.fileId, true), name: file.fileName }));
+  const previewImages = visibleFiles.filter(file => isPreviewImage(file.mimeType) && !brokenImages.has(file.fileId));
   const shareUrl = typeof window === 'undefined' ? plazaSharePath(item.messageId) : new URL(plazaSharePath(item.messageId), window.location.origin).href;
 
   useEffect(() => {
@@ -82,12 +84,16 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
       <div className={`plaza-text${isLong && !expanded ? ' is-collapsed' : ''}`}><LinkifiedText text={item.content} /></div>
       {isLong && !detail && <button type="button" className="plaza-expand" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? '收起正文' : '展开全文'}</button>}
     </div>}
-    {visibleFiles.some(file => isPreviewImage(file.mimeType) && !brokenImages.has(file.fileId)) && <div className="plaza-images">
-      {visibleFiles.filter(file => isPreviewImage(file.mimeType) && !brokenImages.has(file.fileId)).map(file => <div key={file.fileId} className="plaza-image">
+    {previewImages.length > 0 && <div className="plaza-images" data-count={previewImages.length} style={{ '--plaza-image-ratio': singleRatio } as CSSProperties}>
+      {previewImages.map(file => <div key={file.fileId} className="plaza-image">
         <ImagePreview images={images} imageId={file.fileId} className="plaza-image-preview" title="广场图片">
-          {/* Original user attachments are served through the expiry-checked endpoint. */}
+          {/* 原图走带过期校验的接口；单张按真实比例展示，多张按方格裁切。 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={plazaFileUrl(file.fileId, true)} alt={file.fileName} loading="lazy" onError={() => setBrokenImages(current => new Set([...current, file.fileId]))} />
+          <img src={plazaFileUrl(file.fileId, true)} alt={file.fileName} loading="lazy" onLoad={event => {
+            if (previewImages.length !== 1) return;
+            const { naturalWidth, naturalHeight } = event.currentTarget;
+            if (naturalWidth && naturalHeight) setSingleRatio(Math.min(16 / 9, Math.max(3 / 4, naturalWidth / naturalHeight)));
+          }} onError={() => setBrokenImages(current => new Set([...current, file.fileId]))} />
         </ImagePreview>
         {fileRow(file)}
       </div>)}

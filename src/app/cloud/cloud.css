@@ -120,7 +120,10 @@
 .plaza-feed-heading h2 { font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
 .plaza-feed-heading p { margin-top: 0.375rem; font-size: 0.8125rem; color: hsl(var(--foreground-muted)); }
 .plaza-feed-heading .ant-btn { color: hsl(var(--foreground-secondary)); box-shadow: none; }
-.plaza-card-list { display: flex; flex-direction: column; gap: 1rem; }
+.plaza-card-list { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1rem; }
+@media (min-width: 768px) {
+  .plaza-card-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+}
 .cloud-page .plaza-card { padding: 1.5rem 1.5rem 0.75rem; }
 .plaza-card-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; margin-bottom: 1.125rem; font-size: 0.6875rem; letter-spacing: 0.02em; color: hsl(var(--foreground-muted)); }
 .plaza-card-meta time:last-child { opacity: 0.8; }
@@ -135,11 +138,15 @@
 .plaza-file-info > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; user-select: text; }
 .plaza-file-info small { font-size: 0.6875rem; color: hsl(var(--foreground-muted)); }
 .plaza-icon-button { display: inline-flex; height: 2.25rem; width: 2.25rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 0.5rem; color: hsl(var(--foreground-secondary)); transition: background 150ms, color 150ms; }
-.plaza-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 0.75rem; margin-top: 1.125rem; }
-.plaza-image { min-width: 0; overflow: hidden; border: 1px solid hsl(var(--border) / 0.7); border-radius: 0.75rem; }
-.plaza-image-preview { display: flex; width: 100%; height: 220px; align-items: center; justify-content: center; background: hsl(var(--background-secondary) / 0.45); }
-.plaza-image-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.plaza-images { display: grid; width: 100%; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 1rem; }
+.plaza-images[data-count='1'] { display: block; width: min(100%, calc(min(20rem, 46dvh) * var(--plaza-image-ratio, 1.333333))); }
+.plaza-image { min-width: 0; overflow: hidden; border-radius: 0.75rem; background: hsl(var(--background-secondary) / 0.55); }
+.cloud-page button.plaza-image-preview { display: block; width: 100%; aspect-ratio: 1; height: auto; margin: 0; padding: 0; overflow: hidden; border: 0; border-radius: 0.75rem 0.75rem 0 0; background: hsl(var(--background-secondary) / 0.45); cursor: zoom-in; }
+.plaza-images[data-count='1'] .plaza-image-preview { aspect-ratio: var(--plaza-image-ratio, 1.333333); max-height: min(20rem, 46dvh); }
+.plaza-image-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .plaza-image .plaza-file { border-radius: 0; padding: 0.5rem 0.75rem; background: transparent; }
+.plaza-images:not([data-count='1']) .plaza-file { gap: 0.375rem; padding: 0.4rem 0.5rem; }
+.plaza-images:not([data-count='1']) .plaza-file-icon { display: none; }
 .plaza-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1.25rem; border-top: 0; padding-top: 0.625rem; }
 .plaza-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
 .plaza-card-actions button { display: inline-flex; min-height: 2.25rem; align-items: center; gap: 0.5rem; padding: 0 0.625rem; border-radius: 0.5rem; font-size: 0.75rem; color: hsl(var(--foreground-secondary)); transition: background 150ms, color 150ms; }
@@ -185,10 +192,6 @@
   .cloud-page .plaza-card { padding: 1rem 1rem 0.625rem; }
   .plaza-card-meta { font-size: 0.625rem; }
   .plaza-text { font-size: 0.875rem; }
-  .plaza-images { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
-  .plaza-image:only-child { grid-column: 1 / -1; }
-  .plaza-image-preview { height: 160px; }
-  .plaza-image:only-child .plaza-image-preview { height: 240px; }
   .plaza-image .plaza-file { gap: 0.25rem; padding-inline: 0.375rem; }
   .plaza-image .plaza-file-icon { display: none; }
   .plaza-card-actions { gap: 0.125rem; }
