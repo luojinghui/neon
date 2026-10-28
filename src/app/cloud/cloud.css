@@ -68,8 +68,7 @@
 .cloud-page .cloud-editor-input.ant-input-textarea-affix-wrapper .ant-input-suffix .ant-input-clear-icon { inset-block-start: 0.8rem; inset-inline-end: 0.8rem; }
 
 /* Text and actions occupy separate space; the panel owns the bottom inset. */
-.cloud-editor-toolbar { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.75rem; background: hsl(var(--surface)); }
-.plaza-page .cloud-editor-toolbar { border-top: 0; }
+.cloud-editor-toolbar { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; border-top: 0; padding-top: 0.75rem; background: hsl(var(--surface)); }
 .cloud-editor-attachments { margin-top: 1rem; }
 .cloud-editor-attachments[hidden], .cloud-editor-file-list[hidden] { display: none; }
 .cloud-editor-file-summary { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
