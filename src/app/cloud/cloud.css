@@ -69,6 +69,7 @@
 
 /* Text and actions occupy separate space; the panel owns the bottom inset. */
 .cloud-editor-toolbar { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0.5rem; margin-top: 1rem; border-top: 1px solid hsl(var(--border)); padding-top: 0.75rem; background: hsl(var(--surface)); }
+.plaza-page .cloud-editor-toolbar { border-top: 0; }
 .cloud-editor-attachments { margin-top: 1rem; }
 .cloud-editor-attachments[hidden], .cloud-editor-file-list[hidden] { display: none; }
 .cloud-editor-file-summary { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
@@ -140,7 +141,7 @@
 .plaza-image-preview { display: flex; width: 100%; height: 220px; align-items: center; justify-content: center; background: hsl(var(--background-secondary) / 0.45); }
 .plaza-image-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .plaza-image .plaza-file { border-radius: 0; padding: 0.5rem 0.75rem; background: transparent; }
-.plaza-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1.25rem; border-top: 1px solid hsl(var(--border) / 0.65); padding-top: 0.625rem; }
+.plaza-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1.25rem; border-top: 0; padding-top: 0.625rem; }
 .plaza-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
 .plaza-card-actions button { display: inline-flex; min-height: 2.25rem; align-items: center; gap: 0.5rem; padding: 0 0.625rem; border-radius: 0.5rem; font-size: 0.75rem; color: hsl(var(--foreground-secondary)); transition: background 150ms, color 150ms; }
 .plaza-card-actions button:first-child { margin-left: -0.625rem; }
