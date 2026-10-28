@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { ensureCurrentProfile, PROFILE_CHANGED_EVENT } from './client';
-import type { PublicProfile } from './types';
+import type { CurrentProfile } from './types';
 
 export function useCurrentProfile() {
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [profile, setProfile] = useState<CurrentProfile | null>(null);
 
   useEffect(() => {
     let active = true;
     let profileChanged = false;
 
     const handleProfileChanged = (event: Event) => {
-      const changed = (event as CustomEvent<PublicProfile>).detail;
+      const changed = (event as CustomEvent<CurrentProfile>).detail;
       if (changed) {
         profileChanged = true;
         setProfile(changed);

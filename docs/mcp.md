@@ -17,11 +17,7 @@ Neon 提供四个 MCP 工具，复用网站现有数据库、内容仓库和上�
 - `pnpm install --frozen-lockfile`。
 - 云传与广场需要网站使用的 `MONGODB_URI`；心迹使用现有个人资料、心迹索引与上传目录。
 - `MCP_PUBLIC_BASE_URL` 必须是实际可访问的网站根地址，例如 `http://127.0.0.1:3000` 或 `https://neon.example.com`，不能包含子路径或凭据。
-- 发布心迹需要 `MCP_OWNER_UUID`，对应已经创建的个人资料。先在网站打开个人主页完成资料初始化，再在该网站浏览器控制台读取：
-
-  ```js
-  JSON.parse(localStorage.getItem('neon:browser-identity:v1') || '{}').uuid
-  ```
+- 发布心迹需要 `MCP_OWNER_UUID`，对应已经创建的个人资料。在网站打开自己的个人中心，在「资料」页查看 UUID 并点击「复制」。
 
   UUID 是浏览器身份凭据，请只写入私有配置。未配置时心迹发布返回明确错误，其余工具可以正常使用。服务端不接受调用参数指定其他作者，也不会自动创建用户。
 

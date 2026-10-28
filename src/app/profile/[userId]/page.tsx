@@ -13,6 +13,8 @@ import type { Moment } from '@/app/moments/types';
 import '@/app/moments/moments.css';
 import { getPublicProfile } from '../client';
 import { ProfileIdentity } from '../components/ProfileIdentity';
+import { ProfileUuid } from '../components/ProfileUuid';
+import { useCurrentProfile } from '../useCurrentProfile';
 import type { PublicProfile } from '../types';
 import { createProfileHref, getProfileBackLabel, sanitizeProfileReturnTo } from '../navigation';
 import { SocialPanel } from '@/app/social/SocialPanel';
@@ -30,6 +32,7 @@ export default function ProfilePage() {
   const params = useParams<{ userId: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const currentProfile = useCurrentProfile();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -215,6 +218,9 @@ export default function ProfilePage() {
 
                 {isOwner && (activeSection === 'messages' || activeSection === 'friends') ? <SocialPanel section={activeSection} /> : activeSection === 'profile' ? (
                   <dl className="profile-details">
+                    {isOwner && !profile.isSystem && currentProfile?.publicKey === profile.publicKey && (
+                      <ProfileUuid key={currentProfile.uuid} uuid={currentProfile.uuid} />
+                    )}
                     <div className="profile-detail">
                       <span className="profile-detail-icon"><CalendarOutlined /></span>
                       <div><dt>星球旅程</dt><dd>{formatJoinedDate(profile.createdAt)}</dd></div>
