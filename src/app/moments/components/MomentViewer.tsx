@@ -11,6 +11,7 @@ import { MomentAvatar } from './MomentAvatar';
 import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
 import { MomentActions } from './MomentActions';
+import { MomentAttachments } from './MomentAttachments';
 import './moment-gallery.css';
 
 type Props = {
@@ -45,6 +46,7 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
         </header>
         {moment.text && <p className="moment-viewer-text"><LinkifiedText content={moment.text} /></p>}
         {moment.media.length > 0 && <MomentMediaView media={moment.media} immersive />}
+        <MomentAttachments attachments={moment.attachments} />
         {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
         {(moment.location || moment.canDelete) && <footer className="moment-viewer-footer">
           <span className="moment-viewer-location">{moment.location && <><EnvironmentOutlined />{moment.location.label}</>}</span>

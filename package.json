@@ -25,12 +25,16 @@
     "test:cloud": "node --test scripts/cloud-input.test.cjs scripts/cloud-plaza.test.cjs",
     "test:cloud:browser": "node scripts/cloud-navigation-browser.cjs",
     "test:cloud:editor": "node scripts/cloud-editor-browser.cjs",
+    "mcp:stdio": "node scripts/neon-mcp.cjs",
+    "test:mcp": "node --test src/server/mcp/*.test.js",
     "prepare:vision": "node scripts/prepare-vision-assets.cjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "2.1.2",
     "@ant-design/icons": "^6.1.0",
     "@mediapipe/tasks-vision": "0.10.35",
+    "@modelcontextprotocol/node": "2.1.2",
+    "@modelcontextprotocol/server": "2.4.0",
     "@uiw/react-json-view": "2.0.0-alpha.39",
     "antd": "^6.3.3",
     "clsx": "^2.1.1",
@@ -47,9 +51,11 @@
     "socket.io": "4.8.3",
     "socket.io-client": "4.8.3",
     "tailwind-merge": "^2.3.0",
+    "zod": "4.6.7",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@types/node": "^20",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
@@ -61,6 +67,9 @@
     "typescript": "^5"
   },
   "packageManager": "pnpm@10.30.2",
+  "engines": {
+    "node": ">=20"
+  },
   "pnpm": {
     "overrides": {
       "@types/react": "19.0.8",

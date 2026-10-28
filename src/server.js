@@ -11,6 +11,7 @@ const { doodleReviewRepository } = require('./server/doodle/reviewRepository');
 const { momentRepository } = require('./server/moment/momentRepository');
 const { plazaRepository } = require('./server/cloud/plazaRepository');
 const { connectDB } = require('./server/models');
+const { createMcpRouter } = require('./server/mcp/http');
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -78,6 +79,9 @@ nextApp
 
     mountAdminController(app, io);
     chatController.mountCallSharing(app, io);
+    const mcpRouter = createMcpRouter();
+    app.use('/mcp', mcpRouter);
+    server.once('close', () => { void mcpRouter.close?.(); });
 
     app
       .use('/api/cloud/network-info', createCloudNetworkApp())

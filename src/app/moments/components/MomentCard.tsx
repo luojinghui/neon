@@ -13,6 +13,7 @@ import { MomentAvatar } from './MomentAvatar';
 import { MomentActions } from './MomentActions';
 import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
+import { MomentAttachments } from './MomentAttachments';
 
 type Props = {
   moment: Moment;
@@ -68,7 +69,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
   };
 
   return (
-    <article className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
+    <article id={`moment-${moment.id}`} className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
       <header className="moment-card-head">
         <div className="flex min-w-0 items-center gap-2">
           <MomentAvatar author={moment.author} size={32} />
@@ -94,6 +95,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
           </div>
         )}
         <MomentMediaView media={moment.media} />
+        <MomentAttachments attachments={moment.attachments} />
         {moment.voice && <div className="moment-card-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
 
         {moment.location && <div className="moment-card-meta"><span><EnvironmentOutlined /> {moment.location.label}</span></div>}

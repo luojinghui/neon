@@ -31,6 +31,15 @@ export async function getMoments(options: { page?: number; pageSize?: number; ow
   );
 }
 
+export async function getMoment(momentId: string, signal?: AbortSignal): Promise<Moment> {
+  const result = await parseJson<{ item: Moment }>(await fetch(`/api/moments/${encodeURIComponent(momentId)}`, {
+    headers: await identityHeaders(),
+    cache: 'no-store',
+    signal
+  }));
+  return result.item;
+}
+
 export async function getAllMomentsForOwner(ownerUserId: string): Promise<Moment[]> {
   const items: Moment[] = [];
   let page = 1;

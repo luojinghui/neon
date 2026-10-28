@@ -8,6 +8,7 @@ import { MomentVoicePlayer } from '../moments/components/MomentVoice';
 import type { Moment } from '../moments/types';
 import type { Conversation } from '../social/client';
 import type { HistoryPage, ServerChatMessage } from '../soul/core/types';
+import { MomentAttachments } from '../moments/components/MomentAttachments';
 import { AdminApiError, adminRequest } from './client';
 
 type Props = { refreshToken: number; onUnauthorized: () => void };
@@ -137,7 +138,7 @@ export function MomentDataTable(props: Props) {
       {selected && <div className="max-h-[70vh] space-y-4 overflow-y-auto">
         <div>{selected.author.name} · @{selected.author.userId}<p className="text-xs text-foreground-muted">{date(selected.createdAt)} · {selected.likeCount} 赞</p></div>
         <p className="whitespace-pre-wrap break-words">{selected.text}</p>
-        <MomentMediaView media={selected.media} />{selected.voice && <MomentVoicePlayer voice={selected.voice} />}
+        <MomentMediaView media={selected.media} /><MomentAttachments attachments={selected.attachments} />{selected.voice && <MomentVoicePlayer voice={selected.voice} />}
         {selected.location && <p className="text-xs text-foreground-muted">位置：{selected.location.label}（{selected.location.latitude}, {selected.location.longitude}）</p>}
         <h3 className="font-medium">全部评论（{selected.commentCount}）</h3>
         {selected.comments.map((comment) => <div key={comment.id} className="rounded-lg border border-border p-3"><div className="flex items-center justify-between gap-2 text-xs text-foreground-muted"><span>{comment.author.name}{comment.replyTo ? ` 回复 ${comment.replyTo.name}` : ''} · {date(comment.createdAt)}</span><Popconfirm title="删除这条评论？" okText="删除" cancelText="取消" onConfirm={() => remove(selected, comment.id)}><button type="button" disabled={busy} className="shrink-0 text-danger">删除评论</button></Popconfirm></div><p className="mt-2 whitespace-pre-wrap break-words text-sm">{comment.text}</p></div>)}

@@ -46,6 +46,7 @@ function presentMoment(moment, viewer = {}, options = {}) {
     id: moment.id,
     text: moment.text,
     media: moment.media.map((item) => ({ ...item })),
+    attachments: (moment.attachments || []).map((item) => ({ ...item })),
     voice: moment.voice ? { ...moment.voice } : null,
     location: moment.location ? { ...moment.location } : null,
     author: presentAuthor(moment.ownerUuid),

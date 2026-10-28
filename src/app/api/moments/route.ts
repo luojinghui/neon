@@ -50,13 +50,15 @@ export async function POST(request: Request) {
     const profile = requireCurrentProfile(request);
     const form = await request.formData();
     const mediaFiles = getFiles(form, 'media');
+    const attachmentFiles = getFiles(form, 'attachments');
     const voiceFiles = getFiles(form, 'voice');
-    const totalBytes = [...mediaFiles, ...voiceFiles].reduce((sum, file) => sum + file.size, 0);
+    const totalBytes = [...mediaFiles, ...attachmentFiles, ...voiceFiles].reduce((sum, file) => sum + file.size, 0);
     if (totalBytes > MAX_REQUEST_BYTES) throw Object.assign(new Error('本次上传内容过大'), { code: 'REQUEST_TOO_LARGE' });
     if (voiceFiles.length > 1) throw Object.assign(new Error('每条心迹只能包含一段语音'), { code: 'MOMENT_MEDIA_INVALID' });
 
-    const [media, voice] = await Promise.all([
+    const [media, files, voice] = await Promise.all([
       Promise.all(mediaFiles.map(readFile)),
+      Promise.all(attachmentFiles.map(readFile)),
       voiceFiles[0] ? readFile(voiceFiles[0]) : Promise.resolve(null)
     ]);
     const moment = await momentRepository.createMoment(
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
         location: parseLocation(form.get('location')),
         voiceDurationMs: form.get('voiceDurationMs')
       },
-      { media, voice }
+      { media, files, voice }
     );
     const viewer = await getViewer(request);
     return NextResponse.json({ item: publicMoment(moment, viewer, 2) }, { status: 201 });

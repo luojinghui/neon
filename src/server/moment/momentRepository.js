@@ -6,9 +6,11 @@ const { runFileExclusive, writeFileAtomic } = require('../storage/filePersistenc
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ID_PATTERN = /^[A-Za-z0-9_-]{16}$/;
 const UPLOAD_PATTERN = /^\/uploads\/moments\/([A-Za-z0-9_-]{16}-[A-Za-z0-9_-]{8}\.(?:jpg|png|webp|gif|mp4|webm|mov|m4a|mp3|ogg|wav|aac))$/;
+const ATTACHMENT_URL_PATTERN = /^\/api\/moments\/([A-Za-z0-9_-]{16})\/attachments\/([A-Za-z0-9_-]{16})$/;
 const MAX_TEXT_LENGTH = 2000;
 const MAX_COMMENT_LENGTH = 500;
 const MAX_MEDIA_ITEMS = 9;
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
 const MIME_TYPES = new Map([
   ['image/jpeg', { extension: 'jpg', kind: 'image', maxBytes: 12 * 1024 * 1024 }],
@@ -136,9 +138,10 @@ class MomentRepository {
     const text = this.optionalText(input.text, MAX_TEXT_LENGTH, `心迹文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
     const location = this.normalizeLocation(input.location);
     const mediaInput = Array.isArray(attachments.media) ? attachments.media : [];
+    const fileInput = Array.isArray(attachments.files) ? attachments.files : [];
     const voiceInput = attachments.voice || null;
-    if (mediaInput.length > MAX_MEDIA_ITEMS) throw new MomentRepositoryError(`每条心迹最多上传 ${MAX_MEDIA_ITEMS} 个图片或视频`, 'MOMENT_MEDIA_INVALID');
-    if (!text && mediaInput.length === 0 && !voiceInput) throw new MomentRepositoryError('写点文字，或添加图片、视频、语音后再发布', 'MOMENT_CONTENT_EMPTY');
+    if (mediaInput.length + fileInput.length > MAX_MEDIA_ITEMS) throw new MomentRepositoryError(`每条心迹最多上传 ${MAX_MEDIA_ITEMS} 个图片、视频或附件`, 'MOMENT_MEDIA_INVALID');
+    if (!text && mediaInput.length === 0 && fileInput.length === 0 && !voiceInput) throw new MomentRepositoryError('写点文字，或添加图片、视频、附件、语音后再发布', 'MOMENT_CONTENT_EMPTY');
 
     return this.runMutation(async () => {
       const id = this.createId(this.moments);
@@ -150,6 +153,12 @@ class MomentRepository {
           media.push(attachment);
           stored.push(attachment.url);
         }
+        const files = [];
+        for (const item of fileInput) {
+          const attachment = await this.writeFileAttachment(id, item);
+          files.push(attachment);
+          stored.push(attachment.url);
+        }
         let voice = null;
         if (voiceInput) {
           voice = await this.writeAttachment(id, voiceInput, ['audio']);
@@ -157,7 +166,7 @@ class MomentRepository {
           stored.push(voice.url);
         }
         const now = new Date(this.now()).toISOString();
-        const moment = { id, ownerUuid, text, media, voice, location, comments: [], likedBy: [], createdAt: now, updatedAt: now };
+        const moment = { id, ownerUuid, text, media, attachments: files, voice, location, comments: [], likedBy: [], createdAt: now, updatedAt: now };
         this.moments.set(id, moment);
         try {
           await this.persistUnlocked();
@@ -351,10 +360,11 @@ class MomentRepository {
 
   normalizeStoredMoment(raw) {
     const media = Array.isArray(raw?.media) ? raw.media.map((item) => this.normalizeStoredAttachment(item, ['image', 'video'])) : [];
-    if (media.length > MAX_MEDIA_ITEMS) throw new Error('too many media items');
+    const attachments = Array.isArray(raw?.attachments) ? raw.attachments.map((item) => this.normalizeStoredFileAttachment(item, raw.id)) : [];
+    if (media.length + attachments.length > MAX_MEDIA_ITEMS) throw new Error('too many media items');
     const voice = raw?.voice ? { ...this.normalizeStoredAttachment(raw.voice, ['audio']), durationMs: this.normalizeDuration(raw.voice.durationMs) } : null;
     const text = this.optionalText(raw?.text, MAX_TEXT_LENGTH, 'invalid stored text', 'MOMENT_TEXT_INVALID');
-    if (!text && media.length === 0 && !voice) throw new Error('empty moment');
+    if (!text && media.length === 0 && attachments.length === 0 && !voice) throw new Error('empty moment');
     const likedBy = raw?.likedBy == null ? [] : raw.likedBy;
     if (!Array.isArray(likedBy)) throw new Error('invalid stored likes');
     return {
@@ -362,6 +372,7 @@ class MomentRepository {
       ownerUuid: this.requireUuid(raw?.ownerUuid),
       text,
       media,
+      attachments,
       voice,
       location: this.normalizeLocation(raw?.location),
       comments: Array.isArray(raw?.comments) ? raw.comments.map((comment) => this.normalizeStoredComment(comment)) : [],
@@ -403,25 +414,68 @@ class MomentRepository {
     if (!config || !allowedKinds.includes(config.kind)) throw new MomentRepositoryError('文件类型不受支持', 'MOMENT_MEDIA_INVALID');
     if (!Buffer.isBuffer(raw?.buffer) || raw.buffer.length === 0) throw new MomentRepositoryError('不能上传空文件', 'MOMENT_MEDIA_INVALID');
     if (raw.buffer.length > config.maxBytes) throw new MomentRepositoryError('上传文件超过大小限制', 'MOMENT_MEDIA_TOO_LARGE');
+    const name = this.optionalText(raw.name, 120, '文件名无效', 'MOMENT_MEDIA_INVALID');
     const id = randomBytes(12).toString('base64url');
     const suffix = randomBytes(6).toString('base64url');
     const fileName = `${momentId}-${suffix}.${config.extension}`;
     const filePath = path.join(this.uploadDirectory, fileName);
     await fs.promises.mkdir(this.uploadDirectory, { recursive: true });
     await fs.promises.writeFile(filePath, raw.buffer, { flag: 'wx', mode: 0o600 });
-    return { id, type: config.kind, mimeType, url: `/uploads/moments/${fileName}`, size: raw.buffer.length, name: this.optionalText(raw.name, 120, '文件名无效', 'MOMENT_MEDIA_INVALID') };
+    return { id, type: config.kind, mimeType, url: `/uploads/moments/${fileName}`, size: raw.buffer.length, name };
+  }
+
+  normalizeStoredFileAttachment(raw, momentId) {
+    const id = this.requireId(raw?.id, 'invalid stored attachment id', 'MOMENT_MEDIA_INVALID');
+    const url = `/api/moments/${momentId}/attachments/${id}`;
+    if (raw?.type !== 'file' || raw?.url !== url || !ATTACHMENT_URL_PATTERN.test(url)) throw new Error('invalid stored file attachment');
+    const size = Number(raw.size);
+    if (!Number.isSafeInteger(size) || size < 1 || size > MAX_ATTACHMENT_BYTES) throw new Error('invalid stored attachment size');
+    return { id, type: 'file', mimeType: this.normalizeFileMimeType(raw.mimeType), url, size, name: this.fileAttachmentName(raw.name) };
+  }
+
+  normalizeFileMimeType(value) {
+    const mimeType = String(value || '').split(';')[0].trim().toLowerCase();
+    return /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(mimeType) ? mimeType : 'application/octet-stream';
+  }
+
+  fileAttachmentName(value) {
+    // 名称仅用于下载展示，绝不拼接进磁盘路径或响应头。
+    const name = String(value || '').split(/[\\/]/).pop().replace(/[\u0000-\u001f\u007f]/g, '').trim();
+    return Buffer.from(name.slice(0, 120), 'utf8').toString('utf8') || 'attachment';
+  }
+
+  async writeFileAttachment(momentId, raw) {
+    if (!Buffer.isBuffer(raw?.buffer) || raw.buffer.length === 0) throw new MomentRepositoryError('不能上传空文件', 'MOMENT_MEDIA_INVALID');
+    if (raw.buffer.length > MAX_ATTACHMENT_BYTES) throw new MomentRepositoryError('附件不能超过 20 MB', 'MOMENT_MEDIA_TOO_LARGE');
+    const id = randomBytes(12).toString('base64url');
+    const fileName = `${momentId}-${id}.bin`;
+    const filePath = path.join(this.uploadDirectory, fileName);
+    await fs.promises.mkdir(this.uploadDirectory, { recursive: true });
+    await fs.promises.writeFile(filePath, raw.buffer, { flag: 'wx', mode: 0o600 });
+    return { id, type: 'file', mimeType: this.normalizeFileMimeType(raw.mimeType), url: `/api/moments/${momentId}/attachments/${id}`, size: raw.buffer.length, name: this.fileAttachmentName(raw.name) };
+  }
+
+  getFileAttachment(momentIdValue, attachmentIdValue) {
+    this.ensureLoaded();
+    const moment = this.requireMoment(momentIdValue);
+    const id = this.requireId(attachmentIdValue, '附件地址无效', 'MOMENT_MEDIA_INVALID');
+    const file = (moment.attachments || []).find((item) => item.id === id);
+    if (!file) throw new MomentRepositoryError('附件不存在或已被删除', 'MOMENT_NOT_FOUND');
+    return { file: clone(file), filePath: path.join(this.uploadDirectory, `${moment.id}-${file.id}.bin`) };
   }
 
   async deleteMomentAttachments(moment) {
-    const urls = [...moment.media.map((item) => item.url), moment.voice?.url].filter(Boolean);
+    const urls = [...moment.media.map((item) => item.url), ...(moment.attachments || []).map((item) => item.url), moment.voice?.url].filter(Boolean);
     this.cleanupQueue = Promise.all(urls.map((url) => this.deleteStoredAttachment(url))).then(() => undefined);
     await this.cleanupQueue;
   }
 
   async deleteStoredAttachment(url) {
     const match = UPLOAD_PATTERN.exec(String(url || ''));
-    if (!match) return;
-    await fs.promises.unlink(path.join(this.uploadDirectory, match[1])).catch((error) => {
+    const fileMatch = ATTACHMENT_URL_PATTERN.exec(String(url || ''));
+    if (!match && !fileMatch) return;
+    const fileName = match ? match[1] : `${fileMatch[1]}-${fileMatch[2]}.bin`;
+    await fs.promises.unlink(path.join(this.uploadDirectory, fileName)).catch((error) => {
       if (error.code !== 'ENOENT') console.error('Moment attachment could not be deleted:', error.message);
     });
   }
@@ -485,6 +539,7 @@ const momentRepository = new MomentRepository();
 module.exports = {
   MAX_COMMENT_LENGTH,
   MAX_MEDIA_ITEMS,
+  MAX_ATTACHMENT_BYTES,
   MAX_TEXT_LENGTH,
   MIME_TYPES,
   MomentRepository,

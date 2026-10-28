@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowDownOutlined, EditOutlined, LoadingOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useRef, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
@@ -9,6 +9,7 @@ import { refreshMomentFeed, useMomentFeed } from './useMomentFeed';
 import { MomentCard } from './components/MomentCard';
 import { MomentComposer } from './components/MomentComposer';
 import { MomentFeed } from './components/MomentFeed';
+import { MomentPermalink } from './components/MomentPermalink';
 
 import './moments.css';
 import './moments-journal.css';
@@ -39,6 +40,7 @@ export default function MomentsPage() {
 
       <main ref={scrollRef} className="moment-scroll-area chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="app-content-width">
+          <Suspense fallback={null}><MomentPermalink /></Suspense>
           <header className="moment-journal-intro">
             <div>
               <h1>让此刻，留下回响。</h1>

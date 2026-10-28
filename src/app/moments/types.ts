@@ -25,6 +25,15 @@ export type MomentVoice = {
   durationMs: number;
 };
 
+export type MomentAttachment = {
+  id: string;
+  type: 'file';
+  mimeType: string;
+  url: string;
+  size: number;
+  name: string;
+};
+
 export type MomentLocation = {
   latitude: number;
   longitude: number;
@@ -48,6 +57,7 @@ export type Moment = {
   id: string;
   text: string;
   media: MomentMedia[];
+  attachments: MomentAttachment[];
   voice: MomentVoice | null;
   location: MomentLocation | null;
   author: MomentAuthor;

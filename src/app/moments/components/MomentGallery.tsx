@@ -37,7 +37,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
         {visible.map((moment) => {
           const firstMedia = moment.media[0];
           return (
-            <button key={moment.id} type="button" className={`moment-profile-entry ${firstMedia ? 'has-media' : ''}`} onClick={() => setSelectedId(moment.id)} aria-label={`查看心迹：${moment.text || (moment.voice ? '语音心迹' : '图片与视频')}`}>
+            <button key={moment.id} type="button" className={`moment-profile-entry ${firstMedia ? 'has-media' : ''}`} onClick={() => setSelectedId(moment.id)} aria-label={`查看心迹：${moment.text || (moment.voice ? '语音心迹' : moment.attachments?.[0]?.name || '图片与视频')}`}>
               {!firstMedia && <span className="moment-profile-note-label">{moment.voice ? <AudioOutlined /> : <EditOutlined />}{moment.voice ? '声音日记' : '随手记'}</span>}
               {firstMedia && (
                 <span className="moment-profile-cover">
@@ -54,6 +54,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
               <span className="moment-profile-entry-body">
                 {moment.text && <span className="moment-profile-entry-text">{moment.text}</span>}
                 {moment.voice && <span className="moment-profile-voice"><AudioOutlined />语音 · {Math.max(1, Math.round(moment.voice.durationMs / 1000))} 秒</span>}
+                {moment.attachments?.length > 0 && <span className="moment-profile-entry-text">{moment.attachments.length} 个附件 · {moment.attachments[0].name}</span>}
                 <span className="moment-profile-entry-footer"><time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time><span className="moment-profile-reactions"><span><HeartOutlined /> {moment.likeCount || 0}</span><span><MessageOutlined /> {moment.commentCount || 0}</span></span></span>
               </span>
             </button>

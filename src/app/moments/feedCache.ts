@@ -19,10 +19,11 @@ export function readMomentFeedCache(owner: string, storage: Pick<Storage, 'getIt
       || !Array.isArray(data.items) || !data.items.every((item: Moment) => item && typeof item.id === 'string' && typeof item.text === 'string'
         && typeof item.createdAt === 'string' && item.author && typeof item.author.name === 'string' && typeof item.author.userId === 'string'
         && Array.isArray(item.media) && item.media.every(media => media && ['image', 'video'].includes(media.type) && typeof media.url === 'string')
+        && (item.attachments == null || (Array.isArray(item.attachments) && item.attachments.every(file => file && file.type === 'file' && typeof file.name === 'string' && typeof file.url === 'string' && Number.isSafeInteger(file.size) && file.size > 0)))
         && Array.isArray(item.comments) && typeof item.commentCount === 'number' && typeof item.likeCount === 'number'
         && (!item.voice || typeof item.voice.url === 'string') && (!item.location || typeof item.location.label === 'string'))) throw new Error('Invalid moment cache');
     // Admin cookies may have expired since this snapshot was saved.
-    return { ...data, isAdmin: false, items: data.items.map((item: Moment) => ({ ...item, canDelete: item.isOwner === true, comments: [] })) };
+    return { ...data, isAdmin: false, items: data.items.map((item: Moment) => ({ ...item, attachments: item.attachments || [], canDelete: item.isOwner === true, comments: [] })) };
   } catch {
     try { storage.removeItem(PREFIX + owner); } catch { /* Storage is optional. */ }
     return null;
