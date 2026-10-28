@@ -444,3 +444,104 @@ test('one video sender simulcasts 180 and 360 from the 720p capture', async () =
     assert.equal(fs.existsSync(path.join(__dirname, '../public/virtual/model/v1.0.1', file)), true, file);
   }
 });
+
+test('chrome keeps insertable streams on the main thread and safari moves only the track endpoints into a worker', async () => {
+  const support = loadFile(path.join(__dirname, '../src/modules/virtual-background/plugin/core/insertable-support.ts'));
+  assert.equal(support.mainThreadInsertableStreams({}), false);
+  assert.equal(support.mainThreadInsertableStreams({ MediaStreamTrackProcessor: function Processor() {}, MediaStreamTrackGenerator: function Generator() {} }), true);
+
+  class MainProcessor {
+    constructor(init) { this.track = init.track; this.readable = { pipeThrough() { return { pipeTo: () => Promise.resolve() }; } }; }
+  }
+  class MainGenerator {
+    constructor() { this.kind = 'video'; this.writable = {}; }
+    stop() { this.stopped = true; }
+  }
+  const main = loadFile(path.join(__dirname, '../src/modules/virtual-background/plugin/core/track-pipeline.ts'), {}, {
+    MediaStreamTrackProcessor: MainProcessor,
+    MediaStreamTrackGenerator: MainGenerator,
+    TransformStream: class TransformStream {}
+  });
+  const source = new Track('video');
+  const mainOutput = await main.connectVideoPipeline(source, async () => {}, new AbortController().signal, () => { throw new Error('主线程已支持时不应创建 Worker'); });
+  assert.equal(mainOutput instanceof MainGenerator, true);
+  assert.equal(mainOutput.stopped, undefined);
+
+  const posted = [];
+  let worker;
+  class FakeWorker {
+    constructor() { worker = this; }
+    postMessage(data, transfer) { posted.push({ type: data.type, track: data.track, frame: data.frame, transfer }); }
+    terminate() { this.terminated = true; }
+  }
+  const safari = loadFile(path.join(__dirname, '../src/modules/virtual-background/plugin/core/track-pipeline.ts'));
+  const camera = new Track('video');
+  const clone = new Track('video');
+  camera.clone = () => clone;
+  const controller = new AbortController();
+  const opening = safari.connectVideoPipeline(camera, async (frame, sink) => {
+    sink.enqueue({ id: 'out', close() {}, source: frame });
+  }, controller.signal, () => new FakeWorker());
+  assert.equal(posted[0].type, 'start');
+  assert.equal(posted[0].track, clone);
+  assert.equal(posted[0].transfer[0], clone);
+  const output = new Track('video');
+  worker.onmessage({ data: { type: 'ready', track: output } });
+  assert.equal(await opening, output);
+  worker.onmessage({ data: { type: 'frame', frame: { id: 'in', close() { this.closed = true; } } } });
+  await flush();
+  assert.equal(posted.at(-1).type, 'frame');
+  assert.equal(posted.at(-1).frame.id, 'out');
+  assert.equal(posted.at(-1).transfer[0], posted.at(-1).frame);
+  controller.abort();
+  assert.equal(posted.at(-1).type, 'stop');
+
+  const workerSource = fs.readFileSync(path.join(__dirname, '../src/modules/virtual-background/plugin/core/safari-track.worker.ts'), 'utf8');
+  assert.match(workerSource, /VideoTrackGenerator/);
+  assert.match(workerSource, /MediaStreamTrackProcessor/);
+  assert.equal(workerSource.includes('new Image'), false);
+  assert.equal(workerSource.includes('createElement'), false);
+  const processor = fs.readFileSync(path.join(__dirname, '../src/modules/virtual-background/plugin/core/processor.ts'), 'utf8');
+  assert.match(processor, /safari-track\.worker\.ts/);
+  assert.match(processor, /connectVideoPipeline/);
+
+  const messages = [];
+  const sandbox = {
+    console,
+    messages,
+    postMessage(message, transfer) { sandbox.messages.push({ message, transfer }); },
+    close() { sandbox.closed = true; },
+    MediaStreamTrackProcessor: class {
+      constructor(init) { this.track = init.track; }
+      readable = { getReader: () => ({ read: async () => ({ done: true, value: undefined }), cancel: async () => {} }) };
+    },
+    VideoTrackGenerator: class {
+      constructor() { this.track = new Track('video'); this.writable = { getWriter: () => ({ write: async () => {}, close: async () => {} }) }; }
+    }
+  };
+  const { outputText } = ts.transpileModule(workerSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true } });
+  const module = { exports: {} };
+  sandbox.module = module;
+  sandbox.exports = module.exports;
+  sandbox.require = require;
+  vm.runInNewContext(outputText, sandbox, { filename: 'safari-track.worker.ts' });
+  const input = new Track('video');
+  sandbox.onmessage({ data: { type: 'start', track: input } });
+  assert.equal(sandbox.messages[0].message.type, 'ready');
+  assert.equal(sandbox.messages[0].transfer[0], sandbox.messages[0].message.track);
+  await flush();
+  assert.equal(input.readyState, 'ended');
+  assert.equal(sandbox.closed, true);
+
+  const missing = { console, messages: [], postMessage(message) { missing.messages.push(message); }, close() { missing.closed = true; } };
+  const missingModule = { exports: {} };
+  missing.module = missingModule;
+  missing.exports = missingModule.exports;
+  missing.require = require;
+  vm.runInNewContext(outputText, missing, { filename: 'safari-track.worker.ts' });
+  const rejected = new Track('video');
+  missing.onmessage({ data: { type: 'start', track: rejected } });
+  assert.equal(missing.messages[0].type, 'error');
+  assert.equal(rejected.readyState, 'ended');
+  assert.equal(missing.messages[0].message.includes('不支持'), false);
+});

@@ -23,6 +23,7 @@ import {
 } from './tracking/face-tracking-scheduler';
 import { createRenderer } from './renderers/create-renderer';
 import { copyRuntimeConfig, mergeRuntimeConfig, validateBeautyOptions, validateRuntimeConfig } from './runtime-config';
+import { connectVideoPipeline } from './track-pipeline';
 import type {
   FaceTracking,
   FrameContext,
@@ -405,21 +406,15 @@ export class VideoProcessor {
     this.trackGenerator?.stop();
     this.outputSize?.listeners.clear();
     this.pipelineAbort = new AbortController();
-    // MediaStreamTrackProcessor/Generator 尚未包含在项目的 DOM 类型定义中。
-    // @ts-ignore
-    const trackProcessor = new MediaStreamTrackProcessor({ track });
-    // @ts-ignore
-    this.trackGenerator = new MediaStreamTrackGenerator({ kind: 'video' });
     const outputSize = { width, height, listeners: new Set<(size: { width: number; height: number }) => void>() };
     this.outputSize = outputSize;
-    const transformer = new TransformStream({ transform: this.transformStream });
     const signal = this.pipelineAbort.signal;
-    trackProcessor.readable
-      .pipeThrough(transformer)
-      .pipeTo(this.trackGenerator.writable, { signal })
-      .catch((error: unknown) => {
-        if (!signal.aborted) console.warn('video processing pipeline error: ', error);
-      });
+    // 主线程有插入式媒体流时直接接通；Safari 只有 Worker 提供该接口，改由处理线程建端点。
+    this.trackGenerator = await connectVideoPipeline(track, (frame, controller) => this.transformStream(frame, controller), signal, () => new Worker(new URL('./safari-track.worker.ts', import.meta.url)));
+    if (this.destroyed || signal.aborted) {
+      this.trackGenerator.stop();
+      throw new Error('处理器已销毁');
+    }
     return {
       track: this.trackGenerator,
       width,
