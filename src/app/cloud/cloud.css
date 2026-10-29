@@ -160,7 +160,6 @@
 .plaza-pagination { display: flex; justify-content: center; margin-top: 1.5rem; }
 .plaza-end { margin: 1.75rem 0 0.5rem; text-align: center; font-size: 0.6875rem; letter-spacing: 0.04em; color: hsl(var(--foreground-muted) / 0.75); }
 .plaza-load-error { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; border: 1px solid hsl(var(--border)); border-radius: 0.75rem; padding: 0.625rem 1rem; font-size: 0.8125rem; color: hsl(var(--foreground-secondary)); }
-.plaza-back { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.5rem; font-size: 0.8125rem; color: hsl(var(--foreground-secondary)); }
 .plaza-share-empty { padding-top: max(3rem, 14vh); }
 .plaza-state-icon { display: flex; width: 3.5rem; height: 3.5rem; align-items: center; justify-content: center; margin-bottom: 1.5rem; border: 1px solid hsl(var(--border)); border-radius: 1rem; background: hsl(var(--surface)); font-size: 1.375rem; color: hsl(var(--foreground-muted)); }
 .plaza-share-empty h1 { font-size: 1.25rem; font-weight: 600; }
@@ -180,7 +179,7 @@
   .cloud-tabs a:hover { color: hsl(var(--foreground)); }
   .plaza-card-actions button:hover, .plaza-icon-button:hover { color: hsl(var(--foreground)); background: hsl(var(--background-secondary)); }
   .plaza-delete:hover { color: hsl(var(--danger)); background: hsl(var(--danger-soft)); }
-  .plaza-expand:hover, .plaza-back:hover { color: hsl(var(--primary)); }
+  .plaza-expand:hover { color: hsl(var(--primary)); }
 }
 @media (max-width: 640px) {
   .cloud-page .app-topbar-controls { gap: 0.375rem; }

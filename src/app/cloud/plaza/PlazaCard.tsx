@@ -54,6 +54,7 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
   };
 
   const remove = () => modal.confirm({
+    centered: true,
     title: '删除这张卡片？',
     content: '删除后所有人将无法继续查看，附件和分享链接也会失效。',
     okText: '删除卡片', cancelText: '取消', okButtonProps: { danger: true },

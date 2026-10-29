@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, Skeleton } from 'antd';
-import { FileTextOutlined, LeftOutlined, ReloadOutlined } from '@ant-design/icons';
+import { FileTextOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import PlazaCard from './PlazaCard';
 import { getPlazaMessage, PlazaClientError } from './client';
@@ -27,7 +27,6 @@ export default function PlazaShareContent({ messageId }: { messageId: string }) 
   }, [messageId, attempt]);
 
   return <div className="plaza-content">
-        <CloudLink href={PLAZA_PATH} className="plaza-back"><LeftOutlined /><span>广场</span></CloudLink>
         {state.kind === 'loading' && <div className="cloud-panel"><Skeleton active title={false} paragraph={{ rows: 8 }} /></div>}
         {state.kind === 'ready' && state.item && <><PlazaCard key={state.item.messageId} item={state.item} detail clockOffset={state.clockOffset} onUnavailable={unavailable} /><p className="plaza-end">发布后 48 小时自动失效</p></>}
         {state.kind !== 'loading' && state.kind !== 'ready' && <div className="plaza-share-empty">
