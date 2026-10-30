@@ -84,6 +84,18 @@ nextApp
     server.once('close', () => { void mcpRouter.close?.(); });
 
     app
+      .all('/api/cloud', (req, res, nextRoute) => {
+        if (req.method !== 'POST' && req.method !== 'OPTIONS') return nextRoute();
+
+        res.set({
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        if (req.method === 'OPTIONS') return res.status(204).end();
+
+        return nextRoute();
+      })
       .use('/api/cloud/network-info', createCloudNetworkApp())
       .get('/healthz', (_req, res) =>
         res.status(200).json({ status: 'ok', releaseId })
