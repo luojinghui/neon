@@ -12,6 +12,8 @@ const { doodleReviewRepository } = require('../doodle/reviewRepository');
 const { doodleShareRepository } = require('../doodle/shareRepository');
 const { momentRepository } = require('../moment/momentRepository');
 const { presentMoment } = require('../moment/presenter');
+const { createAdminPushRouter } = require('../push/routes');
+const { pushRepository } = require('../push/repository');
 const {
   ADMIN_SESSION_TTL_MS,
   authenticateCookieHeader,
@@ -494,6 +496,8 @@ function mountAdminController(app, io) {
 
   router.get('/users', (_req, res) => res.json({ items: profileRepository.listProfiles().map((profile) => profileRepository.toAdmin(profile)) }));
 
+  router.use('/push', createAdminPushRouter({ audit }));
+
   router.post(
     '/users',
     asyncRoute(async (req, res) => {
@@ -532,6 +536,7 @@ function mountAdminController(app, io) {
         if (!profile) return res.status(404).json({ error: '个人资料不存在', code: 'PROFILE_NOT_FOUND' });
         const related = chatController.adminDeleteUserData(profile, io);
         const relatedMoments = await momentRepository.deleteByOwner(profile.uuid);
+        await pushRepository.deleteUser(profile.uuid);
         profileRepository.deleteProfile(profile.uuid);
         await Promise.all([profileRepository.writeQueue, profileRepository.cleanupQueue]);
         await audit(req, 'user.delete', 'user', profile.uuid, {

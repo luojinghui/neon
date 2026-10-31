@@ -12,6 +12,7 @@ const { momentRepository } = require('./server/moment/momentRepository');
 const { plazaRepository } = require('./server/cloud/plazaRepository');
 const { connectDB } = require('./server/models');
 const { createMcpRouter } = require('./server/mcp/http');
+const { createPushRouter } = require('./server/push/routes');
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
@@ -78,6 +79,7 @@ nextApp
     });
 
     mountAdminController(app, io);
+    app.use('/api/push', createPushRouter());
     chatController.mountCallSharing(app, io);
     const mcpRouter = createMcpRouter();
     app.use('/mcp', mcpRouter);

@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const input = await request.json();
-    const profile = profileRepository.ensureProfile(input);
+    const profile = profileRepository.ensureProfile(input, { userAgent: request.headers.get('user-agent') || '' });
     await profileRepository.writeQueue;
     return NextResponse.json({ profile: profileRepository.toPublic(profile), isOwner: true }, { status: 201 });
   } catch (error) {

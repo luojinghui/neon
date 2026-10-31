@@ -110,10 +110,15 @@ async function createBackup(appRoot, kind, releaseId, resources, excludedRoot) {
 
 async function snapshotShared(appRoot, releaseId, env = process.env) {
   validateStoragePaths(env);
+  return createBackup(appRoot, 'shared', releaseId, sharedResources(appRoot, env));
+}
+
+function sharedResources(appRoot, env = process.env) {
   const shared = path.join(appRoot, 'shared');
-  const resources = [
+  return [
     ['SOUL_CHAT_DATA_FILE', 'soul-data/soul-chat.json'],
     ['USER_PROFILE_DATA_FILE', 'user-data/user-profiles.json'],
+    ['WEB_PUSH_DATA_FILE', 'user-data/web-push.json'],
     ['DOODLE_REVIEW_DATA_FILE', 'doodle-data/doodle-reviews.json'],
     ['DOODLE_SHARE_DATA_FILE', 'doodle-data/doodle-shares.json'],
     ['MOMENT_DATA_FILE', 'moment-data/moments.json'],
@@ -123,9 +128,8 @@ async function snapshotShared(appRoot, releaseId, env = process.env) {
     [null, 'soul-uploads/soul'], [null, 'soul-uploads/profile'],
     [null, 'upload'], [null, 'static'],
   ].map(([variable, relative]) => ({
-    path: relative, source: (variable && env[variable]) || path.join(shared, relative),
+    path: relative, source: (variable && env[variable]) || (variable === 'WEB_PUSH_DATA_FILE' && env.USER_PROFILE_DATA_FILE ? path.join(path.dirname(env.USER_PROFILE_DATA_FILE), 'web-push.json') : path.join(shared, relative)),
   }));
-  return createBackup(appRoot, 'shared', releaseId, resources);
 }
 
 async function preserveRelease(appRoot, releaseDir) {
@@ -144,7 +148,7 @@ async function preserveRelease(appRoot, releaseDir) {
   return createBackup(appRoot, 'release', releaseId, resources, shared);
 }
 
-module.exports = { snapshotShared, preserveRelease };
+module.exports = { snapshotShared, preserveRelease, sharedResources };
 
 if (require.main === module) {
   const [mode, appRoot, target] = process.argv.slice(2);

@@ -98,7 +98,7 @@ class ProfileRepository {
     return uuid ? this.profiles.get(uuid) || null : null;
   }
 
-  ensureProfile(input) {
+  ensureProfile(input, context = {}) {
     this.load();
     const uuid = this.requireUuid(input?.uuid);
     const existing = this.profiles.get(uuid);
@@ -118,6 +118,7 @@ class ProfileRepository {
       banner: { type: 'preset', value: 'sunrise' },
       createdAt: now,
       updatedAt: now,
+      userAgent: this.optionalText(context.userAgent, 2048),
       isSystem: false
     };
     this.profiles.set(uuid, profile);
@@ -178,6 +179,7 @@ class ProfileRepository {
       banner: this.normalizeBanner(input?.banner),
       createdAt: now,
       updatedAt: now,
+      userAgent: '',
       isSystem: false
     };
     this.profiles.set(uuid, profile);
@@ -203,7 +205,7 @@ class ProfileRepository {
 
   toPublic(profile) {
     if (!profile) return null;
-    const { uuid: _uuid, ...publicProfile } = profile;
+    const { uuid: _uuid, userAgent: _userAgent, ...publicProfile } = profile;
     return publicProfile;
   }
 
@@ -238,6 +240,7 @@ class ProfileRepository {
       banner: this.normalizeBanner(raw?.banner),
       createdAt: typeof raw?.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
       updatedAt: typeof raw?.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
+      userAgent: this.optionalText(raw?.userAgent, 2048),
       isSystem: false
     };
   }

@@ -75,6 +75,32 @@ export type AdminProfileItem = {
   createdAt: string;
   updatedAt: string;
   isSystem: boolean;
+  userAgent: string;
+};
+
+export type PushRecipient = {
+  uuid: string;
+  userId: string;
+  name: string;
+  subscriptionCount: number;
+  devices: Array<{ id: string; userAgent: string; updatedAt: string; active: boolean }>;
+};
+
+export type PushMessage = {
+  id: string;
+  title: string;
+  body: string;
+  url: string;
+  audience: 'all' | 'users';
+  uuids: string[];
+  adminName: string;
+  createdAt: string;
+  completedAt: string;
+  status: 'sending' | 'sent' | 'partial' | 'failed' | 'interrupted';
+  total: number;
+  accepted: number;
+  failed: number;
+  expired: number;
 };
 
 export type AdminDoodleItem = {

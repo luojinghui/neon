@@ -18,6 +18,8 @@
     "test:video-effects": "node --test scripts/video-effects.test.cjs",
     "test:video-effects:browser": "node scripts/video-effects-browser.cjs",
     "test:profile": "node --test src/server/user/profileRepository.test.js",
+    "test:push": "node --test src/server/push/*.test.js",
+    "test:push:browser": "node scripts/push-browser.cjs",
     "test:social": "node --test src/server/chat/directSocket.test.js",
     "test:moments": "node --test src/server/moment/momentRepository.test.js scripts/moments-cache.test.cjs",
     "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js",
@@ -52,6 +54,7 @@
     "socket.io": "4.8.3",
     "socket.io-client": "4.8.3",
     "tailwind-merge": "^2.3.0",
+    "web-push": "3.6.7",
     "zod": "4.6.7",
     "zustand": "^4.5.2"
   },

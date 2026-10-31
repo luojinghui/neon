@@ -1,4 +1,5 @@
 /* Only immutable, versioned vision assets are cached. Never cache photos or APIs. */
+importScripts('/push-worker.js');
 const CACHE = 'neon-vision-0.10.35-v1';
 const ROOT = '/mediapipe/0.10.35/';
 self.addEventListener('install', () => self.skipWaiting());

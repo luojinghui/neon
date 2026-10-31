@@ -184,7 +184,9 @@ test('admin APIs authenticate, expose all direct history with lossless paginatio
   await accepted(b, 'direct:open', { publicKey: f.profiles[2].publicKey });
   await accepted(a, 'room:join', { roomId });
   for (let index = 0; index < 55; index++) await accepted(a, 'chat:send', { roomId, content: `message ${index}` });
-  for (const route of ['/directs', `/directs/${roomId}/messages`, '/moments', '/doodle-shares']) assert.equal((await f.api(route, { admin: false })).status, 401);
+  for (const route of ['/directs', `/directs/${roomId}/messages`, '/moments', '/doodle-shares', '/push']) assert.equal((await f.api(route, { admin: false })).status, 401);
+  assert.equal((await f.api('/push/messages', { admin: false, method: 'POST' })).status, 401);
+  assert.equal((await f.api('/push/messages', { method: 'POST', headers: { 'x-admin-request': '' } })).status, 403);
   assert.equal((await (await f.api('/directs')).json()).items.length, 2);
   const response = await f.api(`/directs/${roomId}/messages`);
   assert.equal(response.headers.get('cache-control'), 'private, no-store');

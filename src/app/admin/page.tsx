@@ -4,6 +4,7 @@ import '@/styles/index.css';
 import './admin.css';
 import {
   CheckOutlined,
+  BellOutlined,
   CloudOutlined,
   CloseOutlined,
   DeleteOutlined,
@@ -28,10 +29,11 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { AdminApiError, adminRequest } from './client';
 import { DirectDataTable, DoodleShareTable, MomentDataTable } from './ContentTables';
+import { PushManagement } from './PushManagement';
 import type { AdminCloudItem, AdminDoodleItem, AdminIdentity, AdminProfileItem, AdminRoomAccessItem, AdminRoomItem } from './types';
 
 type Notice = { type: 'error' | 'success'; text: string } | null;
-type AdminTab = 'cloud' | 'rooms' | 'access' | 'users' | 'doodles' | 'directs' | 'moments' | 'shares';
+type AdminTab = 'cloud' | 'rooms' | 'access' | 'users' | 'doodles' | 'directs' | 'moments' | 'shares' | 'push';
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -584,6 +586,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
   const columns: TableColumnsType<AdminProfileItem> = [
     { title: '人员', width: 180, render: (_, profile) => <div><div className="font-medium text-foreground">{profile.name} {profile.isSystem && <Tag className="ml-1">系统</Tag>}</div><div className="mt-0.5 font-mono text-xs text-foreground-muted">@{profile.userId}</div></div> },
     { title: 'UUID', dataIndex: 'uuid', width: 285, ellipsis: true, render: (value) => <span className="font-mono text-xs text-foreground-secondary">{value || '系统账户'}</span> },
+    { title: '注册 User-Agent', dataIndex: 'userAgent', width: 280, ellipsis: true, render: (value: string) => <Tooltip title={value || '未记录（历史资料或后台创建）'}><span className="font-mono text-xs text-foreground-secondary">{value || '未记录'}</span></Tooltip> },
     { title: '个人描述', dataIndex: 'bio', ellipsis: true, render: (value) => <span className="text-foreground-secondary">{value || '—'}</span> },
     { title: '创建时间', dataIndex: 'createdAt', width: 174, render: formatDate },
     { title: '更新时间', dataIndex: 'updatedAt', width: 174, render: formatDate },
@@ -608,7 +611,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
         <div><h2 className="text-lg font-semibold text-foreground">全部人员</h2><p className="mt-1 text-xs text-foreground-muted">共 {items.length} 个资料账户，包含系统账户</p></div>
         <button type="button" onClick={openCreate} className="admin-primary-button"><PlusOutlined /> 新增人员</button>
       </div>
-      <Table rowKey={(profile) => profile.uuid || profile.userId} loading={loading} columns={columns} dataSource={items} scroll={{ x: 1120 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 人` }} />
+      <Table rowKey={(profile) => profile.uuid || profile.userId} loading={loading} columns={columns} dataSource={items} scroll={{ x: 1400 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 人` }} />
 
       <Modal title={editing === 'new' ? '新增人员' : '编辑人员信息'} open={Boolean(editing)} onCancel={() => setEditing(null)} onOk={() => void save()} okText="保存" cancelText="取消" confirmLoading={saving} centered destroyOnHidden>
         <div className="grid gap-4">
@@ -776,6 +779,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
     { key: 'moments', label: '心迹管理', icon: <PictureOutlined /> },
     { key: 'access', label: '访问申请', icon: <SolutionOutlined /> },
     { key: 'users', label: '人员数据', icon: <TeamOutlined /> },
+    { key: 'push', label: '消息推送', icon: <BellOutlined /> },
     { key: 'doodles', label: '漫游作品', icon: <PictureOutlined /> },
     { key: 'shares', label: '相机分享链接', icon: <PictureOutlined /> }
   ];
@@ -846,6 +850,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
           {tab === 'rooms' && <RoomDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'access' && <RoomAccessTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'users' && <UserDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
+          {tab === 'push' && <PushManagement refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
           {tab === 'doodles' && <DoodleDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
         </div>
       </div>

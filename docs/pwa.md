@@ -42,7 +42,8 @@ node scripts/generate-pwa-icons.cjs
 5. 已安装应用可能保留安装时的图标和配置；发布后如果仍显示旧外观，移除旧安装，
    刷新网站后重新安装再验收。仅刷新页面不一定更新主屏图标。
 
-此次配置覆盖安装与外观，没有注册 Service Worker，也没有缓存聊天、文件或 API 响应；
+根作用域的 `vision-sw.js` 同时处理通知推送和不可变的相机模型资源缓存，不缓存聊天、文件或 API 响应。
+消息推送的授权、后台发送和部署配置见 [浏览器消息推送](browser-push.md)。
 断网时仍需要恢复网络才能使用在线功能。
 
 参考：[Next.js PWA 指南](https://nextjs.org/docs/app/guides/progressive-web-apps)、

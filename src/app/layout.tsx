@@ -5,6 +5,7 @@ import ClientThemeWrapper from '../components/theme/theme-wrapper';
 import { PWA_ICON_VERSION, PWA_NAME, PWA_THEME_COLORS } from '@/lib/pwa';
 import '@/styles/index.css';
 import { SocialProvider } from './social/SocialProvider';
+import { PushNotifications } from '@/components/push/PushNotifications';
 
 export const metadata: Metadata = {
   title: 'Soul',
@@ -49,7 +50,7 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning className={cn('font-sans antialiased bg-background text-foreground')}>
         <Suspense fallback={null}>
-          <ClientThemeWrapper><SocialProvider />{children}</ClientThemeWrapper>
+          <ClientThemeWrapper><SocialProvider /><PushNotifications />{children}</ClientThemeWrapper>
         </Suspense>
       </body>
     </html>

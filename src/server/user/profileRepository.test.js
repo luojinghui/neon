@@ -32,6 +32,37 @@ test('creates one stable profile for a browser uuid', async () => {
   }
 });
 
+test('captures registration UA from server context, preserves it and keeps it private', async () => {
+  const fixture = createFixture();
+  try {
+    const uuid = 'd9428888-122b-4a8b-8a4b-0d2b0f4f3552';
+    const ua = 'Mozilla/5.0 test browser';
+    const first = fixture.repository.ensureProfile({ uuid, userAgent: 'body spoof' }, { userAgent: ua });
+    assert.equal(first.userAgent, ua);
+    assert.equal(fixture.repository.ensureProfile({ uuid }, { userAgent: 'Later browser' }).userAgent, ua);
+    assert.equal('userAgent' in fixture.repository.toPublic(first), false);
+    assert.equal(fixture.repository.toAdmin(first).userAgent, ua);
+    fixture.repository.updateProfile(uuid, { userId: first.userId, name: 'Updated', userAgent: 'edit spoof' });
+    await fixture.repository.writeQueue;
+    const reloaded = new ProfileRepository({ dataFile: fixture.repository.dataFile });
+    assert.equal(reloaded.getByUuid(uuid).userAgent, ua);
+    assert.equal(fixture.repository.createProfile({ userId: 'AdminMade', name: 'Admin made' }).userAgent, '');
+  } finally { await cleanupFixture(fixture); }
+});
+
+test('loads legacy profiles without inventing their registration UA and bounds new values', async () => {
+  const fixture = createFixture();
+  try {
+    const first = fixture.repository.ensureProfile({ uuid: 'd9428888-122b-4a8b-8a4b-0d2b0f4f3552' }, { userAgent: 'x'.repeat(4000) });
+    assert.equal(first.userAgent.length, 2048);
+    await fixture.repository.writeQueue;
+    delete first.userAgent;
+    fs.writeFileSync(fixture.repository.dataFile, JSON.stringify({ profiles: [first] }));
+    const reloaded = new ProfileRepository({ dataFile: fixture.repository.dataFile });
+    assert.equal(reloaded.getByUuid(first.uuid).userAgent, '');
+  } finally { await cleanupFixture(fixture); }
+});
+
 test('allows alphanumeric userId changes while keeping ownership uuid stable', async () => {
   const fixture = createFixture();
   try {
