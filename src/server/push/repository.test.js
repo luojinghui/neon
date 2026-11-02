@@ -84,6 +84,44 @@ test('temporary provider errors retain subscriptions for retry, and empty/invali
   await assert.rejects(repository.send({ ...draft, audience: 'users', uuids: ['a'.repeat(36)] }, profiles, 'admin'), /不存在/);
 });
 
+test('persists grouped failure reasons and logs each failed delivery without subscription credentials', async t => {
+  const logger = t.mock.method(console, 'error', () => {});
+  const subscriptions = [subscription('timeout-one'), subscription('timeout-two'), subscription('auth'), subscription('dns', 'updates.push.services.mozilla.com')];
+  const { repository, options } = await fixture(t, async (sub, _payload, { vapidDetails }) => {
+    if (sub.endpoint.endsWith('/auth')) throw Object.assign(new Error(`Authentication failed for ${sub.endpoint}`), {
+      statusCode: 403,
+      body: JSON.stringify({ reason: 'VapidPkHashMismatch', endpoint: sub.endpoint, auth: sub.keys.auth, p256dh: sub.keys.p256dh, ...vapidDetails, uuid: profiles[0].uuid })
+    });
+    if (sub.endpoint.endsWith('/dns')) throw Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
+    throw new Error('Socket timeout');
+  });
+  for (const sub of subscriptions) await repository.subscribe(profiles[0].uuid, sub, 'QA');
+  const result = await repository.send(draft, profiles, 'admin');
+  assert.deepEqual([result.status, result.total, result.accepted, result.failed], ['failed', 4, 0, 4]);
+  assert.equal(result.failureReasons.length, 3);
+  assert.equal(result.failureReasons.find(item => item.code === 'ETIMEDOUT').count, 2);
+  assert.equal(result.failureReasons.find(item => item.code === 'HTTP_403').statusCode, 403);
+  assert.equal(result.failureReasons.find(item => item.code === 'ENOTFOUND').provider, 'updates.push.services.mozilla.com');
+  const dashboard = await new PushRepository(options).dashboard(profiles);
+  assert.deepEqual(dashboard.messages[0].failureReasons, result.failureReasons);
+  assert.equal((await repository.read()).subscriptions.length, 4);
+  const logs = logger.mock.calls.map(call => {
+    assert.equal(call.arguments[0], '[push] delivery failed');
+    return JSON.parse(call.arguments[1]);
+  });
+  assert.equal(logs.length, 4);
+  for (const log of logs) {
+    assert.equal(log.messageId, result.id);
+    assert.match(log.subscriptionId, /^[a-f0-9]{24}$/);
+    assert.ok(log.elapsedMs >= 0);
+  }
+  assert.match(logs.find(log => log.statusCode === 403).responseBody, /VapidPkHashMismatch/);
+  const output = JSON.stringify({ logs, result, dashboard });
+  const config = await repository.configuration();
+  for (const secret of [config.privateKey, config.publicKey, ...subscriptions.flatMap(sub => [sub.endpoint, sub.keys.auth, sub.keys.p256dh])]) assert.equal(output.includes(secret), false);
+  assert.equal(JSON.stringify(logs).includes(profiles[0].uuid), false);
+});
+
 test('rejects unsafe endpoints, malformed keys, external pages and empty messages', () => {
   for (const host of ['localhost', '127.0.0.1', '169.254.169.254', 'fcm.googleapis.com.evil.test']) assert.throws(() => normalizeSubscription(subscription('a', host)));
   for (const endpoint of ['http://fcm.googleapis.com/a', 'https://fcm.googleapis.com:8443/a', 'https://u:p@fcm.googleapis.com/a']) assert.throws(() => normalizeSubscription({ ...subscription(), endpoint }));

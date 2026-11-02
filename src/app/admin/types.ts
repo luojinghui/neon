@@ -101,6 +101,7 @@ export type PushMessage = {
   accepted: number;
   failed: number;
   expired: number;
+  failureReasons?: Array<{ code: string; statusCode?: number; provider: string; reason: string; count: number }>;
 };
 
 export type AdminDoodleItem = {

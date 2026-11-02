@@ -16,7 +16,8 @@ test('HTTP subscription identity/origin checks and private admin send workflow',
   const profiles = { getByUuid: value => value === uuid ? profile : null, listProfiles: () => [profile] };
   const sent = [];
   const audited = [];
-  const repository = new PushRepository({ dataFile: path.join(directory, 'push.json'), env: {}, transport: { generateVAPIDKeys: webpush.generateVAPIDKeys, sendNotification: async (...args) => { sent.push(args); } } });
+  let failure;
+  const repository = new PushRepository({ dataFile: path.join(directory, 'push.json'), env: {}, transport: { generateVAPIDKeys: webpush.generateVAPIDKeys, sendNotification: async (...args) => { sent.push(args); if (failure) throw failure; } } });
   const app = express();
   app.use('/api/push', createPushRouter({ repository, profiles }));
   app.use('/admin/push', (req, res, next) => {
@@ -47,6 +48,18 @@ test('HTTP subscription identity/origin checks and private admin send workflow',
   assert.equal((await result.json()).item.accepted, 1);
   assert.equal(sent.length, 1);
   assert.equal(audited[0][1], 'push.send');
+  t.mock.method(console, 'error', () => {});
+  failure = Object.assign(new Error('Socket timeout'), { code: 'ETIMEDOUT' });
+  const failedResponse = await fetch(`${base}/admin/push/messages`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'test-admin' }, body: JSON.stringify({ title: '失败测试', body: '测试超时原因', url: '/soul', audience: 'all' }) });
+  assert.equal(failedResponse.status, 201);
+  const failed = (await failedResponse.json()).item;
+  assert.equal(failed.status, 'failed');
+  assert.equal(failed.failureReasons[0].code, 'ETIMEDOUT');
+  assert.match(failed.failureReasons[0].reason, /超时/);
+  const history = await (await fetch(`${base}/admin/push`, { headers: { authorization: 'test-admin' } })).json();
+  assert.deepEqual(history.messages[0].failureReasons, failed.failureReasons);
+  assert.equal(JSON.stringify(history).includes(subscription.endpoint), false);
+  assert.equal(audited[1][5], false);
   assert.equal((await fetch(`${base}/api/push/subscriptions`, { method: 'DELETE', headers, body: JSON.stringify({ endpoint: subscription.endpoint }) })).status, 204);
   assert.equal((await repository.read()).subscriptions.length, 0);
 });

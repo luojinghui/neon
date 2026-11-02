@@ -16,6 +16,20 @@ const pageOptions = [
 const date = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false });
 const statusLabels = { sending: '发送中', sent: '已提交', partial: '部分失败', failed: '全部失败', interrupted: '中断，结果未知' };
 
+function PushFailureReasons({ message }: { message: PushMessage }) {
+  if (!message.failed) return null;
+  if (!message.failureReasons?.length) return <p className="text-xs">此记录未保存失败原因。</p>;
+  return <div className="text-xs leading-5">
+    <p className="font-medium">失败原因：</p>
+    <ul className="mt-1 grid gap-2">
+      {message.failureReasons.map(item => <li key={`${item.provider}:${item.code}:${item.statusCode || ''}`}>
+        <p>{item.reason}（{item.count} 条）</p>
+        <p className="break-all text-foreground-muted">{item.provider} · {item.statusCode ? `HTTP ${item.statusCode}` : item.code}</p>
+      </li>)}
+    </ul>
+  </div>;
+}
+
 export function PushManagement({ refreshToken, onUnauthorized }: { refreshToken: number; onUnauthorized: () => void }) {
   const [recipients, setRecipients] = useState<PushRecipient[]>([]);
   const [messages, setMessages] = useState<PushMessage[]>([]);
@@ -72,8 +86,8 @@ export function PushManagement({ refreshToken, onUnauthorized }: { refreshToken:
   const messageColumns: TableColumnsType<PushMessage> = [
     { title: '通知', width: 280, render: (_, item) => <div><p className="font-medium">{item.title}</p><p className="mt-1 whitespace-pre-wrap break-words text-xs text-foreground-secondary">{item.body}</p><a className="mt-1 block break-all text-xs text-primary" href={item.url} target="_blank" rel="noreferrer">{item.url}</a></div> },
     { title: '接收对象', width: 130, render: (_, item) => item.audience === 'all' ? '全部订阅用户' : `${item.uuids.length} 位指定用户` },
-    { title: '状态', width: 110, render: (_, item) => <Tag color={item.status === 'sent' ? 'success' : item.status === 'sending' ? 'processing' : 'warning'}>{statusLabels[item.status]}</Tag> },
-    { title: '浏览器推送结果', width: 190, render: (_, item) => <div className="text-xs leading-6"><p>服务已接收 {item.accepted} / {item.total}</p><p className="text-foreground-muted">失败 {item.failed} · 失效订阅 {item.expired}</p></div> },
+    { title: '状态', width: 110, render: (_, item) => <Tag color={item.status === 'sent' ? 'success' : item.status === 'sending' ? 'processing' : item.status === 'failed' ? 'error' : 'warning'}>{statusLabels[item.status]}</Tag> },
+    { title: '浏览器推送结果', width: 320, render: (_, item) => <div className="grid gap-2 text-xs leading-6"><div><p>服务已接收 {item.accepted} / {item.total}</p><p className="text-foreground-muted">失败 {item.failed} · 失效订阅 {item.expired}</p></div><PushFailureReasons message={item} /></div> },
     { title: '发送人', dataIndex: 'adminName', width: 120 },
     { title: '发送时间', dataIndex: 'createdAt', width: 180, render: date }
   ];
@@ -90,7 +104,7 @@ export function PushManagement({ refreshToken, onUnauthorized }: { refreshToken:
       <p className="mt-1 text-xs leading-5 text-foreground-muted">向已授权的浏览器发送通知，并指定点击后打开的站内页面。{available.length} 位用户已订阅，共 {available.reduce((sum, item) => sum + item.subscriptionCount, 0)} 个浏览器。</p>
     </div>
     {error && <Alert type="error" showIcon message={error} />}
-    {result && <Alert type={result.failed ? 'warning' : 'success'} showIcon message={`推送服务已接收 ${result.accepted} / ${result.total} 条，失败 ${result.failed} 条`} description="实际展示取决于浏览器、设备在线状态与系统通知设置，提交成功不代表用户已阅读。" />}
+    {result && <Alert type={result.failed ? result.accepted ? 'warning' : 'error' : 'success'} showIcon message={`推送服务已接收 ${result.accepted} / ${result.total} 条，失败 ${result.failed} 条`} description={<div className="grid gap-2"><PushFailureReasons message={result} />{result.accepted > 0 && <p>实际展示取决于浏览器、设备在线状态与系统通知设置，提交成功不代表用户已阅读。</p>}</div>} />}
     <form className="grid max-w-2xl gap-4" onSubmit={event => { event.preventDefault(); setPreview(true); }}>
       <label className="grid gap-2 text-sm"><span>推送对象</span><Radio.Group disabled={sending} value={audience} onChange={event => setAudience(event.target.value)} options={[{ value: 'users', label: '指定用户' }, { value: 'all', label: '全部已订阅用户' }]} /></label>
       {audience === 'users' && <Select aria-label="选择接收用户" mode="multiple" disabled={sending} value={uuids} onChange={setUuids} placeholder="选择已订阅用户" optionFilterProp="label" options={available.map(item => ({ value: item.uuid, label: `${item.name} (@${item.userId}) · ${item.subscriptionCount} 个浏览器` }))} />}
@@ -100,7 +114,7 @@ export function PushManagement({ refreshToken, onUnauthorized }: { refreshToken:
       <div><button type="submit" disabled={sending || loading || !browserCount || !title.trim() || !body.trim() || !url.startsWith('/') || url.startsWith('//')} className="admin-primary-button disabled:opacity-40">{sending ? <LoadingOutlined /> : <BellOutlined />} 预览并发送</button><span className="ml-3 text-xs text-foreground-muted">将发送至 {selected.length} 位用户的 {browserCount} 个浏览器</span></div>
     </form>
     <div><h3 className="mb-3 text-sm font-semibold">用户订阅</h3><Table rowKey="uuid" loading={loading} columns={recipientColumns} dataSource={recipients} scroll={{ x: 680 }} pagination={{ pageSize: 10, showSizeChanger: false }} expandable={{ expandedRowRender: item => <div className="grid gap-2">{item.devices.length ? item.devices.map(device => <div key={device.id} className="text-xs"><Tag color={device.active ? 'green' : undefined}>{device.active ? '有效' : '待重新订阅'}</Tag><Tooltip title={device.userAgent}><span className="break-all font-mono">{device.userAgent || '未记录浏览器信息'}</span></Tooltip></div>) : <span className="text-xs text-foreground-muted">用户需在云传、心迹或星球页面开启消息通知。</span>}</div> }} /></div>
-    <div><h3 className="mb-3 text-sm font-semibold">最近发送记录</h3><Table rowKey="id" loading={loading} columns={messageColumns} dataSource={messages} scroll={{ x: 1020 }} pagination={{ pageSize: 10, showSizeChanger: false }} /></div>
+    <div><h3 className="mb-3 text-sm font-semibold">最近发送记录</h3><Table rowKey="id" loading={loading} columns={messageColumns} dataSource={messages} scroll={{ x: 1150 }} pagination={{ pageSize: 10, showSizeChanger: false }} /></div>
     <Modal title="预览推送通知" open={preview} onCancel={() => { if (!sending) setPreview(false); }} onOk={() => void send()} okText={`发送至 ${browserCount} 个浏览器`} cancelText="返回编辑" confirmLoading={sending} closable={!sending} maskClosable={!sending} keyboard={!sending} cancelButtonProps={{ disabled: sending }} centered>
       <div className="my-4 rounded-xl border border-border bg-background-secondary p-4"><p className="mb-2 text-xs text-foreground-muted">Soul星球</p><p className="font-semibold">{title}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm">{body}</p></div>
       <p className="break-all text-xs text-foreground-muted">打开页面：{url}</p><p className="mt-2 text-xs text-foreground-muted">接收对象：{audience === 'all' ? '全部已订阅用户' : selected.map(item => item.name).join('、')}</p>

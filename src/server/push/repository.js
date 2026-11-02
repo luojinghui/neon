@@ -3,6 +3,7 @@ const path = require('node:path');
 const { createHash, randomUUID } = require('node:crypto');
 const webpush = require('web-push');
 const { runFileExclusive, writeFileAtomic } = require('../storage/filePersistence');
+const { describePushFailure, diagnosticText } = require('./diagnostics');
 
 class PushError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -138,7 +139,7 @@ class PushRepository {
       state.messages = state.messages.map(item => item.status === 'sending' ? { ...item, status: 'interrupted' } : item);
       const targets = state.subscriptions.filter(item => validUuids.has(item.uuid) && item.publicKey === config.publicKey && (!item.subscription.expirationTime || item.subscription.expirationTime > Date.now()) && (draft.audience === 'all' || draft.uuids.includes(item.uuid)));
       if (!targets.length) throw new PushError('所选用户没有有效的浏览器订阅');
-      const message = { id: randomUUID(), ...draft, adminName, createdAt: new Date().toISOString(), completedAt: '', status: 'sending', total: targets.length, accepted: 0, failed: 0, expired: 0 };
+      const message = { id: randomUUID(), ...draft, adminName, createdAt: new Date().toISOString(), completedAt: '', status: 'sending', total: targets.length, accepted: 0, failed: 0, expired: 0, failureReasons: [] };
       state.messages.unshift(message);
       state.messages = state.messages.slice(0, 100);
       return { message, targets };
@@ -146,17 +147,36 @@ class PushRepository {
     const expired = new Set();
     let index = 0;
     const payload = JSON.stringify({ id: message.id, title: message.title, body: message.body, url: message.url });
+    const recordFailure = (target, error, startedAt) => {
+      message.failed++;
+      const failure = describePushFailure(error);
+      const provider = new URL(target.subscription.endpoint).hostname;
+      const existing = message.failureReasons.find(item => item.provider === provider && item.code === failure.code && item.statusCode === failure.statusCode);
+      if (existing) existing.count++;
+      else message.failureReasons.push({ ...failure, provider, count: 1 });
+      const secrets = [target.subscription.endpoint, target.subscription.keys.auth, target.subscription.keys.p256dh, target.uuid, config.privateKey, config.publicKey];
+      console.error('[push] delivery failed', JSON.stringify({
+        messageId: message.id, subscriptionId: target.id, provider, elapsedMs: Date.now() - startedAt,
+        ...failure,
+        errorMessage: diagnosticText(error?.message, secrets),
+        responseBody: diagnosticText(error?.body, secrets)
+      }));
+      if ([404, 410].includes(failure.statusCode)) { message.expired++; expired.add(`${target.id}:${target.revision}`); }
+    };
     await Promise.all(Array.from({ length: Math.min(5, targets.length) }, async () => {
       while (index < targets.length) {
         const target = targets[index++];
+        const startedAt = Date.now();
         try {
           // Recheck deletion/revocation while a batch is in progress.
-          if (!(await this.read()).subscriptions.some(item => item.id === target.id && item.uuid === target.uuid && item.revision === target.revision)) { message.failed++; continue; }
+          if (!(await this.read()).subscriptions.some(item => item.id === target.id && item.uuid === target.uuid && item.revision === target.revision)) {
+            recordFailure(target, { code: 'SUBSCRIPTION_REVOKED' }, startedAt);
+            continue;
+          }
           await this.transport.sendNotification(target.subscription, payload, { TTL: 86400, timeout: 10000, vapidDetails: config });
           message.accepted++;
         } catch (error) {
-          message.failed++;
-          if ([404, 410].includes(error.statusCode)) { message.expired++; expired.add(`${target.id}:${target.revision}`); }
+          recordFailure(target, error, startedAt);
         }
       }
     }));

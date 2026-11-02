@@ -101,7 +101,10 @@ async function waitFor(check, label) {
     assert.equal(await deniedPage.evaluate(() => window.__permissionCalls), 0);
     await denied.close();
 
-    const repository = new PushRepository({ dataFile, env: {}, transport: { generateVAPIDKeys: webpush.generateVAPIDKeys, sendNotification: async () => {} } });
+    let deliveryMode = 'success';
+    const repository = new PushRepository({ dataFile, env: {}, transport: { generateVAPIDKeys: webpush.generateVAPIDKeys, sendNotification: async sub => {
+      if (deliveryMode === 'timeout' || (deliveryMode === 'partial' && sub.endpoint === subscription.endpoint)) throw new Error('Socket timeout');
+    } } });
     const sent = [];
     // Browser request routing cannot intercept requests handled by a controlling SW.
     // Admin UI fixtures use a separate context; the real public flow above keeps SW enabled.
@@ -138,8 +141,44 @@ async function waitFor(check, label) {
     assert.equal(sent.length, 1);
     assert.equal(sent[0].url, '/soul?from=push');
     await page.screenshot({ path: path.join(output, 'admin-push.png'), animations: 'disabled', fullPage: true });
+
+    deliveryMode = 'timeout';
+    await page.getByRole('button', { name: '预览并发送' }).click();
+    await page.getByRole('button', { name: '发送至 1 个浏览器', exact: true }).click();
+    const failedAlert = page.locator('.ant-alert-error').filter({ hasText: '推送服务已接收 0 / 1 条，失败 1 条' });
+    await failedAlert.waitFor();
+    await failedAlert.getByText('连接推送服务超时，请检查服务器出站网络（1 条）', { exact: true }).waitFor();
+    assert.equal(await failedAlert.getByText('fcm.googleapis.com · ETIMEDOUT', { exact: true }).count(), 1);
+    assert.equal(await failedAlert.getByText('提交成功不代表用户已阅读。', { exact: false }).count(), 0);
+    await page.locator('.ant-tag-error').filter({ hasText: '全部失败' }).waitFor();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    await page.screenshot({ path: path.join(output, 'admin-push-failed.png'), animations: 'disabled', fullPage: true });
+    await page.reload();
+    await page.getByRole('button', { name: '消息推送' }).click();
+    await page.getByText('连接推送服务超时，请检查服务器出站网络（1 条）', { exact: true }).waitFor();
+
+    await repository.subscribe(profiles()[0].uuid, { ...subscription, endpoint: 'https://fcm.googleapis.com/send/partial-success' }, 'QA second browser');
+    deliveryMode = 'partial';
+    await page.reload();
+    await page.getByRole('button', { name: '消息推送' }).click();
+    await page.getByRole('button', { name: '选择推送', exact: true }).first().click();
+    await page.getByPlaceholder('输入通知标题').fill('部分失败测试');
+    await page.getByPlaceholder('输入通知内容').fill('验证部分成功时的警告和失败原因');
+    await page.getByRole('button', { name: '预览并发送' }).click();
+    await page.getByRole('button', { name: '发送至 2 个浏览器', exact: true }).click();
+    const partialAlert = page.locator('.ant-alert-warning').filter({ hasText: '推送服务已接收 1 / 2 条，失败 1 条' });
+    await partialAlert.waitFor();
+    await partialAlert.getByText('连接推送服务超时，请检查服务器出站网络（1 条）', { exact: true }).waitFor();
+    await partialAlert.getByText('提交成功不代表用户已阅读。', { exact: false }).waitFor();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    await page.screenshot({ path: path.join(output, 'admin-push-partial.png'), animations: 'disabled', fullPage: true });
+
+    await repository.mutate(state => { delete state.messages[0].failureReasons; });
+    await page.reload();
+    await page.getByRole('button', { name: '消息推送' }).click();
+    await page.getByText('此记录未保存失败原因。', { exact: true }).waitFor();
     assert.deepEqual(errors, []);
-    console.log('Browser QA passed: registration UA, permission gesture, subscription sync, prompt snooze, mobile layout and admin push workflow.');
+    console.log('Browser QA passed: registration UA, permission gesture, subscription sync, prompt snooze, mobile layout, admin push, red failure alerts, partial warnings and persisted/legacy failure reasons.');
     console.log(`Screenshots: ${output}`);
   } catch (error) {
     for (const context of browser?.contexts() || []) for (const page of context.pages()) {
