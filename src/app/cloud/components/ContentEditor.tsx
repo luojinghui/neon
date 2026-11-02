@@ -35,7 +35,7 @@ function formatFileSize(bytes: number): string {
 
 function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: string) => void }) {
   return (
-    <div className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-background-secondary px-3 py-1.5 max-w-full">
+    <div className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-surface-inset px-3 py-1.5 max-w-full">
       <PaperClipOutlined className="text-foreground-muted text-xs shrink-0" />
       <span className="text-sm text-foreground truncate max-w-[360px]" title={item.relativePath || item.name}>
         {item.relativePath || item.name}
@@ -172,7 +172,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
     className="cloud-editor-input w-full"
     styles={{
       textarea: { padding: '14px 40px 32px 16px', lineHeight: 1.75 },
-      count: { bottom: 12, insetInlineEnd: 16, fontSize: 12, color: 'hsl(var(--foreground-muted))' }
+      count: { bottom: 12, insetInlineEnd: 16, fontSize: 12, color: 'hsl(var(--control-placeholder))' }
     }}
     allowClear
     onChange={event => controller.handleTextChange(event)}

@@ -89,6 +89,18 @@
     --input-foreground: 24 20% 18%;
     --input-placeholder: 24 8% 58%;
     --input-focus: 36 30% 100%;
+
+    /* Shared component roles. Keep geometry and interaction rules identical in both themes:
+       cards use raised surfaces + shadows; fields use inset surfaces + fixed borders;
+       segmented navigation has one outer border and a filled, borderless selection. */
+    --canvas: 33 24% 96%;
+    --surface-raised: var(--surface);
+    --surface-inset: 33 22% 97%;
+    --control-placeholder: 24 8% 44%;
+    --segmented-background: var(--surface-inset);
+    --segmented-selected: var(--surface);
+    --segmented-hover: var(--background-tertiary);
+    --shadow-card: 0 2px 6px hsl(var(--shadow-color) / 0.035), 0 12px 32px -12px hsl(var(--shadow-color) / 0.1);
   }
 
   .dark {
@@ -163,6 +175,16 @@
     --input-foreground: 30 10% 92%;
     --input-placeholder: 26 6% 48%;
     --input-focus: 24 12% 22%;
+
+    /* Same roles as the light palette; components never need dark-mode overrides. */
+    --canvas: var(--background);
+    --surface-raised: 24 10% 15%;
+    --surface-inset: var(--input);
+    --control-placeholder: var(--foreground-secondary);
+    --segmented-background: var(--background-tertiary);
+    --segmented-selected: var(--surface-active);
+    --segmented-hover: var(--surface-hover);
+    --shadow-card: 0 2px 8px hsl(var(--shadow-color) / 0.14), 0 16px 36px -16px hsl(var(--shadow-color) / 0.32);
   }
 
   html {

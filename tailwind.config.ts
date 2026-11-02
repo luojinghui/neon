@@ -21,6 +21,7 @@ const config = {
         },
         background: {
           DEFAULT: 'hsl(var(--background))',
+          canvas: 'hsl(var(--canvas))',
           secondary: 'hsl(var(--background-secondary))',
           tertiary: 'hsl(var(--background-tertiary))'
         },
@@ -31,6 +32,8 @@ const config = {
         },
         surface: {
           DEFAULT: 'hsl(var(--surface))',
+          raised: 'hsl(var(--surface-raised))',
+          inset: 'hsl(var(--surface-inset))',
           hover: 'hsl(var(--surface-hover))',
           active: 'hsl(var(--surface-active))'
         },
@@ -87,6 +90,7 @@ const config = {
         sm: 'calc(var(--radius) - 4px)'
       },
       boxShadow: {
+        card: 'var(--shadow-card)',
         sm: 'var(--shadow-sm)',
         md: 'var(--shadow-md)',
         lg: 'var(--shadow-lg)',

@@ -23,8 +23,8 @@ function QueryFileItem({ file }: { file: CloudFileInfo }) {
   };
 
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-background-secondary/65 px-3 py-2.5">
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground-secondary"><PaperClipOutlined /></span>
+    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-surface-inset px-3 py-2.5">
+      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-raised text-foreground-secondary"><PaperClipOutlined /></span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm text-foreground" title={file.relativePath || file.fileName}>
           {file.relativePath || file.fileName}
