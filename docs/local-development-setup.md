@@ -109,8 +109,7 @@ node --env-file=.env.local src/server.js
 | `APP_HOST` | `127.0.0.1` | 手机/局域网访问时改 `0.0.0.0` |
 | `APP_PORT` | `3000` | 端口冲突时改；不是 `PORT` |
 | `ALLOWED_ORIGINS` | 空；Socket.IO 跨域来源，多个用逗号分隔 | 同源开发不填；不是通用 API 跨域开关 |
-| `CLOUD_TRUSTED_PROXIES` | 空；云传网络诊断仅使用 TCP 对端地址 | 经可信反向代理测试来源 IP 时配置代理 IP/CIDR；同机代理可用 `loopback` |
-| `WEBRTC_STUN_URLS` | `stun:8.137.55.241:3478`；与云传共用默认 STUN 地址，多个用逗号分隔 | 可覆盖为其他可达服务 |
+| `WEBRTC_STUN_URLS` | `stun:8.137.55.241:3478`；通话默认 STUN 地址，多个用逗号分隔 | 可覆盖为其他可达服务 |
 | `WEBRTC_TURN_URLS` | 空；通话 TURN 地址，多个用逗号分隔 | 跨网络通话需配置可达中继 |
 | `WEBRTC_TURN_SECRET` | 空；coturn 的共享认证密钥 | 配置 TURN 时必填，仅存服务端本地环境文件 |
 | `WEBRTC_RELAY_ONLY` | `false`；仅值为 `true` 时强制中继 | 验收 TURN 时设 `true`，需同时配置 TURN |
@@ -131,7 +130,7 @@ node --env-file=.env.local src/server.js
 
 `DOODLE_UPLOAD_DIRECTORY` 改到 `public/` 之外后，分享 URL 仍为 `/uploads/doodle/...`，当前服务没有为任意自定义涂鸦目录增加静态映射；本地保持默认最直接。心迹自定义目录则已有 Express 映射。
 
-`CLOUD_TRUSTED_PROXIES` 只影响云传网络诊断，按实际代理拓扑配置。云传 ICE 探测与星球通话共用 STUN 默认值，`WEBRTC_STUN_URLS` 只覆盖通话的配置，不影响云传；见 [云传网络探测](cloud-network-diagnostics.md)、[通话配置](planet-calls.md) 与 [通话共享](call-sharing.md)。STUN 只提供地址发现，不能保证任意跨网络通话成功。
+星球通话使用 `src/constants/webrtc.js` 中的 STUN 默认值，可通过 `WEBRTC_STUN_URLS` 覆盖；见 [通话配置](planet-calls.md) 与 [通话共享](call-sharing.md)。STUN 只提供地址发现，不能保证任意跨网络通话成功。
 
 **5. 初始化网页管理员**
 
@@ -190,7 +189,7 @@ mongorestore --uri="mongodb://127.0.0.1:27017/neon_test" --archive=neon-test.arc
 | [ ] | 同源 `/mediapipe/0.10.35/` 资源可访问 | 微笑识别、相机编辑和通话画面效果的模型及 WASM |
 | [ ] | 浏览器可访问 `api.dicebear.com` | 默认头像 |
 | [ ] | 浏览器可访问 `fonts.gstatic.com` | 聊天动态 GIF 表情 |
-| [ ] | STUN/TURN 地址可达 | 云传 ICE 探测及跨网络音视频通话 |
+| [ ] | STUN/TURN 地址可达 | 跨网络音视频通话 |
 | [ ] | 允许摄像头 | 漫游相机拍照、微笑快门、视频通话 |
 | [ ] | 允许麦克风，录音支持 `MediaRecorder` | 心迹语音录制及语音/视频通话 |
 | [ ] | 浏览器支持并允许 `getDisplayMedia` | 发起屏幕共享；手机浏览器可能只能接收 |
@@ -267,7 +266,6 @@ pnpm test:webrtc
 pnpm test:sharing
 pnpm test:video-effects
 pnpm test:experience
-node --test scripts/cloud-network.test.cjs
 node --test scripts/deployment-data-backup.test.cjs
 pnpm build
 ```
@@ -282,7 +280,7 @@ pnpm build
 | MongoDB Compass / mongosh | 希望图形化或命令行查看开发库时 |
 | MongoDB Database Tools | 搬迁已有数据库时 |
 | LibreOffice Impress 与文档字体 | 通话中共享原生 PPT/PPTX 时 |
-| STUN/TURN 服务 | 云传网络诊断及跨网络通话；TURN 需单独部署和配置 |
+| STUN/TURN 服务 | 跨网络通话；TURN 需单独部署和配置 |
 | HTTPS 证书、Nginx/Caddy 等代理 | 跨设备安全上下文测试或模拟生产入口时 |
 | OpenSpec CLI | 使用仓库 `/opsx:*` 工作流时；它不在项目依赖中，也没有锁定版本 |
 | Prettier/编辑器格式化扩展 | 希望按 `prettier.config.js` 格式化时；项目有配置但没有 Prettier 依赖 |

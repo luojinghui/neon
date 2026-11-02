@@ -53,7 +53,7 @@
 
 本机 `localhost` 可开发；手机访问内网 HTTP 地址不能使用摄像头/麦克风，应部署 HTTPS。生产网络尤其移动网络和对称 NAT 需要可达的 TURN，仅配置 STUN 不能保证互通。
 
-星球通话默认与云传网络探测共用 `src/constants/webrtc.js` 中的 STUN 地址。服务端在 `call:join` 成功后下发配置，客户端将其传给每条 PeerConnection；已有部署环境中的 `WEBRTC_STUN_URLS` 仍优先。
+星球通话默认使用 `src/constants/webrtc.js` 中的 STUN 地址。服务端在 `call:join` 成功后下发配置，客户端将其传给每条 PeerConnection；已有部署环境中的 `WEBRTC_STUN_URLS` 仍优先。
 
 2026-10-26 已为当前服务器启用带鉴权的 TURN UDP/TCP，部署和实际验收记录见 [TURN 部署与运维](turn-server.md)。当前接入配置如下，密钥只保存在服务器：
 

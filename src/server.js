@@ -4,7 +4,6 @@ const next = require('next');
 const { Server } = require('socket.io');
 const chatController = require('./server/controller/chatController');
 const { mountAdminController } = require('./server/controller/adminController');
-const { createCloudNetworkApp } = require('./server/controller/cloudNetworkController');
 const { authenticateCookieHeader } = require('./server/admin/auth');
 const { doodleShareRepository } = require('./server/doodle/shareRepository');
 const { doodleReviewRepository } = require('./server/doodle/reviewRepository');
@@ -98,7 +97,6 @@ nextApp
 
         return nextRoute();
       })
-      .use('/api/cloud/network-info', createCloudNetworkApp())
       .get('/healthz', (_req, res) =>
         res.status(200).json({ status: 'ok', releaseId })
       )

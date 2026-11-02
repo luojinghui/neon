@@ -17,7 +17,6 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import VersionModal from './components/VersionModal';
-import NetworkInfo from './components/NetworkInfo';
 import CloudTabs from './components/CloudTabs';
 import Plaza from './plaza/Plaza';
 import PlazaShareContent from './plaza/PlazaShareContent';
@@ -96,7 +95,7 @@ function CloudPage() {
 
   return (
     <div className={`cloud-page${isPlaza ? ' plaza-page' : ''} app-screen w-full bg-background flex flex-col select-none`}>
-      <TopBar middle={<CloudTabs />} backHref="/" backLabel="首页" right={<><NetworkInfo /><ProfileShortcut returnTo={isPlaza ? messageId !== null ? plazaSharePath(messageId) : PLAZA_PATH : CLOUD_PATH} /><ThemeToggle /></>} />
+      <TopBar middle={<CloudTabs />} backHref="/" backLabel="首页" right={<><ProfileShortcut returnTo={isPlaza ? messageId !== null ? plazaSharePath(messageId) : PLAZA_PATH : CLOUD_PATH} /><ThemeToggle /></>} />
 
       {/* Content */}
       <main ref={contentRef} onScroll={event => { scrollPositions.current[viewKey] = event.currentTarget.scrollTop; }} className="content w-full pt-[var(--app-page-top)] pb-8 flex-1 overflow-y-auto overflow-x-hidden">
