@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const CLOUD_MESSAGE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+const { CLOUD_MESSAGE_LIFETIME_MS } = require('../cloud/retention');
 
 /**
  * 定义云传递数据模型

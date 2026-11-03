@@ -2,8 +2,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { CloudPlazaMessage } = require('../models/cloudPlaza');
+const { CLOUD_MESSAGE_LIFETIME_MS: PLAZA_LIFETIME_MS } = require('./retention');
 
-const PLAZA_LIFETIME_MS = 48 * 60 * 60 * 1000;
 const FILE_ID_PATTERN = /^[a-f0-9]{32}$/;
 const ID_PATTERN = /^(?:[A-Za-z0-9_-]{8}|[a-f0-9]{32})$/;
 const newFileId = () => randomBytes(16).toString('hex');

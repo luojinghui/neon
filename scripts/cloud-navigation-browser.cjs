@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { CLOUD_MESSAGE_LIFETIME_MS } = require('../src/server/cloud/retention');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright');
 
 const origin = new URL(process.env.CLOUD_QA_URL || 'http://127.0.0.1:3000').origin;
@@ -11,7 +12,7 @@ fs.mkdirSync(output, { recursive: true });
 const shortId = 'Ab_cd-12';
 const legacyId = 'a'.repeat(32);
 const now = () => new Date().toISOString();
-const item = (messageId = shortId) => ({ messageId, content: `分享内容 ${messageId}`, files: [], createdAt: now(), expireAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString() });
+const item = (messageId = shortId) => ({ messageId, content: `分享内容 ${messageId}`, files: [], createdAt: now(), expireAt: new Date(Date.now() + CLOUD_MESSAGE_LIFETIME_MS).toISOString() });
 const view = (page, name) => page.locator(`[data-cloud-view="${name}"]`);
 const editor = (page, name) => view(page, name).getByRole('textbox', { name: '发送内容', exact: true });
 const tab = (page, name) => page.getByRole('navigation', { name: '云传导航' }).getByRole('link', { name, exact: true });
@@ -111,6 +112,7 @@ async function layoutAndNavigation(browser, width) {
     aligned(cloud, plaza, width);
     const refresh = view(page, 'plaza').getByRole('button', { name: '刷新广场', exact: true });
     assert.equal((await refresh.textContent()).trim(), '', 'refresh presents only its icon');
+    assert.equal(await view(page, 'plaza').locator('.plaza-editor-note').count(), 0, 'the plaza editor omits the retention notice');
     assert.ok(!(await view(page, 'plaza').innerText()).includes('公开可见'), 'plaza copy omits redundant public visibility rules');
     await page.screenshot({ path: path.join(output, `plaza-${width}.png`), animations: 'disabled' });
     await editor(page, 'plaza').fill('广场草稿');
@@ -157,6 +159,7 @@ async function sharingAndLegacyLinks(browser) {
     await page.goto(`${origin}/cloud?tab=plaza&id=${shortId}`);
     await waitForView(page, 'share');
     await view(page, 'share').getByText(`分享内容 ${shortId}`, { exact: true }).waitFor();
+    assert.equal(await view(page, 'share').locator('.plaza-end').count(), 0, 'the shared card omits the retention notice');
     assert.equal(requests.detail.at(-1), shortId);
     assert.equal(requests.list, 0, 'a shared card loads its detail without fetching the feed');
     await page.screenshot({ path: path.join(output, 'share-short-id.png'), animations: 'disabled' });

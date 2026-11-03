@@ -7,6 +7,7 @@ const { randomBytes } = require('node:crypto');
 const { File } = require('node:buffer');
 const mongoose = require('mongoose');
 const { CloudPlazaMessage } = require('../src/server/models/cloudPlaza');
+const { CLOUD_MESSAGE_LIFETIME_MS } = require('../src/server/models/cloud');
 const { PlazaRepository, PLAZA_LIFETIME_MS, ID_PATTERN } = require('../src/server/cloud/plazaRepository');
 
 // Explicit opt-in to an isolated local MongoDB; never reads the application's DB URI.
@@ -83,7 +84,20 @@ test('exhausted ID collisions roll back uploaded files and other database failur
   } finally { await fs.rm(directory, { recursive: true, force: true }); }
 });
 
-integration('one mixed card retains exact text, all attachments and a fixed 48-hour expiry', async () => {
+test('plaza and cloud retain messages for seven days starting after attachments finish uploading', async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'neon-plaza-test-'));
+  let now = Date.parse('2026-11-03T12:00:00Z');
+  const repository = new PlazaRepository({ model: { create: async record => record }, uploadDirectory: directory, now: () => now });
+  try {
+    const file = { name: 'slow.txt', size: 4, type: 'text/plain', arrayBuffer: async () => { now += 60000; return Buffer.from('slow'); } };
+    const item = await repository.create('one week', [file]);
+    assert.equal(item.createdAt, '2026-11-03T12:01:00.000Z');
+    assert.equal(item.expireAt, '2026-11-10T12:01:00.000Z');
+    assert.equal(Date.parse(item.expireAt) - Date.parse(item.createdAt), CLOUD_MESSAGE_LIFETIME_MS);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
+});
+
+integration('one mixed card retains exact text, all attachments and a fixed seven-day expiry', async () => {
   const text = '原文\r\n{"x": 1}\n';
   const item = await repository.create(text, [new File(['hello'], '说明.txt'), new File(['world'], 'data.json')], ['资料/说明.txt', '资料/data.json']);
   assert.equal(item.content, text);
@@ -158,7 +172,15 @@ integration('legacy message IDs remain readable and deletable alongside short ID
 integration('expiry blocks list, detail and file access before physical cleanup and reclaims files afterward', async () => {
   const card = await repository.create('expires', [new File(['ephemeral'], 'temporary.txt')]);
   const stored = await repository.getFile(card.files[0].fileId);
-  now += PLAZA_LIFETIME_MS;
+  for (const elapsed of [48 * 60 * 60 * 1000, PLAZA_LIFETIME_MS - 1]) {
+    now = Date.parse(card.createdAt) + elapsed;
+    await repository.cleanupExpired();
+    assert.equal((await repository.list()).items[0].messageId, card.messageId);
+    assert.deepEqual(await repository.get(card.messageId), card);
+    assert.equal((await repository.getFile(card.files[0].fileId)).filePath, stored.filePath);
+    assert.ok(await fs.stat(stored.filePath));
+  }
+  now = Date.parse(card.expireAt);
   assert.equal((await repository.list()).items.length, 0);
   await assert.rejects(repository.get(card.messageId), { status: 404 });
   await assert.rejects(repository.getFile(card.files[0].fileId), { status: 404 });

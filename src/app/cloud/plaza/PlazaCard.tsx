@@ -79,7 +79,7 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
   return <article className={`cloud-panel plaza-card${detail ? ' plaza-card-detail' : ''}`} aria-label="广场内容" data-message-id={item.messageId}>
     <div className="plaza-card-meta">
       <time dateTime={item.createdAt} title={`发布于 ${new Date(item.createdAt).toLocaleString()}`}>{dateTime(item.createdAt)}</time>
-      <time dateTime={item.expireAt} title="发布后 48 小时自动失效">{dateTime(item.expireAt)} 到期</time>
+      <time dateTime={item.expireAt} title={`到期时间 ${new Date(item.expireAt).toLocaleString()}`}>{dateTime(item.expireAt)} 到期</time>
     </div>
     {item.content && <div className="plaza-body">
       <div className={`plaza-text${isLong && !expanded ? ' is-collapsed' : ''}`}><LinkifiedText text={item.content} /></div>

@@ -3,8 +3,8 @@ const path = require('node:path');
 const { randomBytes, randomInt } = require('node:crypto');
 const { MAX_FILE_BYTES, MAX_TOTAL_BYTES } = require('./attachments');
 const { runFileExclusive } = require('../storage/filePersistence');
+const { CLOUD_MESSAGE_LIFETIME_MS } = require('../cloud/retention');
 
-const CLOUD_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const PASSWORD_ATTEMPTS = 64;
 
 class CloudServiceError extends Error {
@@ -99,7 +99,7 @@ function createCloudService(options = {}) {
             messageId: randomBytes(12).toString('hex'),
             messageType: files.length ? (text.trim() ? 'mixed' : 'file') : 'text',
             content: text, files: records, userId: null, password, createdAt,
-            expireAt: new Date(createdAt.getTime() + CLOUD_LIFETIME_MS)
+            expireAt: new Date(createdAt.getTime() + CLOUD_MESSAGE_LIFETIME_MS)
           };
           try {
             const created = await cloudModel.create(data);
