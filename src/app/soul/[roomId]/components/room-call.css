@@ -1,9 +1,7 @@
-.soul-call-notice { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px; border: 1px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--primary-soft)); }
+.soul-call-notice { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 12px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-lg); background: hsl(var(--primary-soft)); }
 .soul-call-notice-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 50%; color: hsl(var(--primary)); background: hsl(var(--surface)); }
 .soul-call-panel { --call-accent: hsl(var(--primary)); position: fixed; z-index: 100; display: flex; flex-direction: column; box-sizing: border-box; color: hsl(var(--foreground)); background: hsl(var(--background)); outline: none; isolation: isolate; }
-.soul-call-panel button { touch-action: manipulation; transition: background .15s ease, border-color .15s ease; }
-.soul-call-panel button:focus-visible { outline: 2px solid var(--call-accent); outline-offset: 3px; }
-.soul-call-panel button:disabled { opacity: .4; cursor: default; }
+.soul-call-panel button { touch-action: manipulation; }
 .soul-call-panel.is-full { inset: 0; top: var(--call-visible-top, 0px); bottom: auto; height: 100%; height: var(--call-visible-height, 100dvh); overflow: hidden; padding: env(safe-area-inset-top) max(24px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(24px, env(safe-area-inset-left)); background: radial-gradient(ellipse at 12% 0%, hsl(var(--primary) / .05), transparent 45%), hsl(var(--background)); }
 .soul-call-header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 16px; width: 100%; max-width: 1440px; margin: 0 auto; padding: 18px 0; }
 .soul-call-eyebrow { margin-bottom: 5px; color: hsl(var(--foreground-muted)); font-size: 9px; letter-spacing: .18em; }
@@ -11,13 +9,11 @@
 .soul-call-status { display: flex; align-items: center; gap: 6px; margin-top: 5px; color: hsl(var(--foreground-secondary)); font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .soul-call-status > span { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--call-accent); }
 .soul-call-header-actions { display: flex; flex: none; gap: 8px; }
-.soul-call-view-button { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border: 1px solid hsl(var(--border)); border-radius: 12px; color: hsl(var(--foreground-secondary)); background: hsl(var(--surface) / .65); font-size: 16px; }
-.soul-call-view-button:hover, .soul-call-view-button[aria-expanded=true] { color: hsl(var(--foreground)); background: hsl(var(--surface-hover)); }
-.soul-call-view-button[aria-expanded=true] { border-color: hsl(var(--primary) / .45); color: hsl(var(--primary)); }
+.soul-call-view-button { display: grid; place-items: center; flex: none; width: 40px; height: 40px; font-size: 16px; --button-height: 40px; }
 .soul-call-workspace { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; flex: 1 1 0; gap: 16px; min-width: 0; min-height: 0; width: 100%; max-width: 1440px; margin: 0 auto; }
 .soul-call-workspace.has-side-panel { grid-template-columns: minmax(0, 1fr) 304px; }
 .soul-call-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 12px; min-width: 0; min-height: 0; width: 100%; height: 100%; }
-.soul-call-tile { position: relative; overflow: hidden; min-width: 0; min-height: 0; border: 1px solid hsl(var(--border)); border-radius: 20px; background: radial-gradient(ellipse at 40% 25%, hsl(var(--primary) / .04), transparent 70%), hsl(var(--background-secondary)); }
+.soul-call-tile { position: relative; overflow: hidden; min-width: 0; min-height: 0; border: 1px solid hsl(var(--border)); border-radius: var(--radius-xl); background: radial-gradient(ellipse at 40% 25%, hsl(var(--primary) / .04), transparent 70%), hsl(var(--surface-inset)); }
 .soul-call-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: transparent; }
 .soul-call-video.is-hidden { visibility: hidden; }
 .soul-call-video.is-mirrored { transform: scaleX(-1); }
@@ -26,17 +22,15 @@
 .soul-call-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .soul-call-tile-caption { position: absolute; z-index: 2; right: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: 8px; padding: 25px 14px 12px; color: #fff; background: linear-gradient(transparent, #0009); font-size: 12px; line-height: 1.4; pointer-events: none; }
 .soul-call-peer-state { margin-left: auto; color: #f5c899; font-size: 10px; }
-.soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { position: absolute; z-index: 2; top: 16px; right: 16px; width: clamp(120px, 22%, 230px); height: clamp(100px, 28%, 180px); border-radius: 14px; box-shadow: 0 6px 24px #0003; }
+.soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { position: absolute; z-index: 2; top: 16px; right: 16px; width: clamp(120px, 22%, 230px); height: clamp(100px, 28%, 180px); border-radius: var(--radius-lg); box-shadow: 0 6px 24px #0003; }
 .soul-call-stage .is-thumbnail .soul-call-avatar { width: 52px; height: 52px; font-size: 22px; box-shadow: none; }
 .soul-call-stage .is-thumbnail .soul-call-video { object-fit: cover; }
 .soul-call-stage.has-group { grid-template-columns: minmax(0, 1fr) clamp(150px, 22%, 244px); grid-template-rows: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); }
 .soul-call-stage.has-group .is-primary { grid-column: 1; grid-row: 1 / -1; }
 .soul-call-stage.has-group .is-thumbnail { grid-column: 2; grid-row: var(--tile-slot); }
-.soul-call-select-tile { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; border-radius: inherit; cursor: pointer; }
-.soul-call-select-tile:focus-visible { outline-offset: -3px !important; }
-.soul-call-flip { position: absolute; z-index: 3; top: 8px; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #ffffff30; border-radius: 50%; color: #fff; background: #121820a8; font-size: 15px; }
-.soul-call-flip:hover { background: #263340; }
-.soul-call-play { position: absolute; z-index: 3; top: 12px; left: 12px; padding: 8px 12px; border-radius: 10px; color: #173a2b; background: #edf8ef; font-size: 12px; }
+.soul-call-select-tile { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; --button-height: 100%; }
+.soul-call-flip { position: absolute; z-index: 3; top: 8px; right: 8px; display: grid; place-items: center; width: 34px; height: 34px; font-size: 15px; --button-height: 34px; }
+.soul-call-play { position: absolute; z-index: 3; top: 12px; left: 12px; padding: 8px 12px; font-size: 12px; }
 .soul-call-waiting { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
 .soul-call-stage.is-waiting .soul-call-waiting { position: absolute; inset: 0; pointer-events: none; }
 .soul-call-stage.is-waiting .soul-call-person { visibility: hidden; }
@@ -47,22 +41,17 @@
 .soul-call-orbit::after { position: absolute; top: 12px; right: -12px; width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--primary)); content: ''; }
 .soul-call-footer { flex: none; width: 100%; padding: 16px 0; }
 .soul-call-controls { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.soul-call-controls > button { display: grid; place-items: center; flex: none; width: 54px; height: 54px; border: 1px solid hsl(var(--border)); border-radius: 18px; color: hsl(var(--foreground)); background: hsl(var(--surface-active)); }
+.soul-call-controls > button { display: grid; place-items: center; flex: none; width: 54px; height: 54px; --button-height: 54px; }
 .soul-call-controls > button > .anticon, .soul-call-camera-icon { font-size: 21px; line-height: 1; }
 .soul-call-controls > button > svg { flex: none; width: 22px; height: 22px; }
-.soul-call-controls > button:hover { background: hsl(var(--surface-hover)); }
-.soul-call-controls > button.is-off { color: hsl(var(--foreground-muted)); background: hsl(var(--surface-hover)); }
-.soul-call-controls > button.is-hangup { border-color: transparent; color: #fff; background: #e7676d; }
-.soul-call-controls > button.is-hangup:hover { background: #d7525a; }
-.soul-call-controls > button.is-sharing { border-color: hsl(var(--primary) / .4); color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
 .soul-call-camera-icon { position: relative; display: inline-flex; }
 .soul-call-camera-icon i { position: absolute; top: 50%; left: -2px; width: 24px; height: 1.5px; background: currentColor; box-shadow: 0 1px 0 hsl(var(--surface)); transform: rotate(-45deg); }
 .soul-call-microphone-level { fill: hsl(var(--primary)); }
 .soul-call-error { display: flex; align-items: center; justify-content: center; flex: none; gap: 8px; max-height: 64px; overflow: auto; padding: 8px 8px 0; color: hsl(var(--danger)); font-size: 12px; line-height: 1.6; }
-.soul-call-error button { display: grid; place-items: center; flex: none; width: 32px; height: 32px; }
-.soul-call-effects, .soul-call-participants { align-self: stretch; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid hsl(var(--border)); border-radius: 20px; background: hsl(var(--surface)); }
+.soul-call-error button { display: grid; place-items: center; flex: none; width: 32px; height: 32px; --button-height: 32px; }
+.soul-call-effects, .soul-call-participants { align-self: stretch; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-xl); background: hsl(var(--surface)); }
 .soul-call-participants header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 14px; font-weight: 500; }
-.soul-call-participants header button { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: hsl(var(--foreground-secondary)); background: hsl(var(--surface-hover)); }
+.soul-call-participants header button { display: grid; place-items: center; width: 34px; height: 34px; --button-height: 34px; }
 .soul-call-participants ul { padding: 0; margin: 0; list-style: none; }
 .soul-call-participants li { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid hsl(var(--border)); font-size: 13px; }
 .soul-call-member-avatar { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 50%; color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
@@ -71,7 +60,8 @@
 .soul-call-participants li div > span { display: block; margin-top: 5px; color: hsl(var(--foreground-muted)); font-size: 11px; }
 .soul-call-participants li .is-connected { color: hsl(var(--success)); }
 .soul-call-participants small { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; color: hsl(var(--foreground-secondary)); font-size: 11px; }
-.soul-call-effect-loading { position: absolute; z-index: 3; top: calc(96px + env(safe-area-inset-top)); left: max(32px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 6px; max-width: calc(100% - 64px); padding: 7px 10px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); font-size: 11px; }
+.soul-call-effect-loading { position: absolute; z-index: 3; top: calc(96px + env(safe-area-inset-top)); left: max(32px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 6px; max-width: calc(100% - 64px); padding: 7px 10px; font-size: 11px; }
+div.soul-call-effect-loading { border: 1px solid hsl(var(--border)); border-radius: var(--radius-md); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); }
 
 .soul-call-panel.is-full.is-keyboard-open { padding-bottom: 0; }
 .is-full.is-keyboard-open .soul-call-header { padding-block: 7px; }
@@ -79,19 +69,19 @@
 .is-full.is-keyboard-open .soul-call-footer { padding-block: 7px; }
 
 /* The same stage and media elements remain mounted when changing view size. */
-.soul-call-panel.is-mini { top: calc(var(--app-page-top, 80px) + 8px); right: max(16px, env(safe-area-inset-right)); width: min(270px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; border: 1px solid hsl(var(--border)); border-radius: 18px; box-shadow: 0 16px 64px #0004; }
+.soul-call-panel.is-mini { top: calc(var(--app-page-top, 80px) + 8px); right: max(16px, env(safe-area-inset-right)); width: min(270px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; border: 1px solid hsl(var(--border)); border-radius: var(--radius-xl); box-shadow: 0 16px 64px #0004; }
 .is-mini .soul-call-header { gap: 8px; padding: 10px 12px; cursor: grab; touch-action: none; }
 .is-mini .soul-call-eyebrow { display: none; }
 .is-mini .soul-call-header h2 { font-size: 12px; }
 .is-mini .soul-call-status { margin-top: 3px; font-size: 10px; }
 .is-mini .soul-call-header-actions { gap: 4px; }
-.is-mini .soul-call-view-button { width: 28px; height: 28px; border-radius: 9px; font-size: 13px; }
+.is-mini .soul-call-view-button { width: 28px; height: 28px; font-size: 13px; --button-height: 28px; }
 .is-mini .soul-call-workspace { display: block; flex: none; height: 152px; padding: 0 6px; }
 .is-mini .soul-call-stage { gap: 4px; }
 .is-mini .soul-call-stage.has-group { grid-template-columns: minmax(0, 1fr) 66px; }
-.is-mini .soul-call-tile { border-radius: 12px; }
+.is-mini .soul-call-tile { border-radius: var(--radius-lg); }
 .is-mini .soul-call-avatar { width: 50px; height: 50px; font-size: 22px; }
-.is-mini .soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { top: 8px; right: 8px; width: 64px; height: 54px; border-radius: 9px; }
+.is-mini .soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { top: 8px; right: 8px; width: 64px; height: 54px; border-radius: var(--radius-md); }
 .is-mini .soul-call-stage .is-thumbnail .soul-call-avatar { width: 26px; height: 26px; font-size: 12px; }
 .is-mini .soul-call-tile-caption { gap: 4px; padding: 16px 7px 6px; font-size: 9px; }
 .is-mini .soul-call-stage:not(.has-group) .is-thumbnail .soul-call-tile-caption { display: none; }
@@ -102,11 +92,11 @@
 .is-mini .soul-call-orbit::before { inset: 12px -10px; }
 .is-mini .soul-call-footer { padding: 9px; }
 .is-mini .soul-call-controls { gap: 10px; }
-.is-mini .soul-call-controls > button { width: 38px; height: 38px; border-radius: 13px; }
+.is-mini .soul-call-controls > button { width: 38px; height: 38px; --button-height: 38px; }
 .is-mini .soul-call-controls > button > .anticon, .is-mini .soul-call-camera-icon { font-size: 17px; }
 .is-mini .soul-call-controls > button > svg { width: 19px; height: 19px; }
 .is-mini .soul-call-camera-icon i { width: 21px; }
-.is-mini .soul-call-flip { top: 4px; right: 4px; width: 27px; height: 27px; font-size: 12px; }
+.is-mini .soul-call-flip { top: 4px; right: 4px; width: 27px; height: 27px; font-size: 12px; --button-height: 27px; }
 .is-mini .soul-call-error { max-height: 48px; padding: 4px 10px 0; font-size: 10px; }
 .is-mini .soul-call-effect-loading { top: 58px; left: 12px; max-width: calc(100% - 24px); padding: 5px 7px; font-size: 10px; }
 
@@ -116,14 +106,14 @@
   .is-full .soul-call-eyebrow { display: none; }
   .is-full .soul-call-header h2 { font-size: 16px; }
   .is-full .soul-call-header-actions { gap: 5px; }
-  .is-full .soul-call-view-button { width: 40px; height: 40px; border-radius: 12px; }
+  .is-full .soul-call-view-button { width: 40px; height: 40px; --button-height: 40px; }
   .is-full .soul-call-workspace { gap: 10px; }
   .is-full .soul-call-workspace.has-side-panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-  .is-full :is(.soul-call-effects, .soul-call-participants) { max-height: min(38dvh, 300px); padding: 14px; border-radius: 16px; }
+  .is-full :is(.soul-call-effects, .soul-call-participants) { max-height: min(38dvh, 300px); padding: 14px; border-radius: var(--radius-lg); }
   .is-full .soul-call-effects { max-height: min(62dvh, 520px); }
   .is-full .soul-call-stage { gap: 8px; }
-  .is-full .soul-call-tile { border-radius: 16px; }
-  .is-full .soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { top: 10px; right: 10px; width: clamp(94px, 28%, 156px); height: clamp(96px, 24%, 160px); border-radius: 12px; }
+  .is-full .soul-call-tile { border-radius: var(--radius-lg); }
+  .is-full .soul-call-stage:not(.has-group):not(.has-sharing) .is-thumbnail { top: 10px; right: 10px; width: clamp(94px, 28%, 156px); height: clamp(96px, 24%, 160px); border-radius: var(--radius-lg); }
   .is-full .soul-call-stage.has-group { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) clamp(80px, 14dvh, 112px); }
   .is-full .soul-call-stage.has-group .is-primary { grid-column: 1 / -1; grid-row: 1; }
   .is-full .soul-call-stage.has-group .is-thumbnail { grid-column: var(--tile-slot); grid-row: 2; }
@@ -131,7 +121,7 @@
   .is-full .soul-call-stage.has-group .is-thumbnail .soul-call-tile-caption { gap: 4px; padding: 16px 7px 7px; font-size: 10px; }
   .is-full .soul-call-footer { padding: 12px 0; }
   .is-full .soul-call-controls { gap: 14px; }
-  .is-full .soul-call-controls > button { width: 50px; height: 50px; border-radius: 17px; }
+  .is-full .soul-call-controls > button { width: 50px; height: 50px; --button-height: 50px; }
   .is-full .soul-call-waiting { gap: 14px; padding: 18px; }
   .is-full .soul-call-waiting h3 { font-size: 18px; }
   .is-full .soul-call-orbit { width: 76px; height: 76px; margin-bottom: 10px; font-size: 28px; }
@@ -145,7 +135,7 @@
   .is-full .soul-call-header h2 { font-size: 15px; }
   .is-full .soul-call-status { margin-top: 3px; font-size: 10px; }
   .is-full .soul-call-footer { padding-block: 7px; }
-  .is-full .soul-call-controls > button { width: 44px; height: 44px; border-radius: 14px; }
+  .is-full .soul-call-controls > button { width: 44px; height: 44px; --button-height: 44px; }
   .is-full .soul-call-orbit { width: 50px; height: 50px; margin: 0; font-size: 20px; }
   .is-full .soul-call-waiting { gap: 9px; padding: 12px; }
   .is-full .soul-call-waiting h3 { font-size: 15px; }
@@ -154,7 +144,7 @@
 @media (max-height: 480px) and (orientation: landscape) {
   .is-full .soul-call-workspace { gap: 8px; }
   .is-full .soul-call-workspace.has-side-panel { grid-template-columns: minmax(0, 1fr) minmax(190px, 32%); grid-template-rows: minmax(0, 1fr); }
-  .is-full :is(.soul-call-effects, .soul-call-participants) { max-height: 100%; padding: 12px; border-radius: 14px; }
+  .is-full :is(.soul-call-effects, .soul-call-participants) { max-height: 100%; padding: 12px; border-radius: var(--radius-lg); }
   .is-full .soul-call-stage.has-group { grid-template-columns: minmax(0, 1fr) 98px; grid-template-rows: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); }
   .is-full .soul-call-stage.has-group .is-primary { grid-column: 1; grid-row: 1 / -1; }
   .is-full .soul-call-stage.has-group .is-thumbnail { grid-column: 2; grid-row: var(--tile-slot); }

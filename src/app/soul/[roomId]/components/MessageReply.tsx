@@ -23,7 +23,7 @@ function getReplySummary(replyTo: ReplyTo): string {
 
 export function MessageReply({ replyTo }: { replyTo: ReplyTo }) {
   return (
-    <blockquote className="mb-1.5 max-w-full rounded-r-lg border-l-2 border-border-hover bg-background-secondary px-2.5 py-1.5 text-left text-xs leading-relaxed text-foreground-secondary">
+    <blockquote className="mb-1.5 max-w-full rounded-r-md border-l-2 border-border-hover bg-surface-inset px-2.5 py-1.5 text-left text-xs leading-relaxed text-foreground-secondary">
       <div className="truncate font-medium text-foreground-muted">回复 {replyTo.senderName}</div>
       <div className="line-clamp-2 break-words">{getReplySummary(replyTo)}</div>
     </blockquote>

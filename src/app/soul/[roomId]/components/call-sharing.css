@@ -1,28 +1,25 @@
 .call-share-popover-layer { position: absolute; z-index: 8; inset: 0; background: hsl(var(--background) / .25); }
-.call-share-menu { position: absolute; bottom: calc(86px + env(safe-area-inset-bottom)); left: 50%; width: min(340px, calc(100% - 28px)); padding: 16px; border: 1px solid hsl(var(--border)); border-radius: 20px; background: hsl(var(--surface)); box-shadow: 0 12px 48px #0003; transform: translateX(-50%); }
+.call-share-menu { position: absolute; bottom: calc(86px + env(safe-area-inset-bottom)); left: 50%; width: min(340px, calc(100% - 28px)); padding: 16px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-xl); background: hsl(var(--surface)); box-shadow: 0 12px 48px #0003; transform: translateX(-50%); }
 .call-share-menu header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 14px; font-weight: 500; }
-.call-share-menu header > button { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: hsl(var(--foreground-secondary)); background: hsl(var(--surface-hover)); }
+.call-share-menu header > button { display: grid; place-items: center; width: 32px; height: 32px; --button-height: 32px; }
 .call-share-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.call-share-options > button { display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; padding: 10px 5px; border: 1px solid transparent; border-radius: 14px; color: hsl(var(--foreground-secondary)); font-size: 12px; }
-.call-share-options > button:hover { background: hsl(var(--surface-hover)); }
-.call-share-options > button[aria-pressed=true] { border-color: hsl(var(--primary) / .35); color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
-.call-share-option-icon { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 15px; color: hsl(var(--foreground)); background: hsl(var(--background-secondary)); font-size: 22px; }
+.call-share-options > button { display: flex; flex-direction: column; align-items: center; gap: 9px; min-width: 0; padding: 10px 5px; font-size: 12px; }
+.call-share-option-icon { display: grid; place-items: center; width: 50px; height: 50px; border-radius: var(--radius-lg); color: hsl(var(--foreground)); background: hsl(var(--surface-inset)); font-size: 22px; }
 .call-share-options > button[aria-pressed=true] .call-share-option-icon { color: hsl(var(--primary)); background: hsl(var(--surface)); }
 .soul-call-stage.has-sharing { grid-template-columns: minmax(0, 1fr) clamp(126px, 18%, 208px); grid-template-rows: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); }
 .soul-call-stage.has-sharing > .soul-call-tile { position: relative; grid-column: 2; grid-row: var(--tile-slot); min-width: 0; min-height: 0; }
 .has-sharing .soul-call-select-tile { display: none; }
-.call-sharing-stage { display: flex; flex-direction: column; grid-column: 1; grid-row: 1 / -1; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 20px; background: hsl(var(--surface)); }
+.call-sharing-stage { display: flex; flex-direction: column; grid-column: 1; grid-row: 1 / -1; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: var(--radius-xl); background: hsl(var(--surface)); }
 .call-sharing-heading { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 12px; min-height: 48px; padding: 8px 12px; border-bottom: 1px solid hsl(var(--border)); }
 .call-sharing-heading strong { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .call-sharing-heading strong > span { flex: none; color: hsl(var(--foreground-secondary)); font-size: 16px; }
-.call-sharing-heading > button { display: flex; align-items: center; justify-content: center; flex: none; gap: 6px; min-height: 34px; padding: 6px 10px; border-radius: 10px; color: hsl(var(--danger)); background: hsl(var(--danger-soft)); font-size: 11px; }
+.call-sharing-heading > button { display: flex; align-items: center; justify-content: center; flex: none; gap: 6px; min-height: 34px; padding: 6px 10px; font-size: 11px; }
 .call-share-viewport { position: relative; flex: 1 1 0; min-width: 0; min-height: 0; overflow: hidden; touch-action: pan-x pan-y; }
 .call-share-viewport.is-zoomed { cursor: grab; touch-action: none; }
 .call-share-viewport.is-zoomed:active { cursor: grabbing; }
 .call-share-zoom-content { position: absolute; inset: 0; display: flex; min-width: 0; min-height: 0; transform-origin: center; will-change: transform; }
-.call-share-zoom-controls { position: absolute; z-index: 5; top: 10px; right: 10px; display: flex; align-items: center; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 12px; background: hsl(var(--surface) / .96); box-shadow: 0 4px 18px #0002; }
-.call-share-zoom-controls button { display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 9px; font-size: 11px; font-variant-numeric: tabular-nums; }
-.call-share-zoom-controls button + button { border-left: 1px solid hsl(var(--border)); }
+.call-share-zoom-controls { position: absolute; z-index: 5; top: 10px; right: 10px; display: flex; align-items: center; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: var(--radius-md); background: hsl(var(--surface) / .96); box-shadow: 0 4px 18px #0002; }
+.call-share-zoom-controls button { display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 9px; font-size: 11px; font-variant-numeric: tabular-nums; --button-height: 36px; }
 .call-shared-screen { flex: 1; width: 100%; min-height: 0; object-fit: contain; pointer-events: none; }
 .call-resource { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
 .call-resource-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 12px; }
@@ -35,18 +32,18 @@
 .call-share-markup h1 { font-size: 26px; font-weight: 600; }
 .call-share-markup h2 { font-size: 22px; font-weight: 600; }
 .call-share-markup :is(h3,h4,h5,h6) { font-size: 18px; font-weight: 600; }
-.call-share-markup :is(pre,code,blockquote) { background: hsl(var(--background-secondary)); border-radius: 6px; padding: 4px 8px; white-space: pre-wrap; }
+.call-share-markup :is(pre,code,blockquote) { background: hsl(var(--surface-inset)); border-radius: var(--radius-sm); padding: 4px 8px; white-space: pre-wrap; }
 .call-share-markup :is(ul,ol) { padding-left: 24px; list-style: revert; }
 .call-share-markup table { width: 100%; table-layout: fixed; border-collapse: collapse; }
 .call-share-markup :is(td,th) { border: 1px solid hsl(var(--border)); padding: 6px; }
 .call-share-markup img { max-width: 100%; }
 .call-share-loading { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center; font-size: 13px; color: hsl(var(--foreground-secondary)); }
 .call-share-loading progress { width: min(240px, 90%); accent-color: hsl(var(--primary)); }
-.call-share-loading button { padding: 6px 12px; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+.call-share-loading button { padding: 6px 12px; }
 .call-share-caption { flex: none; padding: 6px 10px; color: hsl(var(--foreground-muted)); font-size: 10px; }
 .soul-call-panel.is-mini .soul-call-stage.has-sharing { display: flex; }
 .soul-call-panel.is-mini .soul-call-stage.has-sharing > .soul-call-tile { display: none; }
-.is-mini .call-sharing-stage { width: 100%; border-radius: 12px; }
+.is-mini .call-sharing-stage { width: 100%; border-radius: var(--radius-lg); }
 .is-mini .call-sharing-heading { min-height: 28px; padding: 5px 8px; }
 .is-mini .call-sharing-heading strong { gap: 5px; font-size: 10px; }
 .is-mini .call-sharing-heading strong > span { font-size: 12px; }
@@ -55,15 +52,15 @@
 
 @media (max-width: 760px) {
   .is-full .soul-call-stage.has-sharing { grid-template-columns: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) clamp(78px, 13dvh, 96px); gap: 8px; }
-  .is-full .call-sharing-stage { grid-column: 1 / -1; grid-row: 1; border-radius: 14px; }
-  .is-full .soul-call-stage.has-sharing > .soul-call-tile { grid-column: var(--tile-slot); grid-row: 2; border-radius: 12px; }
+  .is-full .call-sharing-stage { grid-column: 1 / -1; grid-row: 1; border-radius: var(--radius-lg); }
+  .is-full .soul-call-stage.has-sharing > .soul-call-tile { grid-column: var(--tile-slot); grid-row: 2; border-radius: var(--radius-lg); }
   .is-full .soul-call-stage.has-sharing > .soul-call-tile .soul-call-avatar { width: 36px; height: 36px; font-size: 16px; }
   .is-full .soul-call-stage.has-sharing > .soul-call-tile .soul-call-tile-caption { gap: 4px; padding: 16px 6px 6px; font-size: 9px; }
   .is-full .soul-call-stage.has-sharing > .soul-call-tile .soul-call-peer-state { font-size: 8px; }
   .call-sharing-heading { min-height: 42px; gap: 8px; padding: 5px 8px; }
   .call-sharing-heading > button { min-height: 32px; padding: 5px 8px; }
   .call-resource-scroll { padding: 8px; }
-  .call-share-menu { bottom: calc(80px + env(safe-area-inset-bottom)); padding: 14px; border-radius: 18px; }
+  .call-share-menu { bottom: calc(80px + env(safe-area-inset-bottom)); padding: 14px; border-radius: var(--radius-xl); }
 }
 @media (max-height: 480px) and (orientation: landscape) {
   .is-full .soul-call-stage.has-sharing { grid-template-columns: minmax(0, 1fr) 98px; grid-template-rows: repeat(var(--call-thumbnail-count), minmax(0, 1fr)); }

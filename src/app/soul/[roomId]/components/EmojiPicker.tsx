@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useEffect, useRef } from 'react';
 import { soulChat } from '../../core';
 
@@ -73,41 +74,41 @@ export function EmojiPicker({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div ref={pickerRef} className="absolute bottom-11 left-0 z-20 w-[min(320px,calc(100vw-32px))] rounded-xl border border-border bg-surface p-3 shadow-lg">
+    <div ref={pickerRef} className="absolute bottom-11 left-0 z-20 w-[min(320px,calc(100vw-32px))] rounded-lg border border-border bg-surface p-3 shadow-lg">
       <div className="text-xs font-medium text-foreground-secondary">常用 Emoji</div>
       <div className="mt-2 grid grid-cols-8 gap-1">
         {EMOJIS.map((emoji) => (
-          <button
+          <Button iconOnly size="sm" variant="ghost"
             key={emoji}
             type="button"
             onClick={() => {
               void soulChat.sendEmoji(emoji);
               onClose();
             }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-xl transition-colors hover:bg-surface-active"
+            className="flex h-8 w-8 items-center justify-center text-xl"
             aria-label={`发送 ${emoji}`}
           >
             {emoji}
-          </button>
+          </Button>
         ))}
       </div>
 
       <div className="mt-4 text-xs font-medium text-foreground-secondary">动态表情</div>
       <div className="mt-2 grid grid-cols-4 gap-2">
         {ANIMATED_EMOJIS.map((item) => (
-          <button
+          <Button data-ui-surface variant="ghost"
             key={item.code}
             type="button"
             onClick={() => {
               void soulChat.sendGif(item.url, item.name);
               onClose();
             }}
-            className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-background-secondary p-1 transition-colors hover:bg-surface-active"
+            className="flex aspect-square items-center justify-center overflow-hidden p-1"
             aria-label={`发送动态表情：${item.name}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={item.url} alt={item.name} draggable={false} loading="lazy" className="h-full w-full object-contain" />
-          </button>
+          </Button>
         ))}
       </div>
     </div>

@@ -1,0 +1,55 @@
+.root { position: fixed; inset: 0; color: hsl(var(--foreground)); font-family: var(--font-sans); font-size: var(--font-size-body); line-height: var(--line-height-body); user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+.root[data-state='closed'] { display: none; }
+.root[data-state='exiting'] { pointer-events: none; }
+.mask { position: absolute; inset: 0; background: hsl(var(--overlay)); opacity: 1; transition: opacity 200ms ease; }
+.wrap { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding: max(5rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); overflow-y: auto; overscroll-behavior: contain; }
+.root[data-centered] .wrap { align-items: center; padding-top: max(1.25rem, env(safe-area-inset-top)); }
+.container { display: contents; }
+.panel { position: relative; display: flex; flex-direction: column; flex-shrink: 0; min-width: 0; max-width: 100%; max-height: calc(var(--dialog-viewport-height, 100dvh) - 6.25rem); padding: 1.25rem; border: 0; border-radius: var(--radius-xl); outline: none; background: hsl(var(--surface)); box-shadow: var(--shadow-xl); opacity: 1; transform: translate3d(var(--dialog-drag-x, 0px), var(--dialog-drag-y, 0px), 0); transition: opacity 200ms ease; }
+.root[data-centered] .panel { max-height: calc(var(--dialog-viewport-height, 100dvh) - 2.5rem); }
+.panel:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.root[data-state='prepare'] .mask, .root[data-state='prepare'] .panel, .root[data-state='exiting'] .mask, .root[data-state='exiting'] .panel { opacity: 0; }
+.title { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.title[data-draggable] { cursor: grab; touch-action: pan-y; }
+.panel[data-dragging] .title { cursor: grabbing; }
+.titleText { flex: 1; min-width: 0; font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); }
+.body { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.footer { flex-shrink: 0; margin-top: 1.25rem; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.confirmation { max-width: min(22rem, calc(100vw - 3rem)); color: hsl(var(--foreground)); }
+.confirmationTitle { font-size: var(--font-size-title); line-height: var(--line-height-title); margin-bottom: 0.5rem; font-weight: var(--font-weight-semibold); }
+.description { margin-bottom: 1rem; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.error { margin: 0.75rem 0; color: hsl(var(--danger)); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.alert { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.875rem 1rem; border: 0; border-radius: var(--radius-lg); background: hsl(var(--info-soft)); color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: var(--line-height-body); user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+.alert[data-type='success'] { background: hsl(var(--success-soft)); }
+.alert[data-type='warning'] { background: hsl(var(--warning-soft)); }
+.alert[data-type='error'] { background: hsl(var(--danger-soft)); }
+.alertIcon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; color: hsl(var(--info)); }
+.alert[data-type='success'] .alertIcon { color: hsl(var(--success)); }
+.alert[data-type='warning'] .alertIcon { color: hsl(var(--warning)); }
+.alert[data-type='error'] .alertIcon { color: hsl(var(--danger)); }
+.alertContent { flex: 1; min-width: 0; }
+.alertMessage { font-weight: var(--font-weight-medium); }
+.alertDescription { margin-top: 0.25rem; color: hsl(var(--foreground-secondary)); }
+.alertAction { display: flex; flex-shrink: 0; align-items: center; gap: 0.25rem; }
+.alertDialogIcon { display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; margin-bottom: 1rem; border-radius: var(--radius-lg); background: hsl(var(--primary-soft)); color: hsl(var(--primary)); }
+.root :where(input, textarea, [contenteditable='true'], [data-selectable], .ui-selectable) { user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
+
+@media (max-width: 640px) {
+  .wrap, .root[data-centered] .wrap { align-items: flex-end; padding: max(0.75rem, env(safe-area-inset-top)) 0 0; }
+  .panel, .root[data-centered] .panel { width: 100% !important; max-height: calc(var(--dialog-viewport-height, 100dvh) - max(0.75rem, env(safe-area-inset-top))); padding: 1.125rem 1rem max(1.125rem, env(safe-area-inset-bottom)); border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  /* A fast start and soft deceleration give sheets weight without overshoot or bouncing content. */
+  .panel, .root[data-centered] .panel { opacity: 1; transform: translate3d(0, 0, 0); transition: transform 420ms cubic-bezier(.16, 1, .3, 1); }
+  .root[data-state='prepare'] .panel, .root[data-state='exiting'] .panel { opacity: 1; transform: translate3d(0, calc(100% + 1rem), 0); }
+  .root[data-state='exiting'] .panel { transition-duration: 280ms; transition-timing-function: cubic-bezier(.4, 0, .7, .2); }
+  .mask { transition-duration: 280ms; }
+  .title[data-draggable] { cursor: default; }
+  .title { margin-bottom: 0.875rem; }
+  .footer { margin-top: 1rem; }
+  .root[data-mobile-presentation='dialog'] .wrap { align-items: center; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); }
+  .root[data-mobile-presentation='dialog'] .panel { width: min(100%, 26rem) !important; max-height: calc(var(--dialog-viewport-height, 100dvh) - 2rem); border-radius: var(--radius-xl); padding: 1.25rem; }
+  .root[data-mobile-presentation='dialog'][data-state='prepare'] .panel, .root[data-mobile-presentation='dialog'][data-state='exiting'] .panel { transform: translate3d(0, var(--dialog-viewport-height, 100dvh), 0); }
+  .alert { flex-wrap: wrap; gap: 0.625rem; }
+  .alertAction { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .root .mask, .root .panel { transition: none !important; } }

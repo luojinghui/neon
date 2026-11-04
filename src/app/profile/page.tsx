@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { LoadingOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -34,9 +35,9 @@ export default function MyProfileRedirectPage() {
           <>
             <div className="text-base font-medium text-foreground">暂时无法打开个人中心</div>
             <div className="mt-2 text-sm text-foreground-secondary">{error}</div>
-            <button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover">
+            <Button variant="primary" type="button" onClick={() => window.location.reload()} className="mt-5">
               重试
-            </button>
+            </Button>
           </>
         ) : (
           <div className="inline-flex items-center gap-2 text-sm text-foreground-secondary">

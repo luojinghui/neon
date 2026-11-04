@@ -1,12 +1,16 @@
 'use client';
 
+import { Tooltip } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import '@/styles/index.css';
 import { useEffect, useState } from 'react';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Badge, Tooltip } from 'antd';
+import { Badge } from 'antd';
+
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
+import { Card } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { createProfileHref } from '@/app/profile/navigation';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
@@ -55,18 +59,18 @@ function ChatRoomPage() {
       <TopBar
         middle={
           direct ? <div className="flex min-w-0 flex-col items-center"><span className="truncate text-sm font-medium">{roomName || '私信'}</span><span className="text-[10px] text-foreground-muted">一对一私信</span></div> : <Tooltip title="星球信息" placement="bottom">
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={() => setRoomInfoOpen(true)}
               disabled={!room || accessState !== 'granted'}
-              className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-base font-medium transition-colors hover:bg-surface-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-default disabled:opacity-60"
+              className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 px-2 py-1 text-base font-medium"
               aria-label={`查看${roomName || '星球'}信息`}
             >
               <span className="truncate">{roomName || '加载中...'}</span>
               <Badge dot={Boolean(room?.pendingRequestCount)} offset={[2, -2]}>
                 <InfoCircleOutlined className="block shrink-0 text-sm text-foreground-muted" aria-hidden />
               </Badge>
-            </button>
+            </Button>
           </Tooltip>
         }
         right={
@@ -85,10 +89,10 @@ function ChatRoomPage() {
         {accessState === 'granted' && (
           <div className="app-content-width shrink-0 pb-3 pt-2">
             {direct && room?.peer ? <div className="flex flex-wrap items-center justify-between gap-2"><Link className="text-xs text-primary" href={createProfileHref(room.peer.userId, { publicKey: room.peer.publicKey, returnTo: `/soul/${params.roomId}` })}>查看对方主页</Link><ContactActions contact={room.peer} showMessage={false} /></div> : <RoomCallNotice />}
-            <div className="rounded-2xl border border-border bg-surface p-2.5 transition-colors focus-within:border-border-focus">
+            <Card as="div" padding="sm" bodyWrap={false}>
               <ChatInput />
               <ChatToolbar />
-            </div>
+            </Card>
           </div>
         )}
       </div>

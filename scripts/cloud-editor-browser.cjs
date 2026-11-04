@@ -45,6 +45,7 @@ async function geometry(page, destination) {
       return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height, right: bounds.right, bottom: bounds.bottom };
     };
     const textarea = element.querySelector('textarea');
+    const textStyle = getComputedStyle(textarea);
     const toolbar = element.querySelector('.cloud-editor-toolbar');
     const list = element.querySelector('.cloud-editor-file-list');
     const overlay = element.querySelector('.cloud-editor-surface [class*="overlay"]');
@@ -53,7 +54,7 @@ async function geometry(page, destination) {
       panel: rect(element), surface: rect(element.querySelector('.cloud-editor-surface')), input: rect(textarea),
       heading: rect(element.querySelector('.cloud-editor-heading')), toolbar: rect(toolbar),
       toolbarPosition: getComputedStyle(toolbar).position,
-      textarea: { clientHeight: textarea.clientHeight, scrollHeight: textarea.scrollHeight, scrollTop: textarea.scrollTop, clientWidth: textarea.clientWidth, scrollWidth: textarea.scrollWidth, overflowY: getComputedStyle(textarea).overflowY, lineHeight: parseFloat(getComputedStyle(textarea).lineHeight) },
+      textarea: { clientHeight: textarea.clientHeight, scrollHeight: textarea.scrollHeight, scrollTop: textarea.scrollTop, clientWidth: textarea.clientWidth, scrollWidth: textarea.scrollWidth, overflowY: textStyle.overflowY, lineHeight: parseFloat(textStyle.lineHeight), fontSize: parseFloat(textStyle.fontSize), verticalInsets: ['paddingTop', 'paddingBottom', 'borderTopWidth', 'borderBottomWidth'].reduce((sum, key) => sum + parseFloat(textStyle[key]), 0) },
       attachments: rect(element.querySelector('.cloud-editor-attachments')),
       fileList: list ? { ...rect(list), clientHeight: list.clientHeight, scrollHeight: list.scrollHeight, overflowY: getComputedStyle(list).overflowY } : null,
       overlay: overlay ? { ...rect(overlay), scrollTop: overlay.scrollTop, clientHeight: overlay.clientHeight, scrollHeight: overlay.scrollHeight } : null,
@@ -238,7 +239,7 @@ async function restoreSharedViewport(page) {
 
 async function runSize(browser, engine, size) {
   const name = `${engine}-${size.width}x${size.height}`;
-  const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, reducedMotion: 'reduce', ...(size.mobile ? { isMobile: true, hasTouch: true } : {}) });
+  const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, reducedMotion: 'reduce', serviceWorkers: 'block', ...(size.mobile ? { isMobile: true, hasTouch: true } : {}) });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -250,6 +251,7 @@ async function runSize(browser, engine, size) {
   });
   // Identity creation is outside this regression and should not touch the app's data files.
   await page.route('**/api/user', route => route.fulfill({ status: 503, json: { error: 'Identity is disabled in this regression' } }));
+  await page.route('**/api/push/**', route => route.fulfill({ status: 404, json: {} }));
   const measurements = { name, baseline: {}, long: {}, attachments: {} };
   try {
     await page.goto(`${origin}/cloud`);
@@ -262,14 +264,15 @@ async function runSize(browser, engine, size) {
       await input(page, destination).blur();
       await settle(page);
       const blank = await geometry(page, destination);
-      if (size.height >= 600) approx(blank.input.height, 146, `${name}/${destination}: empty input retains the usual four-row height`);
+      assert.equal(blank.textarea.fontSize, 14, `${name}/${destination}: input uses body typography on desktop and touch screens`);
+      if (size.height >= 600) approx(blank.input.height, blank.textarea.lineHeight * 4 + blank.textarea.verticalInsets, `${name}/${destination}: empty input retains four body-text rows`);
       else assert.ok(blank.input.height <= 147 && blank.textarea.clientHeight >= blank.textarea.lineHeight, `${name}/${destination}: short viewport keeps at least one line within its normal initial height`);
       clearSeparation(blank, `${name}/${destination}: empty`);
       await input(page, destination).fill('短文\n第二行');
       await input(page, destination).blur();
       await settle(page);
       const short = await geometry(page, destination);
-      if (size.height >= 600) approx(short.input.height, 146, `${name}/${destination}: short input retains the usual four-row height`);
+      if (size.height >= 600) approx(short.input.height, short.textarea.lineHeight * 4 + short.textarea.verticalInsets, `${name}/${destination}: short input retains four body-text rows`);
       else assert.ok(short.input.height <= 147 && short.textarea.clientHeight >= short.textarea.lineHeight, `${name}/${destination}: short text adapts to a short viewport`);
       measurements.baseline[destination] = short;
       await input(page, destination).fill(longText);

@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import type { AnchorHTMLAttributes } from 'react';
+import { Tabs } from '@/components/ui/tabs';
 import { CLOUD_PATH, PLAZA_PATH } from '../navigation';
 
 /** Native history updates URL state without a server navigation or remounting editors. */
@@ -17,8 +18,10 @@ export function CloudLink({ href, onClick, ...props }: AnchorHTMLAttributes<HTML
 export default function CloudTabs() {
   const params = useSearchParams();
   const isPlaza = params.get('tab') === 'plaza';
-  return <nav aria-label="云传导航" className="cloud-tabs">
-    <CloudLink href={CLOUD_PATH} aria-current={!isPlaza ? 'page' : undefined} className={!isPlaza ? 'is-active' : ''}>云传</CloudLink>
-    <CloudLink href={PLAZA_PATH} aria-current={isPlaza ? 'page' : undefined} className={isPlaza ? 'is-active' : ''}>广场</CloudLink>
-  </nav>;
+  return <Tabs aria-label="云传导航" className="cloud-tabs" size="md" activeKey={isPlaza ? 'plaza' : 'cloud'}
+    items={[{ key: 'cloud', label: '云传', href: CLOUD_PATH }, { key: 'plaza', label: '广场', href: PLAZA_PATH }]}
+    onNavigate={(href, event) => {
+      event.preventDefault();
+      if (`${window.location.pathname}${window.location.search}` !== href) window.history.pushState(null, '', href);
+    }} />;
 }

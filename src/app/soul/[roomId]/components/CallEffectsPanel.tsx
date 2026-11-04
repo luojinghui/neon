@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Tabs } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { useId, useState } from 'react';
 import { BulbOutlined, CloseOutlined, LoadingOutlined, ReloadOutlined, SkinOutlined } from '@ant-design/icons';
 import { AVATAR_TILES, BACKGROUND_TILES, STICKER_TILES, type EffectTile } from '@/modules/virtual-background/catalog';
 import { DEFAULT_CALL_VIDEO, NONE_EFFECT, type CallVideoSettings, type EffectSelection } from '@/modules/virtual-background/settings';
@@ -26,6 +29,7 @@ function sameSelection(current: EffectSelection, tile: EffectTile, sticker3d = f
 }
 
 export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClose }: { value: CallVideoSettings; status: VideoEffectsStatus; cameraEnabled: boolean; onChange: (value: Partial<CallVideoSettings>) => void; onClose: () => void }) {
+  const tabsId = useId();
   const [category, setCategory] = useState<Category>('beauty');
   const [prefer3d, setPrefer3d] = useState(value.sticker.type === 'FACE_STICKY_3D');
   const [beautyOn, setBeautyOn] = useState(value.brightness > 0 || value.whitening > 0);
@@ -39,11 +43,11 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
   return <aside className="soul-call-effects beauty-panel" aria-label="画面设置">
     <header className="beauty-panel-heading">
       <div><span className="beauty-panel-symbol"><SkinOutlined /></span><h3>画面设置</h3></div>
-      <button type="button" className="beauty-panel-icon" aria-label="关闭画面设置" onClick={onClose}><CloseOutlined /></button>
+      <Button variant="ghost" iconOnly type="button" className="beauty-panel-icon" aria-label="关闭画面设置" onClick={onClose}><CloseOutlined /></Button>
     </header>
-    <div className="beauty-panel-tabs" role="tablist" aria-label="画面效果分类">
-      {categories.map((item) => <button type="button" key={item.id} role="tab" aria-selected={category === item.id} onClick={() => setCategory(item.id)}>{item.label}</button>)}
-    </div>
+    <Tabs id={tabsId} panelId={`${tabsId}-panel`} size="sm" block className="beauty-panel-tabs" aria-label="画面效果分类" activeKey={category}
+      onChange={key => setCategory(key as Category)} items={categories.map(item => ({ key: item.id, label: item.label }))} />
+    <div id={`${tabsId}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-tab-${category}`}>
     {category === 'beauty' && <div className="beauty-panel-page">
       <Toggle label="美颜" checked={beautyOn} onChange={(enabled) => {
         setBeautyOn(enabled);
@@ -66,22 +70,20 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
       <TileGrid label={sticker3d ? '3D 贴纸' : '贴纸'} tiles={STICKER_TILES} current={value.sticker} sticker3d={sticker3d} shape="square" onSelect={(selection) => onChange({ sticker: sticker3d && selection.type === 'FACE_STICKY' ? { ...selection, type: 'FACE_STICKY_3D' } : selection, avatar: { ...NONE_EFFECT } })} />
     </div>}
     {category === 'avatar' && <TileGrid label="虚拟头像" tiles={AVATAR_TILES} current={value.avatar} shape="square" onSelect={(selection) => onChange({ avatar: selection, sticker: { ...NONE_EFFECT } })} />}
+    </div>
     <footer className="beauty-panel-footer">
       <div className="beauty-panel-status" role="status">
         {status.phase === 'loading' && cameraEnabled ? <LoadingOutlined /> : status.phase === 'error' ? null : summary !== status.message && <span className="beauty-panel-dot" />}
         <span>{summary}</span>
-        {status.phase === 'error' && <button type="button" onClick={() => onChange(value)}>重试</button>}
+        {status.phase === 'error' && <Button variant="ghost" type="button" onClick={() => onChange(value)}>重试</Button>}
       </div>
-      <button type="button" className="beauty-panel-reset" onClick={reset}><ReloadOutlined /><span>重置</span></button>
+      <Button variant="ghost" type="button" className="beauty-panel-reset" onClick={reset}><ReloadOutlined /><span>重置</span></Button>
     </footer>
   </aside>;
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <button type="button" role="switch" className="beauty-panel-switch" aria-checked={checked} onClick={() => onChange(!checked)}>
-    <span className="beauty-panel-switch-track" aria-hidden="true" />
-    <span>{label}</span>
-  </button>;
+  return <div className="beauty-panel-toggle"><Switch aria-label={label} checked={checked} onChange={onChange} /><span>{label}</span></div>;
 }
 
 function TileGrid({ label, tiles, current, sticker3d = false, shape = 'wide', onSelect }: { label: string; tiles: EffectTile[]; current: EffectSelection; sticker3d?: boolean; shape?: 'wide' | 'square'; onSelect: (selection: EffectSelection) => void }) {
@@ -89,12 +91,12 @@ function TileGrid({ label, tiles, current, sticker3d = false, shape = 'wide', on
     {tiles.map((tile) => {
       const selected = sameSelection(current, tile, sticker3d);
       const swatch = tile.selection.color;
-      return <button type="button" role="option" aria-selected={selected} aria-label={tile.label} key={tile.id} onClick={() => onSelect(tile.selection)}>
+      return <Button variant="ghost" type="button" role="option" aria-selected={selected} aria-label={tile.label} key={tile.id} onClick={() => onSelect(tile.selection)}>
         <span className="beauty-panel-tile" style={swatch ? { background: swatch } : undefined}>
           {tile.preview ? <img src={tile.preview} alt="" /> : swatch ? null : tile.label}
         </span>
         <span className="beauty-panel-tile-label">{tile.label}</span>
-      </button>;
+      </Button>;
     })}
   </div>;
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useConfirm } from '@/components/ui/confirm';
 import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined, MoreOutlined } from '@ant-design/icons';
 import { Dropdown, type MenuProps } from 'antd';
 import Link from 'next/link';
@@ -21,6 +24,7 @@ type Props = {
 };
 
 export function MomentCard({ moment, onDeleted }: Props) {
+  const modal = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -42,17 +46,25 @@ export function MomentCard({ moment, onDeleted }: Props) {
     return () => observer.disconnect();
   }, [moment.text]);
 
-  const remove = async () => {
-    if (deleting || !window.confirm('删除整条心迹？正文、媒体、语音和全部评论都会被永久删除。')) return;
-    setDeleting(true);
-    setError('');
-    try {
-      await deleteMoment(moment);
-      onDeleted(moment.id);
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : '删除失败，请重试');
-      setDeleting(false);
-    }
+  const remove = () => {
+    if (deleting) return;
+    modal.confirm({
+      title: '删除整条心迹？',
+      content: '正文、媒体、语音和全部评论都会被永久删除。',
+      okText: '删除心迹',
+      cancelText: '取消',
+      async onOk() {
+        setDeleting(true);
+        setError('');
+        try {
+          await deleteMoment(moment);
+          onDeleted(moment.id);
+        } catch (deleteError) {
+          setError(deleteError instanceof Error ? deleteError.message : '删除失败，请重试');
+          setDeleting(false);
+        }
+      }
+    });
   };
 
   const menu: MenuProps = {
@@ -69,7 +81,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
   };
 
   return (
-    <article id={`moment-${moment.id}`} className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
+    <Card padding="none" bodyWrap={false} id={`moment-${moment.id}`} className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
       <header className="moment-card-head">
         <div className="flex min-w-0 items-center gap-2">
           <MomentAvatar author={moment.author} size={32} />
@@ -82,7 +94,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
         </div>
         {moment.canDelete && (
           <Dropdown menu={menu} trigger={['click']} placement="bottomRight">
-            <button type="button" className="moment-icon-button" aria-label="管理这条心迹"><MoreOutlined /></button>
+            <Button variant="ghost" iconOnly type="button" aria-label="管理这条心迹"><MoreOutlined /></Button>
           </Dropdown>
         )}
       </header>
@@ -91,7 +103,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
         {moment.text && (
           <div className="moment-post-copy">
             <p ref={textRef} id={textId} className={`moment-card-text${!expanded ? ' is-collapsed' : ''}`}><LinkifiedText content={moment.text} /></p>
-            {canExpand && <button type="button" className="moment-expand-button" aria-expanded={expanded} aria-controls={textId} onClick={() => setExpanded((value) => !value)}>{expanded ? '收起' : '展开全文'}</button>}
+            {canExpand && <Button variant="ghost" size="sm" type="button" className="moment-expand-button" aria-expanded={expanded} aria-controls={textId} onClick={() => setExpanded((value) => !value)}>{expanded ? '收起' : '展开全文'}</Button>}
           </div>
         )}
         <MomentMediaView media={moment.media} />
@@ -103,6 +115,6 @@ export function MomentCard({ moment, onDeleted }: Props) {
         <MomentActions key={moment.id} moment={moment} appearance="journal" />
         {error && <p className="moment-inline-error" role="alert">{error}</p>}
       </div>
-    </article>
+    </Card>
   );
 }

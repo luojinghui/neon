@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { ClearOutlined, UndoOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
@@ -135,7 +136,7 @@ export function DrawingCanvas({ strokes, onChange, readOnly = false, disabled = 
     );
   }
 
-  const toolClass = 'inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-40';
+  const toolClass = 'inline-flex h-8 items-center justify-center gap-1.5 px-2 text-xs';
   const pointCount = strokes.reduce((sum, stroke) => sum + stroke.points.length, 0);
   const capacity = Math.max(strokes.length / MAX_STROKES, pointCount / MAX_POINTS);
 
@@ -144,27 +145,27 @@ export function DrawingCanvas({ strokes, onChange, readOnly = false, disabled = 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1" aria-label="画笔颜色">
           {COLORS.map((option) => (
-            <button key={option.value} type="button" aria-label={option.label} aria-pressed={color === option.value} disabled={disabled} onClick={() => setColor(option.value)} className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-40 ${color === option.value ? 'border-primary bg-primary-soft' : 'border-transparent hover:bg-surface-active'}`}>
+            <Button iconOnly size="sm" variant="ghost" key={option.value} type="button" aria-label={option.label} aria-pressed={color === option.value} disabled={disabled} onClick={() => setColor(option.value)} className="flex h-8 w-8 items-center justify-center">
               <span className="h-5 w-5 rounded-full" style={{ backgroundColor: option.value }} />
-            </button>
+            </Button>
           ))}
         </div>
         <div className="flex items-center gap-1" aria-label="画笔粗细">
           {[3, 6, 10].map((size) => (
-            <button key={size} type="button" aria-label={`${size} 像素画笔`} aria-pressed={width === size} disabled={disabled} onClick={() => setWidth(size)} className={`flex h-8 w-8 items-center justify-center rounded-lg border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-40 ${width === size ? 'border-primary/30 bg-primary-soft text-primary' : 'border-transparent text-foreground-muted hover:bg-surface-active'}`}>
+            <Button iconOnly size="sm" variant="ghost" key={size} type="button" aria-label={`${size} 像素画笔`} aria-pressed={width === size} disabled={disabled} onClick={() => setWidth(size)} className="flex h-8 w-8 items-center justify-center">
               <span className="rounded-full bg-current" style={{ width: size, height: size }} />
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      <canvas ref={canvasRef} width={WIDTH * 2} height={HEIGHT * 2} aria-label="画板，按住鼠标或用手指绘画" onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish} className={`block aspect-[8/5] w-full touch-none rounded-xl border border-border bg-white ${disabled ? 'cursor-not-allowed' : 'cursor-crosshair'}`} />
+      <canvas ref={canvasRef} width={WIDTH * 2} height={HEIGHT * 2} aria-label="画板，按住鼠标或用手指绘画" onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish} className={`block aspect-[8/5] w-full touch-none rounded-lg border border-border bg-white ${disabled ? 'cursor-not-allowed' : 'cursor-crosshair'}`} />
 
       <div className="flex items-center justify-between gap-2">
         <span className={`text-xs ${capacity >= 0.8 ? 'text-warning' : 'text-foreground-muted'}`}>{capacity >= 0.8 ? `画纸已用 ${Math.round(capacity * 100)}%` : strokes.length ? `${strokes.length} / ${MAX_STROKES} 笔` : '用鼠标或手指画下你的谜底'}</span>
         <div className="flex shrink-0 items-center gap-1">
-          <button type="button" disabled={disabled || !strokes.length} className={toolClass} onClick={() => { onChange?.(strokes.slice(0, -1)); setNotice(''); }}><UndoOutlined />撤销</button>
-          <button type="button" disabled={disabled || !strokes.length} className={toolClass} onClick={() => { onChange?.([]); setNotice(''); }}><ClearOutlined />清空</button>
+          <Button variant="ghost" type="button" disabled={disabled || !strokes.length} className={toolClass} onClick={() => { onChange?.(strokes.slice(0, -1)); setNotice(''); }}><UndoOutlined />撤销</Button>
+          <Button variant="ghost" type="button" disabled={disabled || !strokes.length} className={toolClass} onClick={() => { onChange?.([]); setNotice(''); }}><ClearOutlined />清空</Button>
         </div>
       </div>
       {notice && <p className="text-xs text-foreground-muted" role="status">{notice}</p>}

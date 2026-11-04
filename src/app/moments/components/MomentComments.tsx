@@ -1,5 +1,9 @@
 'use client';
 
+import { Textarea } from '@/components/ui/textarea';
+
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm';
 import { CloseOutlined, DeleteOutlined, EditOutlined, LoadingOutlined, MessageOutlined, RollbackOutlined, SendOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createComment, deleteComment, getComments, updateComment } from '../client';
@@ -21,6 +25,7 @@ export function MomentComments(props: Props) {
 }
 
 function MomentCommentThread({ momentId, initialComments, initialCount, onCountChange, variant = 'inline', active = true }: Props) {
+  const modal = useConfirm();
   const [comments, setComments] = useState(initialComments);
   const [count, setCount] = useState(initialCount);
   const [expanded, setExpanded] = useState(false);
@@ -227,38 +232,47 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
     }
   };
 
-  const remove = async (comment: MomentComment) => {
-    if (busyRef.current || !window.confirm('删除这条评论？此操作无法撤销。')) return;
-    const request = beginRequest();
-    if (request === null) return;
-    setActingId(comment.id);
-    try {
-      await deleteComment(momentId, comment);
-      if (!isCurrentRequest(request)) return;
-      setComments((current) => current.filter((item) => item.id !== comment.id));
-      setCommentCount(Math.max(0, countRef.current - 1));
-      if (replyTo?.id === comment.id) setReplyTo(null);
-      setSelectedId('');
-      setEditingId('');
-      setEditDraft('');
-      // Deletion is already complete. A failed refill must not report it as failed.
-      try {
-        const all = await getComments(momentId);
-        if (!isCurrentRequest(request)) return;
-        setComments(all);
-        setCommentCount(all.length);
-        setNeedsRefresh(false);
-      } catch {
-        if (isCurrentRequest(request)) {
-          setError('评论已删除，其余评论刷新失败，请重试。');
-          setNeedsRefresh(true);
+  const remove = (comment: MomentComment) => {
+    if (busyRef.current) return;
+    modal.confirm({
+      title: '删除这条评论？',
+      content: '此操作无法撤销。',
+      okText: '删除评论',
+      cancelText: '取消',
+      async onOk() {
+        if (!mountedRef.current) return;
+        const request = beginRequest();
+        if (request === null) return;
+        setActingId(comment.id);
+        try {
+          await deleteComment(momentId, comment);
+          if (!isCurrentRequest(request)) return;
+          setComments((current) => current.filter((item) => item.id !== comment.id));
+          setCommentCount(Math.max(0, countRef.current - 1));
+          if (replyTo?.id === comment.id) setReplyTo(null);
+          setSelectedId('');
+          setEditingId('');
+          setEditDraft('');
+          // Deletion is already complete. A failed refill must not report it as failed.
+          try {
+            const all = await getComments(momentId);
+            if (!isCurrentRequest(request)) return;
+            setComments(all);
+            setCommentCount(all.length);
+            setNeedsRefresh(false);
+          } catch {
+            if (isCurrentRequest(request)) {
+              setError('评论已删除，其余评论刷新失败，请重试。');
+              setNeedsRefresh(true);
+            }
+          }
+        } catch (deleteError) {
+          if (isCurrentRequest(request)) setError(deleteError instanceof Error ? deleteError.message : '评论删除失败');
+        } finally {
+          finishRequest(request);
         }
       }
-    } catch (deleteError) {
-      if (isCurrentRequest(request)) setError(deleteError instanceof Error ? deleteError.message : '评论删除失败');
-    } finally {
-      finishRequest(request);
-    }
+    });
   };
 
   return (
@@ -266,10 +280,10 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
       <div className="moment-comments-heading">
         <span><MessageOutlined /> {count} 条评论</span>
         {!isSheet && count > 2 && (
-          <button type="button" onClick={toggleExpanded} disabled={busy} aria-expanded={expanded} aria-controls={listId}>
+          <Button variant="ghost" type="button" onClick={toggleExpanded} disabled={busy} aria-expanded={expanded} aria-controls={listId}>
             {loadingMore ? <LoadingOutlined /> : null}
             {expanded ? '收起评论' : `展开其余 ${Math.max(0, count - visibleComments.length)} 条`}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -281,9 +295,8 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
           const editing = editingId === comment.id;
           return (
             <article key={comment.id} className={`moment-comment ${selected ? 'is-selected' : ''}`}>
-              <button
-                type="button"
-                className="moment-comment-main"
+              <Button variant="ghost"
+                type="button" className="moment-comment-main"
                 onClick={() => setSelectedId((current) => (current === comment.id ? '' : comment.id))}
                 aria-expanded={selected}
                 disabled={busy}
@@ -301,23 +314,23 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
                     </span>
                   )}
                 </span>
-              </button>
+              </Button>
 
               {editing && (
                 <div className="moment-comment-edit">
-                  <textarea aria-label="编辑评论" disabled={busy} value={editDraft} maxLength={500} rows={2} onChange={(event) => setEditDraft(event.target.value)} autoFocus />
-                  <div>
-                    <button type="button" disabled={busy} onClick={() => { setEditingId(''); setEditDraft(''); }}>取消</button>
-                    <button type="button" disabled={!editDraft.trim() || busy} onClick={() => void saveEdit(comment)}>{actingId === comment.id && <LoadingOutlined />}保存</button>
+                  <Textarea aria-label="编辑评论" disabled={busy} value={editDraft} maxLength={500} rows={2} onChange={(event) => setEditDraft(event.target.value)} autoFocus />
+                  <div className="moment-comment-edit-actions">
+                    <Button variant="ghost" type="button" disabled={busy} onClick={() => { setEditingId(''); setEditDraft(''); }}>取消</Button>
+                    <Button variant="primary" type="button" disabled={!editDraft.trim() || busy} onClick={() => void saveEdit(comment)}>{actingId === comment.id && <LoadingOutlined />}保存</Button>
                   </div>
                 </div>
               )}
 
               {selected && !editing && (
                 <div className="moment-comment-actions">
-                  <button type="button" disabled={busy} onClick={() => startReply(comment)}><RollbackOutlined />回复</button>
-                  {comment.canEdit && <button type="button" disabled={busy} onClick={() => { setEditingId(comment.id); setEditDraft(comment.text); }}><EditOutlined />编辑</button>}
-                  {comment.canDelete && <button type="button" className="text-danger" disabled={busy} onClick={() => void remove(comment)}>{actingId === comment.id ? <LoadingOutlined /> : <DeleteOutlined />}删除</button>}
+                  <Button variant="ghost" type="button" disabled={busy} onClick={() => startReply(comment)}><RollbackOutlined />回复</Button>
+                  {comment.canEdit && <Button variant="ghost" type="button" disabled={busy} onClick={() => { setEditingId(comment.id); setEditDraft(comment.text); }}><EditOutlined />编辑</Button>}
+                  {comment.canDelete && <Button variant="ghost" type="button" disabled={busy} onClick={() => void remove(comment)}>{actingId === comment.id ? <LoadingOutlined /> : <DeleteOutlined />}删除</Button>}
                 </div>
               )}
             </article>
@@ -329,11 +342,11 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
       {replyTo && (
         <div className="moment-reply-target">
           <span>回复 @{replyTo.author.userId}</span>
-          <button type="button" disabled={sending} onClick={() => setReplyTo(null)} aria-label="取消回复"><CloseOutlined /></button>
+          <Button variant="ghost" iconOnly type="button" disabled={sending} onClick={() => setReplyTo(null)} aria-label="取消回复"><CloseOutlined /></Button>
         </div>
       )}
       <div className="moment-comment-composer">
-        <textarea
+        <Textarea
           ref={inputRef}
           aria-label={replyTo ? `回复 @${replyTo.author.userId}` : '写下评论'}
           disabled={sending}
@@ -349,13 +362,13 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
             }
           }}
         />
-        <button type="button" onClick={() => void send()} disabled={!draft.trim() || busy} aria-label="发送评论">
+        <Button variant="primary" iconOnly type="button" onClick={() => void send()} disabled={!draft.trim() || busy} aria-label="发送评论">
           {sending ? <LoadingOutlined /> : <SendOutlined />}
-        </button>
+        </Button>
       </div>
       {notice && <p className="mt-2 text-xs text-foreground-muted" role="status">{notice}</p>}
       {error && <p className="moment-inline-error" role="alert">{error}</p>}
-      {needsRefresh && <button type="button" className="mt-2 text-xs text-primary" disabled={busy} onClick={() => void loadComments(false)}>重新加载评论</button>}
+      {needsRefresh && <Button variant="ghost" type="button" className="mt-2" disabled={busy} onClick={() => void loadComments(false)}>重新加载评论</Button>}
       </div>
     </section>
   );

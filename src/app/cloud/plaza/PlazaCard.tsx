@@ -1,6 +1,13 @@
 'use client';
 
-import { App, Button, Input, Modal, QRCode } from 'antd';
+import { Input } from '@/components/ui/input';
+
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useConfirm } from '@/components/ui/confirm';
+
+import { App, QRCode } from 'antd';
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, LinkOutlined, PaperClipOutlined, ShareAltOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
@@ -15,7 +22,8 @@ type Props = { item: PlazaMessage; detail?: boolean; clockOffset: number; onUnav
 const dateTime = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
 
 export default function PlazaCard({ item, detail = false, clockOffset, onUnavailable }: Props) {
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
+  const modal = useConfirm();
   const [expanded, setExpanded] = useState(detail);
   const [allFiles, setAllFiles] = useState(detail);
   const [jsonOpen, setJsonOpen] = useState(false);
@@ -73,50 +81,52 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
   const fileRow = (file: CloudFileInfo) => <div className="plaza-file" key={file.fileId}>
     <PaperClipOutlined className="plaza-file-icon" />
     <div className="plaza-file-info"><span title={file.relativePath || file.fileName}>{file.relativePath || file.fileName}</span><small>{formatBytes(file.fileSize)}</small></div>
-    <button type="button" className="plaza-icon-button" aria-label={`下载 ${file.fileName}`} title="下载" onClick={() => void download(file)}><DownloadOutlined /></button>
+    <Button variant="ghost" iconOnly type="button" aria-label={`下载 ${file.fileName}`} title="下载" onClick={() => void download(file)}><DownloadOutlined /></Button>
   </div>;
 
-  return <article className={`cloud-panel plaza-card${detail ? ' plaza-card-detail' : ''}`} aria-label="广场内容" data-message-id={item.messageId}>
+  return <Card padding="none" bodyWrap={false} className={`cloud-panel plaza-card${detail ? ' plaza-card-detail' : ''}`} aria-label="广场内容" data-message-id={item.messageId}>
     <div className="plaza-card-meta">
       <time dateTime={item.createdAt} title={`发布于 ${new Date(item.createdAt).toLocaleString()}`}>{dateTime(item.createdAt)}</time>
       <time dateTime={item.expireAt} title={`到期时间 ${new Date(item.expireAt).toLocaleString()}`}>{dateTime(item.expireAt)} 到期</time>
     </div>
     {item.content && <div className="plaza-body">
       <div className={`plaza-text${isLong && !expanded ? ' is-collapsed' : ''}`}><LinkifiedText text={item.content} /></div>
-      {isLong && !detail && <button type="button" className="plaza-expand" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? '收起正文' : '展开全文'}</button>}
+      {isLong && !detail && <Button variant="ghost" type="button" className="plaza-expand" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? '收起正文' : '展开全文'}</Button>}
     </div>}
     {previewImages.length > 0 && <div className="plaza-images" data-count={previewImages.length} style={{ '--plaza-image-ratio': singleRatio } as CSSProperties}>
       {previewImages.map(file => <div key={file.fileId} className="plaza-image">
-        <ImagePreview images={images} imageId={file.fileId} className="plaza-image-preview" title="广场图片">
-          {/* 原图走带过期校验的接口；单张按真实比例展示，多张按方格裁切。 */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={plazaFileUrl(file.fileId, true)} alt={file.fileName} loading="lazy" onLoad={event => {
-            if (previewImages.length !== 1) return;
-            const { naturalWidth, naturalHeight } = event.currentTarget;
-            if (naturalWidth && naturalHeight) setSingleRatio(Math.min(16 / 9, Math.max(3 / 4, naturalWidth / naturalHeight)));
-          }} onError={() => setBrokenImages(current => new Set([...current, file.fileId]))} />
-        </ImagePreview>
+        <div className="rounded-t-lg">
+          <ImagePreview images={images} imageId={file.fileId} className="plaza-image-preview" title="广场图片">
+            {/* 原图走带过期校验的接口；单张按真实比例展示，多张按方格裁切。 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={plazaFileUrl(file.fileId, true)} alt={file.fileName} loading="lazy" onLoad={event => {
+              if (previewImages.length !== 1) return;
+              const { naturalWidth, naturalHeight } = event.currentTarget;
+              if (naturalWidth && naturalHeight) setSingleRatio(Math.min(16 / 9, Math.max(3 / 4, naturalWidth / naturalHeight)));
+            }} onError={() => setBrokenImages(current => new Set([...current, file.fileId]))} />
+          </ImagePreview>
+        </div>
         {fileRow(file)}
       </div>)}
     </div>}
     {visibleFiles.some(file => !isPreviewImage(file.mimeType) || brokenImages.has(file.fileId)) && <div className="plaza-files">{visibleFiles.filter(file => !isPreviewImage(file.mimeType) || brokenImages.has(file.fileId)).map(fileRow)}</div>}
-    {item.files.length > 6 && !detail && <button type="button" className="plaza-expand" aria-expanded={allFiles} onClick={() => setAllFiles(!allFiles)}>{allFiles ? '收起附件' : `查看全部 ${item.files.length} 个附件`}</button>}
+    {item.files.length > 6 && !detail && <Button variant="ghost" type="button" className="plaza-expand" aria-expanded={allFiles} onClick={() => setAllFiles(!allFiles)}>{allFiles ? '收起附件' : `查看全部 ${item.files.length} 个附件`}</Button>}
     <div className="plaza-card-footer">
       <div className="plaza-card-actions">
-        {item.content && <button type="button" onClick={() => void copy(item.content)}><CopyOutlined /><span>复制</span></button>}
-        {json.valid && <button type="button" onClick={() => setJsonOpen(true)}><FileTextOutlined /><span>JSON 解析</span></button>}
-        <button type="button" onClick={() => setShareOpen(true)}><ShareAltOutlined /><span>分享</span></button>
+        {item.content && <Button variant="ghost" size="sm" type="button" onClick={() => void copy(item.content)}><CopyOutlined /><span>复制</span></Button>}
+        {json.valid && <Button variant="ghost" size="sm" type="button" onClick={() => setJsonOpen(true)}><FileTextOutlined /><span>JSON 解析</span></Button>}
+        <Button variant="ghost" size="sm" type="button" onClick={() => setShareOpen(true)}><ShareAltOutlined /><span>分享</span></Button>
       </div>
-      <button type="button" className="plaza-icon-button plaza-delete" aria-label="删除卡片" title="删除卡片" onClick={remove}><DeleteOutlined /></button>
+      <Button variant="ghost" iconOnly type="button" aria-label="删除卡片" title="删除卡片" onClick={remove}><DeleteOutlined /></Button>
     </div>
     <JsonViewerModal open={jsonOpen} value={json.valid ? json.value : undefined} onClose={() => setJsonOpen(false)} onCopy={() => { if (json.valid) void copy(JSON.stringify(json.value, null, 2), 'JSON'); }} />
     <Modal title="分享卡片" open={shareOpen} onCancel={() => setShareOpen(false)} footer={null} centered width={440}>
       <div className="plaza-share-dialog">
         <div className="plaza-qr"><QRCode value={shareUrl} color="#202020" bgColor="#ffffff" size={168} bordered={false} /></div>
         <p>扫描二维码，直接查看这张卡片</p>
-        <div className="plaza-link-row"><Input aria-label="卡片分享链接" prefix={<LinkOutlined />} readOnly value={shareUrl} onFocus={event => event.target.select()} /><Button type="primary" icon={<CopyOutlined />} onClick={() => void copy(shareUrl, '链接')}>复制链接</Button></div>
+        <div className="plaza-link-row"><Input aria-label="卡片分享链接" prefix={<LinkOutlined />} readOnly value={shareUrl} onFocus={event => event.target.select()} /><Button variant="primary" icon={<CopyOutlined />} onClick={() => void copy(shareUrl, '链接')}>复制链接</Button></div>
         <small>有效至 {new Date(item.expireAt).toLocaleString()} · 删除后链接失效</small>
       </div>
     </Modal>
-  </article>;
+  </Card>;
 }

@@ -1,6 +1,9 @@
 'use client';
 
-import { ArrowDownOutlined, EditOutlined, LoadingOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+import { PlanetIllustration } from '@/components/ui/planet-illustration';
 import { Suspense, useRef, useState } from 'react';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -17,7 +20,6 @@ import './moments-journal.css';
 export default function MomentsPage() {
   const { data, loading: refreshing, loadingMore, error } = useMomentFeed();
   const items = data?.items || [];
-  const total = data?.total || 0;
   const hasMore = data?.hasMore || false;
   const loading = refreshing || (!data && !error);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -42,40 +44,34 @@ export default function MomentsPage() {
         <div className="app-content-width">
           <Suspense fallback={null}><MomentPermalink /></Suspense>
           <header className="moment-journal-intro">
-            <div>
-              <h1>让此刻，留下回响。</h1>
-              <p className="moment-journal-description">用文字、照片和声音，收藏生活里的微光。</p>
+            <div className="moment-journal-copy">
+              <h1>生活里的小事</h1>
+              <p className="moment-journal-description">分享近况，看看大家的日常。</p>
             </div>
-            <button type="button" className="moment-primary-button" onClick={() => setComposerOpen(true)}><EditOutlined />发布心迹</button>
+            <div className="moment-journal-art" aria-hidden="true"><PlanetIllustration size="lg" /></div>
+            <div className="moment-journal-actions" role="group" aria-label="心迹操作">
+              <Button variant="primary" type="button" onClick={() => setComposerOpen(true)} icon={<Icon name="edit" />}>创作</Button>
+              <Button variant="ghost" type="button" icon={<Icon name={loading ? 'loading' : 'refresh'} />} onClick={() => void load()} disabled={loading || loadingMore} aria-label="刷新心迹" aria-busy={loading || loadingMore || undefined} />
+            </div>
           </header>
 
           <section className="moment-feed-section" aria-label="心迹时间流" aria-busy={loading}>
-            <div className="moment-page-heading">
-              <div className="moment-feed-label">
-                <h2>最新心迹</h2>
-                <span>{loading && items.length === 0 ? '加载中…' : `${total} 条`}</span>
-              </div>
-              <button type="button" className="moment-refresh-button" onClick={() => void load()} disabled={loading || loadingMore} aria-label="刷新心迹">
-                {loading ? <LoadingOutlined /> : <ReloadOutlined />}<span>刷新</span>
-              </button>
-            </div>
-
             {loading && items.length === 0 ? (
               <div className="moment-feed-grid" aria-label="正在加载心迹">
-                {[0, 1, 2].map((index) => <div key={index} className="moment-card-skeleton" aria-hidden="true"><div /><div /><div /></div>)}
+                {[0, 1, 2].map((index) => <Card as="div" key={index} padding="none" bodyWrap={false} className="moment-card-skeleton" aria-hidden="true"><div /><div /><div /></Card>)}
               </div>
             ) : error && items.length === 0 ? (
               <div className="moment-empty-state" role="alert">
                 <span>心迹加载失败</span>
                 <p>{error}</p>
-                <button type="button" onClick={() => void load()}><ReloadOutlined />重试</button>
+                <Button variant="ghost" type="button" onClick={() => void load()}><Icon name="refresh" />重试</Button>
               </div>
             ) : items.length === 0 ? (
               <div className="moment-empty-state">
-                <EditOutlined className="moment-empty-icon" aria-hidden="true" />
+                <Icon name="edit" className="moment-empty-icon" />
                 <span>还没有心迹</span>
                 <p>平凡的日常，也有值得留下的片刻。</p>
-                <button type="button" onClick={() => setComposerOpen(true)}><PlusOutlined />发布心迹</button>
+                <Button variant="primary" type="button" onClick={() => setComposerOpen(true)}><Icon name="plus" />创作</Button>
               </div>
             ) : (
               <MomentFeed>
@@ -84,9 +80,9 @@ export default function MomentsPage() {
             )}
 
             {items.length > 0 && hasMore && (
-              <button type="button" className="moment-load-more" onClick={() => void loadMore()} disabled={loading || loadingMore}>{loadingMore ? <LoadingOutlined /> : <ArrowDownOutlined />}{loadingMore ? '加载中…' : '查看更多心迹'}</button>
+              <Button variant="outline" type="button" className="moment-load-more" onClick={() => void loadMore()} disabled={loading || loadingMore}>{loadingMore ? <Icon name="loading" /> : <Icon name="arrow-down" />}{loadingMore ? '加载中…' : '查看更多'}</Button>
             )}
-            {items.length > 0 && !hasMore && !loading && !error && <p className="moment-feed-end">此刻的心迹，都在这里了</p>}
+            {items.length > 0 && !hasMore && !loading && !error && <p className="moment-feed-end">已看完全部心迹</p>}
             {error && items.length > 0 && <p className="moment-inline-error mt-4" role="alert">{error}</p>}
           </section>
         </div>

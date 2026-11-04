@@ -6,6 +6,15 @@ const config = {
   content: ['./pages/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
   prefix: '',
   theme: {
+    // Only four UI radii; none/full describe shapes, not extra scale steps.
+    borderRadius: {
+      none: '0',
+      sm: 'var(--radius-sm)',
+      md: 'var(--radius-md)',
+      lg: 'var(--radius-lg)',
+      xl: 'var(--radius-xl)',
+      full: '9999px'
+    },
     extend: {
       colors: {
         primary: {
@@ -19,12 +28,7 @@ const config = {
           foreground: 'hsl(var(--accent-foreground))',
           soft: 'hsl(var(--accent-soft))'
         },
-        background: {
-          DEFAULT: 'hsl(var(--background))',
-          canvas: 'hsl(var(--canvas))',
-          secondary: 'hsl(var(--background-secondary))',
-          tertiary: 'hsl(var(--background-tertiary))'
-        },
+        background: 'hsl(var(--background))',
         foreground: {
           DEFAULT: 'hsl(var(--foreground))',
           secondary: 'hsl(var(--foreground-secondary))',
@@ -32,7 +36,6 @@ const config = {
         },
         surface: {
           DEFAULT: 'hsl(var(--surface))',
-          raised: 'hsl(var(--surface-raised))',
           inset: 'hsl(var(--surface-inset))',
           hover: 'hsl(var(--surface-hover))',
           active: 'hsl(var(--surface-active))'
@@ -68,26 +71,12 @@ const config = {
           'other-foreground': 'hsl(var(--chat-bubble-other-foreground))'
         },
         sidebar: {
-          DEFAULT: 'hsl(var(--sidebar))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          border: 'hsl(var(--sidebar-border))',
           active: 'hsl(var(--sidebar-active))'
-        },
-        input: {
-          DEFAULT: 'hsl(var(--input))',
-          foreground: 'hsl(var(--input-foreground))',
-          placeholder: 'hsl(var(--input-placeholder))',
-          focus: 'hsl(var(--input-focus))'
         },
         overlay: 'hsl(var(--overlay))'
       },
       backgroundColor: {
         overlay: 'hsl(var(--overlay))'
-      },
-      borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
       },
       boxShadow: {
         card: 'var(--shadow-card)',
@@ -109,6 +98,25 @@ const config = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out'
+      },
+      // Semantic roles are the public typography API; common legacy sizes share it.
+      fontSize: {
+        caption: ['var(--font-size-caption)', { lineHeight: 'var(--line-height-caption)' }],
+        body: ['var(--font-size-body)', { lineHeight: 'var(--line-height-body)' }],
+        'body-lg': ['var(--font-size-body-lg)', { lineHeight: 'var(--line-height-body-lg)' }],
+        title: ['var(--font-size-title)', { lineHeight: 'var(--line-height-title)' }],
+        heading: ['var(--font-size-heading)', { lineHeight: 'var(--line-height-heading)' }],
+        display: ['var(--font-size-display)', { lineHeight: 'var(--line-height-display)' }],
+        xs: ['var(--font-size-caption)', { lineHeight: 'var(--line-height-caption)' }],
+        sm: ['var(--font-size-body)', { lineHeight: 'var(--line-height-body)' }],
+        base: ['var(--font-size-body-lg)', { lineHeight: 'var(--line-height-body-lg)' }],
+        lg: ['var(--font-size-title)', { lineHeight: 'var(--line-height-title)' }],
+        '2xl': ['var(--font-size-heading)', { lineHeight: 'var(--line-height-heading)' }]
+      },
+      fontWeight: {
+        normal: 'var(--font-weight-regular)',
+        medium: 'var(--font-weight-medium)',
+        semibold: 'var(--font-weight-semibold)'
       },
       fontFamily: {
         sans: ['var(--font-sans)', ...fontFamily.sans]

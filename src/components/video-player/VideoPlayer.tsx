@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, buttonClassName } from '@/components/ui/button';
 import { FullscreenExitOutlined, FullscreenOutlined, LoadingOutlined, PauseOutlined, CaretRightFilled, ReloadOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { formatVideoTime, useVideoPreview } from './useVideoPreview';
@@ -144,23 +145,23 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
       />
       {!started && cover && /* eslint-disable-next-line @next/next/no-img-element */
         <img className="video-player-poster" src={cover} alt="" aria-hidden="true" />}
-      {!error && <button type="button" className="video-player-surface" aria-label={playing ? '暂停视频' : '播放视频'} onClick={togglePlayback}>
+      {!error && <Button variant="ghost" data-ui-surface type="button" className="video-player-surface" aria-label={playing ? '暂停视频' : '播放视频'} onClick={togglePlayback}>
         {(!playing || waiting) && <span className="video-player-play" aria-hidden="true">{waiting ? <LoadingOutlined spin /> : <CaretRightFilled />}</span>}
-      </button>}
+      </Button>}
       {!started && !error && duration > 0 && <span className="video-player-duration">{formatVideoTime(duration)}</span>}
       {error && <div className="video-player-error" role="alert">
         <span>{error}</span>
-        <button type="button" onClick={() => void play()}><ReloadOutlined />重试</button>
-        <a href={src} target="_blank" rel="noopener noreferrer">打开原视频</a>
+        <Button size="sm" type="button" onClick={() => void play()}><ReloadOutlined />重试</Button>
+        <a href={src} className={buttonClassName({ size: 'sm' })} target="_blank" rel="noopener noreferrer">打开原视频</a>
       </div>}
       <div className="video-player-controls" data-visible={started || expanded || fullscreen}>
         {started && <input className="video-player-seek" type="range" min={0} max={duration || 0} step={0.1} value={Math.min(time, duration)} disabled={!duration} aria-label="视频播放进度" aria-valuetext={`${formatVideoTime(time)} / ${formatVideoTime(duration)}`} onChange={(event) => seek(Number(event.target.value))} style={{ '--video-progress': `${duration ? Math.min(100, time / duration * 100) : 0}%` } as CSSProperties} />}
         <div className="video-player-toolbar">
           {started && <>
-            <button type="button" aria-label={playing ? '暂停' : '继续播放'} onClick={togglePlayback}>{playing ? <PauseOutlined /> : <CaretRightFilled />}</button>
+            <Button size="lg" iconOnly type="button" aria-label={playing ? '暂停' : '继续播放'} onClick={togglePlayback}>{playing ? <PauseOutlined /> : <CaretRightFilled />}</Button>
             <span className="video-player-time">{formatVideoTime(time)} / {formatVideoTime(duration)}</span>
           </>}
-          <button ref={fullscreenButtonRef} type="button" className="video-player-fullscreen" aria-label={fullscreen || expanded ? '退出全屏' : '全屏播放'} onClick={() => void toggleFullscreen()}>{fullscreen || expanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />}</button>
+          <Button size="lg" ref={fullscreenButtonRef} type="button" iconOnly className="video-player-fullscreen" aria-label={fullscreen || expanded ? '退出全屏' : '全屏播放'} onClick={() => void toggleFullscreen()}>{fullscreen || expanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />}</Button>
         </div>
       </div>
     </div>

@@ -1,7 +1,13 @@
 'use client';
 
+import { Input } from '@/components/ui/input';
+
+import { Modal } from '@/components/ui/modal';
+import { Popconfirm } from '@/components/ui/popconfirm';
+import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Input, Modal, Popconfirm, Table, Tag, type TableColumnsType } from 'antd';
+import { Table, Tag, type TableColumnsType } from 'antd';
+import { Alert } from '@/components/ui/alert';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import { MomentMediaView } from '../moments/components/MomentMedia';
 import { MomentVoicePlayer } from '../moments/components/MomentVoice';
@@ -13,7 +19,6 @@ import { AdminApiError, adminRequest } from './client';
 
 type Props = { refreshToken: number; onUnauthorized: () => void };
 const date = (value: string | number) => new Date(value).toLocaleString('zh-CN', { hour12: false });
-const actionClass = 'rounded-lg px-2 py-1 text-sm text-primary hover:bg-primary-soft disabled:opacity-50';
 
 function useAdminData<T>(path: string, refreshToken: number, onUnauthorized: () => void) {
   const [data, setData] = useState<T | null>(null);
@@ -38,7 +43,7 @@ function useAdminData<T>(path: string, refreshToken: number, onUnauthorized: () 
 }
 
 function LoadError({ error, retry }: { error: string; retry: () => void }) {
-  return error ? <Alert className="mb-4" type="error" showIcon message={error} action={<button type="button" className={actionClass} onClick={retry}>重试</button>} /> : null;
+  return error ? <Alert className="mb-4" type="error" showIcon message={error} action={<Button variant="ghost" type="button" size="sm" onClick={retry}>重试</Button>} /> : null;
 }
 
 function DirectHistory({ conversation, onUnauthorized, refreshToken }: Props & { conversation: Conversation }) {
@@ -57,7 +62,7 @@ function DirectHistory({ conversation, onUnauthorized, refreshToken }: Props & {
     } catch (error) { if (alive.current) report(error); }
     finally { if (alive.current) setLoadingMore(false); }
   };
-  const renderMessage = (message: ServerChatMessage) => <article key={message.id} className="rounded-xl border border-border p-3">
+  const renderMessage = (message: ServerChatMessage) => <article key={message.id} className="rounded-lg border border-border p-3">
     <div className="mb-2 flex flex-wrap justify-between gap-2 text-xs text-foreground-muted"><span>{message.senderName} · @{message.senderId}</span><time>{date(message.timestamp)}</time></div>
     {message.replyTo && <blockquote className="mb-2 border-l-2 border-border pl-3 text-xs text-foreground-muted">回复 {message.replyTo.senderName}：{message.replyTo.content}</blockquote>}
     <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
@@ -71,7 +76,7 @@ function DirectHistory({ conversation, onUnauthorized, refreshToken }: Props & {
     <LoadError error={error} retry={() => void load()} />
     {loading && <p role="status">正在加载私信…</p>}
     <div className="max-h-[65vh] space-y-3 overflow-y-auto" aria-label="私信历史内容">
-      {history?.hasMore && <button type="button" className={actionClass} disabled={loadingMore} onClick={() => void more()}>{loadingMore ? '加载中…' : '加载更早消息'}</button>}
+      {history?.hasMore && <Button variant="ghost" type="button" size="sm" disabled={loadingMore} onClick={() => void more()}>{loadingMore ? '加载中…' : '加载更早消息'}</Button>}
       {history?.messages.map(renderMessage)}
       {!loading && history?.messages.length === 0 && <p className="py-6 text-center text-foreground-muted">双方还没有发送消息</p>}
     </div>
@@ -87,7 +92,7 @@ export function DirectDataTable(props: Props) {
     { title: '最近消息', render: (_, item) => <span className="line-clamp-2 max-w-sm break-words">{item.lastMessage?.content || '暂无消息'}</span> },
     { title: '消息数', dataIndex: 'messageCount', width: 90 },
     { title: '最近活动', width: 180, render: (_, item) => date(item.lastMessageAt || item.createdAt) },
-    { title: '操作', width: 110, render: (_, item) => <button type="button" className={actionClass} onClick={() => setSelected(item)}>查看内容</button> }
+    { title: '操作', width: 110, render: (_, item) => <Button variant="ghost" type="button" size="sm" onClick={() => setSelected(item)}>查看内容</Button> }
   ];
   const query = search.trim().toLowerCase();
   const items = (data?.items || []).filter((item) => `${item.participants.map((person) => `${person.name} ${person.userId}`).join(' ')} ${item.lastMessage?.content || ''}`.toLowerCase().includes(query));
@@ -127,7 +132,7 @@ export function MomentDataTable(props: Props) {
     { title: '心迹内容', render: (_, item) => <div><p className="line-clamp-2 max-w-md whitespace-pre-wrap break-words">{item.text || '媒体心迹'}</p><span className="text-xs text-foreground-muted">{item.media.length} 个影像{item.voice ? ' · 含语音' : ''}{item.location ? ` · ${item.location.label || '含位置'}` : ''}</span></div> },
     { title: '互动', width: 120, render: (_, item) => `${item.likeCount} 赞 / ${item.commentCount} 评论` },
     { title: '发布时间', width: 180, render: (_, item) => date(item.createdAt) },
-    { title: '操作', width: 150, render: (_, item) => <div className="flex gap-1"><button type="button" className={actionClass} onClick={() => setSelected(item)}>查看管理</button><Popconfirm title="删除这条心迹及全部媒体和评论？" okText="删除" cancelText="取消" onConfirm={() => remove(item)}><button disabled={busy} className="px-2 text-danger">删除</button></Popconfirm></div> }
+    { title: '操作', width: 150, render: (_, item) => <div className="flex gap-1"><Button variant="ghost" type="button" size="sm" onClick={() => setSelected(item)}>查看管理</Button><Popconfirm title="删除这条心迹及全部媒体和评论？" okText="删除" cancelText="取消" onConfirm={() => remove(item)}><Button variant="ghost" disabled={busy}>删除</Button></Popconfirm></div> }
   ];
   return <section>
     <h2 className="mb-2 text-lg font-semibold">全部心迹</h2><p className="mb-4 text-xs text-foreground-muted">查看所有用户的文字、影像、语音、位置和评论，可删除心迹或单条评论。</p>
@@ -141,7 +146,7 @@ export function MomentDataTable(props: Props) {
         <MomentMediaView media={selected.media} /><MomentAttachments attachments={selected.attachments} />{selected.voice && <MomentVoicePlayer voice={selected.voice} />}
         {selected.location && <p className="text-xs text-foreground-muted">位置：{selected.location.label}（{selected.location.latitude}, {selected.location.longitude}）</p>}
         <h3 className="font-medium">全部评论（{selected.commentCount}）</h3>
-        {selected.comments.map((comment) => <div key={comment.id} className="rounded-lg border border-border p-3"><div className="flex items-center justify-between gap-2 text-xs text-foreground-muted"><span>{comment.author.name}{comment.replyTo ? ` 回复 ${comment.replyTo.name}` : ''} · {date(comment.createdAt)}</span><Popconfirm title="删除这条评论？" okText="删除" cancelText="取消" onConfirm={() => remove(selected, comment.id)}><button type="button" disabled={busy} className="shrink-0 text-danger">删除评论</button></Popconfirm></div><p className="mt-2 whitespace-pre-wrap break-words text-sm">{comment.text}</p></div>)}
+        {selected.comments.map((comment) => <div key={comment.id} className="rounded-lg border border-border p-3"><div className="flex items-center justify-between gap-2 text-xs text-foreground-muted"><span>{comment.author.name}{comment.replyTo ? ` 回复 ${comment.replyTo.name}` : ''} · {date(comment.createdAt)}</span><Popconfirm title="删除这条评论？" okText="删除" cancelText="取消" onConfirm={() => remove(selected, comment.id)}><Button variant="ghost" type="button" disabled={busy} className="shrink-0">删除评论</Button></Popconfirm></div><p className="mt-2 whitespace-pre-wrap break-words text-sm">{comment.text}</p></div>)}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       </div>}
     </Modal>

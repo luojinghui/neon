@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useCallback, useState, type CSSProperties } from 'react';
 import type { MomentMedia } from '../types';
 import { ImageViewer } from '@/components/image-viewer/ImageViewer';
@@ -37,10 +38,9 @@ export function MomentMediaView({ media, immersive = false }: Props) {
           aria-label={`共 ${images.length} 张图片，点击可查看大图`}
         >
           {images.map((item, index) => (
-            <button
+            <Button variant="ghost" data-ui-surface
               key={item.id}
-              type="button"
-              className="moment-media-tile"
+              type="button" className="moment-media-tile"
               aria-label={`查看第 ${index + 1} 张图片，共 ${images.length} 张${item.name ? `：${item.name}` : ''}`}
               aria-haspopup="dialog"
               onClick={() => setSelectedId(item.id)}
@@ -61,7 +61,7 @@ export function MomentMediaView({ media, immersive = false }: Props) {
                   }
                 }}
               />
-            </button>
+            </Button>
           ))}
         </div>
       )}

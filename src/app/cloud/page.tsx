@@ -108,7 +108,7 @@ function CloudPage() {
             </Show>
 
             <Show is={showContentInfo && password}>
-              <div ref={shareInfoRef} tabIndex={-1} role="region" aria-label="分享信息" className="rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+              <div ref={shareInfoRef} tabIndex={-1} role="region" aria-label="分享信息" className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                 <ContentInfo />
               </div>
             </Show>

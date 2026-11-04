@@ -1,6 +1,9 @@
 'use client';
 
-import { Button, Skeleton } from 'antd';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+import { Skeleton } from 'antd';
 import { InboxOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useEffect } from 'react';
 import PlazaEditor from './PlazaEditor';
@@ -18,10 +21,10 @@ export default function Plaza({ active }: { active: boolean }) {
     <section aria-labelledby="plaza-feed-title" className="plaza-feed">
       <div className="plaza-feed-heading">
         <h2 id="plaza-feed-title">广场</h2>
-        <Button type="text" aria-label="刷新广场" title="刷新" icon={<ReloadOutlined />} loading={busy === 'refresh'} disabled={busy === 'more'} onClick={() => void refreshPlaza()} />
+        <Button variant="ghost" aria-label="刷新广场" title="刷新" icon={<ReloadOutlined />} loading={busy === 'refresh'} disabled={busy === 'more'} onClick={() => void refreshPlaza()} />
       </div>
-      {error && <div className="plaza-load-error" role="alert"><span>{error}</span><Button type="link" size="small" disabled={busy !== null} onClick={() => void refreshPlaza(failedMore)}>重试</Button></div>}
-      {!loaded && busy && !items.length && <div className="cloud-panel"><Skeleton active paragraph={{ rows: 4 }} title={false} /></div>}
+      {error && <div className="plaza-load-error" role="alert"><span>{error}</span><Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => void refreshPlaza(failedMore)}>重试</Button></div>}
+      {!loaded && busy && !items.length && <Card as="div" padding="none" bodyWrap={false} className="cloud-panel"><Skeleton active paragraph={{ rows: 4 }} title={false} /></Card>}
       {loaded && !items.length && <div className="plaza-empty"><InboxOutlined /><h3>这里还很安静</h3><p>分享一段文字、一张图片或一个文件</p></div>}
       <div className="plaza-card-list">{items.map(item => <PlazaCard key={item.messageId} item={item} clockOffset={clockOffset} onUnavailable={removePlazaMessage} />)}</div>
       {nextCursor && <div className="plaza-pagination"><Button loading={busy === 'more'} disabled={busy === 'refresh'} onClick={() => void refreshPlaza(true)}>加载更多</Button></div>}

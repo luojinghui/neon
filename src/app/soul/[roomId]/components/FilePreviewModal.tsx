@@ -1,7 +1,7 @@
 'use client';
 
 import { FileTextOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Modal } from '@/components/ui/modal';
 import mammoth from 'mammoth';
 import { useEffect, useMemo, useState } from 'react';
 import type { ChatAttachment } from '../../core/types';

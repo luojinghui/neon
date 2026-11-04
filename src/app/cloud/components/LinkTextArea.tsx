@@ -1,6 +1,7 @@
+import { Input } from '@/components/ui/input';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Input } from 'antd';
-import type { TextAreaProps, TextAreaRef } from 'antd/es/input/TextArea';
+
+import type { TextAreaProps, TextAreaRef } from '@/components/ui/textarea';
 import LinkifiedText from './LinkifiedText';
 import { splitTextLinks } from './textLinks';
 import styles from './LinkTextArea.module.css';
@@ -17,7 +18,7 @@ export default function LinkTextArea({ value, ...props }: TextAreaProps & { valu
 
   useLayoutEffect(() => {
     const wrapper = wrapperRef.current;
-    const textarea = inputRef.current?.resizableTextArea?.textArea;
+    const textarea = inputRef.current;
     const overlay = overlayRef.current;
     if (!wrapper || !textarea || !overlay) return;
 
@@ -33,7 +34,9 @@ export default function LinkTextArea({ value, ...props }: TextAreaProps & { valu
       const textStyle = getComputedStyle(textarea);
       const textBounds = textarea.getBoundingClientRect();
       const wrapperBounds = wrapper.getBoundingClientRect();
-      // Match the text viewport, including clear-button padding and excluding scrollbars.
+      // Locate the native editor inside UIKit's padded field wrapper. Its count/clear
+      // footer is outside this viewport; derive every inset from the actual textarea
+      // so focus surfaces and future wrapper spacing cannot shift the link mirror.
       Object.assign(overlay.style, {
         top: `${textBounds.top - wrapperBounds.top + textarea.clientTop}px`,
         left: `${textBounds.left - wrapperBounds.left + textarea.clientLeft}px`,

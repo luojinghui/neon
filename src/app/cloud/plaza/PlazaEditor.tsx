@@ -1,6 +1,9 @@
 'use client';
 
-import { App, Button, Modal } from 'antd';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+
+import { App } from 'antd';
 import { CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { ContentEditorView, type EditorController } from '../components/ContentEditor';
@@ -75,11 +78,11 @@ export default function PlazaEditor() {
       <div className="plaza-history">
         {state.textHistory.map(item => <div key={item.timestamp} className="plaza-history-item">
           <div className="flex items-center justify-between gap-2"><time className="text-xs text-foreground-muted">{new Date(item.timestamp).toLocaleString()}</time><div>
-            <Button type="text" size="small" aria-label="复制历史内容" icon={<CopyOutlined />} onClick={() => void copy(item.text)} />
-            <Button type="text" size="small" aria-label="删除历史记录" icon={<DeleteOutlined />} onClick={() => savePlazaHistory(state.textHistory.filter(current => current.timestamp !== item.timestamp))} />
+            <Button variant="ghost" size="sm" aria-label="复制历史内容" icon={<CopyOutlined />} onClick={() => void copy(item.text)} />
+            <Button variant="ghost" size="sm" aria-label="删除历史记录" icon={<DeleteOutlined />} onClick={() => savePlazaHistory(state.textHistory.filter(current => current.timestamp !== item.timestamp))} />
           </div></div>
           <p className="my-2 line-clamp-4 whitespace-pre-wrap break-all text-sm">{item.text}</p>
-          <Button type="link" size="small" onClick={() => { setPlazaText(item.text); setHistoryOpen(false); }}>使用此内容</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setPlazaText(item.text); setHistoryOpen(false); }}>使用此内容</Button>
         </div>)}
         {!state.textHistory.length && <p className="py-8 text-center text-sm text-foreground-muted">暂无历史记录</p>}
       </div>

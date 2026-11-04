@@ -1,3 +1,5 @@
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 /**
  * JSON 格式化弹窗组件
  *
@@ -5,7 +7,7 @@
  * Last modified  : 2025-12-07 23:30:00
  */
 
-import { Modal, Button, Space } from 'antd';
+import { Space } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import JsonView from '@uiw/react-json-view';
 import { useCloudStore } from '../store';
@@ -33,7 +35,7 @@ export function JsonViewerModal({ open, value, onClose, onCopy }: { open: boolea
           <Button key="copy" icon={<CopyOutlined />} onClick={onCopy}>
             复制JSON
           </Button>
-          <Button key="close" type="text" onClick={onClose}>
+          <Button key="close" variant="ghost" onClick={onClose}>
             关闭
           </Button>
         </Space>

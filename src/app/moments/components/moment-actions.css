@@ -10,28 +10,10 @@
 
 .moment-action {
   display: inline-flex;
-  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  border: 0;
-  border-radius: 0.6rem;
-  padding: 0 0.55rem;
-  background: transparent;
-  color: hsl(var(--foreground-secondary));
-  font-size: 0.8rem;
-  transition: color 150ms, background-color 150ms;
 }
 
-.moment-action > .anticon { font-size: 1.15rem; }
-.moment-action:hover { color: hsl(var(--primary)); background: hsl(var(--primary-soft)); }
-.moment-action.is-liked { color: hsl(var(--danger)); }
-.moment-action.is-liked:hover { background: hsl(var(--danger-soft)); }
-.moment-action:disabled { cursor: wait; }
-.moment-action:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.moment-action > [data-ui-icon] { font-size: var(--font-size-title); }
 .moment-action-count { font-variant-numeric: tabular-nums; }
-.moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: 0.75rem; }
-
-@media (prefers-reduced-motion: reduce) {
-  .moment-action { transition: none; }
-}
+.moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: var(--font-size-caption); }

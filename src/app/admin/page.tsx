@@ -1,5 +1,18 @@
 'use client';
 
+import { Switch } from '@/components/ui/switch';
+
+import { Select } from '@/components/ui/select';
+
+import { Input } from '@/components/ui/input';
+
+import { Tooltip } from '@/components/ui/tooltip';
+import { Modal } from '@/components/ui/modal';
+import { Popconfirm } from '@/components/ui/popconfirm';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tabs } from '@/components/ui/tabs';
+import { buttonClassName } from '@/components/ui/button-styles';
 import '@/styles/index.css';
 import './admin.css';
 import {
@@ -22,7 +35,8 @@ import {
   TeamOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Alert, Input, Modal, Popconfirm, Select, Switch, Table, Tag, Tooltip, type TableColumnsType } from 'antd';
+import { Table, Tag, type TableColumnsType } from 'antd';
+import { Alert } from '@/components/ui/alert';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
@@ -89,9 +103,9 @@ function LoginScreen({ onLogin }: { onLogin: (admin: AdminIdentity) => void }) {
         <ThemeToggle />
       </div>
 
-      <section className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-surface/85">
+      <Card as="section" padding="none" bodyWrap={false} className="relative w-full max-w-md overflow-hidden">
         <div className="px-6 py-8 sm:px-9 sm:py-10">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-xl text-primary">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-soft text-xl text-primary">
             <SafetyCertificateOutlined />
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-foreground">管理控制台</h1>
@@ -100,44 +114,43 @@ function LoginScreen({ onLogin }: { onLogin: (admin: AdminIdentity) => void }) {
           <form className="mt-7 grid gap-5" onSubmit={(event) => void submit(event)}>
             <label className="grid gap-1.5">
               <span className="text-sm font-medium text-foreground">管理员账号</span>
-              <input
+              <Input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 autoComplete="username"
                 autoFocus
-                className="h-11 rounded-lg border border-border bg-input px-3 text-sm text-input-foreground outline-none transition focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/15"
+                size="lg"
                 placeholder="请输入管理员账号"
               />
             </label>
             <label className="grid gap-1.5">
               <span className="text-sm font-medium text-foreground">密码</span>
-              <input
+              <Input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
-                className="h-11 rounded-lg border border-border bg-input px-3 text-sm text-input-foreground outline-none transition focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/15"
+                size="lg"
                 placeholder="请输入密码"
               />
             </label>
 
-            {error && <div className="rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">{error}</div>}
+            {error && <div className="rounded-md bg-danger-soft px-3 py-2.5 text-sm text-danger">{error}</div>}
 
-            <button
+            <Button variant="primary"
               type="submit"
-              disabled={submitting || !username.trim() || !password}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={submitting || !username.trim() || !password} className="inline-flex items-center justify-center gap-2"
             >
               {submitting ? <LoadingOutlined /> : <LockOutlined />}
               {submitting ? '登录中...' : '安全登录'}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-7 pt-2 text-center">
             <Link href="/" className="text-sm text-foreground-muted transition-colors hover:text-primary">返回 Soul 首页</Link>
           </div>
         </div>
-      </section>
+      </Card>
     </main>
   );
 }
@@ -231,10 +244,10 @@ function CloudDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePr
       width: 156,
       render: (_, item) => (
         <div className="flex items-center gap-1">
-          <Tooltip title="查看隐私数据"><button type="button" onClick={() => setViewing(item)} className="admin-icon-button"><EyeOutlined /></button></Tooltip>
-          <Tooltip title="编辑"><button type="button" onClick={() => openEdit(item)} className="admin-icon-button"><EditOutlined /></button></Tooltip>
+          <Tooltip title="查看隐私数据"><Button variant="ghost" size="sm" iconOnly aria-label="查看隐私数据" type="button" onClick={() => setViewing(item)}><EyeOutlined /></Button></Tooltip>
+          <Tooltip title="编辑"><Button variant="ghost" size="sm" iconOnly aria-label="编辑" type="button" onClick={() => openEdit(item)}><EditOutlined /></Button></Tooltip>
           <Popconfirm title="删除这条云传数据？" description="数据库记录及对应文件都会被删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(item)}>
-            <Tooltip title="删除"><button type="button" className="admin-icon-button hover:!text-danger"><DeleteOutlined /></button></Tooltip>
+            <Tooltip title="删除"><Button variant="ghost" size="sm" iconOnly aria-label="删除" type="button"><DeleteOutlined /></Button></Tooltip>
           </Popconfirm>
         </div>
       )
@@ -257,7 +270,7 @@ function CloudDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePr
           }}
         >
           <Input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} allowClear placeholder="提取码、正文或文件名" className="min-w-0 sm:w-64" />
-          <button className="admin-secondary-button" type="submit">查询</button>
+          <Button variant="outline" type="submit">查询</Button>
         </form>
       </div>
 
@@ -273,21 +286,21 @@ function CloudDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePr
       <Modal title="云传隐私数据" open={Boolean(viewing)} onCancel={() => setViewing(null)} footer={null} centered width={720} destroyOnHidden>
         {viewing && (
           <div className="grid gap-5">
-            <div className="grid grid-cols-2 gap-3 rounded-lg bg-background-secondary p-4 text-sm sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 rounded-lg bg-surface-inset p-4 text-sm sm:grid-cols-4">
               <div><div className="text-xs text-foreground-muted">提取码</div><div className="mt-1 font-mono font-semibold">{viewing.password}</div></div>
               <div><div className="text-xs text-foreground-muted">类型</div><div className="mt-1">{viewing.messageType}</div></div>
               <div className="col-span-2"><div className="text-xs text-foreground-muted">消息 ID</div><div className="mt-1 truncate font-mono text-xs">{viewing.messageId}</div></div>
             </div>
             <div>
               <div className="mb-2 text-sm font-medium text-foreground">文本内容</div>
-              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-input p-3 text-sm leading-6 text-input-foreground">{viewing.content || '（无文本内容）'}</pre>
+              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-inset p-3 text-sm leading-6 text-foreground">{viewing.content || '（无文本内容）'}</pre>
             </div>
             <div>
               <div className="mb-2 text-sm font-medium text-foreground">文件</div>
               {viewing.files.length === 0 ? <div className="text-sm text-foreground-muted">无文件</div> : (
                 <div className="grid gap-2">
                   {viewing.files.map((file) => (
-                    <a key={file.fileId} href={file.downloadUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-4 rounded-lg bg-background-secondary px-3 py-2.5 text-sm hover:bg-surface-hover">
+                    <a key={file.fileId} href={file.downloadUrl} target="_blank" rel="noreferrer" className={buttonClassName({ block: true, className: 'justify-between gap-4' })}>
                       <span className="min-w-0 truncate text-foreground">{file.relativePath || file.fileName}</span>
                       <span className="shrink-0 text-xs text-foreground-muted">{formatBytes(file.fileSize)}</span>
                     </a>
@@ -368,8 +381,8 @@ function RoomAccessTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
       title: '操作', fixed: 'right', width: 140,
       render: (_, item) => (
         <div className="flex items-center gap-1">
-          {item.status === 'pending' && <><Tooltip title="同意"><button type="button" disabled={actingId === item.id} onClick={() => void changeAccess(item, 'approved')} className="admin-icon-button !text-success"><CheckOutlined /></button></Tooltip><Tooltip title="拒绝"><button type="button" disabled={actingId === item.id} onClick={() => void changeAccess(item, 'rejected')} className="admin-icon-button !text-danger"><CloseOutlined /></button></Tooltip></>}
-          {item.status === 'approved' && <Popconfirm title="删除该用户的访问权限？" description="用户如果正在聊天室中将被立即移出。" okText="删除授权" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void changeAccess(item, 'revoked')}><Tooltip title="删除授权"><button type="button" disabled={actingId === item.id} className="admin-icon-button !text-danger"><UserDeleteOutlined /></button></Tooltip></Popconfirm>}
+          {item.status === 'pending' && <><Tooltip title="同意"><Button variant="ghost" size="sm" iconOnly aria-label="同意" type="button" disabled={actingId === item.id} onClick={() => void changeAccess(item, 'approved')}><CheckOutlined /></Button></Tooltip><Tooltip title="拒绝"><Button variant="ghost" size="sm" iconOnly aria-label="拒绝" type="button" disabled={actingId === item.id} onClick={() => void changeAccess(item, 'rejected')}><CloseOutlined /></Button></Tooltip></>}
+          {item.status === 'approved' && <Popconfirm disabled={actingId === item.id} title="删除该用户的访问权限？" description="用户如果正在聊天室中将被立即移出。" okText="删除授权" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void changeAccess(item, 'revoked')}><Tooltip title="删除授权"><Button variant="ghost" size="sm" iconOnly aria-label="删除" type="button" disabled={actingId === item.id}><UserDeleteOutlined /></Button></Tooltip></Popconfirm>}
           {!['pending', 'approved'].includes(item.status) && <span className="px-2 text-xs text-foreground-muted">无操作</span>}
         </div>
       )
@@ -468,10 +481,10 @@ function RoomDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
       width: 156,
       render: (_, item) => (
         <div className="flex items-center gap-1">
-          <Tooltip title="以超管身份进入"><Link href={`/soul/${encodeURIComponent(item.id)}`} target="_blank" className="admin-icon-button"><GlobalOutlined /></Link></Tooltip>
-          <Tooltip title={item.isFixed ? '内置星球由代码维护' : '编辑'}><button type="button" disabled={item.isFixed} onClick={() => openEdit(item)} className="admin-icon-button disabled:opacity-35"><EditOutlined /></button></Tooltip>
+          <Tooltip title="以超管身份进入"><Link href={`/soul/${encodeURIComponent(item.id)}`} target="_blank" aria-label="以超管身份进入" className={buttonClassName({ variant: 'ghost', size: 'sm', iconOnly: true })}><GlobalOutlined /></Link></Tooltip>
+          <Tooltip title={item.isFixed ? '内置星球由代码维护' : '编辑'}><Button variant="ghost" size="sm" iconOnly aria-label="编辑" type="button" disabled={item.isFixed} onClick={() => openEdit(item)}><EditOutlined /></Button></Tooltip>
           <Popconfirm disabled={item.isFixed} title="删除这个星球？" description="全部消息和附件都将永久删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(item)}>
-            <Tooltip title={item.isFixed ? '内置星球不可删除' : '删除'}><button type="button" disabled={item.isFixed} className="admin-icon-button hover:!text-danger disabled:opacity-35"><DeleteOutlined /></button></Tooltip>
+            <Tooltip title={item.isFixed ? '内置星球不可删除' : '删除'}><Button variant="ghost" size="sm" iconOnly aria-label="删除" type="button" disabled={item.isFixed}><DeleteOutlined /></Button></Tooltip>
           </Popconfirm>
         </div>
       )
@@ -493,10 +506,10 @@ function RoomDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
           <label className="grid gap-1.5"><span className="text-sm font-medium">星球名称</span><Input value={draft.name} maxLength={32} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} /></label>
           <label className="grid gap-1.5"><span className="text-sm font-medium">描述</span><Input.TextArea value={draft.description} rows={3} maxLength={200} showCount onChange={(event) => setDraft((value) => ({ ...value, description: event.target.value }))} /></label>
           <label className="grid gap-1.5"><span className="text-sm font-medium">标签（逗号分隔）</span><Input value={draft.tags} onChange={(event) => setDraft((value) => ({ ...value, tags: event.target.value }))} /></label>
-          <div className="flex items-center justify-between rounded-lg bg-background-secondary px-3 py-2.5"><span className="text-sm">私密星球</span><Switch checked={draft.isPrivate} onChange={(checked) => setDraft((value) => ({ ...value, isPrivate: checked, passwordEnabled: checked ? false : value.passwordEnabled, password: checked ? '' : value.password }))} /></div>
-          {!draft.isPrivate && <div className="flex items-center justify-between rounded-lg bg-background-secondary px-3 py-2.5"><span className="text-sm">启用密码</span><Switch checked={draft.passwordEnabled} onChange={(checked) => setDraft((value) => ({ ...value, passwordEnabled: checked, password: checked ? value.password : '' }))} /></div>}
+          <div className="flex items-center justify-between rounded-md bg-surface-inset px-3 py-2.5"><span className="text-sm">私密星球</span><Switch aria-label="私密星球" checked={draft.isPrivate} onChange={(checked) => setDraft((value) => ({ ...value, isPrivate: checked, passwordEnabled: checked ? false : value.passwordEnabled, password: checked ? '' : value.password }))} /></div>
+          {!draft.isPrivate && <div className="flex items-center justify-between rounded-md bg-surface-inset px-3 py-2.5"><span className="text-sm">启用密码</span><Switch aria-label="启用密码" checked={draft.passwordEnabled} onChange={(checked) => setDraft((value) => ({ ...value, passwordEnabled: checked, password: checked ? value.password : '' }))} /></div>}
           {!draft.isPrivate && draft.passwordEnabled && <label className="grid gap-1.5"><span className="text-sm font-medium">新密码</span><Input.Password value={draft.password} maxLength={4} placeholder="留空则保留原密码" onChange={(event) => setDraft((value) => ({ ...value, password: event.target.value.replace(/[^A-Za-z0-9]/g, '') }))} /></label>}
-          {draft.isPrivate && <p className="rounded-lg bg-primary-soft px-3 py-2 text-xs text-primary">私密星球仅创建者、已授权成员和超管可进入，无需密码。</p>}
+          {draft.isPrivate && <p className="rounded-md bg-primary-soft px-3 py-2 text-xs text-primary">私密星球仅创建者、已授权成员和超管可进入，无需密码。</p>}
         </div>
       </Modal>
     </section>
@@ -586,7 +599,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
   const columns: TableColumnsType<AdminProfileItem> = [
     { title: '人员', width: 180, render: (_, profile) => <div><div className="font-medium text-foreground">{profile.name} {profile.isSystem && <Tag className="ml-1">系统</Tag>}</div><div className="mt-0.5 font-mono text-xs text-foreground-muted">@{profile.userId}</div></div> },
     { title: 'UUID', dataIndex: 'uuid', width: 285, ellipsis: true, render: (value) => <span className="font-mono text-xs text-foreground-secondary">{value || '系统账户'}</span> },
-    { title: '注册 User-Agent', dataIndex: 'userAgent', width: 280, ellipsis: true, render: (value: string) => <Tooltip title={value || '未记录（历史资料或后台创建）'}><span className="font-mono text-xs text-foreground-secondary">{value || '未记录'}</span></Tooltip> },
+    { title: '注册 User-Agent', dataIndex: 'userAgent', width: 280, ellipsis: true, render: (value: string) => <Tooltip title={value || '未记录（历史资料或后台创建）'}><span tabIndex={0} className="font-mono text-xs text-foreground-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">{value || '未记录'}</span></Tooltip> },
     { title: '个人描述', dataIndex: 'bio', ellipsis: true, render: (value) => <span className="text-foreground-secondary">{value || '—'}</span> },
     { title: '创建时间', dataIndex: 'createdAt', width: 174, render: formatDate },
     { title: '更新时间', dataIndex: 'updatedAt', width: 174, render: formatDate },
@@ -596,9 +609,9 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
       width: 112,
       render: (_, profile) => (
         <div className="flex items-center gap-1">
-          <Tooltip title={profile.isSystem ? '系统账户不可编辑' : '编辑'}><button type="button" disabled={profile.isSystem} onClick={() => openEdit(profile)} className="admin-icon-button disabled:opacity-35"><EditOutlined /></button></Tooltip>
+          <Tooltip title={profile.isSystem ? '系统账户不可编辑' : '编辑'}><Button variant="ghost" size="sm" iconOnly aria-label="编辑" type="button" disabled={profile.isSystem} onClick={() => openEdit(profile)}><EditOutlined /></Button></Tooltip>
           <Popconfirm disabled={profile.isSystem} title="删除这个人员？" description="其创建的星球、心迹、评论和媒体文件也会被删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(profile)}>
-            <Tooltip title={profile.isSystem ? '系统账户不可删除' : '删除'}><button type="button" disabled={profile.isSystem} className="admin-icon-button hover:!text-danger disabled:opacity-35"><DeleteOutlined /></button></Tooltip>
+            <Tooltip title={profile.isSystem ? '系统账户不可删除' : '删除'}><Button variant="ghost" size="sm" iconOnly aria-label="删除" type="button" disabled={profile.isSystem}><DeleteOutlined /></Button></Tooltip>
           </Popconfirm>
         </div>
       )
@@ -609,7 +622,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="text-lg font-semibold text-foreground">全部人员</h2><p className="mt-1 text-xs text-foreground-muted">共 {items.length} 个资料账户，包含系统账户</p></div>
-        <button type="button" onClick={openCreate} className="admin-primary-button"><PlusOutlined /> 新增人员</button>
+        <Button variant="primary" type="button" onClick={openCreate}><PlusOutlined /> 新增人员</Button>
       </div>
       <Table rowKey={(profile) => profile.uuid || profile.userId} loading={loading} columns={columns} dataSource={items} scroll={{ x: 1400 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 人` }} />
 
@@ -619,7 +632,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
           <label className="grid gap-1.5"><span className="text-sm font-medium">专属 ID</span><Input value={draft.userId} maxLength={20} prefix="@" onChange={(event) => setDraft((value) => ({ ...value, userId: event.target.value.replace(/[^A-Za-z0-9]/g, '') }))} /></label>
           <label className="grid gap-1.5"><span className="text-sm font-medium">个人描述</span><Input.TextArea value={draft.bio} rows={3} maxLength={160} showCount onChange={(event) => setDraft((value) => ({ ...value, bio: event.target.value }))} /></label>
           <label className="grid gap-1.5"><span className="text-sm font-medium">头像地址</span><Input value={draft.avatarUrl} placeholder="留空使用默认头像，或填写已有 /uploads/profile/... 地址" onChange={(event) => setDraft((value) => ({ ...value, avatarUrl: event.target.value }))} /></label>
-          <label className="grid gap-1.5"><span className="text-sm font-medium">背景预设</span><Select value={draft.bannerPreset} onChange={(value) => setDraft((current) => ({ ...current, bannerPreset: value }))} options={[...(draft.bannerPreset === '__keep_image' ? [{ value: '__keep_image', label: '保留现有自定义背景' }] : []), ...([['sunrise', '日出'], ['coral', '珊瑚'], ['aurora', '极光'], ['lagoon', '海湾'], ['violet', '暮紫'], ['midnight', '夜航']] as const).map(([value, label]) => ({ value, label }))]} /></label>
+          <div className="grid gap-1.5"><label htmlFor="admin-banner-preset" className="text-body font-medium">背景预设</label><Select id="admin-banner-preset" aria-label="背景预设" value={draft.bannerPreset} onChange={(value) => setDraft((current) => ({ ...current, bannerPreset: value }))} options={[...(draft.bannerPreset === '__keep_image' ? [{ value: '__keep_image', label: '保留现有自定义背景' }] : []), ...([['sunrise', '日出'], ['coral', '珊瑚'], ['aurora', '极光'], ['lagoon', '海湾'], ['violet', '暮紫'], ['midnight', '夜航']] as const).map(([value, label]) => ({ value, label }))]} /></div>
         </div>
       </Modal>
     </section>
@@ -702,11 +715,11 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
       title: '原图 / 加工成品',
       width: 190,
       render: (_, item) => {
-        if (item.imageState !== 'ready') return <div className={`flex h-[86px] w-[136px] items-center justify-center rounded-md px-2 text-center text-xs ${item.imageState === 'missing' ? 'bg-warning/10 text-warning' : 'bg-surface-hover text-foreground-muted'}`}>{item.imageState === 'missing' ? '图片文件缺失，请检查存储' : '图片已清理'}</div>;
+        if (item.imageState !== 'ready') return <div className={`flex h-[86px] w-[136px] items-center justify-center rounded-lg px-2 text-center text-xs ${item.imageState === 'missing' ? 'bg-warning/10 text-warning' : 'bg-surface-hover text-foreground-muted'}`}>{item.imageState === 'missing' ? '图片文件缺失，请检查存储' : '图片已清理'}</div>;
         const images = [{ id: 'original', url: item.originalUrl, name: `${item.title}原图` }, { id: 'processed', url: item.processedUrl, name: `${item.title}成品` }];
-        return <div className="flex gap-2">{images.map((image) => <ImagePreview key={image.id} images={images} imageId={image.id} title="图片审核" className="shrink-0 rounded-md">
+        return <div className="flex gap-2">{images.map((image) => <ImagePreview key={image.id} images={images} imageId={image.id} title="图片审核" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image.url} alt={image.name} width={64} height={86} className="h-[86px] w-16 rounded-md object-cover" />
+          <img src={image.url} alt={image.name} width={64} height={86} className="h-[86px] w-16 rounded-lg object-cover" />
         </ImagePreview>)}</div>;
       }
     },
@@ -740,12 +753,12 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
       width: 150,
       render: (_, item) => (
         <div className="flex items-center gap-1">
-          <Tooltip title={item.status === 'approved' ? '已审核通过' : '审核通过'}><button type="button" disabled={!['pending'].includes(item.status)} onClick={() => void moderate(item, 'approved')} className="admin-icon-button hover:!text-success disabled:opacity-35"><CheckOutlined /></button></Tooltip>
+          <Tooltip title={item.status === 'approved' ? '已审核通过' : '审核通过'}><Button variant="ghost" size="sm" iconOnly aria-label="同意" type="button" disabled={!['pending'].includes(item.status)} onClick={() => void moderate(item, 'approved')}><CheckOutlined /></Button></Tooltip>
           <Popconfirm disabled={!['pending', 'approved'].includes(item.status)} title="驳回并删除这组图片？" description="原图、加工成品及关联的公开分享会立即删除。" okText="驳回删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void moderate(item, 'rejected')}>
-            <Tooltip title={['pending', 'approved'].includes(item.status) ? '驳回并删除图片' : '图片已清理'}><button type="button" disabled={!['pending', 'approved'].includes(item.status)} className="admin-icon-button hover:!text-danger disabled:opacity-35"><CloseOutlined /></button></Tooltip>
+            <Tooltip title={['pending', 'approved'].includes(item.status) ? '驳回并删除图片' : '图片已清理'}><Button variant="ghost" size="sm" iconOnly aria-label="驳回并删除图片" type="button" disabled={!['pending', 'approved'].includes(item.status)}><CloseOutlined /></Button></Tooltip>
           </Popconfirm>
           <Popconfirm title="永久删除这条审核记录？" description="原图、成品及关联的公开分享会同时删除。" okText="永久删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(item)}>
-            <Tooltip title="永久删除"><button type="button" className="admin-icon-button hover:!text-danger"><DeleteOutlined /></button></Tooltip>
+            <Tooltip title="永久删除"><Button variant="ghost" size="sm" iconOnly aria-label="删除" type="button"><DeleteOutlined /></Button></Tooltip>
           </Popconfirm>
         </div>
       )
@@ -761,7 +774,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
         </div>
         <div className="flex gap-2 text-xs"><Tag color="processing">待审核 {stats.pending}</Tag><Tag>记录 {stats.total}</Tag></div>
       </div>
-      {loadError && <Alert className="mb-4" type="error" showIcon message="审核数据加载失败" description={loadError} action={<button type="button" aria-label="重新加载审核数据" title="重新加载" className="admin-icon-button" onClick={() => void load()}><ReloadOutlined /></button>} />}
+      {loadError && <Alert className="mb-4" type="error" showIcon message="审核数据加载失败" description={loadError} action={<Button variant="ghost" size="sm" iconOnly type="button" aria-label="重新加载审核数据" title="重新加载" onClick={() => void load()}><ReloadOutlined /></Button>} />}
       <Table rowKey="id" loading={loading} columns={columns} dataSource={items} locale={{ emptyText: loadError ? '审核数据暂时不可用' : '暂无审核记录' }} scroll={{ x: 1050 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
     </section>
   );
@@ -810,39 +823,33 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
       <header className="app-sticky-header app-glass-header sticky z-20">
         <div className="app-content-width app-header-row flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary"><SafetyCertificateOutlined /></div>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary"><SafetyCertificateOutlined /></div>
             <div className="min-w-0"><div className="truncate text-sm font-semibold text-foreground">Soul 管理控制台</div><div className="truncate text-[11px] text-foreground-muted">{admin.displayName} · {admin.username}</div></div>
           </div>
           <div className="flex items-center gap-2">
-            <Tooltip title="刷新当前数据"><button type="button" onClick={() => setRefreshToken((value) => value + 1)} className="admin-header-button"><ReloadOutlined /></button></Tooltip>
+            <Tooltip title="刷新当前数据"><Button variant="ghost" iconOnly aria-label="刷新" type="button" onClick={() => setRefreshToken((value) => value + 1)}><ReloadOutlined /></Button></Tooltip>
             <ThemeToggle />
-            <button
+            <Button variant="ghost"
               type="button"
               disabled={loggingOut}
               onClick={() => {
                 setLoggingOut(true);
                 void onLogout().finally(() => setLoggingOut(false));
               }}
-              className="admin-header-button px-3"
             >
               {loggingOut ? <LoadingOutlined /> : <LogoutOutlined />}<span className="hidden sm:inline">退出</span>
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       <div className="app-content-width py-5 sm:py-6">
-        <div className="mb-6 flex gap-1 overflow-x-auto py-1">
-          {tabs.map((item) => (
-            <button key={item.key} type="button" onClick={() => setTab(item.key)} className={`inline-flex min-w-max items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${tab === item.key ? 'bg-primary-soft text-primary' : 'text-foreground-secondary hover:bg-surface-hover hover:text-foreground'}`}>
-              {item.icon}{item.label}
-            </button>
-          ))}
-        </div>
+        <Tabs id="admin-content-tabs" panelId="admin-content-panel" className="mb-6" aria-label="后台管理分类" activeKey={tab} onChange={key => setTab(key as AdminTab)}
+          items={tabs.map(item => ({ key: item.key, label: <>{item.icon}{item.label}</> }))} />
 
-        {notice && <div className={`mb-5 rounded-lg px-4 py-3 text-sm ${notice.type === 'error' ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success'}`}>{notice.text}</div>}
+        {notice && <div className={`mb-5 rounded-md px-4 py-3 text-sm ${notice.type === 'error' ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success'}`}>{notice.text}</div>}
 
-        <div className="min-w-0 rounded-2xl border border-border/70 bg-surface/70 p-4 sm:p-5">
+        <Card as="div" padding="none" bodyWrap={false} id="admin-content-panel" role="tabpanel" aria-labelledby={`admin-content-tabs-tab-${tab}`} className="min-w-0 p-4 sm:p-5">
           {tab === 'cloud' && <CloudDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'directs' && <DirectDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
           {tab === 'moments' && <MomentDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
@@ -852,7 +859,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
           {tab === 'users' && <UserDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'push' && <PushManagement refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
           {tab === 'doodles' && <DoodleDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
-        </div>
+        </Card>
       </div>
     </div>
   );

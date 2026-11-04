@@ -74,14 +74,18 @@ export function useEditorLayout(panelRef: RefObject<HTMLElement | null>): Editor
       const chrome = panelInsets + surfaceInsets + outerHeight(heading) + outerHeight(attachments) + outerHeight(toolbar);
       const textInsets = pixels(textStyle.paddingTop) + pixels(textStyle.paddingBottom)
         + pixels(textStyle.borderTopWidth) + pixels(textStyle.borderBottomWidth);
-      // rc-textarea measures an integer scrollHeight for its single-row sizing textarea.
+      // UIKit keeps field padding, the counter and clear action outside the native
+      // textarea. Reserve that space as well, especially when attachments are open.
+      const fieldChrome = Math.max(0, surface.getBoundingClientRect().height - textarea.getBoundingClientRect().height
+        - pixels(surfaceStyle.paddingTop) - pixels(surfaceStyle.paddingBottom)
+        - pixels(surfaceStyle.borderTopWidth) - pixels(surfaceStyle.borderBottomWidth));
       const rowHeight = Math.max(1, Math.ceil(pixels(textStyle.lineHeight) || pixels(textStyle.fontSize) * 1.75 || 25));
-      const textBudget = Math.min(viewportHeight * 0.6, available - chrome);
+      const textBudget = Math.min(viewportHeight * 0.6, available - chrome - fieldChrome);
       const maxRows = Math.max(1, Math.floor((textBudget - textInsets) / rowHeight));
       const next: EditorLayout = { minRows: Math.min(4, maxRows), maxRows, viewportHeight, viewportTop, compact: viewportHeight <= 560 };
       setLayout(previous => Object.keys(next).every(key => previous[key as keyof EditorLayout] === next[key as keyof EditorLayout]) ? previous : next);
 
-      // Allow React and rc-textarea to finish their row measurement before checking the keyboard edge.
+      // Allow React and the textarea to finish sizing before checking the keyboard edge.
       cancelAnimationFrame(revealFrame);
       revealFrame = requestAnimationFrame(() => {
         revealFrame = requestAnimationFrame(revealToolbar);
@@ -108,7 +112,7 @@ export function useEditorLayout(panelRef: RefObject<HTMLElement | null>): Editor
       if (changed) schedule();
     });
     observer.observe(panel);
-    for (const element of [heading, toolbar, attachments]) if (element) observer.observe(element);
+    for (const element of [heading, toolbar, attachments, surface]) if (element) observer.observe(element);
     viewport?.addEventListener('resize', schedule);
     viewport?.addEventListener('scroll', schedule);
     window.addEventListener('resize', schedule);

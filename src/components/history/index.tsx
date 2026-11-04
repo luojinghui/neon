@@ -17,7 +17,7 @@ export const History: FC<HistoryProps> = ({ items }) => {
 
   return (
     <div className="mt-8 w-full max-w-[500px] md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]">
-      <div className="rounded-[8px] border border-gray-200 bg-white/90 p-6">
+      <div className="rounded-lg border border-gray-200 bg-white/90 p-6">
         <h3 className="mb-4 text-lg font-semibold text-gray-900">最近查询</h3>
         <div className="space-y-3">
           {items.map((item) => (

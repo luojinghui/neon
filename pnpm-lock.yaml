@@ -72,6 +72,9 @@ importers:
       pdfjs-dist:
         specifier: 6.3.289
         version: 6.3.289
+      postcss:
+        specifier: 8.5.26
+        version: 8.5.26
       react:
         specifier: 19.0.0
         version: 19.0.0
@@ -112,9 +115,6 @@ importers:
       eslint-config-next:
         specifier: 15.5.28
         version: 15.5.28(eslint@8.57.1)(typescript@5.7.2)
-      postcss:
-        specifier: 8.5.26
-        version: 8.5.26
       tailwindcss:
         specifier: ^3.4.1
         version: 3.4.15

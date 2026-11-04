@@ -1,7 +1,11 @@
 'use client';
 
+import { Popover } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { CameraOutlined, CheckOutlined, CloseOutlined, EditOutlined, LoadingOutlined, PictureOutlined, PlusOutlined } from '@ant-design/icons';
-import { Popover } from 'antd';
+
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
@@ -77,9 +81,9 @@ export function ProfileIdentity({ profile, isOwner, onSaved, onCompose }: Props)
   };
 
   const editButton = (field: EditableField, label: string) => canEdit && (
-    <button type="button" className="profile-edit-trigger" aria-label={label} title={label} disabled={controlsDisabled} onClick={() => startEditing(field)}>
+    <Button variant="ghost" size="sm" iconOnly type="button" className="profile-edit-trigger" aria-label={label} title={label} disabled={controlsDisabled} onClick={() => startEditing(field)}>
       <EditOutlined aria-hidden="true" />
-    </button>
+    </Button>
   );
 
   const fieldEditor = (field: EditableField, label: string) => (
@@ -94,14 +98,14 @@ export function ProfileIdentity({ profile, isOwner, onSaved, onCompose }: Props)
     }}>
       <label className="sr-only" htmlFor={`profile-edit-${field}`}>{label}</label>
       {field === 'bio' ? (
-        <textarea id={`profile-edit-${field}`} autoFocus maxLength={160} rows={3} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} placeholder="介绍一下你自己，或者写下此刻想说的话" />
+        <Textarea id={`profile-edit-${field}`} autoFocus maxLength={160} rows={3} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} placeholder="介绍一下你自己，或者写下此刻想说的话" />
       ) : (
-        <input id={`profile-edit-${field}`} autoFocus maxLength={field === 'name' ? 32 : 20} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} />
+        <Input id={`profile-edit-${field}`} autoFocus maxLength={field === 'name' ? 32 : 20} value={draft} disabled={busy} onChange={(event) => setDraft(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} />
       )}
       <div className="profile-inline-actions">
         <span>{field === 'bio' ? `${draft.length} / 160` : field === 'userId' ? '3–20 位字母或数字' : '让朋友更容易认出你'}</span>
-        <button type="button" disabled={busy} onClick={() => { setEditing(null); setError(''); }}><CloseOutlined />取消</button>
-        <button type="submit" disabled={busy} className="is-save">{busy ? <LoadingOutlined /> : <CheckOutlined />}保存</button>
+        <Button variant="ghost" type="button" disabled={busy} onClick={() => { setEditing(null); setError(''); }}><CloseOutlined />取消</Button>
+        <Button variant="primary" type="submit" disabled={busy}>{busy ? <LoadingOutlined /> : <CheckOutlined />}保存</Button>
       </div>
     </form>
   );
@@ -112,26 +116,27 @@ export function ProfileIdentity({ profile, isOwner, onSaved, onCompose }: Props)
       {canEdit && <Popover
         trigger="click"
         placement="bottomRight"
+        bodyStyle={{ padding: 12 }}
         open={appearance === 'banner'}
         onOpenChange={(open) => setAppearance(open ? 'banner' : null)}
         content={<div className="profile-cover-options">
           <p>选一种心情，装点你的主页</p>
           <div className="profile-cover-presets">
-            {BANNER_PRESETS.map((preset) => <button key={preset.id} type="button" disabled={busy} aria-label={`使用${preset.label}背景`} aria-pressed={profile.banner.type === 'preset' && profile.banner.value === preset.id} onClick={() => void save({ banner: { type: 'preset', value: preset.id } })}>
+            {BANNER_PRESETS.map((preset) => <Button variant="ghost" key={preset.id} type="button" disabled={busy} aria-label={`使用${preset.label}背景`} aria-pressed={profile.banner.type === 'preset' && profile.banner.value === preset.id} onClick={() => void save({ banner: { type: 'preset', value: preset.id } })}>
               <span className={`bg-gradient-to-br ${preset.className}`} />{preset.label}
-            </button>)}
+            </Button>)}
           </div>
-          <button type="button" className="profile-media-option" disabled={busy} onClick={() => bannerInput.current?.click()}><PictureOutlined />上传自己的封面</button>
+          <Button variant="ghost" type="button" className="profile-media-option" disabled={busy} onClick={() => bannerInput.current?.click()}><PictureOutlined />上传自己的封面</Button>
         </div>}
       >
-        <button type="button" className="profile-cover-edit" disabled={controlsDisabled}><PictureOutlined />更换封面</button>
+        <Button variant="outline" type="button" className="profile-cover-edit" disabled={controlsDisabled}><PictureOutlined />更换封面</Button>
       </Popover>}
     </div>
 
     <div className="profile-identity">
       <div className="profile-identity-row">
         <div className="profile-avatar">
-          <ImagePreview images={[{ id: 'avatar', url: getProfileAvatar(profile), name: `${profile.name}的头像` }]} imageId="avatar" className="relative h-full w-full rounded-full" title="头像">
+          <ImagePreview images={[{ id: 'avatar', url: getProfileAvatar(profile), name: `${profile.name}的头像` }]} imageId="avatar" className="relative h-full w-full" title="头像">
             <Image src={getProfileAvatar(profile)} alt={`${profile.name}的头像`} fill sizes="120px" priority unoptimized className="profile-avatar-image" />
           </ImagePreview>
           {canEdit && <Popover
@@ -140,11 +145,11 @@ export function ProfileIdentity({ profile, isOwner, onSaved, onCompose }: Props)
             open={appearance === 'avatar'}
             onOpenChange={(open) => setAppearance(open ? 'avatar' : null)}
             content={<div className="profile-avatar-options">
-              <button type="button" disabled={busy} className="profile-media-option" onClick={() => avatarInput.current?.click()}><CameraOutlined />上传新头像</button>
-              <button type="button" disabled={busy || !profile.avatarUrl} className="profile-media-option" onClick={() => void save({ avatarUrl: '' })}>恢复默认头像</button>
+              <Button variant="ghost" type="button" disabled={busy} className="profile-media-option" onClick={() => avatarInput.current?.click()}><CameraOutlined />上传新头像</Button>
+              <Button variant="ghost" type="button" disabled={busy || !profile.avatarUrl} className="profile-media-option" onClick={() => void save({ avatarUrl: '' })}>恢复默认头像</Button>
             </div>}
           >
-            <button type="button" className="profile-avatar-edit" disabled={controlsDisabled} aria-label="更换头像" title="更换头像"><CameraOutlined /></button>
+            <Button variant="outline" iconOnly type="button" className="profile-avatar-edit" disabled={controlsDisabled} aria-label="更换头像" title="更换头像"><CameraOutlined /></Button>
           </Popover>}
         </div>
         <div className="profile-name-block">
@@ -156,7 +161,7 @@ export function ProfileIdentity({ profile, isOwner, onSaved, onCompose }: Props)
           {editing === 'userId' ? fieldEditor('userId', '专属 ID') : <div className="profile-handle"><span>@{profile.userId}</span>{editButton('userId', '编辑专属 ID')}</div>}
         </div>
         <div className="profile-primary-action">
-          {canEdit && <button type="button" className="profile-compose" onClick={onCompose}><PlusOutlined />写心迹</button>}
+          {canEdit && <Button variant="primary" type="button" className="profile-compose" onClick={onCompose}><PlusOutlined />写心迹</Button>}
           {!isOwner && !profile.isSystem && <ContactActions key={profile.publicKey} contact={profile} />}
         </div>
       </div>

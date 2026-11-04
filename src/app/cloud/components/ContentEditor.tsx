@@ -1,3 +1,7 @@
+import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 /**
  * 内容编辑器组件
  *
@@ -6,19 +10,9 @@
  */
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Button, Input, Modal } from 'antd';
-import {
-  ClearOutlined,
-  CopyOutlined,
-  FileTextOutlined,
-  HistoryOutlined,
-  InboxOutlined,
-  DeleteOutlined,
-  PaperClipOutlined,
-  RocketOutlined,
-  LoadingOutlined,
-  ExpandOutlined
-} from '@ant-design/icons';
+
+import { Icon } from '@/components/ui/icon';
+import { Tooltip } from '@/components/ui/tooltip';
 import { useCloudStore, FileItem } from '../store';
 import { neonCloud, type NeonCloud } from '../core';
 import LinkTextArea from './LinkTextArea';
@@ -35,20 +29,20 @@ function formatFileSize(bytes: number): string {
 
 function FileListItem({ item, onRemove }: { item: FileItem; onRemove: (id: string) => void }) {
   return (
-    <div className="inline-flex min-w-0 items-center gap-2 rounded-lg bg-surface-inset px-3 py-1.5 max-w-full">
-      <PaperClipOutlined className="text-foreground-muted text-xs shrink-0" />
+    <div className="inline-flex min-w-0 items-center gap-2 rounded-md bg-surface-inset px-3 py-1.5 max-w-full">
+      <Icon name="paperclip" className="text-foreground-muted text-xs shrink-0" />
       <span className="text-sm text-foreground truncate max-w-[360px]" title={item.relativePath || item.name}>
         {item.relativePath || item.name}
       </span>
       <span className="text-xs text-foreground-muted shrink-0">{formatFileSize(item.size)}</span>
-      <button
+      <Tooltip title={`移除 ${item.name}`}><Button variant="ghost"
+        size="sm" iconOnly
         type="button"
         onClick={() => onRemove(item.id)}
         aria-label={`移除 ${item.name}`}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground-muted hover:bg-danger-soft hover:text-danger transition-colors shrink-0"
       >
-        <DeleteOutlined className="text-xs" />
-      </button>
+        <Icon name="trash" className="text-xs" />
+      </Button></Tooltip>
     </div>
   );
 }
@@ -72,7 +66,7 @@ export default function ContentEditor() {
     showClearButton={!!text.trim() || files.length > 0 || (showContentInfo && !!password)}
     showHistoryButton={textHistory.length > 0}
     queryControls={<div className="cloud-query-controls">
-      <Input placeholder="查询密码" aria-label="查询密码" variant="outlined" maxLength={4}
+      <Input placeholder="查询密码" aria-label="查询密码" maxLength={4}
         onChange={(e) => neonCloud.handleQueryPasswordChange(e)} value={queryPassword} className="cloud-query-input"
         onPressEnter={() => neonCloud.queryMessage()} />
       <Button onClick={() => neonCloud.queryMessage()} className="cloud-query-button">查询</Button>
@@ -152,7 +146,6 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
   }, [expanded, restoreSelection]);
   const renderInput = (fullScreen = false) => <LinkTextArea
     autoSize={fullScreen ? false : { minRows: layout.minRows, maxRows: layout.maxRows }}
-    variant="borderless"
     aria-label={fullScreen ? '展开编辑内容' : '发送内容'}
     placeholder="输入文字、粘贴图片，或将文件拖到这里，Shift+Enter 发送"
     onKeyDown={event => {
@@ -170,27 +163,23 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
     spellCheck={false}
     showCount={{ formatter: ({ count }) => count >= 200 ? `${count} 字` : null }}
     className="cloud-editor-input w-full"
-    styles={{
-      textarea: { padding: '14px 40px 32px 16px', lineHeight: 1.75 },
-      count: { bottom: 12, insetInlineEnd: 16, fontSize: 12, color: 'hsl(var(--control-placeholder))' }
-    }}
     allowClear
     onChange={event => controller.handleTextChange(event)}
     value={text}
   />;
-  const dragOverlay = isDragging && <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary-soft/50 backdrop-blur-[2px] pointer-events-none">
-    <InboxOutlined className="text-4xl text-primary mb-2" />
+  const dragOverlay = isDragging && <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary-soft/50 backdrop-blur-[2px] pointer-events-none">
+    <Icon name="inbox" className="text-4xl text-primary mb-2" />
     <span className="text-sm text-primary font-medium">释放以添加文件或文件夹</span>
   </div>;
 
   return (
-    <section ref={panelRef} aria-labelledby={headingId} className="cloud-panel cloud-editor">
+    <Card as="section" ref={panelRef} padding="none" bodyWrap={false} aria-labelledby={headingId} className="cloud-panel cloud-editor">
       <div className="cloud-editor-heading">
-        <h1 id={headingId} className="text-base font-semibold text-foreground">发送内容</h1>
+        <h1 id={headingId} className="text-body font-semibold text-foreground">发送内容</h1>
         <div className="cloud-editor-heading-actions">
           {queryControls}
           {description && <span className="plaza-editor-note">{description}</span>}
-          <Button type="text" className="cloud-editor-expand" aria-label="展开编辑" title="展开编辑" icon={<ExpandOutlined />} onClick={openExpanded} />
+          <Tooltip title="展开编辑"><Button variant="ghost" className="cloud-editor-expand" aria-label="展开编辑" icon={<Icon name="expand" />} onClick={openExpanded} /></Tooltip>
         </div>
       </div>
       {/* 拖拽区域包裹 TextArea */}
@@ -213,7 +202,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
           <span className="text-xs text-foreground-muted">
             已选择 {files.length} 个文件，共 {formatFileSize(files.reduce((sum, f) => sum + f.size, 0))}
           </span>
-          <button type="button" className="cloud-editor-file-toggle" aria-expanded={showFiles} onClick={() => setFilesExpanded(!showFiles)}>{showFiles ? '收起附件' : '展开附件'}</button>
+          <Button variant="ghost" size="sm" type="button" aria-expanded={showFiles} onClick={() => setFilesExpanded(!showFiles)}>{showFiles ? '收起附件' : '展开附件'}</Button>
         </div>
         <div className="cloud-editor-file-list" hidden={!showFiles}>
           {files.map((item) => (
@@ -224,40 +213,27 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
 
       {/* 操作按钮 */}
       <div className="cloud-editor-toolbar">
-        <button
+        <Button variant="primary"
           type="button"
           onClick={() => controller.sendMessage()}
-          disabled={isSending}
-          className="send-btn cloud-send-button relative inline-flex h-9 min-w-24 shrink-0 items-center justify-center px-5 rounded-lg text-sm font-medium text-white overflow-hidden bg-primary hover:bg-primary-hover disabled:opacity-70 disabled:cursor-not-allowed"
-          style={showProgress ? { background: `linear-gradient(90deg, hsl(var(--primary)) ${uploadProgress}%, hsl(var(--border)) ${uploadProgress}%)` } : undefined}
+          loading={isSending}
+          icon={<Icon name="rocket" />}
+          className="cloud-send-button"
         >
-          <span className="relative z-10 flex items-center gap-1.5">
-            {isSending ? <LoadingOutlined className="text-xs" /> : <RocketOutlined className="send-icon text-xs" />}
-            {isSending ? showProgress ? `${uploadProgress}%` : '发送中...' : <>发送{hasFiles ? ` (${files.length})` : ''}</>}
-          </span>
-        </button>
-        <Button icon={<PaperClipOutlined />} onClick={() => fileInputRef.current?.click()}>
-          文件
+          {isSending ? showProgress ? `${uploadProgress}%` : '发送中...' : <>发送{hasFiles ? ` (${files.length})` : ''}</>}
         </Button>
+        <Tooltip title="选择文件"><Button aria-label="选择文件" icon={<Icon name="paperclip" />} onClick={() => fileInputRef.current?.click()} /></Tooltip>
         {showClearButton && (
-          <Button icon={<ClearOutlined />} onClick={() => controller.clear()}>
-            清空
-          </Button>
+          <Tooltip title="清空"><Button aria-label="清空" icon={<Icon name="clear" />} onClick={() => controller.clear()} /></Tooltip>
         )}
         {hasText && (
-          <Button aria-label="复制内容" icon={<CopyOutlined />} onClick={() => controller.handleCopyText()}>
-            复制
-          </Button>
+          <Tooltip title="复制内容"><Button aria-label="复制内容" icon={<Icon name="copy" />} onClick={() => controller.handleCopyText()} /></Tooltip>
         )}
         {canShowJsonParseButton && (
-          <Button icon={<FileTextOutlined />} onClick={() => controller.parseJson()}>
-            JSON解析
-          </Button>
+          <Tooltip title="JSON解析"><Button aria-label="JSON解析" icon={<Icon name="file-text" />} onClick={() => controller.parseJson()} /></Tooltip>
         )}
         {showHistoryButton && (
-          <Button icon={<HistoryOutlined />} onClick={() => controller.showHistoryModal()}>
-            历史
-          </Button>
+          <Tooltip title="历史"><Button aria-label="历史" icon={<Icon name="history" />} onClick={() => controller.showHistoryModal()} /></Tooltip>
         )}
       </div>
 
@@ -266,12 +242,11 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
         title="展开编辑"
         open={expanded}
         onCancel={closeExpanded}
-        footer={<div className="cloud-expanded-footer"><span>{hasFiles ? `已选择 ${files.length} 个附件，完成编辑后可发送` : ''}</span><Button type="primary" onClick={closeExpanded}>完成编辑</Button></div>}
+        footer={<div className="cloud-expanded-footer"><span>{hasFiles ? `已选择 ${files.length} 个附件，完成编辑后可发送` : ''}</span><Button variant="primary" onClick={closeExpanded}>完成编辑</Button></div>}
         width={1120}
         rootClassName="cloud-expanded-root"
         className="cloud-expanded-dialog"
-        style={{ top: layout.viewportTop + 16, paddingBottom: 0, maxWidth: 'calc(100vw - 32px)' }}
-        styles={{ container: { height: Math.max(160, layout.viewportHeight - 32), display: 'flex', flexDirection: 'column' }, body: { flex: 1, minHeight: 0, display: 'flex' } }}
+        styles={{ body: { flex: 1, minHeight: 0, display: 'flex' } }}
         focusable={{ focusTriggerAfterClose: false }}
         destroyOnHidden
         afterOpenChange={open => { if (!open) restoreSelection(panelRef.current?.querySelector('textarea')); }}
@@ -285,6 +260,6 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
           {dragOverlay}
         </div>
       </Modal>
-    </section>
+    </Card>
   );
 }

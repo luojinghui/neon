@@ -1,7 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { AudioMutedOutlined, AudioOutlined, CloseOutlined, DesktopOutlined, ExpandOutlined, LoadingOutlined, PhoneOutlined, SettingOutlined, ShrinkOutlined, SwapOutlined, TeamOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Modal } from '@/components/ui/modal';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { isMobileDevice } from '@/modules/webrtc/media';
@@ -101,12 +102,12 @@ export function RoomCallProvider({ roomId, roomName, ready, children }: { roomId
           <p className="text-sm leading-6 text-foreground-secondary">
             {permissionMessage}请在浏览器弹窗中选择“允许”。
           </p>
-          <button type="button" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-medium text-white" onClick={() => {
+          <Button variant="primary" type="button" className="w-full px-4 py-3 text-sm font-medium" onClick={() => {
             const requested = permission;
             setPermission(null);
             if (requested) { setMini(false); void session?.join(requested); }
-          }}>{permission === 'video' ? '开始视频' : '开始语音'}</button>
-          <button type="button" onClick={() => setPermission(null)} className="w-full py-1 text-sm text-foreground-muted">取消</button>
+          }}>{permission === 'video' ? '开始视频' : '开始语音'}</Button>
+          <Button variant="ghost" type="button" onClick={() => setPermission(null)} className="w-full py-1 text-sm">取消</Button>
         </div>
       </Modal>
     </CallContext.Provider>
@@ -119,9 +120,9 @@ export function RoomCallButtons() {
   const full = Boolean(view?.call && view.call.participants.length >= view.call.maxParticipants);
   return <div className="inline-flex shrink-0 items-center gap-1">
     <span className="mx-0.5 h-4 w-px bg-border" aria-hidden />
-    {active ? <button type="button" className={buttonClass} aria-label="返回通话" onClick={expand}><PhoneOutlined className="text-base" /></button> : <>
-      <button type="button" className={buttonClass} disabled={!session || full} onClick={() => start('audio')} aria-label="语音通话"><PhoneOutlined className="text-base" /></button>
-      <button type="button" className={buttonClass} disabled={!session || full} onClick={() => start('video')} aria-label="视频通话"><VideoCameraOutlined className="text-base" /></button>
+    {active ? <Button variant="ghost" iconOnly type="button" className={buttonClass} aria-label="返回通话" onClick={expand}><PhoneOutlined className="text-base" /></Button> : <>
+      <Button variant="ghost" iconOnly type="button" className={buttonClass} disabled={!session || full} onClick={() => start('audio')} aria-label="语音通话"><PhoneOutlined className="text-base" /></Button>
+      <Button variant="ghost" iconOnly type="button" className={buttonClass} disabled={!session || full} onClick={() => start('video')} aria-label="视频通话"><VideoCameraOutlined className="text-base" /></Button>
     </>}
   </div>;
 }
@@ -132,12 +133,12 @@ export function RoomCallNotice() {
   if (!view || view.phase !== 'idle') return null;
   const call = view.call;
   return <>
-    {view.error && <div role="status" className="mb-2 flex items-center gap-2 rounded-xl bg-danger-soft px-3 py-2 text-xs leading-5 text-danger"><span className="flex-1">{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={() => session?.clearError()} className="p-2"><CloseOutlined /></button></div>}
+    {view.error && <div role="status" className="mb-2 flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2 text-xs leading-5 text-danger"><span className="flex-1">{view.error}</span><Button variant="ghost" iconOnly type="button" aria-label="关闭通话提示" onClick={() => session?.clearError()} className="p-2"><CloseOutlined /></Button></div>}
     {call && call.id !== dismissed && <div className="soul-call-notice" role="status">
       <div className="soul-call-notice-icon"><PhoneOutlined /></div>
       <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-foreground">{call.participants[0]?.name || '星球伙伴'}正在通话</p><p className="mt-0.5 text-xs text-foreground-muted">{call.participants.length}/{call.maxParticipants} 人 · 加入时摄像头关闭</p></div>
-      <button type="button" className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white disabled:opacity-40" onClick={() => start('audio')} disabled={call.participants.length >= call.maxParticipants}>{call.participants.length >= call.maxParticipants ? '已满员' : '加入'}</button>
-      <button type="button" className="p-2 text-foreground-muted" aria-label="暂不加入通话" onClick={() => setDismissed(call.id)}><CloseOutlined /></button>
+      <Button size="sm" variant="primary" type="button" className="px-3 py-2 text-xs font-medium" onClick={() => start('audio')} disabled={call.participants.length >= call.maxParticipants}>{call.participants.length >= call.maxParticipants ? '已满员' : '加入'}</Button>
+      <Button variant="ghost" iconOnly type="button" className="p-2" aria-label="暂不加入通话" onClick={() => setDismissed(call.id)}><CloseOutlined /></Button>
     </div>}
   </>;
 }
@@ -163,14 +164,14 @@ function MediaTile({ participant, stream, state, local, compact, onFlip, flipBus
   return <div className={`soul-call-tile ${local ? 'is-local' : ''} ${compact ? 'is-compact' : ''} ${primary ? 'is-primary' : 'is-thumbnail'}`} style={{ '--tile-slot': slot } as CSSProperties}>
     <video ref={video} autoPlay playsInline muted aria-label={`${participant.name}的视频`} className={`soul-call-video ${participant.cameraEnabled ? '' : 'is-hidden'} ${local ? 'is-mirrored' : ''}`} />
     {!local && <audio ref={audio} autoPlay />}
-    {!primary && <button type="button" className="soul-call-select-tile" aria-label={`将${local ? '我的' : participant.name + '的'}画面放大`} onClick={onSelect} />}
+    {!primary && <Button data-ui-surface variant="ghost" type="button" className="soul-call-select-tile" aria-label={`将${local ? '我的' : participant.name + '的'}画面放大`} onClick={onSelect} />}
     {!participant.cameraEnabled && <div className="soul-call-person"><div className="soul-call-avatar">{participant.name.slice(0, 1) || '星'}{participant.avatarUrl && (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={participant.avatarUrl} alt="" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
     )}</div></div>}
-    {local && participant.cameraEnabled && onFlip && <button type="button" className="soul-call-flip" aria-label="切换前后摄像头" title="翻转" disabled={flipBusy} onClick={onFlip}><SwapOutlined /></button>}
+    {local && participant.cameraEnabled && onFlip && <Button variant="ghost" iconOnly type="button" className="soul-call-flip" aria-label="切换前后摄像头" title="翻转" disabled={flipBusy} onClick={onFlip}><SwapOutlined /></Button>}
     <div className="soul-call-tile-caption"><span className="truncate">{participant.name}{local ? '（我）' : ''}</span>{!participant.microphoneEnabled && <AudioMutedOutlined aria-label="麦克风已关闭" />}{!local && state !== 'connected' && <span className="soul-call-peer-state">{state === 'failed' ? '连接失败' : state === 'disconnected' ? '重连中' : '连接中'}</span>}</div>
-    {playBlocked && <button type="button" className="soul-call-play" onClick={() => { void audio.current?.play().then(() => setPlayBlocked(false)).catch(() => setPlayBlocked(true)); }}>播放声音</button>}
+    {playBlocked && <Button variant="ghost" type="button" className="soul-call-play" onClick={() => { void audio.current?.play().then(() => setPlayBlocked(false)).catch(() => setPlayBlocked(true)); }}>播放声音</Button>}
   </div>;
 }
 
@@ -270,9 +271,9 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
       <div className="min-w-0"><p className="soul-call-eyebrow">PLANET CONNECTION</p><h2>{roomName || '星球通话'}</h2><p className="soul-call-status" role="status"><span />{status}</p></div>
       <div className="soul-call-header-actions">
-        <button type="button" className="soul-call-view-button" disabled={joining} aria-label="参会者列表" aria-expanded={participantsOpen} aria-controls="call-participants" onClick={() => { onMini(false); setActivePanel(open => open === 'participants' ? null : 'participants'); }}><TeamOutlined /></button>
-        <button type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); if (!effectsOpen) setSelectedPeer(view.selfId); setActivePanel(open => open === 'effects' ? null : 'effects'); }}><SettingOutlined /></button>
-        <button type="button" className="soul-call-view-button" onClick={() => { setActivePanel(null); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</button>
+        <Button variant="ghost" iconOnly type="button" className="soul-call-view-button" disabled={joining} aria-label="参会者列表" aria-expanded={participantsOpen} aria-controls="call-participants" onClick={() => { onMini(false); setActivePanel(open => open === 'participants' ? null : 'participants'); }}><TeamOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); if (!effectsOpen) setSelectedPeer(view.selfId); setActivePanel(open => open === 'effects' ? null : 'effects'); }}><SettingOutlined /></Button>
+        <Button iconOnly variant="ghost" type="button" className="soul-call-view-button" onClick={() => { setActivePanel(null); onMini(!mini); }} aria-label={mini ? '展开通话' : '缩小到聊天室'}>{mini ? <ExpandOutlined /> : <ShrinkOutlined />}</Button>
       </div>
     </header>
     <div className={`soul-call-workspace ${effectsOpen || participantsOpen ? 'has-side-panel' : ''}`}>
@@ -286,7 +287,7 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     </div>
     {effectsOpen && <CallEffectsPanel value={view.effects} status={view.effectsStatus} cameraEnabled={view.cameraEnabled} onChange={value => session.setEffects(value)} onClose={closePanel} />}
     {participantsOpen && <aside id="call-participants" className="soul-call-participants" aria-label="通话参会者">
-      <header><h3>参会者 · {members.length} 人</h3><button type="button" aria-label="关闭参会者列表" onClick={closePanel}><CloseOutlined /></button></header>
+      <header><h3>参会者 · {members.length} 人</h3><Button variant="ghost" iconOnly type="button" aria-label="关闭参会者列表" onClick={closePanel}><CloseOutlined /></Button></header>
       <ul>{members.map(member => {
         const local = member.peerId === view.selfId;
         const state = local ? 'connected' : view.peers[member.peerId]?.connectionState;
@@ -297,17 +298,17 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       })}</ul>
     </aside>}
     </div>
-    {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><button type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></button></div>}
+    {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><Button variant="ghost" iconOnly type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></Button></div>}
     <footer className="soul-call-footer">
       <div className="soul-call-controls">
-        <button type="button" disabled={joining || view.mediaBusy} className={!view.microphoneEnabled ? 'is-off' : ''} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</button>
-        <button type="button" disabled={joining || view.mediaBusy} className={!view.cameraEnabled ? 'is-off' : ''} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></button>
-        <button type="button" disabled={joining || view.shareBusy} className={view.presentation ? 'is-sharing' : ''} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setActivePanel(open => open === 'sharing' ? null : 'sharing'); }}><DesktopOutlined /></button>
-        <button type="button" className="is-hangup" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></button>
+        <Button iconOnly variant="ghost" type="button" disabled={joining || view.mediaBusy} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</Button>
+        <Button iconOnly variant="ghost" type="button" disabled={joining || view.mediaBusy} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></Button>
+        <Button variant="ghost" iconOnly type="button" disabled={joining || view.shareBusy} aria-pressed={Boolean(view.presentation)} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setActivePanel(open => open === 'sharing' ? null : 'sharing'); }}><DesktopOutlined /></Button>
+        <Button variant="primary" iconOnly type="button" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></Button>
       </div>
     </footer>
     {sharingOpen && <ShareMenu view={view} session={session} onClose={closePanel} />}
     {view.effectsStatus.phase === 'loading' && !effectsOpen && <div className="soul-call-effect-loading" role="status"><LoadingOutlined /> {view.effectsStatus.progress}%</div>}
-    {view.effectsStatus.phase === 'error' && !effectsOpen && <button type="button" className="soul-call-effect-loading" onClick={() => { onMini(false); setActivePanel('effects'); }}>效果未启用</button>}
+    {view.effectsStatus.phase === 'error' && !effectsOpen && <Button variant="ghost" type="button" className="soul-call-effect-loading" onClick={() => { onMini(false); setActivePanel('effects'); }}>效果未启用</Button>}
   </section>;
 }

@@ -1,7 +1,9 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm';
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons';
-import { App, Button } from 'antd';
+import { App } from 'antd';
 import { useEffect, useState } from 'react';
 import { getOrCreateIdentity } from '@/app/profile/client';
 import { deleteDoodleShare } from '../../client';
@@ -14,7 +16,8 @@ type ShareActionsProps = {
 };
 
 function Actions({ id, title, imageUrl, pageUrl }: ShareActionsProps) {
-  const { message, modal } = App.useApp();
+  const { message } = App.useApp();
+  const modal = useConfirm();
   const [isOwner, setIsOwner] = useState(false);
   const getAbsolutePageUrl = () => new URL(pageUrl, window.location.origin).toString();
 
@@ -68,10 +71,10 @@ function Actions({ id, title, imageUrl, pageUrl }: ShareActionsProps) {
 
   return (
     <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-      <Button size="large" icon={<DownloadOutlined />} onClick={download} className="!h-10 !border-border !font-semibold !shadow-none">保存图片</Button>
-      <Button size="large" icon={<CopyOutlined />} onClick={() => void copy()} className="!h-10 !border-border !font-semibold !shadow-none">复制链接</Button>
-      <Button type="primary" size="large" icon={<ShareAltOutlined />} onClick={() => void share()} className="!h-10 !border-0 !bg-[#ff5d46] !font-semibold !shadow-none">分享</Button>
-      {isOwner && <Button danger type="text" icon={<DeleteOutlined />} onClick={destroy} className="sm:col-span-3 lg:col-span-1">我是创建者，销毁这条分享</Button>}
+      <Button size="lg" icon={<DownloadOutlined />} onClick={download}>保存图片</Button>
+      <Button size="lg" icon={<CopyOutlined />} onClick={() => void copy()}>复制链接</Button>
+      <Button variant="primary" size="lg" icon={<ShareAltOutlined />} onClick={() => void share()}>分享</Button>
+      {isOwner && <Button variant="ghost" icon={<DeleteOutlined />} onClick={destroy} className="sm:col-span-3 lg:col-span-1">我是创建者，销毁这条分享</Button>}
     </div>
   );
 }

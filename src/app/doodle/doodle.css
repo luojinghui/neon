@@ -1,4 +1,5 @@
 .doodle-page {
+  overflow-x: hidden;
   --doodle-ink: #201a17;
   --app-header-background: #fffaf0;
   background-image:
@@ -8,90 +9,6 @@
 }
 
 .dark .doodle-page { --app-header-background: #17110f; }
-
-.doodle-primary-button,
-.doodle-secondary-button {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 0 24px;
-  color: var(--doodle-ink);
-  font-weight: 700;
-  transition: transform 160ms ease, background 160ms ease;
-}
-
-.doodle-primary-button {
-  background: #ff5d46;
-  color: white;
-}
-
-.doodle-secondary-button {
-  border-color: hsl(var(--border));
-  background: hsl(var(--surface-hover));
-  color: hsl(var(--foreground));
-}
-
-.doodle-primary-button:hover {
-  background: #e9503b;
-  transform: translateY(-1px);
-}
-
-.doodle-secondary-button:hover {
-  background: hsl(var(--surface-active));
-  transform: translateY(-1px);
-}
-
-.doodle-primary-button:active,
-.doodle-secondary-button:active {
-  transform: translateY(1px);
-}
-
-.doodle-primary-button:focus-visible,
-.doodle-secondary-button:focus-visible,
-.doodle-round-button:focus-visible,
-.doodle-shutter:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 4px;
-}
-
-.doodle-round-button {
-  display: inline-flex;
-  height: 40px;
-  width: 40px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 999px;
-  background: hsl(var(--surface-hover));
-  color: hsl(var(--foreground));
-  font-size: 20px;
-}
-
-.doodle-shutter {
-  display: inline-flex;
-  height: 82px;
-  width: 82px;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #ff5d46;
-  border-radius: 999px;
-  background: white;
-  transition: transform 120ms ease;
-}
-
-.doodle-shutter span {
-  height: 58px;
-  width: 58px;
-  border-radius: 999px;
-  background: #ff5d46;
-}
-
-.doodle-shutter:active {
-  transform: scale(0.94);
-}
 
 .doodle-result-image {
   -webkit-touch-callout: default !important;
@@ -106,6 +23,7 @@
   align-items: center;
   justify-content: center;
   border: 0;
+  /* Organic illustration silhouette; independent of UI corner scales. */
   border-radius: 36% 64% 58% 42%;
   background: linear-gradient(135deg, #ffd84d 0 50%, #ff7ba8 50%);
   animation: doodle-wobble 1.4s ease-in-out infinite alternate;
@@ -116,39 +34,28 @@
   to { transform: rotate(8deg) scale(1.04); }
 }
 
-@media (max-width: 640px) {
-  .doodle-primary-button,
-  .doodle-secondary-button {
-    padding: 0 18px;
-  }
-}
 .portrait-controls { color: hsl(var(--foreground)); }
 .portrait-heading { display: flex; justify-content: space-between; gap: .75rem; align-items: center; }
 .portrait-heading h2 { font-size: 1.1rem; font-weight: 700; }
 .portrait-heading p { font-size: .7rem; margin-top: .35rem; color: hsl(var(--foreground-muted)); }
-.portrait-surprise { flex-shrink: 0; min-height: 2.75rem; border-radius: .75rem; padding: 0 .7rem; color: #7c3b39; background: #ffded2; font-size: .75rem; font-weight: 600; }
-.portrait-hint { margin: .85rem 0; border-radius: .6rem; padding: .65rem .75rem; background: hsl(var(--background-secondary)); color: hsl(var(--foreground-secondary)); font-size: .72rem; line-height: 1.6; }
+.portrait-surprise { flex-shrink: 0; }
+.portrait-hint { margin: .85rem 0; border-radius: var(--radius-md); padding: .65rem .75rem; background: hsl(var(--surface-inset)); color: hsl(var(--foreground-secondary)); font-size: .72rem; line-height: 1.6; }
 .portrait-controls details { border-top: 1px solid hsl(var(--border)); padding: .75rem 0; }
 .portrait-controls summary { display: flex; justify-content: space-between; align-items: center; min-height: 2rem; font-size: .85rem; font-weight: 600; cursor: pointer; list-style: none; }
 .portrait-controls summary::after { content: '+'; font-size: 1rem; }
 .portrait-controls details[open] > summary::after { content: '−'; }
 .portrait-controls summary span { margin-left: auto; margin-right: .65rem; color: hsl(var(--foreground-muted)); font-size: .65rem; font-weight: 400; }
 .portrait-sticker-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .4rem; margin: .65rem 0; }
-.portrait-sticker-grid button { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-height: 4rem; padding: .55rem .15rem; border: 1px solid transparent; border-radius: .75rem; background: hsl(var(--background-secondary)); font-size: .67rem; }
+.portrait-sticker-grid [data-ui-button] { flex-direction: column; gap: .3rem; height: auto; min-height: 4rem; padding: .55rem .15rem; white-space: normal; }
 .portrait-sticker-grid button > span { font-size: 1.5rem; }
 .portrait-sticker-preview { display: grid; place-items: center; width: 3rem; height: 3rem; background-size: contain; background-position: center; background-repeat: no-repeat; }
-.portrait-controls [aria-pressed='true'] { border-color: hsl(var(--primary)); box-shadow: 0 0 0 1px hsl(var(--primary)); }
 .portrait-colors { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .5rem 0; }
-.portrait-colors button, .portrait-colors input { width: 2rem; height: 2rem; border-radius: 50%; border: 2px solid hsl(var(--surface)); padding: 0; }
+.portrait-colors input { width: 2rem; height: 2rem; border-radius: var(--radius-md); border: 1px solid hsl(var(--border)); padding: 0; }
 .portrait-slider { display: block; margin: .6rem 0; }
 .portrait-slider > span { display: flex; justify-content: space-between; font-size: .73rem; }
 .portrait-slider output { color: hsl(var(--foreground-muted)); font-variant-numeric: tabular-nums; }
 .portrait-slider input { width: 100%; min-height: 2rem; accent-color: hsl(var(--primary)); }
 .portrait-chips { display: flex; flex-wrap: wrap; gap: .45rem; margin: .65rem 0; }
-.portrait-chips button { min-height: 2.5rem; border: 1px solid transparent; border-radius: .6rem; background: hsl(var(--background-secondary)); padding: 0 .7rem; font-size: .7rem; }
 .portrait-field { display: grid; gap: .4rem; margin: .75rem 0; font-size: .75rem; }
-.portrait-field input, .portrait-field textarea, .portrait-field select { width: 100%; min-width: 0; border: 1px solid hsl(var(--border)); border-radius: .6rem; padding: .65rem; background: hsl(var(--surface)); color: hsl(var(--foreground)); font-size: .8rem; }
 .portrait-live-status { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .65rem; font-size: .75rem; color: hsl(var(--foreground-muted)); }
-.portrait-live-status button { min-height: 2.75rem; border-radius: .65rem; padding: 0 .8rem; color: hsl(var(--foreground)); background: hsl(var(--background-secondary)); }
-.portrait-controls button:disabled, .portrait-controls input:disabled { opacity: .45; cursor: not-allowed; }
-.portrait-controls :is(button, input, textarea, select, summary):focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
+.portrait-controls :is(input[type="range"], input[type="color"], summary):focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }

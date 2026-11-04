@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { BellOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
@@ -122,7 +123,7 @@ export function PushNotifications() {
   };
 
   if (!eligible || !visible) return null;
-  return <aside aria-label="消息通知" className="fixed left-4 right-4 top-[calc(env(safe-area-inset-top)+5rem)] z-[70] mx-auto max-w-sm rounded-2xl border border-border bg-surface p-4 shadow-lg sm:left-auto sm:right-6">
+  return <aside aria-label="消息通知" className="fixed left-4 right-4 top-[calc(env(safe-area-inset-top)+5rem)] z-[70] mx-auto max-w-sm rounded-lg border border-border bg-surface p-4 shadow-lg sm:left-auto sm:right-6">
     <div className="flex items-start gap-3">
       <BellOutlined className="mt-1 text-lg text-primary" />
       <div className="min-w-0 flex-1">
@@ -130,11 +131,11 @@ export function PushNotifications() {
         <p className="mt-1 text-xs leading-5 text-foreground-secondary">接收 Soul星球的新消息和站内更新，点击通知即可打开相关页面。</p>
         {error && <p role="alert" className="mt-2 text-xs text-danger">{error}</p>}
         <div className="mt-3 flex items-center gap-4">
-          <button type="button" disabled={busy} onClick={() => void enable()} className="rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{busy ? <><LoadingOutlined /> 正在开启</> : error ? '重试开启' : '开启通知'}</button>
-          <button type="button" disabled={busy} onClick={dismiss} className="text-xs text-foreground-muted">暂不开启</button>
+          <Button variant="primary" size="sm" type="button" disabled={busy} onClick={() => void enable()}>{busy ? <><LoadingOutlined /> 正在开启</> : error ? '重试开启' : '开启通知'}</Button>
+          <Button variant="ghost" size="sm" type="button" disabled={busy} onClick={dismiss}>暂不开启</Button>
         </div>
       </div>
-      <button type="button" aria-label="关闭通知提示" disabled={busy} onClick={dismiss} className="p-1 text-foreground-muted"><CloseOutlined /></button>
+      <Button variant="ghost" size="sm" iconOnly type="button" aria-label="关闭通知提示" disabled={busy} onClick={dismiss}><CloseOutlined /></Button>
     </div>
   </aside>;
 }

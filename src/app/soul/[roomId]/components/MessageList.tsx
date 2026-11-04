@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { ImageViewer } from '@/components/image-viewer/ImageViewer';
 import { useSoulStore } from '../../store';
@@ -122,14 +123,14 @@ export function MessageList({ className = '' }: MessageListProps) {
         <div ref={contentRef} className={`app-content-width flex min-h-full flex-col justify-end pb-4 ${className}`}>
           {hasMoreHistory && (
             <div className="flex justify-center pb-4">
-              <button
+              <Button size="sm" variant="outline"
                 type="button"
                 onClick={() => void handleLoadMore()}
                 disabled={isLoadingHistory || connectionState !== 'connected'}
-                className="rounded-full bg-surface-hover px-3 py-1.5 text-xs font-medium text-foreground-secondary transition-colors hover:bg-surface-active disabled:cursor-not-allowed disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium"
               >
                 {isLoadingHistory ? '加载中...' : '加载更早消息'}
-              </button>
+              </Button>
             </div>
           )}
           {messages.length === 0 && connectionState === 'connected' && (
@@ -147,15 +148,13 @@ export function MessageList({ className = '' }: MessageListProps) {
       {previewIndex >= 0 && <ImageViewer images={images} currentIndex={previewIndex} onSelect={setPreviewId} onClose={() => setPreviewId(null)} title="聊天图片" />}
 
       {hasNewMessage && (
-        <button
+        <Button size="sm" variant="primary"
           type="button"
           onClick={() => scrollToBottom(true)}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-lg
-                     bg-primary text-white text-xs font-medium shadow-md
-                     hover:bg-primary-hover transition-colors animate-in slide-in-from-bottom-2 duration-200"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 text-xs font-medium slide-in-from-bottom-2"
         >
           新消息
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,6 +1,10 @@
 'use client';
 
-import { Button, Skeleton } from 'antd';
+import { buttonClassName } from '@/components/ui/button-styles';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+import { Skeleton } from 'antd';
 import { FileTextOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import PlazaCard from './PlazaCard';
@@ -27,13 +31,13 @@ export default function PlazaShareContent({ messageId }: { messageId: string }) 
   }, [messageId, attempt]);
 
   return <div className="plaza-content">
-        {state.kind === 'loading' && <div className="cloud-panel"><Skeleton active title={false} paragraph={{ rows: 8 }} /></div>}
+        {state.kind === 'loading' && <Card as="div" padding="none" bodyWrap={false} className="cloud-panel"><Skeleton active title={false} paragraph={{ rows: 8 }} /></Card>}
         {state.kind === 'ready' && state.item && <PlazaCard key={state.item.messageId} item={state.item} detail clockOffset={state.clockOffset} onUnavailable={unavailable} />}
         {state.kind !== 'loading' && state.kind !== 'ready' && <div className="plaza-share-empty">
           <div className="plaza-state-icon"><FileTextOutlined /></div>
           <h1>{state.kind === 'error' ? '暂时无法加载' : state.kind === 'invalid' ? '分享链接无效' : '内容已过期或被删除'}</h1>
           <p>{state.kind === 'error' ? '请检查网络连接，稍后再试' : state.kind === 'invalid' ? '检查一下链接是否完整' : '内容已到期，或已被主动删除'}</p>
-          <div className="flex justify-center gap-3">{state.kind === 'error' && <Button icon={<ReloadOutlined />} onClick={() => setAttempt(value => value + 1)}>重试</Button>}<CloudLink href={PLAZA_PATH} className="plaza-home-link">前往广场</CloudLink></div>
+          <div className="flex justify-center gap-3">{state.kind === 'error' && <Button icon={<ReloadOutlined />} onClick={() => setAttempt(value => value + 1)}>重试</Button>}<CloudLink href={PLAZA_PATH} className={buttonClassName({ variant: 'primary' })}>前往广场</CloudLink></div>
         </div>}
   </div>;
 }

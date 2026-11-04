@@ -1,3 +1,5 @@
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 /**
  * 版本更新提示弹窗
  *
@@ -5,7 +7,7 @@
  * Last modified  : 2026-04-17 21:58:45
  */
 
-import { Modal, Button } from 'antd';
+
 import { useCloudStore } from '../store';
 import { neonCloud } from '../core';
 import { VERSION_UPDATES } from '../version';
@@ -52,10 +54,10 @@ export default function VersionModal() {
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">
-          <Button type="text" onClick={handleRemindLater} size="large">
+          <Button variant="ghost" onClick={handleRemindLater} size="lg">
             稍后提醒
           </Button>
-          <Button type="primary" onClick={handleAcknowledge} size="large">
+          <Button variant="primary" onClick={handleAcknowledge} size="lg">
             知道了
           </Button>
         </div>

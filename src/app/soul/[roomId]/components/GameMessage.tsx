@@ -1,7 +1,11 @@
 'use client';
 
+import { Input } from '@/components/ui/input';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { LoadingOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Modal } from '@/components/ui/modal';
 import { useRef, useState } from 'react';
 import { soulChat } from '../../core';
 import type { ChatMessage, GameActionInput, GameChoice } from '../../core/types';
@@ -9,8 +13,8 @@ import { useSoulStore } from '../../store';
 import { DrawingCanvas } from './DrawingCanvas';
 import { GAME_CHOICES, GameChoicePicker } from './GameLauncher';
 
-const primaryClass = 'inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50';
-const cardClass = 'min-w-0 max-w-full rounded-xl border border-border bg-surface p-3 text-left text-sm text-foreground';
+const primaryClass = 'inline-flex min-h-9 items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium';
+const cardClass = 'min-w-0 max-w-full p-3 text-left';
 
 function DiceFace({ value }: { value: number }) {
   const positions: Record<number, [number, number][]> = {
@@ -68,35 +72,35 @@ export function GameMessage({ message }: { message: ChatMessage }) {
   };
 
   if (!game) return null;
-  if (game.kind === 'dice') return <section className={`${cardClass} inline-flex items-center gap-3 pr-5`} aria-label="掷骰子结果"><DiceFace value={game.value} /><span className="font-medium tabular-nums">{game.value} 点</span></section>;
+  if (game.kind === 'dice') return <Card as="section" padding="none" bodyWrap={false} className={`${cardClass} inline-flex flex-row items-center gap-3 pr-5`} aria-label="掷骰子结果"><DiceFace value={game.value} /><span className="font-medium tabular-nums">{game.value} 点</span></Card>;
 
   const title = game.kind === 'rps' ? '猜拳' : '你画我猜';
   const finished = game.status === 'completed';
   const drawingCaption = game.kind === 'draw' ? finished ? `谜底：${game.answer || '已揭晓'}` : `${game.wordLength} 个字 · 等待猜中` : '';
 
   return <>
-    {game.kind === 'rps' && (finished ? <section className={`${cardClass} w-[240px]`} aria-label="猜拳结果"><RpsResult message={message} /></section> : game.status === 'cancelled' ? <div className="rounded-lg bg-surface-hover px-3 py-2 text-xs text-foreground-muted">猜拳已取消</div> :
-      <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={message.isLocal ? '查看猜拳邀请' : '参与猜拳'} className={`${cardClass} flex items-center gap-3 transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30`}><span className="text-3xl" aria-hidden="true">✊</span><span className="text-xs text-foreground-secondary">猜拳 · 等待应战</span></button>
+    {game.kind === 'rps' && (finished ? <Card as="section" padding="none" bodyWrap={false} className={`${cardClass} w-[240px]`} aria-label="猜拳结果"><RpsResult message={message} /></Card> : game.status === 'cancelled' ? <div className="rounded-md bg-surface-hover px-3 py-2 text-xs text-foreground-muted">猜拳已取消</div> :
+      <Button data-ui-surface variant="ghost" type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={message.isLocal ? '查看猜拳邀请' : '参与猜拳'} className="flex min-w-0 max-w-full items-center gap-3 text-left text-sm"><span className="text-3xl" aria-hidden="true">✊</span><span className="text-xs text-foreground-secondary">猜拳 · 等待应战</span></Button>
     )}
-    {game.kind === 'draw' && <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={finished ? '查看画作结果' : message.isLocal ? '查看我的画作' : '参与猜画'} className={`${cardClass} w-[260px] space-y-2 transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30`}>
+    {game.kind === 'draw' && <Button data-ui-surface variant="ghost" type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={finished ? '查看画作结果' : message.isLocal ? '查看我的画作' : '参与猜画'} className="block min-w-0 max-w-full w-[260px] space-y-2 text-left text-sm">
       <DrawingCanvas strokes={game.strokes} readOnly />
       <span className={`block break-words text-center text-xs ${finished ? 'font-medium text-primary' : 'text-foreground-muted'}`}>{drawingCaption}</span>
       {finished && game.winnerName && <span className="block text-center text-xs text-foreground-muted">{game.winnerName} 猜中了</span>}
-    </button>}
+    </Button>}
 
     <Modal className="soul-game-modal" title={title} open={open} onCancel={() => setOpen(false)} footer={null} centered destroyOnHidden width={game.kind === 'draw' ? 480 : 360}>
       <div className="space-y-4 pt-2 text-foreground">
         {game.kind === 'rps' && (finished ? <RpsResult message={message} /> : game.status === 'cancelled' ? <p className="text-sm text-foreground-muted">邀请已取消</p> : message.isLocal ? <p className="py-6 text-center text-sm text-foreground-muted">等待对方出拳</p> : <>
           <GameChoicePicker value={choice} onChange={setChoice} disabled={disabled} />
-          <button type="button" className={`${primaryClass} w-full`} disabled={disabled || !choice} onClick={() => { if (choice) void act({ action: 'join', choice }); }}>{pending && <LoadingOutlined />}出拳</button>
+          <Button variant="primary" type="button" className={`${primaryClass} w-full`} disabled={disabled || !choice} onClick={() => { if (choice) void act({ action: 'join', choice }); }}>{pending && <LoadingOutlined />}出拳</Button>
         </>)}
         {game.kind === 'draw' && <>
           <DrawingCanvas strokes={game.strokes} readOnly />
           <p className="break-words text-center text-sm font-medium">{drawingCaption}</p>
           {game.guesses.length > 0 && <div className="max-h-48 space-y-2 overflow-y-auto text-xs text-foreground-secondary" aria-label={finished ? '猜测结果' : '最近的猜测'}>{(finished ? game.guesses : game.guesses.slice(-3)).map((item, index) => <p key={`${item.timestamp}-${index}`} className="flex items-start justify-between gap-3"><span className="min-w-0 break-words">{item.name}：{item.text}</span>{finished && <span className={`shrink-0 font-medium ${item.correct ? 'text-success' : 'text-foreground-muted'}`}>{item.correct ? '✓ 正确' : '✕ 未猜中'}</span>}</p>)}</div>}
           {!finished && !message.isLocal && <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (guess.trim()) void act({ action: 'guess', guess: guess.trim() }, () => setGuess('')); }}>
-            <input value={guess} onChange={(event) => setGuess(Array.from(event.target.value).slice(0, 40).join(''))} onKeyDown={(event) => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }} disabled={disabled} placeholder="我猜是…" aria-label="你的猜测" autoComplete="off" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-input px-3 text-sm outline-none focus:border-primary" />
-            <button type="submit" className={primaryClass} disabled={disabled || !guess.trim()}>{pending ? <LoadingOutlined /> : '猜一下'}</button>
+            <Input value={guess} onChange={(event) => setGuess(Array.from(event.target.value).slice(0, 40).join(''))} onKeyDown={(event) => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }} disabled={disabled} placeholder="我猜是…" aria-label="你的猜测" autoComplete="off" className="min-w-0 flex-1" />
+            <Button variant="primary" type="submit" className={primaryClass} disabled={disabled || !guess.trim()}>{pending ? <LoadingOutlined /> : '猜一下'}</Button>
           </form>}
         </>}
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}

@@ -1,3 +1,4 @@
+import { Modal } from '@/components/ui/modal';
 /**
  * 二维码分享弹窗组件
  *
@@ -5,7 +6,7 @@
  * Last modified  : 2025-12-07 23:30:00
  */
 
-import { Modal, QRCode } from 'antd';
+import { QRCode } from 'antd';
 import { useCloudStore } from '../store';
 import { neonCloud } from '../core';
 

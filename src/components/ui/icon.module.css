@@ -1,0 +1,12 @@
+.icon { --icon-size: 1rem; display: inline-flex; flex: none; width: var(--icon-size); height: var(--icon-size); align-items: center; justify-content: center; vertical-align: -.125em; color: inherit; line-height: 1; }
+.icon[data-size='sm'] { --icon-size: .875rem; }
+.icon[data-size='lg'] { --icon-size: 1.25rem; }
+.icon > span, .icon svg { display: block; width: 100%; height: 100%; }
+.icon[data-tone='primary'] { color: hsl(var(--primary)); }
+.icon[data-tone='danger'], .icon[data-ui-icon='heart'][data-active] { color: hsl(var(--danger)); }
+.icon[data-tone='success'] { color: hsl(var(--success)); }
+.icon[data-ui-icon='heart'][data-active] { animation: heart-pop 320ms cubic-bezier(.2,.8,.3,1); }
+.icon[data-spin] > span { animation: icon-spin 800ms linear infinite; }
+@keyframes icon-spin { to { transform: rotate(360deg); } }
+@keyframes heart-pop { 0% { transform: scale(.8); } 45% { transform: scale(1.2); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .icon, .icon[data-spin] > span { animation: none !important; } }

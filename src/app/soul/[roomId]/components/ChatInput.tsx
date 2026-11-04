@@ -1,15 +1,14 @@
 'use client';
 
+import { Textarea } from '@/components/ui/textarea';
+
+import { Button } from '@/components/ui/button';
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { SendOutlined } from '@ant-design/icons';
 import { useSoulStore } from '../../store';
 import { soulChat } from '../../core';
 import { clipboardImages } from '@/lib/clipboardImages';
 import { ImageAttachmentDraft } from '@/components/image-viewer/ImageAttachmentDraft';
-
-const MAX_LINES = 5;
-const LINE_HEIGHT = 22;
-const PADDING_Y = 16;
 
 export function ChatInput() {
   const inputText = useSoulStore((s) => s.inputText);
@@ -30,15 +29,6 @@ export function ChatInput() {
   const isComposingRef = useRef(false);
   const hasContent = inputText.trim().length > 0 || images.length > 0;
   const busy = isSending || isUploading || sendingImages;
-
-  const clampHeight = useCallback(() => {
-    const el = editorRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    const maxH = LINE_HEIGHT * MAX_LINES + PADDING_Y;
-    el.style.height = `${Math.min(el.scrollHeight, maxH)}px`;
-    el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
-  }, []);
 
   const handleSend = useCallback(async () => {
     if (isComposingRef.current || sendingRef.current || busy || connectionState !== 'connected') return;
@@ -66,10 +56,6 @@ export function ChatInput() {
     [handleSend]
   );
 
-  useEffect(() => {
-    clampHeight();
-  }, [inputText, clampHeight]);
-
   return (
     <div>
       {images.length > 0 && <div className="flex gap-2 overflow-x-auto px-3 pb-2" aria-label="待发送图片">
@@ -77,16 +63,13 @@ export function ChatInput() {
       </div>}
     <div className="flex items-end gap-2">
       <div className="relative flex-1 min-w-0">
-        <textarea
+        <Textarea
           ref={editorRef}
           aria-label="输入消息"
           value={inputText}
           rows={1}
-          className="block w-full min-h-10 resize-none px-3 py-2 rounded-lg text-sm leading-[22px]
-                     bg-transparent text-input-foreground
-                     border-0 focus:outline-none
-                     placeholder:text-input-placeholder
-                     overflow-hidden break-words whitespace-pre-wrap transition-colors"
+          autoSize={{ minRows: 1, maxRows: 5 }}
+          className="w-full"
           placeholder="输入消息…"
           onPaste={event => {
             const pasted = clipboardImages(event.clipboardData);
@@ -107,17 +90,15 @@ export function ChatInput() {
         />
       </div>
 
-      <button
+      <Button variant="primary" size="lg" iconOnly
         type="button"
         onClick={handleSend}
         disabled={!hasContent || busy || connectionState !== 'connected'}
-        className={`send-btn shrink-0 w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-          hasContent && !busy && connectionState === 'connected' ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-surface-hover text-foreground-muted cursor-not-allowed'
-        }`}
+        className="shrink-0 w-10 h-10 flex items-center justify-center"
         aria-label="发送"
       >
-        <SendOutlined className="send-icon text-base" />
-      </button>
+        <SendOutlined className="text-base" />
+      </Button>
     </div>
     </div>
   );

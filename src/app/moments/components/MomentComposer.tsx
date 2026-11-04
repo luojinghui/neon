@@ -1,7 +1,10 @@
 'use client';
 
+import { Textarea } from '@/components/ui/textarea';
+
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 import { AudioOutlined, DeleteOutlined, EnvironmentOutlined, LoadingOutlined, PictureOutlined, StopOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { createMoment } from '../client';
 import { formatVoiceDuration } from '../format';
@@ -261,7 +264,7 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
       aria-labelledby="moment-composer-heading"
       mask={{ closable: !saving }}
       keyboard={!saving}
-      styles={{ container: { padding: 0, overflow: 'hidden', border: '1px solid hsl(var(--border))', borderRadius: 16, background: 'hsl(var(--surface))' }, body: { padding: 0 } }}
+      styles={{ container: { padding: 0, overflow: 'hidden' }, body: { padding: 0 } }}
       rootClassName={appearance === 'journal' ? 'moment-journal-composer' : undefined}
     >
       <div className="moment-composer" onPaste={event => {
@@ -271,16 +274,15 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
         addMedia(images);
       }}>
         <header className="moment-composer-head">
-          <button type="button" onClick={close} disabled={saving}>取消</button>
+          <Button variant="ghost" type="button" onClick={close} disabled={saving}>取消</Button>
           <h2 id="moment-composer-heading">发布心迹</h2>
-          <button type="button" onClick={() => void publish()} disabled={saving || recording || requestingMicrophone}>{saving && <LoadingOutlined />}{saving ? '发布中' : '发布'}</button>
+          <Button variant="primary" type="button" onClick={() => void publish()} disabled={saving || recording || requestingMicrophone}>{saving && <LoadingOutlined />}{saving ? '发布中' : '发布'}</Button>
         </header>
 
         <div className="moment-composer-body">
           <label className="moment-composer-text">
             <span className="sr-only">心迹文字</span>
-            <textarea value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={2000} rows={5} placeholder="此刻，想说点什么……" autoFocus />
-            <span>{text.length}/2000</span>
+            <Textarea aria-label="心迹文字" value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={2000} rows={5} showCount placeholder="此刻，想说点什么……" autoFocus />
           </label>
 
           {media.length > 0 && (
@@ -288,18 +290,18 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
               {media.map((file, index) => (
                 <div key={`${file.name}-${file.lastModified}-${index}`} className="moment-file-preview">
                   <FilePreview file={file} />
-                  <button type="button" onClick={() => setMedia((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`移除${file.name}`}><DeleteOutlined /></button>
+                  <Button variant="ghost" iconOnly type="button" onClick={() => setMedia((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`移除${file.name}`}><DeleteOutlined /></Button>
                   {file.type.startsWith('video/') && <span><VideoCameraOutlined /> 视频</span>}
                 </div>
               ))}
-              {media.length < 9 && <button type="button" className="moment-add-file" onClick={() => fileInputRef.current?.click()}><PictureOutlined /><span>继续添加</span></button>}
+              {media.length < 9 && <Button variant="outline" type="button" className="moment-add-file" onClick={() => fileInputRef.current?.click()}><PictureOutlined /><span>继续添加</span></Button>}
             </div>
           )}
 
           {voice && voiceUrl && !recording && !requestingMicrophone && (
             <div className="moment-voice-draft">
               <MomentVoicePlayer voice={{ url: voiceUrl, durationMs: voiceDurationMs }} />
-              <button type="button" className="moment-voice-remove" onClick={() => { setVoice(null); setVoiceDurationMs(0); }} disabled={saving} aria-label="删除语音"><DeleteOutlined /></button>
+              <Button variant="ghost" iconOnly type="button" className="moment-voice-remove" onClick={() => { setVoice(null); setVoiceDurationMs(0); }} disabled={saving} aria-label="删除语音"><DeleteOutlined /></Button>
             </div>
           )}
 
@@ -308,24 +310,24 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
               <span className="moment-recording-dot" />
               <span>正在录音</span>
               <span className="font-mono">{formatVoiceDuration(recordingMs)}</span>
-              <button type="button" onClick={() => { if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); }}><StopOutlined />完成</button>
+              <Button variant="ghost" type="button" onClick={() => { if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); }}><StopOutlined />完成</Button>
             </div>
           )}
 
           {location && (
-            <button type="button" className="moment-location-chip" onClick={() => setLocation(null)} title="点击移除位置">
+            <Button variant="ghost" type="button" className="moment-location-chip" onClick={() => setLocation(null)} title="点击移除位置">
               <EnvironmentOutlined />
               <span>{location.label}</span>
               <DeleteOutlined />
-            </button>
+            </Button>
           )}
 
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(event) => addMedia(event.target.files)} />
           <div className="moment-composer-tools">
-            <button type="button" aria-label="添加图片" onClick={() => fileInputRef.current?.click()} disabled={media.length >= 9}><PictureOutlined /><span>图片</span></button>
-            <button type="button" aria-label="添加视频" onClick={() => fileInputRef.current?.click()} disabled={media.length >= 9}><VideoCameraOutlined /><span>视频</span></button>
-            <button type="button" aria-label={requestingMicrophone ? '等待麦克风' : recording ? '停止录音' : voice ? '重新录音' : '录制语音'} onClick={() => void startRecording()} disabled={requestingMicrophone || saving} className={recording ? 'is-active' : ''}>{requestingMicrophone ? <LoadingOutlined /> : <AudioOutlined />}<span>{requestingMicrophone ? '等待麦克风' : recording ? '停止录音' : voice ? '重新录音' : '语音'}</span></button>
-            <button type="button" aria-label={location ? '移除位置' : locating ? '正在定位' : '添加位置'} onClick={locate} className={location ? 'is-active' : ''} disabled={locating}>{locating ? <LoadingOutlined /> : <EnvironmentOutlined />}<span>{locating ? '定位中' : '位置'}</span></button>
+            <Button variant="ghost" type="button" aria-label="添加图片" onClick={() => fileInputRef.current?.click()} disabled={media.length >= 9}><PictureOutlined /><span>图片</span></Button>
+            <Button variant="ghost" type="button" aria-label="添加视频" onClick={() => fileInputRef.current?.click()} disabled={media.length >= 9}><VideoCameraOutlined /><span>视频</span></Button>
+            <Button variant="ghost" type="button" aria-label={requestingMicrophone ? '等待麦克风' : recording ? '停止录音' : voice ? '重新录音' : '录制语音'} onClick={() => void startRecording()} disabled={requestingMicrophone || saving} aria-pressed={recording}>{requestingMicrophone ? <LoadingOutlined /> : <AudioOutlined />}<span>{requestingMicrophone ? '等待麦克风' : recording ? '停止录音' : voice ? '重新录音' : '语音'}</span></Button>
+            <Button variant="ghost" type="button" aria-label={location ? '移除位置' : locating ? '正在定位' : '添加位置'} onClick={locate} aria-pressed={!!location} disabled={locating}>{locating ? <LoadingOutlined /> : <EnvironmentOutlined />}<span>{locating ? '定位中' : '位置'}</span></Button>
           </div>
           <p className="moment-composer-hint">最多 9 个图片或视频；语音最长 5 分钟。位置通过浏览器 H5 定位获取。</p>
           {error && <p className="moment-inline-error" role="alert">{error}</p>}

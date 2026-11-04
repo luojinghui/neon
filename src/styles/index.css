@@ -14,45 +14,91 @@
     --app-page-gutter: 1rem;
     --app-topbar-height: 3.5rem;
     --app-page-top: calc(var(--app-topbar-height) + 1.5rem);
-    --radius: 10px;
+    /* Shape scale: independent of skin and light/dark mode. */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
     --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei", -apple-system, BlinkMacSystemFont,
       "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-    /* ─── Primary: 柔和橘色，温暖活泼 ─── */
-    --primary: 24 85% 58%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 24 85% 50%;
-    --primary-soft: 28 80% 94%;
+    /* Typography: rem follows the reader's browser font setting; colors are independent. */
+    --font-size-caption: 0.75rem;
+    --font-size-body: 0.875rem;
+    --font-size-body-lg: 1rem;
+    --font-size-title: 1.125rem;
+    --font-size-heading: 1.5rem;
+    --font-size-display: 2rem;
+    --line-height-caption: 1.5;
+    --line-height-body: 1.5;
+    --line-height-body-lg: 1.75;
+    --line-height-title: 1.4;
+    --line-height-heading: 1.3;
+    --line-height-display: 1.2;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+  }
 
-    /* ─── Accent: 珊瑚粉，卡通灵动 ─── */
-    --accent: 12 75% 62%;
-    --accent-foreground: 0 0% 100%;
-    --accent-soft: 12 60% 93%;
+  /* 1. Skin inputs. A skin only owns primary + accent hue/saturation.
+     Mode tones, neutral surfaces, status meanings and typography stay independent.
+     Set data-skin on html for the app, or on a container for a local scope. */
+  :root, [data-skin='orange'] {
+    --skin-primary-hue: 24;
+    --skin-primary-saturation: 85%;
+    --skin-accent-hue: 12;
+    --skin-accent-saturation: 75%;
+  }
 
-    /* ─── Background: 暖奶白 ─── */
+  [data-skin='blue'] {
+    --skin-primary-hue: 220;
+    --skin-primary-saturation: 76%;
+    --skin-accent-hue: 268;
+    --skin-accent-saturation: 68%;
+  }
+
+  [data-skin='violet'] {
+    --skin-primary-hue: 268;
+    --skin-primary-saturation: 68%;
+    --skin-accent-hue: 320;
+    --skin-accent-saturation: 65%;
+  }
+
+  /* 2. Mode-owned semantics. These values never depend on the selected skin.
+     .light also establishes an explicit light scope inside a dark document. */
+  :root, .light {
+    color-scheme: light;
+    /* Preserve the original warm-orange palette, including its subtle role differences. */
+    --tone-solid: 58%;
+    --tone-hover: 50%;
+    --tone-primary-desaturate: 0%;
+    --tone-soft: 94%;
+    --tone-soft-saturation: 80%;
+    --tone-soft-hue-offset: 4;
+    --tone-accent-solid: 62%;
+    --tone-accent-desaturate: 0%;
+    --tone-accent-soft: 93%;
+    --tone-accent-soft-saturation: 60%;
+    --tone-on-solid: 0 0% 100%;
+    --tone-focus-saturation: 80%;
+    --tone-sidebar-solid: 55%;
+    --tone-bubble-hue-offset: 3;
+    --tone-bubble-saturation: 76%;
+    --tone-bubble-solid: 92%;
+    --tone-bubble-text-saturation: 55%;
+    --tone-bubble-text-solid: 30%;
+
     --background: 36 30% 98%;
-    --background-secondary: 33 22% 95%;
-    --background-tertiary: 30 18% 92%;
-
-    /* ─── Foreground: 暖棕灰文字 ─── */
+    --surface: 36 30% 100%;
+    --surface-inset: 33 22% 95%;
+    --surface-hover: 33 20% 97%;
+    --surface-active: 30 18% 92%;
     --foreground: 24 20% 18%;
     --foreground-secondary: 24 12% 42%;
-    --foreground-muted: 24 8% 58%;
-
-    /* ─── Surface: 奶油白卡片 ─── */
-    --surface: 36 30% 100%;
-    --surface-hover: 33 20% 97%;
-    --surface-active: 30 16% 94%;
-
-    /* ─── Border: 暖灰调 ─── */
+    --foreground-muted: 24 8% 46%;
     --border: 30 14% 88%;
     --border-hover: 28 18% 78%;
-    --border-focus: 24 80% 58%;
 
-    /* ─── Ring (focus outline) ─── */
-    --ring: 24 80% 58%;
-
-    /* ─── Semantic: 柔和状态色 ─── */
     --success: 152 50% 42%;
     --success-soft: 152 35% 92%;
     --warning: 42 85% 52%;
@@ -62,83 +108,48 @@
     --info: 200 65% 50%;
     --info-soft: 200 45% 93%;
 
-    /* ─── Chat: 聊天气泡 ─── */
-    --chat-bubble-self: 27 76% 92%;
-    --chat-bubble-self-foreground: 24 55% 30%;
-    --chat-bubble-other: 32 24% 93%;
-    --chat-bubble-other-foreground: 24 20% 18%;
-
-    /* ─── Overlay ─── */
     --overlay: 24 20% 14% / 0.35;
-
-    /* ─── Shadow ─── */
     --shadow-color: 24 15% 20%;
-    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.04);
-    --shadow-md: 0 4px 12px hsl(var(--shadow-color) / 0.06);
-    --shadow-lg: 0 8px 24px hsl(var(--shadow-color) / 0.08);
-    --shadow-xl: 0 16px 48px hsl(var(--shadow-color) / 0.1);
-
-    /* ─── Sidebar ─── */
-    --sidebar: 33 22% 96%;
-    --sidebar-foreground: 24 20% 18%;
-    --sidebar-border: 30 14% 90%;
-    --sidebar-active: 24 80% 55%;
-
-    /* ─── Input ─── */
-    --input: 33 16% 93%;
-    --input-foreground: 24 20% 18%;
-    --input-placeholder: 24 8% 58%;
-    --input-focus: 36 30% 100%;
-
-    /* Shared component roles. Keep geometry and interaction rules identical in both themes:
-       cards use raised surfaces + shadows; fields use inset surfaces + fixed borders;
-       segmented navigation has one outer border and a filled, borderless selection. */
-    --canvas: 33 24% 96%;
-    --surface-raised: var(--surface);
-    --surface-inset: 33 22% 97%;
-    --control-placeholder: 24 8% 44%;
-    --segmented-background: var(--surface-inset);
-    --segmented-selected: var(--surface);
-    --segmented-hover: var(--background-tertiary);
-    --shadow-card: 0 2px 6px hsl(var(--shadow-color) / 0.035), 0 12px 32px -12px hsl(var(--shadow-color) / 0.1);
+    --tone-shadow-sm: 0.04;
+    --tone-shadow-md: 0.06;
+    --tone-shadow-lg: 0.08;
+    --tone-shadow-xl: 0.1;
   }
 
   .dark {
-    /* ─── Primary: 明亮橘色，暗色中温暖点亮 ─── */
-    --primary: 24 80% 62%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 24 80% 70%;
-    --primary-soft: 24 40% 20%;
+    color-scheme: dark;
+    --tone-solid: 62%;
+    --tone-hover: 70%;
+    --tone-primary-desaturate: 5%;
+    --tone-soft: 20%;
+    --tone-soft-saturation: 40%;
+    --tone-soft-hue-offset: 0;
+    --tone-accent-solid: 65%;
+    --tone-accent-desaturate: 10%;
+    --tone-accent-soft: 20%;
+    --tone-accent-soft-saturation: 30%;
+    --tone-on-solid: 0 0% 100%;
+    --tone-focus-saturation: 75%;
+    --tone-sidebar-solid: 60%;
+    --tone-bubble-hue-offset: 0;
+    --tone-bubble-saturation: 34%;
+    --tone-bubble-solid: 27%;
+    --tone-bubble-text-saturation: 0%;
+    --tone-bubble-text-solid: 100%;
 
-    /* ─── Accent: 柔珊瑚 ─── */
-    --accent: 12 65% 65%;
-    --accent-foreground: 0 0% 100%;
-    --accent-soft: 12 30% 20%;
-
-    /* ─── Background: 暖深棕灰，柔和不刺眼 ─── */
-    --background: 24 14% 10%;
-    --background-secondary: 24 12% 13%;
-    --background-tertiary: 24 10% 16%;
-
-    /* ─── Foreground: 暖白文字 ─── */
+    /* Warm charcoal planes: page → card → inset controls, each a visible step
+       lighter. Keep these neutral roles independent of the brand skin. */
+    --background: 28 8% 16%;
+    --surface: 28 7% 23%;
+    --surface-inset: 28 6% 30%;
+    --surface-hover: 28 7% 27%;
+    --surface-active: 28 6% 34%;
     --foreground: 30 10% 92%;
-    --foreground-secondary: 28 8% 68%;
-    --foreground-muted: 26 6% 48%;
+    --foreground-secondary: 28 8% 80%;
+    --foreground-muted: 26 6% 76%;
+    --border: 28 6% 36%;
+    --border-hover: 28 8% 44%;
 
-    /* ─── Surface: 卡片/面板 ─── */
-    --surface: 24 12% 14%;
-    --surface-hover: 24 10% 18%;
-    --surface-active: 24 8% 22%;
-
-    /* ─── Border ─── */
-    --border: 24 10% 22%;
-    --border-hover: 24 12% 30%;
-    --border-focus: 24 75% 58%;
-
-    /* ─── Ring ─── */
-    --ring: 24 75% 58%;
-
-    /* ─── Semantic ─── */
     --success: 152 45% 50%;
     --success-soft: 152 25% 16%;
     --warning: 42 75% 58%;
@@ -148,47 +159,46 @@
     --info: 200 60% 58%;
     --info-soft: 200 35% 16%;
 
-    /* ─── Chat ─── */
-    --chat-bubble-self: 24 34% 27%;
-    --chat-bubble-self-foreground: 0 0% 100%;
-    --chat-bubble-other: 24 10% 24%;
-    --chat-bubble-other-foreground: 30 10% 90%;
-
-    /* ─── Overlay ─── */
     --overlay: 0 0% 0% / 0.55;
-
-    /* ─── Shadow ─── */
     --shadow-color: 0 0% 0%;
-    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.15);
-    --shadow-md: 0 4px 12px hsl(var(--shadow-color) / 0.2);
-    --shadow-lg: 0 8px 24px hsl(var(--shadow-color) / 0.25);
-    --shadow-xl: 0 16px 48px hsl(var(--shadow-color) / 0.3);
+    --tone-shadow-sm: 0.15;
+    --tone-shadow-md: 0.2;
+    --tone-shadow-lg: 0.25;
+    --tone-shadow-xl: 0.3;
+  }
 
-    /* ─── Sidebar ─── */
-    --sidebar: 24 12% 12%;
-    --sidebar-foreground: 30 10% 90%;
-    --sidebar-border: 24 10% 20%;
-    --sidebar-active: 24 75% 60%;
+  /* 3. Derived semantics: roles share skin inputs and mode tones.
+     Re-declare at EVERY scope boundary: inherited custom properties are already
+     computed at their parent, so changing a seed alone cannot recompute derived roles. */
+  :root, .light, .dark, [data-skin] {
+    --primary: var(--skin-primary-hue) calc(var(--skin-primary-saturation) - var(--tone-primary-desaturate)) var(--tone-solid);
+    --primary-hover: var(--skin-primary-hue) calc(var(--skin-primary-saturation) - var(--tone-primary-desaturate)) var(--tone-hover);
+    --primary-soft: calc(var(--skin-primary-hue) + var(--tone-soft-hue-offset)) var(--tone-soft-saturation) var(--tone-soft);
+    --primary-foreground: var(--tone-on-solid);
+    --accent: var(--skin-accent-hue) calc(var(--skin-accent-saturation) - var(--tone-accent-desaturate)) var(--tone-accent-solid);
+    --accent-soft: var(--skin-accent-hue) var(--tone-accent-soft-saturation) var(--tone-accent-soft);
+    --accent-foreground: var(--primary-foreground);
+    --ring: var(--skin-primary-hue) var(--tone-focus-saturation) 58%;
+    --border-focus: var(--ring);
+    --sidebar-active: var(--skin-primary-hue) var(--tone-focus-saturation) var(--tone-sidebar-solid);
 
-    /* ─── Input ─── */
-    --input: 24 10% 18%;
-    --input-foreground: 30 10% 92%;
-    --input-placeholder: 26 6% 48%;
-    --input-focus: 24 12% 22%;
+    --chat-bubble-self: calc(var(--skin-primary-hue) + var(--tone-bubble-hue-offset)) var(--tone-bubble-saturation) var(--tone-bubble-solid);
+    --chat-bubble-self-foreground: var(--skin-primary-hue) var(--tone-bubble-text-saturation) var(--tone-bubble-text-solid);
+    --chat-bubble-other: var(--surface-inset);
+    --chat-bubble-other-foreground: var(--foreground);
 
-    /* Same roles as the light palette; components never need dark-mode overrides. */
-    --canvas: var(--background);
-    --surface-raised: 24 10% 15%;
-    --surface-inset: var(--input);
-    --control-placeholder: var(--foreground-secondary);
-    --segmented-background: var(--background-tertiary);
-    --segmented-selected: var(--surface-active);
-    --segmented-hover: var(--surface-hover);
-    --shadow-card: 0 2px 8px hsl(var(--shadow-color) / 0.14), 0 16px 36px -16px hsl(var(--shadow-color) / 0.32);
+    --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / var(--tone-shadow-sm));
+    --shadow-md: 0 4px 12px hsl(var(--shadow-color) / var(--tone-shadow-md));
+    --shadow-lg: 0 8px 24px hsl(var(--shadow-color) / var(--tone-shadow-lg));
+    --shadow-xl: 0 16px 48px hsl(var(--shadow-color) / var(--tone-shadow-xl));
+    --shadow-card: 0 2px 6px hsl(var(--shadow-color) / var(--tone-shadow-sm)), 0 12px 32px -12px hsl(var(--shadow-color) / var(--tone-shadow-xl));
   }
 
   html {
     @apply bg-background;
+    /* Match semantic font sizes on mobile; Safari must not inflate isolated text blocks. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     /* Allow scrolling while preventing browser page-zoom gestures. */
     touch-action: pan-x pan-y;
   }
@@ -198,18 +208,22 @@
     min-height: var(--app-viewport-height);
     padding: var(--app-safe-top) var(--app-safe-right) var(--app-safe-bottom) var(--app-safe-left);
     font-family: var(--font-sans);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    font-weight: var(--font-weight-regular);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   body,
   body :where(*) {
+    -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
   }
 
-  body :where(input, textarea, [contenteditable="true"], [contenteditable="true"] *) {
+  body :where(input, textarea, [contenteditable="true"], [contenteditable="true"] *, [data-selectable], [data-selectable] *) {
     -webkit-touch-callout: default;
     -webkit-user-select: text;
     user-select: text;
@@ -224,6 +238,15 @@
   textarea,
   select {
     font-family: inherit;
+  }
+}
+
+/* Keep reading text stable and compress only the title roles on small screens. */
+@media (max-width: 640px) {
+  :root {
+    --font-size-title: 1rem;
+    --font-size-heading: 1.25rem;
+    --font-size-display: 1.75rem;
   }
 }
 
@@ -268,31 +291,8 @@
 
 .app-topbar-title { display: flex; min-width: 0; align-items: center; justify-content: center; text-align: center; }
 .app-topbar-title > * { min-width: 0; max-width: 100%; }
-.app-topbar-title button { min-height: 2.5rem; }
-.app-topbar-controls { display: flex; min-width: 0; align-items: center; justify-content: flex-end; }
+.app-topbar-controls { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 0.5rem; }
 .app-topbar-controls > div { gap: 0.5rem; }
-
-.app-icon-button,
-.app-topbar-controls :where(a, button) {
-  display: inline-flex;
-  width: 2.5rem;
-  height: 2.5rem;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid hsl(var(--border) / 0.75);
-  border-radius: 0.65rem;
-  padding: 0;
-  background: hsl(var(--surface) / 0.75);
-  color: hsl(var(--foreground-secondary));
-  box-shadow: none;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
-}
-
-.app-icon-button:hover,
-.app-topbar-controls :where(a, button):hover { border-color: hsl(var(--border-hover)); background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
-.app-icon-button:focus-visible,
-.app-glass-header :where(a, button):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 
 /* Fixed elements are positioned against the viewport, outside body's padding. */
 .app-topbar {
@@ -333,30 +333,6 @@
   animation: gradient-x 15s ease infinite;
 }
 
-/* ─── Send button: rocket launch on hover ─── */
-@keyframes rocket-launch {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  40% {
-    transform: translate(6px, -6px) scale(0.8);
-    opacity: 0;
-  }
-  41% {
-    transform: translate(-4px, 4px) scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-}
-
-.send-btn:hover:not(:disabled) .send-icon {
-  animation: rocket-launch 0.6s ease;
-}
-
 .chat-scrollbar {
   scrollbar-color: hsl(var(--foreground-muted) / 0.28) transparent;
   scrollbar-width: thin;
@@ -371,7 +347,7 @@
 }
 
 .chat-scrollbar::-webkit-scrollbar-thumb {
-  border-radius: 999px;
+  border-radius: 9999px;
   background: hsl(var(--foreground-muted) / 0.22);
 }
 
@@ -379,39 +355,21 @@
   background: hsl(var(--foreground-muted) / 0.38);
 }
 
-.soul-page,
-.soul-page :where(*:not(input):not(textarea):not([contenteditable="true"])) {
-  -webkit-touch-callout: none;
-  user-select: none;
-}
-
-.soul-page img {
-  -webkit-user-drag: none;
-}
-
-.soul-page input,
-.soul-page textarea,
-.soul-page [contenteditable="true"] {
-  -webkit-touch-callout: default;
-  user-select: text;
-}
-
-.soul-file-preview-modal .ant-modal-content,
-.soul-file-preview-modal .ant-modal-container {
+.soul-file-preview-modal .ui-modal-container {
   overflow: hidden;
-  border-radius: calc(var(--radius) + 4px);
+  border-radius: var(--radius-xl);
 }
 
-.soul-file-preview-modal .ant-modal-body {
+.soul-file-preview-modal .ui-modal-body {
   overflow: hidden;
 }
 
-.soul-file-preview-modal .ant-modal-header {
+.soul-file-preview-modal .ui-modal-header {
   min-width: 0;
   padding-inline-end: 2.5rem;
 }
 
-.soul-file-preview-modal .ant-modal-footer {
+.soul-file-preview-modal .ui-modal-footer {
   margin-top: 12px;
 }
 
@@ -423,23 +381,19 @@
 }
 
 @media (max-width: 640px) {
-  .soul-file-preview-modal .ant-modal-wrap {
+  .soul-file-preview-modal.ui-modal-root[data-centered] .ui-modal-wrap {
+    padding: 0;
     overflow: hidden;
   }
 
-  .soul-file-preview-modal .ant-modal {
+  .soul-file-preview-modal.ui-modal-root .ui-modal.ui-modal-container {
     top: 0;
     width: 100vw !important;
     max-width: 100vw;
-    height: 100dvh;
+    height: var(--dialog-viewport-height, 100dvh);
+    max-height: var(--dialog-viewport-height, 100dvh);
     margin: 0;
-    padding: 0;
-  }
-
-  .soul-file-preview-modal .ant-modal-content,
-  .soul-file-preview-modal .ant-modal-container {
     display: flex;
-    height: 100dvh;
     flex-direction: column;
     border-radius: 0;
     padding-top: max(16px, env(safe-area-inset-top));
@@ -448,13 +402,13 @@
     padding-left: max(16px, env(safe-area-inset-left));
   }
 
-  .soul-file-preview-modal .ant-modal-body {
+  .soul-file-preview-modal .ui-modal-body {
     display: flex;
     min-height: 0;
     flex: 1;
   }
 
-  .soul-file-preview-modal .ant-modal-footer {
+  .soul-file-preview-modal .ui-modal-footer {
     flex: none;
     margin-top: 12px;
   }
@@ -488,13 +442,13 @@
 }
 
 /* Bound the dialog itself and the intrinsic canvas size, not the page viewport. */
-.ant-modal.soul-game-modal { max-width: calc(100vw - 24px); margin-inline: auto; padding-bottom: 0; }
-.soul-game-modal .ant-modal-container { min-width: 0; }
-.soul-game-modal .ant-modal-body { min-width: 0; max-height: calc(100dvh - 140px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.ui-modal.soul-game-modal { max-width: calc(100vw - 24px); margin-inline: auto; padding-bottom: 0; }
+.ui-modal-container.soul-game-modal { min-width: 0; }
+.soul-game-modal .ui-modal-body { min-width: 0; max-height: calc(100dvh - 140px); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
 .soul-game-modal canvas, .soul-game-modal svg[role=img] { max-width: 100%; min-width: 0; }
 @media (max-width: 600px) {
-  .soul-game-modal .ant-modal-container { padding: 16px; }
-  .soul-game-modal .ant-modal-body { max-height: calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .ui-modal-container.soul-game-modal { padding: 16px; }
+  .soul-game-modal .ui-modal-body { max-height: calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 }
 
 .docx-preview img {
@@ -509,6 +463,6 @@
 
 .docx-preview td,
 .docx-preview th {
-  border: 1px solid #e5e7eb;
+  border: 1px solid hsl(var(--border));
   padding: 0.45rem 0.6rem;
 }

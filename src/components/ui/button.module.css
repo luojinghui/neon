@@ -1,0 +1,55 @@
+/* Colors always come from the light/dark theme in src/styles/index.css. */
+.button {
+  --button-height: 2.25rem;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: var(--button-height);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 0.375rem 0.875rem;
+  font: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-body);
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 200ms cubic-bezier(.2,.8,.2,1), box-shadow 200ms ease;
+}
+:where(.button) { display: inline-flex; }
+.outline { border-color: hsl(var(--border)); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); }
+.ghost { border-color: transparent; background: transparent; color: hsl(var(--foreground-secondary)); }
+.primary { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.sm { border-radius: var(--radius-sm); --button-height: 2rem; padding: 0.3125rem 0.625rem; font-size: var(--font-size-caption); }
+.lg { --button-height: 2.5rem; padding: 0.5rem 1rem; }
+.iconOnly { width: var(--button-height); height: var(--button-height); padding: 0; }
+.block { width: 100%; }
+.button.alignStart { justify-content: flex-start; }
+/* Bare icon/count actions keep the ghost hit area and neutral text in every state. */
+.ghost.feedbackNone { background: transparent; color: hsl(var(--foreground-secondary)); box-shadow: none; }
+.icon { display: inline-flex; align-items: center; justify-content: center; }
+.button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.button:disabled, .button[aria-disabled='true'] { cursor: not-allowed; opacity: 0.45; }
+.button:disabled { pointer-events: auto; }
+.ghost:not(.feedbackNone)[aria-pressed='true'], .ghost:not(.feedbackNone)[aria-selected='true'], .ghost:not(.feedbackNone)[aria-current='true'], .ghost:not(.feedbackNone)[aria-expanded='true'], .ghost:not(.feedbackNone)[aria-checked='true'] { background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
+.outline[aria-pressed='true'], .outline[aria-selected='true'] { border-color: hsl(var(--border-focus)); color: hsl(var(--foreground)); }
+@media (hover: hover) and (pointer: fine) {
+  .outline:hover:not(:disabled):not([aria-disabled='true']):not([data-ui-surface]) { border-color: hsl(var(--border-hover)); background: hsl(var(--surface-hover)); color: hsl(var(--foreground)); }
+  .ghost:not(.feedbackNone):hover:not(:disabled):not([aria-disabled='true']):not([data-ui-surface]) { background: hsl(var(--surface-hover)); color: hsl(var(--foreground)); }
+  .primary:hover:not(:disabled):not([aria-disabled='true']):not([data-ui-surface]) { border-color: hsl(var(--primary-hover)); background: hsl(var(--primary-hover)); }
+  .button:not(.feedbackNone):hover:not(:disabled):not([aria-disabled='true']):not([data-ui-surface]) { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .outline:active:not(:disabled):not([data-ui-surface]), .ghost:not(.feedbackNone):active:not(:disabled):not([data-ui-surface]) { background: hsl(var(--surface-active)); }
+}
+.button:not(.feedbackNone):active:not(:disabled):not([aria-disabled='true']):not([data-ui-surface]) { transform: scale(.97); box-shadow: none; }
+.primary:active:not(:disabled):not([data-ui-surface]) { border-color: hsl(var(--primary-hover)); background: hsl(var(--primary-hover)); }
+/* Media activation areas are transparent hit targets, with the same focus ring. */
+.button[data-ui-surface] { border-radius: inherit; min-height: 0; border: 0; padding: 0; background: transparent; }
+.button[data-ui-surface]:is(:hover, :active, [aria-pressed='true'], [aria-selected='true'], [aria-current='true'], [aria-expanded='true']) { background: transparent; }
+@media (prefers-reduced-motion: reduce) { .button { transition: none; } .button:is(:hover, :active) { transform: none !important; } }

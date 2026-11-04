@@ -1,7 +1,13 @@
 'use client';
 
-import { AppstoreOutlined, ArrowRightOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Modal, Popover } from 'antd';
+import { Input } from '@/components/ui/input';
+
+import { Popover } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import styles from './chat-menus.module.css';
+
+import { Modal } from '@/components/ui/modal';
 import { useId, useRef, useState } from 'react';
 import { soulChat } from '../../core';
 import type { DrawingStroke, GameChoice, GameCreateInput } from '../../core/types';
@@ -15,16 +21,16 @@ export const GAME_CHOICES: { value: GameChoice; emoji: string; label: string }[]
 ];
 
 const WORDS = ['小猫', '火箭', '向日葵', '热气球', '冰淇淋', '自行车', '宇航员', '彩虹'];
-const primaryButtonClass = 'inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50';
+const primaryButtonClass = 'inline-flex min-h-9 items-center justify-center gap-2 px-4 py-2 text-sm font-medium';
 
 export function GameChoicePicker({ value, onChange, disabled = false }: { value: GameChoice | null; onChange: (choice: GameChoice) => void; disabled?: boolean }) {
   return (
     <div className="grid grid-cols-3 gap-2" role="group" aria-label="选择猜拳手势">
       {GAME_CHOICES.map((choice) => (
-        <button key={choice.value} type="button" aria-pressed={value === choice.value} onClick={() => onChange(choice.value)} disabled={disabled} className={`flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 ${value === choice.value ? 'border-primary bg-primary-soft text-primary' : 'border-transparent bg-background-secondary text-foreground-secondary hover:bg-surface-hover'}`}>
+        <Button variant="ghost" key={choice.value} type="button" aria-pressed={value === choice.value} onClick={() => onChange(choice.value)} disabled={disabled} className="flex min-w-0 flex-col items-center gap-1.5 px-2 py-3 text-sm">
           <span className="text-2xl leading-none" aria-hidden="true">{choice.emoji}</span>
           <span>{choice.label}</span>
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -83,10 +89,10 @@ export function GameSetupModal({ kind, onClose }: { kind: 'rps' | 'draw'; onClos
                 <label htmlFor={wordInputId} className="font-medium">画什么？</label>
                 <span className="text-xs text-foreground-muted">2–12 个字 · 揭晓前保密</span>
               </div>
-              <input id={wordInputId} value={word} onChange={(event) => setWord(Array.from(event.target.value).slice(0, 12).join(''))} disabled={disabled} autoComplete="off" placeholder="输入你的谜底" className="h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground-muted focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50" />
+              <Input id={wordInputId} value={word} onChange={(event) => setWord(Array.from(event.target.value).slice(0, 12).join(''))} disabled={disabled} autoComplete="off" placeholder="输入你的谜底" className="w-full" />
               <div className="flex flex-wrap gap-1.5">
                 {WORDS.map((suggestion) => (
-                  <button key={suggestion} type="button" onClick={() => setWord(suggestion)} disabled={disabled} className={`rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50 ${word === suggestion ? 'border-primary/30 bg-primary-soft text-primary' : 'border-transparent bg-background-secondary text-foreground-muted hover:bg-surface-hover'}`}>{suggestion}</button>
+                  <Button size="sm" aria-pressed={word === suggestion} variant="ghost" key={suggestion} type="button" onClick={() => setWord(suggestion)} disabled={disabled} className="px-2.5 py-1 text-xs">{suggestion}</Button>
                 ))}
               </div>
             </div>
@@ -97,10 +103,10 @@ export function GameSetupModal({ kind, onClose }: { kind: 'rps' | 'draw'; onClos
 
         {(!connected || error) && <p role="alert" className="text-xs text-danger">{!connected ? '连接已断开，恢复连接后可以继续发起。' : error}</p>}
         <div className="flex justify-end gap-2 pt-3">
-          <button type="button" disabled={pending} onClick={onClose} className="rounded-lg px-4 py-2 text-sm text-foreground-muted transition-colors hover:bg-surface-active disabled:opacity-50">取消</button>
-          <button type="button" onClick={() => void submit()} disabled={disabled || (kind === 'rps' ? !choice : !strokes.length || wordLength < 2)} className={primaryButtonClass}>
-            {pending ? <LoadingOutlined /> : <ArrowRightOutlined />}{pending ? '正在发起…' : kind === 'rps' ? '出拳并邀请' : '发起你画我猜'}
-          </button>
+          <Button variant="ghost" type="button" disabled={pending} onClick={onClose} className="px-4 py-2 text-sm">取消</Button>
+          <Button variant="primary" type="button" loading={pending} icon={<Icon name="arrow-right" />} onClick={() => void submit()} disabled={disabled || (kind === 'rps' ? !choice : !strokes.length || wordLength < 2)} className={primaryButtonClass}>
+            {pending ? '正在发起…' : kind === 'rps' ? '出拳并邀请' : '发起你画我猜'}
+          </Button>
         </div>
       </div>
     </Modal>
@@ -141,21 +147,21 @@ export function GameLauncher() {
 
   return (
     <>
-      <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(''); }} trigger="click" placement="topLeft" arrow={false} styles={{ container: { padding: 4 } }} content={
-        <div className="w-64 max-w-[calc(100vw-32px)] p-1">
-          <div className="px-2 py-1.5 text-xs text-foreground-muted">一起玩点什么</div>
+      <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(''); }} trigger="click" placement="top" width="min(288px, calc(100vw - 24px))" fitViewport boundaryPadding={12} radius="lg" arrow={false} bodyStyle={{ padding: 4 }} content={
+        <div className={styles.gameMenu}>
+          <div className={styles.gameHeading}>一起玩点什么</div>
           {games.map((game) => (
-            <button key={game.kind} type="button" disabled={disabled} onClick={() => { if (game.kind === 'dice') void rollDice(); else { setOpen(false); setSetup(game.kind); } }} className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-surface-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50">
-              <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-hover text-xl">{game.kind === 'dice' && pending ? <LoadingOutlined className="text-primary" /> : game.emoji}</span>
-              <span className="min-w-0"><span className="block text-sm font-medium text-foreground">{game.name}</span><span className="mt-0.5 block text-xs text-foreground-muted">{game.description}</span></span>
-            </button>
+            <Button variant="ghost" align="start" key={game.kind} type="button" disabled={disabled} onClick={() => { if (game.kind === 'dice') void rollDice(); else { setOpen(false); setSetup(game.kind); } }} className={styles.gameButton}>
+              <span aria-hidden="true" className={styles.gameIcon}>{game.kind === 'dice' && pending ? <Icon name="loading" /> : game.emoji}</span>
+              <span className={styles.gameCopy}><span className={styles.gameName}>{game.name}</span><span className={styles.gameDescription}>{game.description}</span></span>
+            </Button>
           ))}
           {error && <p role="alert" className="px-2 py-1.5 text-xs text-danger">{error}</p>}
         </div>
       }>
-        <button type="button" disabled={disabled} aria-label="聊天室小游戏" aria-expanded={open} className={`inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs transition-colors hover:bg-surface-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 ${open ? 'bg-surface-active text-foreground' : 'text-foreground-muted'}`}>
-          <AppstoreOutlined className="text-base" /><span className="hidden sm:inline">小游戏</span>
-        </button>
+        <Button size="sm" variant="ghost" type="button" disabled={disabled} aria-label="聊天室小游戏" aria-expanded={open} className="inline-flex h-8 items-center justify-center gap-1.5 px-2 text-xs">
+          <Icon name="apps" /><span className="hidden sm:inline">小游戏</span>
+        </Button>
       </Popover>
       {setup && <GameSetupModal key={setup} kind={setup} onClose={() => setSetup(null)} />}
     </>

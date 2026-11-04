@@ -5,32 +5,20 @@
   align-items: center;
   gap: 0.7rem;
   border: 0;
-  border-radius: 0.8rem;
+  border-radius: var(--radius-lg);
   padding: 0.75rem;
-  background: hsl(var(--background-secondary));
+  background: hsl(var(--surface-inset));
 }
 
 .moment-voice-player audio { display: none; }
 
 .moment-voice-toggle {
   display: inline-flex;
-  width: 2.5rem;
-  height: 2.5rem;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 0;
-  border-radius: 50%;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  font-size: 1.1rem;
-  cursor: pointer;
 }
-
-.moment-voice-toggle:hover { background: hsl(var(--primary-hover)); }
-.moment-voice-toggle:focus-visible,
-.moment-voice-track input:focus-visible,
-.moment-voice-remove:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.moment-voice-track input:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 .moment-voice-track { min-width: 0; flex: 1; }
 .moment-voice-details { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.5rem; color: hsl(var(--foreground-secondary)); font-size: 0.72rem; }
 .moment-voice-time { flex-shrink: 0; color: hsl(var(--foreground-muted)); font-variant-numeric: tabular-nums; }
@@ -48,13 +36,12 @@
   cursor: pointer;
   accent-color: hsl(var(--primary));
 }
-.moment-voice-track input::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, hsl(var(--primary)) var(--voice-progress), hsl(var(--border)) var(--voice-progress)); }
-.moment-voice-track input::-moz-range-track { height: 4px; border-radius: 999px; background: hsl(var(--border)); }
-.moment-voice-track input::-moz-range-progress { height: 4px; border-radius: 999px; background: hsl(var(--primary)); }
+.moment-voice-track input::-webkit-slider-runnable-track { height: 4px; border-radius: 9999px; background: linear-gradient(to right, hsl(var(--primary)) var(--voice-progress), hsl(var(--border)) var(--voice-progress)); }
+.moment-voice-track input::-moz-range-track { height: 4px; border-radius: 9999px; background: hsl(var(--border)); }
+.moment-voice-track input::-moz-range-progress { height: 4px; border-radius: 9999px; background: hsl(var(--primary)); }
 .moment-voice-track input::-webkit-slider-thumb { width: 12px; height: 12px; margin-top: -4px; appearance: none; -webkit-appearance: none; border: 2px solid hsl(var(--surface)); border-radius: 50%; background: hsl(var(--primary)); box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2); }
 .moment-voice-track input::-moz-range-thumb { width: 8px; height: 8px; border: 2px solid hsl(var(--surface)); border-radius: 50%; background: hsl(var(--primary)); box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2); }
 .moment-voice-track input:disabled { cursor: default; opacity: 0.5; }
 .moment-voice-draft { display: flex; min-width: 0; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 .moment-voice-draft .moment-voice-player { flex: 1; }
-.moment-voice-remove { display: inline-flex; width: 2.5rem; height: 2.5rem; flex-shrink: 0; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: hsl(var(--surface)); color: hsl(var(--foreground-muted)); cursor: pointer; }
-.moment-voice-remove:hover { color: hsl(var(--danger)); border-color: hsl(var(--danger)); }
+.moment-voice-remove { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; }

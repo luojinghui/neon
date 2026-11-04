@@ -1,34 +1,28 @@
 'use client';
 
-export function ChatRoomCardSkeleton({ count = 8 }: { count?: number }) {
-  const items = Array.from({ length: Math.max(0, count) });
+import { Card } from '@/components/ui/card';
+import styles from './SoulLanding.module.css';
 
+export function ChatRoomCardSkeleton({ count = 8 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {items.map((_, idx) => (
-        <div
-          key={idx}
-          // 与内容列表保持相同的留白，仅让文字骨架闪烁。
-          className="flex min-h-[180px] flex-col rounded-2xl border border-border bg-surface p-5"
-          aria-hidden="true"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="h-5 w-2/5 animate-pulse rounded bg-background-tertiary" />
-            <div className="h-5 w-5 animate-pulse rounded-full bg-background-tertiary" />
-          </div>
+      {Array.from({ length: Math.max(0, count) }, (_, index) => (
+        <Card key={index} padding="md" className={styles.roomCard} bodyClassName={styles.roomBody} aria-hidden="true"
+          cover={<div className={styles.cover}><div className="h-4 w-24 animate-pulse rounded-sm bg-surface-active" /><div className="h-12 w-12 animate-pulse rounded-full bg-surface-active" /></div>}>
+          <div className="h-5 w-2/3 animate-pulse rounded-sm bg-surface-active" />
           <div className="mt-3 space-y-2">
-            <div className="h-3 w-full rounded bg-background-tertiary animate-pulse" />
-            <div className="h-3 w-3/4 rounded bg-background-tertiary animate-pulse" />
+            <div className="h-3 w-full animate-pulse rounded-sm bg-surface-active" />
+            <div className="h-3 w-3/4 animate-pulse rounded-sm bg-surface-active" />
           </div>
-          <div className="mt-3 flex gap-1.5">
-            <div className="h-5 w-12 animate-pulse rounded-md bg-background-tertiary" />
-            <div className="h-5 w-12 animate-pulse rounded-md bg-background-tertiary" />
+          <div className="mt-3 flex gap-2">
+            <div className="h-4 w-12 animate-pulse rounded-sm bg-surface-active" />
+            <div className="h-4 w-12 animate-pulse rounded-sm bg-surface-active" />
           </div>
-          <div className="mt-auto flex justify-between pt-5">
-            <div className="h-3 w-10 animate-pulse rounded bg-background-tertiary" />
-            <div className="h-3 w-10 animate-pulse rounded bg-background-tertiary" />
+          <div className="mt-auto flex justify-between pt-4">
+            <div className="h-3 w-12 animate-pulse rounded-sm bg-surface-active" />
+            <div className="h-3 w-12 animate-pulse rounded-sm bg-surface-active" />
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Tabs } from '@/components/ui/tabs';
+import { buttonClassName } from '@/components/ui/button-styles';
 import { CheckOutlined, CopyOutlined, ReloadOutlined, CalendarOutlined, CompassOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -148,15 +151,14 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2">
             <ProfileShortcut returnTo={returnTo} />
             {profile && !loading && (
-              <button
+              <Button variant="outline" iconOnly
                 type="button"
                 onClick={() => void copyProfileLink()}
-                className="app-icon-button"
                 aria-label={copied ? '个人主页链接已复制' : '复制个人主页链接'}
                 title={copied ? '已复制' : '分享个人主页'}
               >
                 {copied ? <CheckOutlined className="text-success" /> : <CopyOutlined />}
-              </button>
+              </Button>
             )}
             <ThemeToggle />
           </div>
@@ -166,25 +168,25 @@ export default function ProfilePage() {
       <main className="chat-scrollbar flex-1 overflow-y-auto overflow-x-hidden pb-12 pt-[var(--app-page-top)]">
         <div className="profile-shell">
           {loading ? (
-            <div className="animate-pulse overflow-hidden rounded-2xl border border-border bg-surface">
-              <div className="h-40 bg-background-tertiary sm:h-56" />
+            <div className="animate-pulse overflow-hidden rounded-xl border border-border bg-surface">
+              <div className="h-40 bg-surface-active sm:h-56" />
               <div className="px-5 pb-8 sm:px-7">
-                <div className="-mt-12 h-28 w-28 rounded-full border-4 border-surface bg-background-tertiary" />
-                <div className="mt-4 h-7 w-44 rounded bg-background-tertiary" />
-                <div className="mt-3 h-4 w-28 rounded bg-background-tertiary" />
-                <div className="mt-6 h-4 w-3/5 rounded bg-background-tertiary" />
+                <div className="-mt-12 h-28 w-28 rounded-full border-4 border-surface bg-surface-active" />
+                <div className="mt-4 h-7 w-44 rounded-sm bg-surface-active" />
+                <div className="mt-3 h-4 w-28 rounded-sm bg-surface-active" />
+                <div className="mt-6 h-4 w-3/5 rounded-sm bg-surface-active" />
               </div>
             </div>
           ) : error || !profile ? (
-            <div className="mx-auto flex max-w-lg flex-col items-center rounded-2xl border border-border bg-surface px-6 py-16 text-center">
+            <div className="mx-auto flex max-w-lg flex-col items-center rounded-xl border border-border bg-surface px-6 py-16 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft text-2xl text-primary">?</div>
               <h1 className="mt-5 text-xl font-semibold text-foreground">这颗星暂时没有主人</h1>
               <p className="mt-2 text-sm leading-relaxed text-foreground-secondary">{error || '没有找到这个人的公开资料。'}</p>
               <div className="mt-6 flex gap-2">
-                <button type="button" onClick={() => window.location.reload()} className="inline-flex items-center gap-2 rounded-lg bg-surface-hover px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-hover">
+                <Button variant="ghost" type="button" onClick={() => window.location.reload()} className="inline-flex items-center gap-2">
                   <ReloadOutlined /> 重试
-                </button>
-                <Link href="/soul" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover">
+                </Button>
+                <Link href="/soul" className={buttonClassName({ variant: 'primary' })}>
                   去星球看看
                 </Link>
               </div>
@@ -203,19 +205,19 @@ export default function ProfilePage() {
                 }}
               />
               <div className="profile-sections">
-                <nav className="profile-tabs" aria-label="个人主页内容">
-                  {([
+                <Tabs id="profile-content-tabs" panelId="profile-content-panel" className="profile-tabs" aria-label="个人主页内容" activeKey={activeSection}
+                  onChange={key => setActiveSection(key as typeof activeSection)} items={([
                     { id: 'profile', label: '资料' },
                     { id: 'moments', label: '心迹' },
                     ...(isOwner ? [{ id: 'messages', label: '私信' }, { id: 'friends', label: '好友收藏' }] as const : [])
-                  ] as const).map((section) => <button key={section.id} type="button" className="profile-tab" aria-pressed={activeSection === section.id} onClick={() => setActiveSection(section.id)}>
+                  ] as const).map((section) => ({ key: section.id, label: <>
                     {section.label}
                     {section.id === 'moments' && momentsLoaded && moments.length > 0 && <span className="profile-tab-count">{moments.length}</span>}
                     {section.id === 'messages' && unread > 0 && <span className="profile-tab-unread">{unread > 99 ? '99+' : unread}</span>}
                     {section.id === 'friends' && socialReady && friendCount > 0 && <span className="profile-tab-count">{friendCount}</span>}
-                  </button>)}
-                </nav>
+                  </> }))} />
 
+                <div id="profile-content-panel" role="tabpanel" aria-labelledby={`profile-content-tabs-tab-${activeSection}`}>
                 {isOwner && (activeSection === 'messages' || activeSection === 'friends') ? <SocialPanel section={activeSection} /> : activeSection === 'profile' ? (
                   <dl className="profile-details">
                     {isOwner && !profile.isSystem && currentProfile?.publicKey === profile.publicKey && (
@@ -243,6 +245,7 @@ export default function ProfilePage() {
                       }}
                     />
                 )}
+                </div>
               </div>
             </article>
           )}

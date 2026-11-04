@@ -1,3 +1,5 @@
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 /**
  * 历史记录弹窗组件
  *
@@ -5,44 +7,44 @@
  * Last modified  : 2026-03-17 18:30:00
  */
 
-import { Modal } from 'antd';
+
 import { CopyOutlined, DeleteOutlined, HistoryOutlined, SendOutlined } from '@ant-design/icons';
 import { useCloudStore } from '../store';
 import { neonCloud } from '../core';
 
 function HistoryItem({ item }: { item: { text: string; timestamp: number } }) {
   return (
-    <div className="group rounded-xl border border-border bg-background px-4 py-3">
+    <div className="group rounded-lg border border-border bg-background px-4 py-3">
       <div className="flex items-center justify-between gap-2 py-1">
         <span className="text-xs text-foreground-muted">{new Date(item.timestamp).toLocaleString()}</span>
         <div className="flex items-center gap-1">
-          <button
+          <Button variant="ghost"
             onClick={() => neonCloud.handleCopyHistoryText(item.text)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-foreground-muted hover:text-foreground hover:bg-surface-hover transition-colors"
+            size="sm"
           >
             <CopyOutlined className="text-[10px]" />
             复制
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost"
             onClick={() => neonCloud.deleteTextHistory(item.timestamp)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-foreground-muted hover:text-danger hover:bg-danger-soft transition-colors"
+            size="sm"
           >
             <DeleteOutlined className="text-[10px]" />
             删除
-          </button>
+          </Button>
         </div>
       </div>
       <div className="py-2">
         <div className="text-sm text-foreground leading-relaxed line-clamp-4 whitespace-pre-wrap">{item.text}</div>
       </div>
       <div className="pt-1">
-        <button
+        <Button variant="ghost"
           onClick={() => neonCloud.useHistoryItem(item)}
-          className="inline-flex items-center gap-1.5 py-1 rounded-md text-xs font-medium text-primary hover:text-primary-hover transition-colors"
+          size="sm"
         >
           <SendOutlined className="text-[10px]" />
           使用此内容
-        </button>
+        </Button>
       </div>
     </div>
   );

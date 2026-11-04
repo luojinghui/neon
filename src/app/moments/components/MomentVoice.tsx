@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { CaretRightFilled, LoadingOutlined, PauseOutlined, RedoOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { MomentVoice } from '../types';
@@ -106,15 +107,14 @@ function VoicePlayer({ voice }: Props) {
         onEnded={() => { stop(); setCurrentTime(0); if (audioRef.current) audioRef.current.currentTime = 0; }}
         onError={() => { stop(); setError(true); }}
       />
-      <button
-        type="button"
-        className="moment-voice-toggle"
+      <Button variant="primary" iconOnly
+        type="button" className="moment-voice-toggle"
         onClick={() => void toggle()}
         aria-label={error ? '重试播放语音' : pauseAction ? '暂停语音' : '播放语音'}
         title={error ? '重试播放' : pauseAction ? '暂停' : '播放'}
       >
         {error ? <RedoOutlined /> : loading ? <LoadingOutlined /> : playing ? <PauseOutlined /> : <CaretRightFilled />}
-      </button>
+      </Button>
       <div className="moment-voice-track">
         <div className="moment-voice-details">
           <span aria-live="polite">{error ? '语音加载失败，点击重试' : loading ? '加载中…' : playing ? '正在播放' : '语音'}</span>

@@ -1,6 +1,8 @@
 'use client';
 
 import { Drawer } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import type { Moment } from '../types';
 import { MomentComments } from './MomentComments';
@@ -31,10 +33,10 @@ export function MomentCommentSheet({ open, moment, onClose, onCountChange, appea
       onClose={onClose}
       placement="bottom"
       size="min(78dvh, 760px)"
-      title="评论"
+      title={<div className="flex items-center justify-between gap-4"><span>评论</span><Button variant="ghost" size="sm" iconOnly aria-label="关闭评论" title="关闭评论" onClick={onClose}><CloseOutlined /></Button></div>}
       rootClassName={`moment-comment-sheet${appearance === 'journal' ? ' moment-journal-comments' : ''}`}
       classNames={{ wrapper: 'moment-comment-sheet-wrapper', section: 'moment-comment-sheet-section', body: 'moment-comment-sheet-body' }}
-      closable={{ placement: 'end' }}
+      closable={false}
       mask={{ closable: true }}
       keyboard
       forceRender

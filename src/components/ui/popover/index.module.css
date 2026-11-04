@@ -1,0 +1,60 @@
+/* 表面、文字、描边与阴影直接复用网站主题。箭头几何在共享浮层样式中维护。 */
+.root {
+  --xy-floating-arrow-shadow-color: hsl(var(--shadow-color) / 0.08);
+  --xy-floating-bottom-arrow-shadow-color: hsl(var(--shadow-color) / 0.06);
+}
+
+.root[data-placement] {
+  font-size: var(--font-size-body);
+  color: hsl(var(--foreground));
+}
+
+.root .inner {
+  background-color: hsl(var(--surface));
+  /* 描边下保留卡片底色，使箭头与卡片使用相同的合成方式。 */
+  background-clip: border-box;
+  color: hsl(var(--foreground-secondary));
+  border: var(--arrow-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  line-height: var(--line-height-body);
+}
+
+.root .title {
+  min-width: 177px;
+  min-height: 32px;
+  margin: 0;
+  padding: 8px 16px;
+  color: hsl(var(--foreground));
+  font-weight: var(--font-weight-medium);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.root .body {
+  width: auto;
+  max-width: 100%;
+  padding: 12px 16px;
+  color: hsl(var(--foreground-secondary));
+}
+
+/* Opt-in interactive menus stay within the visual viewport, including the keyboard. */
+.root[data-fit-viewport='true'] > :global(.xy-popover-content) {
+  display: flex;
+  max-width: inherit;
+  max-height: inherit;
+}
+
+.root[data-fit-viewport='true'] .inner {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  max-height: inherit;
+  flex: 1;
+  flex-direction: column;
+}
+
+.root[data-fit-viewport='true'] .body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}

@@ -1,8 +1,12 @@
 'use client';
 
-import { CopyOutlined, DeleteOutlined, DownloadOutlined, EllipsisOutlined, LoadingOutlined, ReloadOutlined, RollbackOutlined, ShareAltOutlined, CheckOutlined } from '@ant-design/icons';
-import { Popconfirm, Popover } from 'antd';
-import { useRef, useState } from 'react';
+import { Popover } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import styles from './chat-menus.module.css';
+
+import { Popconfirm } from '@/components/ui/popconfirm';
+import { useRef, useState, type ReactNode } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
 import type { MessageType } from './types';
@@ -41,13 +45,12 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [replyPending, setReplyPending] = useState(false);
+  const [pendingEmoji, setPendingEmoji] = useState('');
   const [replyError, setReplyError] = useState('');
   const replyPendingRef = useRef(false);
   const canCopy = messageType === 'text';
   const canDownload = hasAttachment && ['image', 'gif', 'file'].includes(messageType);
   const canShare = canDownload && !direct;
-  const actionClass =
-    'flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-foreground-secondary transition-colors hover:bg-surface-active hover:text-foreground';
 
   const close = () => {
     setDeleteConfirmOpen(false);
@@ -55,9 +58,10 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   };
 
   const reply = async (emoji: string) => {
-    if (replyPendingRef.current || !connected || isSending) return;
+    if (replyPendingRef.current || !connected || !canAccess || isSending) return;
     replyPendingRef.current = true;
     setReplyPending(true);
+    setPendingEmoji(emoji);
     setReplyError('');
     try {
       const sent = await soulChat.replyWithEmoji(messageId, emoji);
@@ -68,6 +72,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
     } finally {
       replyPendingRef.current = false;
       setReplyPending(false);
+      setPendingEmoji('');
     }
   };
 
@@ -84,118 +89,33 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
     finally { gamePendingRef.current = false; setGamePending(false); }
   };
 
+  const actions: ReactNode[] = [];
+  if (game) {
+    actions.push(<Button key="resend" size="sm" variant="ghost" disabled={gameDisabled} className={styles.actionButton} onClick={() => void runGame()} icon={<Icon name={gamePending ? 'loading' : 'reload'} size={20} />}><span>重新发送</span></Button>);
+    if (canFinishGame) actions.push(<Button key="finish" size="sm" variant="ghost" disabled={gameDisabled} className={styles.actionButton} onClick={() => void runGame(true)} icon={<Icon name="check" size={20} />}><span>{game.kind === 'draw' ? '揭晓答案' : '取消邀请'}</span></Button>);
+  }
+  if (canCopy) actions.push(<Button key="copy" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="copy" size={20} />} onClick={() => { soulChat.copyMessage(messageId); close(); }}><span>复制</span></Button>);
+  if (canDownload) actions.push(<Button key="download" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="download" size={20} />} onClick={() => { soulChat.downloadMessage(messageId); close(); }}><span>下载</span></Button>);
+  if (canShare) actions.push(<Button key="share" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="share" size={20} />} onClick={() => { void soulChat.shareMessage(messageId); close(); }}><span>分享</span></Button>);
+  if (isLocal) actions.push(<Button key="recall" size="sm" variant="ghost" disabled={!connected || !canAccess} className={styles.actionButton} icon={<Icon name="rollback" size={20} />} onClick={() => { void soulChat.recallMessage(messageId); close(); }}><span>撤回</span></Button>);
+  if (canDelete && !isLocal) actions.push(
+    <Popconfirm key="delete" open={deleteConfirmOpen} title="删除这条消息？" description="删除后，所有成员都会同步移除。" okText="删除" cancelText="取消" placement="top" fitViewport boundaryPadding={12}
+      onOpenChange={setDeleteConfirmOpen} onConfirm={() => { void soulChat.deleteMessage(messageId); close(); }} onCancel={() => setDeleteConfirmOpen(false)}>
+      <Button size="sm" variant="ghost" className={styles.actionButton} onClick={() => setDeleteConfirmOpen(true)} icon={<Icon name="delete" size={20} />}><span>删除</span></Button>
+    </Popconfirm>
+  );
+  const actionRows = Array.from({ length: Math.ceil(actions.length / 5) }, (_, index) => actions.slice(index * 5, index * 5 + 5));
+
   const content = (
-    <div className={`${isLocal ? 'w-32' : 'w-60'} p-1`} onClick={(event) => event.stopPropagation()}>
-      {!isLocal && (
-        <div className="px-1 pb-1.5 pt-1">
-          <div className="mb-2 flex items-center justify-between px-1 text-xs text-foreground-muted">
-            <span>快速表情回复</span>
-            <span role="status">{replyPending ? '发送中…' : '回复此条消息'}</span>
-          </div>
-          <div className="grid grid-cols-6 gap-0.5" aria-label="选择表情回复" aria-busy={replyPending}>
-            {quickReplies.map(({ emoji, label }) => (
-              <button
-                key={emoji}
-                type="button"
-                title={`${label} · 回复此条消息`}
-                aria-label={`用${label}${emoji}回复此条消息`}
-                disabled={!connected || isSending || replyPending}
-                onClick={() => void reply(emoji)}
-                className="flex h-9 min-w-0 items-center justify-center rounded-lg text-xl transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-          {replyError ? (
-            <p role="alert" className="mt-2 px-1 text-xs leading-relaxed text-danger">{replyError}</p>
-          ) : !connected ? (
-            <p role="status" className="mt-2 px-1 text-xs text-foreground-muted">连接恢复后即可回复</p>
-          ) : null}
+    <div className={styles.messageMenu} onClick={(event) => event.stopPropagation()}>
+      {actions.length > 0 && <div className={styles.actionRows} role="group" aria-label="消息操作">{actionRows.map((row, index) => <div key={index} className={styles.actionRow}>{row}</div>)}</div>}
+      {gameError && <p role="alert" className={styles.error}>{gameError}</p>}
+      {!isLocal && <div className={actions.length ? styles.quickReplySection : undefined}>
+        <div className={styles.quickReplies} role="group" aria-label="选择表情回复" aria-busy={replyPending}>
+          {quickReplies.map(({ emoji, label }) => <Button key={emoji} iconOnly size="sm" variant="ghost" aria-label={`用${label}${emoji}回复此条消息`} aria-busy={replyPending && pendingEmoji === emoji || undefined} disabled={!connected || !canAccess || isSending || replyPending} onClick={() => void reply(emoji)} className={styles.replyButton}>{replyPending && pendingEmoji === emoji ? <Icon name="loading" size="lg" /> : emoji}</Button>)}
         </div>
-      )}
-      {!isLocal && (canCopy || canDownload || canShare || canDelete) && <div className="h-2" />}
-      {game && <>
-        <button type="button" disabled={gameDisabled} className={`${actionClass} disabled:opacity-40`} onClick={() => void runGame()}>{gamePending ? <LoadingOutlined /> : <ReloadOutlined />}<span>重新发送</span></button>
-        {canFinishGame && <button type="button" disabled={gameDisabled} className={`${actionClass} disabled:opacity-40`} onClick={() => void runGame(true)}><CheckOutlined /><span>{game.kind === 'draw' ? '揭晓答案' : '取消邀请'}</span></button>}
-        {gameError && <p role="alert" className="px-3 py-2 text-xs text-danger">{gameError}</p>}
-      </>}
-      {canCopy && (
-        <button
-          type="button"
-          className={actionClass}
-          onClick={() => {
-            soulChat.copyMessage(messageId);
-            close();
-          }}
-        >
-          <CopyOutlined />
-          <span>复制</span>
-        </button>
-      )}
-      {canDownload && (
-        <button
-          type="button"
-          className={actionClass}
-          onClick={() => {
-            soulChat.downloadMessage(messageId);
-            close();
-          }}
-        >
-          <DownloadOutlined />
-          <span>下载</span>
-        </button>
-      )}
-      {canShare && (
-        <button
-          type="button"
-          className={actionClass}
-          onClick={() => {
-            void soulChat.shareMessage(messageId);
-            close();
-          }}
-        >
-          <ShareAltOutlined />
-          <span>分享</span>
-        </button>
-      )}
-      {isLocal && (
-        <>
-          {(canCopy || canDownload || canShare) && <div className="h-2" />}
-            <button type="button" disabled={!connected || !canAccess} className={`${actionClass} hover:bg-danger-soft hover:text-danger disabled:opacity-40`} onClick={() => {
-              void soulChat.recallMessage(messageId);
-              close();
-            }}>
-              <RollbackOutlined />
-              <span>撤回</span>
-            </button>
-        </>
-      )}
-      {canDelete && !isLocal && (
-        <>
-          {(canCopy || canDownload || canShare) && <div className="h-2" />}
-          <Popconfirm
-            open={deleteConfirmOpen}
-            title="删除这条消息？"
-            description="删除后，所有成员都会同步移除。"
-            okText="删除"
-            cancelText="取消"
-            placement="left"
-            okButtonProps={{ danger: true }}
-            onOpenChange={setDeleteConfirmOpen}
-            onConfirm={() => {
-              void soulChat.deleteMessage(messageId);
-              close();
-            }}
-            onCancel={() => setDeleteConfirmOpen(false)}
-          >
-            <button type="button" className={`${actionClass} hover:bg-danger-soft hover:text-danger`} onClick={() => setDeleteConfirmOpen(true)}>
-              <DeleteOutlined />
-              <span>删除</span>
-            </button>
-          </Popconfirm>
-        </>
-      )}
+        {replyError && <p role="alert" className={styles.error}>{replyError}</p>}
+      </div>}
     </div>
   );
 
@@ -211,19 +131,23 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
       }}
       content={content}
       trigger="click"
-      placement="bottomRight"
+      placement="top"
+      width="max-content"
+      fitViewport
+      boundaryPadding={12}
+      radius="lg"
       arrow={false}
-      styles={{ container: { padding: 4 } }}
+      bodyStyle={{ padding: 4 }}
     >
-      <button
+      <Button size="sm" variant="ghost" iconOnly
         type="button"
         onClick={(event) => event.stopPropagation()}
-        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground-muted outline-none transition-colors hover:bg-surface-active hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30 ${open ? 'bg-surface-active text-foreground' : ''}`}
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center"
         aria-label="更多操作"
         aria-expanded={open}
       >
-        <EllipsisOutlined className="text-base" />
-      </button>
+        <Icon name="ellipsis" />
+      </Button>
     </Popover>
     {setup && <GameSetupModal key={setup} kind={setup} onClose={() => setSetup(null)} />}
     </>

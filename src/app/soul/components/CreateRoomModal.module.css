@@ -1,0 +1,15 @@
+.access { min-width: 0; margin: 0; border: 0; padding: 0; }
+.accessLegend { margin-bottom: .5rem; padding: 0; color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); }
+.accessBody { display: grid; gap: .625rem; min-width: 0; }
+.entrySettings { min-width: 0; border-radius: var(--radius-lg); padding: .875rem; background: hsl(var(--surface-hover)); }
+.passwordHeading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 1rem; }
+.passwordCopy { display: grid; min-width: 0; gap: .25rem; }
+.settingTitle { color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); }
+.optional { margin-inline-start: .25rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); font-weight: var(--font-weight-regular); }
+.settingDescription { color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); overflow-wrap: anywhere; }
+.passwordSwitch { flex-shrink: 0; }
+.passwordField { display: grid; min-width: 0; gap: .375rem; margin-top: .75rem; }
+.passwordField[hidden] { display: none; }
+.privateNote { display: flex; min-width: 0; align-items: flex-start; gap: .625rem; }
+.privateIcon { flex: none; margin-top: .125rem; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body-lg); line-height: var(--line-height-body); }
+@media (max-width: 480px) { .entrySettings { padding: .75rem; } .passwordHeading { gap: .75rem; } }

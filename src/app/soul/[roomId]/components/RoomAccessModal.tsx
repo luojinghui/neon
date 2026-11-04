@@ -1,7 +1,10 @@
 'use client';
 
+import { Input } from '@/components/ui/input';
+
+import { Button } from '@/components/ui/button';
 import { ClockCircleOutlined, LockOutlined, SendOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
+import { Modal } from '@/components/ui/modal';
 import { useEffect, useState } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
@@ -58,9 +61,9 @@ export function RoomAccessModal({ onBack }: Props) {
       <Modal title="无法进入星球" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
         <p className="text-sm leading-relaxed text-foreground-secondary">{accessError || '星球不存在或暂时无法访问。'}</p>
         <div className="mt-5 flex justify-end">
-          <button type="button" onClick={onBack} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover">
+          <Button variant="primary" type="button" onClick={onBack} className="px-4 py-2 text-sm font-medium">
             返回星球列表
-          </button>
+          </Button>
         </div>
       </Modal>
     );
@@ -72,9 +75,9 @@ export function RoomAccessModal({ onBack }: Props) {
     const canApply = ['application-required', 'application-rejected'].includes(accessState) && (access?.remainingAttempts ?? 5) > 0;
     return (
       <Modal title="申请访问私密星球" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={440}>
-        <div className="rounded-xl bg-background-secondary p-4">
+        <div className="rounded-lg bg-surface-inset p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary"><LockOutlined /></div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary"><LockOutlined /></div>
             <div className="min-w-0">
               <div className="truncate text-base font-semibold text-foreground">{room?.name || '私密星球'}</div>
               <div className="mt-0.5 font-mono text-xs tracking-wider text-primary">ID · {room?.code || roomId}</div>
@@ -98,11 +101,11 @@ export function RoomAccessModal({ onBack }: Props) {
 
         {(localError || accessError) && <p className="mt-2 text-xs text-danger">{localError || accessError}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onBack} className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">返回列表</button>
+          <Button variant="ghost" type="button" onClick={onBack} className="px-4 py-2 text-sm font-medium">返回列表</Button>
           {canApply && (
-            <button type="button" disabled={submitting} onClick={() => void handleApplication()} className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50">
+            <Button variant="primary" type="button" disabled={submitting} onClick={() => void handleApplication()} className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium">
               <SendOutlined />{submitting ? '提交中...' : '申请访问'}
-            </button>
+            </Button>
           )}
         </div>
       </Modal>
@@ -114,7 +117,7 @@ export function RoomAccessModal({ onBack }: Props) {
   return (
     <Modal title="验证星球密码" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
       <form onSubmit={handleSubmit}>
-        <div className="mb-4 flex items-center gap-3 rounded-lg bg-primary-soft p-3 text-primary">
+        <div className="mb-4 flex items-center gap-3 rounded-md bg-primary-soft p-3 text-primary">
           <LockOutlined className="text-lg" />
           <div>
             <div className="text-sm font-medium">该星球需要密码</div>
@@ -124,7 +127,7 @@ export function RoomAccessModal({ onBack }: Props) {
         <label htmlFor="room-access-password" className="mb-1 block text-sm font-medium text-foreground">
           密码
         </label>
-        <input
+        <Input
           id="room-access-password"
           autoFocus
           type="password"
@@ -135,20 +138,20 @@ export function RoomAccessModal({ onBack }: Props) {
           maxLength={4}
           onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
           placeholder="输入 2-4 位数字或字母"
-          className="w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:bg-input-focus focus:ring-2 focus:ring-ring/10"
+          className="w-full"
         />
         {(localError || accessError) && <p className="mt-2 text-xs text-danger">{localError || accessError}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onBack} className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">
+          <Button variant="ghost" type="button" onClick={onBack} className="px-4 py-2 text-sm font-medium">
             返回列表
-          </button>
-          <button
+          </Button>
+          <Button variant="primary"
             type="submit"
             disabled={submitting || !/^[A-Za-z0-9]{2,4}$/.test(password)}
-            className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="px-5 py-2 text-sm font-medium"
           >
             {submitting ? '验证中...' : '验证并进入'}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

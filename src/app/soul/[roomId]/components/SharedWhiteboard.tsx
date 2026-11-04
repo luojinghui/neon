@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { AimOutlined, ArrowRightOutlined, BorderOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, DragOutlined, EditOutlined, FontSizeOutlined, MinusOutlined, PlusOutlined, SelectOutlined, UndoOutlined } from '@ant-design/icons';
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { BoardItem, Presentation } from '@/modules/webrtc/sharing';
@@ -304,26 +307,26 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
   }}>
     <div className="call-board-toolbar" role="toolbar" aria-label="白板工具">
       <div className="call-board-tool-group">
-        <button type="button" aria-label="选择白板内容" title="选择" aria-pressed={tool === 'select'} onClick={() => chooseTool('select')}><SelectOutlined /></button>
-        <button type="button" aria-label="移动白板画布" title="移动画布" aria-pressed={tool === 'pan'} onClick={() => chooseTool('pan')}><DragOutlined /></button>
-        <button type="button" aria-label="白板画笔" title="画笔" aria-pressed={tool === 'pen'} onClick={() => chooseTool('pen')}><EditOutlined /></button>
-        <button type="button" aria-label="白板图形" title="图形" aria-expanded={popover === 'shapes'} aria-pressed={shapeSelected} onClick={() => { finishEditing(); setPopover(value => value === 'shapes' ? null : 'shapes'); }}><ShapeIcon shape={shape} /></button>
-        <button type="button" aria-label="添加白板文字" title="文字" aria-pressed={tool === 'text'} onClick={() => { chooseTool('text'); createText(screenToBoard([size.width / 2 - 60, size.height / 2 - 20], cameraRef.current)); }}><FontSizeOutlined /></button>
+        <Button variant="ghost" iconOnly type="button" aria-label="选择白板内容" title="选择" aria-pressed={tool === 'select'} onClick={() => chooseTool('select')}><SelectOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="移动白板画布" title="移动画布" aria-pressed={tool === 'pan'} onClick={() => chooseTool('pan')}><DragOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="白板画笔" title="画笔" aria-pressed={tool === 'pen'} onClick={() => chooseTool('pen')}><EditOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="白板图形" title="图形" aria-expanded={popover === 'shapes'} aria-pressed={shapeSelected} onClick={() => { finishEditing(); setPopover(value => value === 'shapes' ? null : 'shapes'); }}><ShapeIcon shape={shape} /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="添加白板文字" title="文字" aria-pressed={tool === 'text'} onClick={() => { chooseTool('text'); createText(screenToBoard([size.width / 2 - 60, size.height / 2 - 20], cameraRef.current)); }}><FontSizeOutlined /></Button>
       </div>
       <div className="call-board-tool-group">
-        <button type="button" className="call-board-color-button" aria-label="画笔颜色" title="颜色" aria-expanded={popover === 'color'} onClick={() => setPopover(value => value === 'color' ? null : 'color')}><span style={{ backgroundColor: color }} /></button>
-        <button type="button" aria-label="调整画笔粗细" title="线条粗细" aria-expanded={popover === 'width'} onClick={() => setPopover(value => value === 'width' ? null : 'width')}><span className="call-board-width-icon" style={{ height: Math.min(8, width) }} /></button>
-        {selected?.kind === 'text' && canEdit && <button type="button" aria-label="编辑选中文字" title="编辑文字" onClick={() => beginText(selected)}><FontSizeOutlined /></button>}
+        <Button iconOnly variant="ghost" type="button" className="call-board-color-button" aria-label="画笔颜色" title="颜色" aria-expanded={popover === 'color'} onClick={() => setPopover(value => value === 'color' ? null : 'color')}><span style={{ backgroundColor: color }} /></Button>
+        <Button iconOnly variant="ghost" type="button" aria-label="调整画笔粗细" title="线条粗细" aria-expanded={popover === 'width'} onClick={() => setPopover(value => value === 'width' ? null : 'width')}><span className="call-board-width-icon" style={{ height: Math.min(8, width) }} /></Button>
+        {selected?.kind === 'text' && canEdit && <Button variant="ghost" iconOnly type="button" aria-label="编辑选中文字" title="编辑文字" onClick={() => beginText(selected)}><FontSizeOutlined /></Button>}
       </div>
       <div className="call-board-tool-group">
-        <button type="button" aria-label="撤销白板操作" title="撤销我的上一步" disabled={!presentation.items.some(item => item.authorId === selfId)} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('undo', presentation.epoch, undefined, presentation.id); }}><UndoOutlined /></button>
-        <button type="button" aria-label="清空白板" title="清空白板" disabled={!presentation.items.length} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('clear', presentation.epoch, undefined, presentation.id); }}><DeleteOutlined /></button>
+        <Button variant="ghost" iconOnly type="button" aria-label="撤销白板操作" title="撤销我的上一步" disabled={!presentation.items.some(item => item.authorId === selfId)} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('undo', presentation.epoch, undefined, presentation.id); }}><UndoOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="清空白板" title="清空白板" disabled={!presentation.items.length} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('clear', presentation.epoch, undefined, presentation.id); }}><DeleteOutlined /></Button>
       </div>
     </div>
     {popover && <div className={`call-board-popover is-${popover}`} role="group" aria-label={popover === 'shapes' ? '选择白板图形' : popover === 'color' ? '选择白板颜色' : '白板线条样式'}>
-      {popover === 'shapes' && SHAPES.map(value => <button type="button" key={value.id} aria-label={value.label} title={value.label} aria-pressed={tool === value.id} onClick={() => { setShape(value.id); chooseTool(value.id); }}><ShapeIcon shape={value.id} /><span>{value.label}</span></button>)}
-      {popover === 'color' && <><div className="call-board-palette">{PALETTE.map(value => <button key={value} type="button" style={{ backgroundColor: value }} aria-label={`使用颜色 ${value}`} aria-pressed={color === value} onClick={() => changeColor(value)} />)}<label title="自定义颜色"><PlusOutlined /><input type="color" aria-label="白板颜色" value={color} onChange={event => changeColor(event.target.value)} onPointerUp={flushStyle} onBlur={flushStyle} onKeyUp={flushStyle} /></label></div></>}
-      {popover === 'width' && <><label className="call-board-width-slider"><span>线条粗细 <output>{width}</output></span><input type="range" min="1" max="16" step="1" aria-label="白板画笔粗细" value={width} onChange={event => changeWidth(Number(event.target.value))} onPointerUp={flushStyle} onBlur={flushStyle} onKeyUp={flushStyle} /></label>{shapeSelected && (tool === 'rectangle' || tool === 'ellipse') && <label className="call-board-fill"><input type="checkbox" checked={fill} onChange={event => { setFill(event.target.checked); if (canEdit && selected?.kind === 'shape') queueStyle({ ...selected, fill: event.target.checked }); }} />填充图形</label>}</>}
+      {popover === 'shapes' && SHAPES.map(value => <Button variant="ghost" type="button" key={value.id} aria-label={value.label} title={value.label} aria-pressed={tool === value.id} onClick={() => { setShape(value.id); chooseTool(value.id); }}><ShapeIcon shape={value.id} /><span>{value.label}</span></Button>)}
+      {popover === 'color' && <><div className="call-board-palette">{PALETTE.map(value => <Button iconOnly variant="ghost" key={value} type="button" style={{ backgroundColor: value }} aria-label={`使用颜色 ${value}`} aria-pressed={color === value} onClick={() => changeColor(value)} />)}<label title="自定义颜色"><PlusOutlined /><input type="color" aria-label="白板颜色" value={color} onChange={event => changeColor(event.target.value)} onPointerUp={flushStyle} onBlur={flushStyle} onKeyUp={flushStyle} /></label></div></>}
+      {popover === 'width' && <><label className="call-board-width-slider"><span>线条粗细 <output>{width}</output></span><input type="range" min="1" max="16" step="1" aria-label="白板画笔粗细" value={width} onChange={event => changeWidth(Number(event.target.value))} onPointerUp={flushStyle} onBlur={flushStyle} onKeyUp={flushStyle} /></label>{shapeSelected && (tool === 'rectangle' || tool === 'ellipse') && <Checkbox className="call-board-fill" aria-label="填充图形" checked={fill} onChange={event => { setFill(event.target.checked); if (canEdit && selected?.kind === 'shape') queueStyle({ ...selected, fill: event.target.checked }); }}>填充图形</Checkbox>}</>}
     </div>}
     <div ref={viewport} className={`call-board-viewport ${panning ? 'is-panning' : ''}`}>
       <svg ref={canvas} className={`call-whiteboard-canvas is-${tool}`} viewBox={`0 0 ${size.width} ${size.height}`} aria-label="共享白板" aria-describedby={hintId} role="application" tabIndex={0} data-scale={camera.zoom} data-offset-x={camera.x} data-offset-y={camera.y} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} onLostPointerCapture={pointerUp} onDoubleClick={event => {
@@ -339,15 +342,15 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
       </svg>
       {!items.length && !editing && <div className="call-board-empty" aria-hidden="true"><EditOutlined /><span>想法，从这里开始</span><small>画笔、图形、文字，一起自由创作</small></div>}
       {editing && textPosition && <div className="call-board-editor" style={{ left: Math.max(8, Math.min(size.width - Math.min(280, size.width - 16) - 8, textPosition[0])), top: Math.max(8, Math.min(size.height - 136, textPosition[1])), width: Math.min(280, size.width - 16) }}>
-        <textarea ref={editor} aria-label="编辑白板文字" placeholder="输入文字…" maxLength={200} value={editing.text} style={{ color: editing.item.color, fontSize: Math.max(16, Math.min(28, editing.item.fontSize * camera.zoom)) }} onPointerDown={event => event.stopPropagation()} onChange={event => updateEditing({ ...editing, text: event.target.value })} onBlur={() => finishEditing()} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); finishEditing(true); } else if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); finishEditing(); } }} />
-        <div><span>{editing.text.length}/200</span><button type="button" aria-label="取消白板文字" title="取消" onPointerDown={event => event.preventDefault()} onClick={() => finishEditing(true)}><CloseOutlined /></button><button type="button" aria-label="保存白板文字" title="完成" onPointerDown={event => event.preventDefault()} onClick={() => finishEditing()}><CheckOutlined /></button></div>
+        <Textarea ref={editor} rows={3} aria-label="编辑白板文字" placeholder="输入文字…" maxLength={200} value={editing.text} style={{ color: editing.item.color, fontSize: Math.max(16, Math.min(28, editing.item.fontSize * camera.zoom)) }} onPointerDown={event => event.stopPropagation()} onChange={event => updateEditing({ ...editing, text: event.target.value })} onBlur={() => finishEditing()} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); finishEditing(true); } else if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); finishEditing(); } }} />
+        <div className="call-board-editor-actions"><span>{editing.text.length}/200</span><Button variant="ghost" iconOnly type="button" aria-label="取消白板文字" title="取消" onPointerDown={event => event.preventDefault()} onClick={() => finishEditing(true)}><CloseOutlined /></Button><Button variant="primary" iconOnly type="button" aria-label="保存白板文字" title="完成" onPointerDown={event => event.preventDefault()} onClick={() => finishEditing()}><CheckOutlined /></Button></div>
       </div>}
       <div className="call-board-navigation" role="group" aria-label="白板缩放">
-        <button type="button" aria-label="缩小白板" title="缩小" disabled={camera.zoom <= .1} onClick={() => zoom(1 / 1.25)}><MinusOutlined /></button>
-        <button type="button" className="call-board-scale" aria-label="重置白板缩放" title="恢复 100%" onClick={() => updateCamera(zoomBoardAt(cameraRef.current, 1, [size.width / 2, size.height / 2]))}>{Math.round(camera.zoom * 100)}%</button>
-        <button type="button" aria-label="放大白板" title="放大" disabled={camera.zoom >= 4} onClick={() => zoom(1.25)}><PlusOutlined /></button>
+        <Button variant="ghost" iconOnly type="button" aria-label="缩小白板" title="缩小" disabled={camera.zoom <= .1} onClick={() => zoom(1 / 1.25)}><MinusOutlined /></Button>
+        <Button variant="ghost" type="button" className="call-board-scale" aria-label="重置白板缩放" title="恢复 100%" onClick={() => updateCamera(zoomBoardAt(cameraRef.current, 1, [size.width / 2, size.height / 2]))}>{Math.round(camera.zoom * 100)}%</Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="放大白板" title="放大" disabled={camera.zoom >= 4} onClick={() => zoom(1.25)}><PlusOutlined /></Button>
         <span />
-        <button type="button" aria-label="适应全部白板内容" title="查看全部" onClick={() => { finishEditing(); finish(); updateCamera(fitBoardItems(items, size.width, size.height)); }}><AimOutlined /></button>
+        <Button variant="ghost" iconOnly type="button" aria-label="适应全部白板内容" title="查看全部" onClick={() => { finishEditing(); finish(); updateCamera(fitBoardItems(items, size.width, size.height)); }}><AimOutlined /></Button>
       </div>
       <p id={hintId} className="call-board-hint">{selected && !canEdit ? '只能修改自己创建的内容' : tool === 'pan' ? '拖动以移动画布' : tool === 'text' ? '点按画布添加文字' : <><span className="call-board-desktop-hint">滚轮缩放 · 空格拖动</span><span className="call-board-touch-hint">双指移动与缩放</span></>}</p>
     </div>

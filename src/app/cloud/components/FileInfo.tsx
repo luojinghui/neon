@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 /**
  * 文件信息（仅用于文件回显/下载）
  */
@@ -23,17 +25,17 @@ function QueryFileItem({ file }: { file: CloudFileInfo }) {
   };
 
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl bg-surface-inset px-3 py-2.5">
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-raised text-foreground-secondary"><PaperClipOutlined /></span>
+    <div className="flex min-w-0 items-center gap-3 rounded-lg bg-surface-inset px-3 py-2.5">
+      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface text-foreground-secondary"><PaperClipOutlined /></span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm text-foreground" title={file.relativePath || file.fileName}>
           {file.relativePath || file.fileName}
         </p>
         <p className="mt-0.5 text-xs text-foreground-muted">{formatFileSize(file.fileSize)}</p>
       </div>
-      <button type="button" onClick={handleDownload} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary hover:bg-primary-soft hover:text-primary-hover shrink-0" aria-label={`下载 ${file.fileName}`} title="下载">
+      <Button variant="ghost" iconOnly type="button" onClick={handleDownload} aria-label={`下载 ${file.fileName}`} title="下载">
         <DownloadOutlined />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -44,7 +46,7 @@ export default function FileInfo() {
   if (!queryFiles || queryFiles.length === 0) return null;
 
   return (
-    <section aria-labelledby="cloud-files-heading" className="cloud-panel">
+    <Card as="section" padding="none" bodyWrap={false} aria-labelledby="cloud-files-heading" className="cloud-panel">
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1">
         <h2 id="cloud-files-heading" className="text-base font-semibold text-foreground">文件</h2>
         <span className="text-foreground-muted text-xs">
@@ -56,6 +58,6 @@ export default function FileInfo() {
           <QueryFileItem key={file.fileId} file={file} />
         ))}
       </div>
-    </section>
+    </Card>
   );
 }

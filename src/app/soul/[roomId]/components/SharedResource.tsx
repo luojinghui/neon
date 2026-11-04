@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -90,11 +91,11 @@ export function SharedResource({ presentation, session, owner }: { presentation:
     return () => resize.disconnect();
   }, [presentation.scroll, presentation.page, owner, resource]);
   if (!ready) return <div className="call-share-loading" role="status">共享者正在准备文件…</div>;
-  if (error) return <div className="call-share-loading" role="status"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>重试预览</button></div>;
+  if (error) return <div className="call-share-loading" role="status"><p>{error}</p><Button variant="ghost" type="button" onClick={() => setRetry(value => value + 1)}>重试预览</Button></div>;
   if (!resource) return <div className="call-share-loading" role="status">正在加载共享文件…</div>;
   return <div className="call-resource">
     <div className="call-share-tools">
-      {resource.pdf && <><button type="button" aria-label="共享文档上一页" disabled={!owner || presentation.page <= 1} onClick={() => void session.navigateShare(presentation.page - 1, 0)}>上一页</button><span aria-live="polite">{presentation.page} / {resource.pdf.numPages}</span><button type="button" aria-label="共享文档下一页" disabled={!owner || presentation.page >= resource.pdf.numPages} onClick={() => void session.navigateShare(presentation.page + 1, 0)}>下一页</button></>}
+      {resource.pdf && <><Button variant="ghost" type="button" aria-label="共享文档上一页" disabled={!owner || presentation.page <= 1} onClick={() => void session.navigateShare(presentation.page - 1, 0)}>上一页</Button><span aria-live="polite">{presentation.page} / {resource.pdf.numPages}</span><Button variant="ghost" type="button" aria-label="共享文档下一页" disabled={!owner || presentation.page >= resource.pdf.numPages} onClick={() => void session.navigateShare(presentation.page + 1, 0)}>下一页</Button></>}
       <span>{owner ? '你的翻页和滚动会同步给大家' : '正在跟随共享者'}</span>
     </div>
     <div ref={scroller} className={`call-resource-scroll ${owner ? 'is-presenter' : 'is-viewer'}`} aria-label="共享文件内容" onScroll={event => {

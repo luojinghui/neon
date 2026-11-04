@@ -2,6 +2,7 @@
 
 import { LeftOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { buttonClassName } from '@/components/ui/button';
 import type { ReactNode } from 'react';
 
 type TopBarProps = {
@@ -35,7 +36,7 @@ export function TopBar({ middle, right, backHref = '/', backLabel = '首页', le
               <Link
                 href={backHref}
                 replace
-                className="app-icon-button touch-manipulation"
+                className={buttonClassName({ iconOnly: true })}
                 aria-label={`返回${backLabel}`}
                 title={`返回${backLabel}`}
               >

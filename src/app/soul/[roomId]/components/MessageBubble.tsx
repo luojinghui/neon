@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, buttonClassName } from '@/components/ui/button';
 import { FileOutlined } from '@ant-design/icons';
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -46,28 +47,28 @@ function MessageContent({
     const name = message.attachment?.name || (message.type === 'gif' ? message.content : '聊天图片');
     if (message.type === 'gif') {
       const label = name.replace(/\.(gif|png|webp)$/i, '');
-      return <ImagePreview images={[{ id: message.id, url, name: label }]} imageId={message.id} title="表情" variant="sticker" className="rounded-xl">
+      return <ImagePreview images={[{ id: message.id, url, name: label }]} imageId={message.id} title="表情" variant="sticker">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={label} draggable={false} className="block h-28 w-28 max-w-full object-contain" />
+        <img src={url} alt={label} draggable={false} className="block h-28 w-28 max-w-full rounded-lg object-contain" />
       </ImagePreview>;
     }
     return (
-      <button type="button" onClick={onPreviewImage} aria-label={`查看大图：${name}`} aria-haspopup="dialog" className="image-preview-trigger max-w-[min(280px,70vw)] overflow-hidden rounded-xl">
+      <Button data-ui-surface variant="ghost" type="button" onClick={onPreviewImage} aria-label={`查看大图：${name}`} aria-haspopup="dialog" className="image-preview-trigger max-w-[min(280px,70vw)] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={name} draggable={false} className="block max-h-72 w-auto max-w-full rounded-xl object-contain" />
-      </button>
+        <img src={url} alt={name} draggable={false} className="block max-h-72 w-auto max-w-full rounded-lg object-contain" />
+      </Button>
     );
   }
 
   if (message.type === 'file') {
     return (
-      <button
+      <Button variant="ghost"
         type="button"
         onClick={onPreviewFile}
-        className="flex max-w-[min(300px,72vw)] items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-hover"
+        className="flex max-w-[min(300px,72vw)] items-center gap-3 px-3 py-2.5 text-left"
         aria-label={`预览 ${message.attachment?.name || message.content}`}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
           <FileOutlined className="text-lg" />
         </div>
         <div className="min-w-0">
@@ -76,13 +77,13 @@ function MessageContent({
             {getFileType(message.attachment?.name || message.content, message.attachment?.mimeType)} · {formatFileSize(message.attachment?.size)}
           </div>
         </div>
-      </button>
+      </Button>
     );
   }
 
   return (
     <div
-      className={`soul-message-content inline-block max-w-[min(680px,100%)] overflow-hidden whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-left text-sm leading-relaxed ${
+      className={`soul-message-content inline-block max-w-[min(680px,100%)] overflow-hidden whitespace-pre-wrap break-words rounded-md px-3 py-2 text-left text-sm leading-relaxed ${
         message.isLocal ? 'bg-chat-self text-chat-self-foreground' : 'bg-chat-other text-chat-other-foreground'
       }`}
     >
@@ -100,7 +101,7 @@ export function MessageBubble({ message, onPreviewImage }: { message: ChatMessag
 
   return (
     <article className={`flex w-full gap-2 py-2 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
-      <Link href={profileHref} className="h-8 w-8 shrink-0 rounded-full outline-none ring-primary/30 transition hover:ring-2 focus-visible:ring-2" aria-label={`查看${message.senderName}的个人主页`}>
+      <Link href={profileHref} data-ui-surface className={buttonClassName({ variant: 'ghost', size: 'sm', iconOnly: true, className: 'h-8 w-8 shrink-0' })} aria-label={`查看${message.senderName}的个人主页`}>
         <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="h-8 w-8 rounded-full bg-surface-hover object-cover" />
       </Link>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { AppstoreOutlined, CloseOutlined, LeftOutlined, LoadingOutlined, PictureOutlined, ReloadOutlined, RightOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -229,12 +230,12 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
           })}
         </div>
         {status === 'loading' && <div className="image-viewer-status" role="status" aria-label="正在加载图片"><LoadingOutlined spin /></div>}
-        {status === 'error' && <div className="image-viewer-status" role="alert"><PictureOutlined /><span>图片暂时无法加载</span><button type="button" onClick={() => { setImageStatus(currentKey, 'loading'); setAttempts((previous) => ({ ...previous, [currentKey]: attempt + 1 })); }}><ReloadOutlined />重新加载</button></div>}
+        {status === 'error' && <div className="image-viewer-status" role="alert"><PictureOutlined /><span>图片暂时无法加载</span><Button variant="ghost" type="button" onClick={() => { setImageStatus(currentKey, 'loading'); setAttempts((previous) => ({ ...previous, [currentKey]: attempt + 1 })); }}><ReloadOutlined />重新加载</Button></div>}
       </div>
       {!isSticker && <div className="image-viewer-zoom" role="group" aria-label="图片缩放">
-        <button type="button" aria-label="缩小图片" disabled={transform.scale <= 1 || status !== 'ready'} onClick={() => updateTransform({ ...transformRef.current, scale: transformRef.current.scale - 0.5 })}><ZoomOutOutlined /></button>
-        <button type="button" className="image-viewer-scale" aria-label="恢复适合屏幕" disabled={status !== 'ready'} onClick={() => updateTransform(INITIAL_TRANSFORM)}>{Math.round(transform.scale * 100)}%</button>
-        <button type="button" aria-label="放大图片" disabled={transform.scale >= 4 || status !== 'ready'} onClick={() => updateTransform({ ...transformRef.current, scale: transformRef.current.scale + 0.5 })}><ZoomInOutlined /></button>
+        <Button variant="ghost" size="sm" type="button" iconOnly aria-label="缩小图片" disabled={transform.scale <= 1 || status !== 'ready'} onClick={() => updateTransform({ ...transformRef.current, scale: transformRef.current.scale - 0.5 })}><ZoomOutOutlined /></Button>
+        <Button variant="ghost" size="sm" type="button" className="image-viewer-scale" aria-label="恢复适合屏幕" disabled={status !== 'ready'} onClick={() => updateTransform(INITIAL_TRANSFORM)}>{Math.round(transform.scale * 100)}%</Button>
+        <Button variant="ghost" size="sm" type="button" iconOnly aria-label="放大图片" disabled={transform.scale >= 4 || status !== 'ready'} onClick={() => updateTransform({ ...transformRef.current, scale: transformRef.current.scale + 0.5 })}><ZoomInOutlined /></Button>
       </div>}
     </div>
   );
@@ -307,7 +308,7 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
     }} onKeyDown={(event) => event.stopPropagation()}>
       <header className="image-viewer-header">
         <div ref={titleRef} tabIndex={-1} className="image-viewer-title"><span id={headingId}>{title}</span>{!isSticker && <span className="image-viewer-counter" aria-live="polite" aria-atomic="true"><b>{currentIndex + 1}</b><span>/</span>{images.length}</span>}</div>
-        <button type="button" className="image-viewer-close" aria-label={isSticker ? '关闭表情预览' : '关闭图片预览'} title="关闭 (Esc)" onClick={onClose}><CloseOutlined /></button>
+        <Button variant="ghost" type="button" iconOnly className="image-viewer-close" aria-label={isSticker ? '关闭表情预览' : '关闭图片预览'} title="关闭 (Esc)" onClick={onClose}><CloseOutlined /></Button>
       </header>
 
       {overview ? (
@@ -315,11 +316,11 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
           <div className="image-viewer-overview-heading"><h2>全部图片</h2></div>
           <div className="image-viewer-overview-grid">
             {images.map((item, index) => (
-              <button key={item.id} type="button" aria-label={`查看第 ${index + 1} 张大图`} aria-current={index === currentIndex ? 'true' : undefined} onClick={() => { onSelect(item.id); setOverview(false); }}>
+              <Button variant={index === currentIndex ? 'primary' : 'ghost'} key={item.id} type="button" aria-label={`查看第 ${index + 1} 张大图`} aria-current={index === currentIndex ? 'true' : undefined} onClick={() => { onSelect(item.id); setOverview(false); }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.url} alt={item.name || `图片 ${index + 1}`} loading="lazy" draggable={false} />
                 <span>{String(index + 1).padStart(2, '0')}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -327,8 +328,8 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
         <div className="image-viewer-main">
           <ImageStage images={images} currentIndex={currentIndex} onSelect={onSelect} variant={variant} />
           {images.length > 1 && <>
-            <button type="button" className="image-viewer-arrow is-previous" aria-label="上一张图片" title="上一张 (←)" disabled={currentIndex === 0} onClick={() => onSelect(images[currentIndex - 1].id)}><LeftOutlined /></button>
-            <button type="button" className="image-viewer-arrow is-next" aria-label="下一张图片" title="下一张 (→)" disabled={currentIndex === images.length - 1} onClick={() => onSelect(images[currentIndex + 1].id)}><RightOutlined /></button>
+            <Button variant="ghost" type="button" className="image-viewer-arrow is-previous" size="lg" iconOnly aria-label="上一张图片" title="上一张 (←)" disabled={currentIndex === 0} onClick={() => onSelect(images[currentIndex - 1].id)}><LeftOutlined /></Button>
+            <Button variant="ghost" type="button" className="image-viewer-arrow is-next" size="lg" iconOnly aria-label="下一张图片" title="下一张 (→)" disabled={currentIndex === images.length - 1} onClick={() => onSelect(images[currentIndex + 1].id)}><RightOutlined /></Button>
           </>}
         </div>
       )}
@@ -337,19 +338,19 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
         {!overview && images.length > 1 && (
           <div ref={thumbnailsRef} className="image-viewer-thumbnails" role="group" aria-label="图片快速预览">
             {images.map((item, index) => (
-              <button key={item.id} type="button" aria-label={`切换到第 ${index + 1} 张图片`} aria-current={index === currentIndex ? 'true' : undefined} onClick={() => onSelect(item.id)}>
+              <Button variant={index === currentIndex ? 'primary' : 'ghost'} key={item.id} type="button" aria-label={`切换到第 ${index + 1} 张图片`} aria-current={index === currentIndex ? 'true' : undefined} onClick={() => onSelect(item.id)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.url} alt="" draggable={false} loading="lazy" />
                 <span>{index + 1}</span>
-              </button>
+              </Button>
             ))}
           </div>
         )}
         <div className="image-viewer-bottom">
           <p className="image-viewer-desktop-hint">Esc 关闭</p>
           {images.length > 1 && <div className="image-viewer-modes" role="group" aria-label="图片查看模式">
-            <button type="button" aria-pressed={!overview} onClick={() => setOverview(false)}><PictureOutlined />大图</button>
-            <button type="button" aria-pressed={overview} onClick={() => setOverview(true)}><AppstoreOutlined />总览</button>
+            <Button variant="ghost" type="button" aria-pressed={!overview} onClick={() => setOverview(false)}><PictureOutlined />大图</Button>
+            <Button variant="ghost" type="button" aria-pressed={overview} onClick={() => setOverview(true)}><AppstoreOutlined />总览</Button>
           </div>}
           <span className="image-viewer-file-name" title={current.name}>{current.name}</span>
         </div>

@@ -1,10 +1,13 @@
 'use client';
 
+import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MessageOutlined, ReloadOutlined, SearchOutlined, StarOutlined, UserAddOutlined } from '@ant-design/icons';
-import { Badge, Modal } from 'antd';
+import { Badge } from 'antd';
 import { useRef, useState } from 'react';
 import { createProfileHref } from '../profile/navigation';
 import { getProfileAvatar } from '../profile/types';
@@ -33,36 +36,32 @@ export function SocialPanel({ section }: { section: 'messages' | 'friends' }) {
 
   return <section className="pt-5" aria-label={section === 'messages' ? '我的私信列表' : '我的好友收藏'}>
     <div className="mb-4 flex items-center gap-2">
-      <label className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full bg-background-secondary px-3 text-foreground-muted ring-1 ring-inset ring-border/60 transition-colors focus-within:text-primary focus-within:ring-primary sm:max-w-72">
-        <SearchOutlined aria-hidden="true" className="shrink-0 text-sm" />
-        <input
+      <div className="min-w-0 flex-1 sm:max-w-72">
+        <Input prefix={<SearchOutlined aria-hidden="true" />} allowClear
           type="search"
           aria-label={isFriends ? '搜索好友昵称或 ID' : '搜索私信昵称、ID 或内容'}
           placeholder={isFriends ? '搜索好友' : '搜索私信'}
           value={query}
           onChange={(event) => setQueries((current) => ({ ...current, [section]: event.target.value }))}
-          className="h-full w-full min-w-0 border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-foreground-muted"
         />
-      </label>
+      </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
-        {isFriends && <button
+        {isFriends && <Button variant="primary"
           type="button"
           aria-haspopup="dialog"
-          onClick={() => { setUserId(''); setFindUserOpen(true); }}
-          className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-primary-soft px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => { setUserId(''); setFindUserOpen(true); }} className="inline-flex items-center gap-1.5 whitespace-nowrap"
         >
           <UserAddOutlined aria-hidden="true" />找朋友
-        </button>}
-        <button
+        </Button>}
+        <Button variant="ghost" iconOnly
           type="button"
           aria-label={isFriends ? '刷新好友收藏' : '刷新私信'}
           title="刷新"
           disabled={refreshing}
-          onClick={() => void handleRefresh()}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-50"
+          onClick={() => void handleRefresh()} className="inline-flex w-9 items-center justify-center"
         >
           <ReloadOutlined spin={refreshing} aria-hidden="true" />
-        </button>
+        </Button>
       </div>
     </div>
     {isFriends && <Modal
@@ -83,7 +82,7 @@ export function SocialPanel({ section }: { section: 'messages' | 'friends' }) {
         router.push(createProfileHref(userId.trim(), { returnTo: '/profile' }));
       }}>
         <label htmlFor="social-user-id" className="mb-2 block text-sm font-medium text-foreground">用户 ID</label>
-        <input
+        <Input
           ref={userIdInput}
           id="social-user-id"
           placeholder="输入用户 ID"
@@ -92,19 +91,18 @@ export function SocialPanel({ section }: { section: 'messages' | 'friends' }) {
           spellCheck={false}
           value={userId}
           onChange={(event) => setUserId(event.target.value)}
-          className="h-10 w-full rounded-lg border border-border bg-input px-3 text-sm text-input-foreground outline-none transition-colors placeholder:text-input-placeholder focus:border-border-focus focus:ring-2 focus:ring-ring/10"
         />
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={() => setFindUserOpen(false)} className="rounded-lg px-4 py-2 text-sm text-foreground-secondary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">取消</button>
-          <button type="submit" disabled={!userId.trim()} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">查看主页</button>
+          <Button variant="ghost" type="button" onClick={() => setFindUserOpen(false)}>取消</Button>
+          <Button variant="primary" type="submit" disabled={!userId.trim()}>查看主页</Button>
         </div>
       </form>
     </Modal>}
     {error && <p role="alert" className="mb-3 text-sm text-danger">{error}</p>}
     {!ready && !error && <p role="status" className="py-6 text-sm text-foreground-muted">正在加载…</p>}
     {section === 'messages' ? <div className="divide-y divide-border">
-      {items.map((item) => <Link key={item.id} href={`/soul/${encodeURIComponent(item.id)}`} className="flex items-center gap-3 rounded-lg px-3 py-4 transition-colors hover:bg-surface-hover">
-        <Image src={getProfileAvatar(item.peer)} alt="" width={44} height={44} unoptimized className="h-11 w-11 shrink-0 rounded-full bg-background-secondary object-cover" />
+      {items.map((item) => <Link key={item.id} href={`/soul/${encodeURIComponent(item.id)}`} className="flex items-center gap-3 rounded-md px-3 py-4 transition-colors hover:bg-surface-hover">
+        <Image src={getProfileAvatar(item.peer)} alt="" width={44} height={44} unoptimized className="h-11 w-11 shrink-0 rounded-full bg-surface-inset object-cover" />
         <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className="truncate font-medium">{item.peer.name}</span><time className="shrink-0 text-xs text-foreground-muted">{new Date(item.lastMessageAt || item.createdAt).toLocaleDateString('zh-CN')}</time></div><p className="mt-1 truncate text-sm text-foreground-muted">{item.lastMessage ? (item.lastMessage.type === 'text' ? item.lastMessage.content : `[${item.lastMessage.type === 'file' ? '文件' : '图片'}] ${item.lastMessage.content}`) : '开始聊天吧'}</p></div>
         <Badge count={item.unreadCount} overflowCount={99} />
       </Link>)}
@@ -115,8 +113,8 @@ export function SocialPanel({ section }: { section: 'messages' | 'friends' }) {
       </div>}
     </div> : <div className="divide-y divide-border">
       {friends.map((contact) => <div key={contact.publicKey} className="flex items-center gap-3 py-4">
-        <Link href={createProfileHref(contact.userId, { publicKey: contact.publicKey, returnTo: '/profile' })} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <Image src={getProfileAvatar(contact)} alt="" width={44} height={44} unoptimized className="h-11 w-11 shrink-0 rounded-full bg-background-secondary object-cover" />
+        <Link href={createProfileHref(contact.userId, { publicKey: contact.publicKey, returnTo: '/profile' })} className="flex min-w-0 flex-1 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Image src={getProfileAvatar(contact)} alt="" width={44} height={44} unoptimized className="h-11 w-11 shrink-0 rounded-full bg-surface-inset object-cover" />
           <div className="min-w-0"><p className="truncate text-sm font-medium">{contact.name}</p><p className="mt-1 truncate text-xs text-foreground-muted">@{contact.userId}</p></div>
         </Link>
         <ContactActions contact={contact} compact />

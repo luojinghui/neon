@@ -1,7 +1,9 @@
 'use client';
 
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm';
 import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined } from '@ant-design/icons';
-import { Modal } from 'antd';
 import { useState } from 'react';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import { deleteMoment } from '../client';
@@ -21,20 +23,29 @@ type Props = {
 };
 
 export function MomentViewer({ moment, onClose, onDeleted }: Props) {
+  const modal = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
-  const remove = async () => {
-    if (deleting || !window.confirm('删除整条心迹？正文、媒体、语音和全部评论都会被永久删除。')) return;
-    setDeleting(true);
-    setError('');
-    try {
-      await deleteMoment(moment);
-      onDeleted(moment.id);
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : '删除失败，请重试');
-      setDeleting(false);
-    }
+  const remove = () => {
+    if (deleting) return;
+    modal.confirm({
+      title: '删除整条心迹？',
+      content: '正文、媒体、语音和全部评论都会被永久删除。',
+      okText: '删除心迹',
+      cancelText: '取消',
+      async onOk() {
+        setDeleting(true);
+        setError('');
+        try {
+          await deleteMoment(moment);
+          onDeleted(moment.id);
+        } catch (deleteError) {
+          setError(deleteError instanceof Error ? deleteError.message : '删除失败，请重试');
+          setDeleting(false);
+        }
+      }
+    });
   };
 
   return (
@@ -50,7 +61,7 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
         {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
         {(moment.location || moment.canDelete) && <footer className="moment-viewer-footer">
           <span className="moment-viewer-location">{moment.location && <><EnvironmentOutlined />{moment.location.label}</>}</span>
-          {moment.canDelete && <button type="button" className="moment-viewer-delete" onClick={() => void remove()} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}删除</button>}
+          {moment.canDelete && <Button variant="ghost" type="button" className="moment-viewer-delete" onClick={() => void remove()} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}删除</Button>}
         </footer>}
         <MomentActions moment={moment} />
         {error && <p className="moment-inline-error" role="alert">{error}</p>}

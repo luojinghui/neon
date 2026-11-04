@@ -1,8 +1,13 @@
 'use client';
 
-import { ArrowRightOutlined, DeleteOutlined, EditOutlined, EllipsisOutlined, LockOutlined } from '@ant-design/icons';
-import { Dropdown, type MenuProps } from 'antd';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+import { PlanetIllustration, type PlanetVariant } from '@/components/ui/planet-illustration';
+import { Popover } from '@/components/ui/popover';
 import type { ChatRoom } from './types';
+import styles from './SoulLanding.module.css';
 
 type Props = {
   room: ChatRoom;
@@ -11,75 +16,47 @@ type Props = {
   onDelete?: () => void;
 };
 
+const scenes: PlanetVariant[] = ['planet', 'comet', 'satellite'];
+
 export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
-  const menuItems: MenuProps['items'] = [
-    { key: 'edit', icon: <EditOutlined />, label: '编辑星球' },
-    { type: 'divider' },
-    { key: 'delete', icon: <DeleteOutlined />, label: '删除星球', danger: true }
-  ];
+  const [managementOpen, setManagementOpen] = useState(false);
+  const scene = scenes[Array.from(room.code || room.id).reduce((hash, letter) => hash + letter.charCodeAt(0), 0) % scenes.length];
 
   return (
-    <article className="group relative flex min-h-[180px] flex-col overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-colors duration-200 hover:border-border-hover">
-      <button
-        type="button"
-        onClick={onClick}
-        className="absolute inset-0 z-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
-        aria-label={`进入星球：${room.name}`}
-      />
+    <Card padding="md" className={styles.roomCard} bodyClassName={styles.roomBody}
+      cover={<div className={styles.cover} data-scene={scene}>
+        <span className={styles.coverCaption}>{room.isPrivate ? '私密星球' : '公共星球'}</span>
+        <PlanetIllustration variant={scene} size="lg" className={styles.coverPlanet} />
+      </div>}>
+      <Button data-ui-surface variant="ghost" type="button" onClick={onClick}
+        className="absolute inset-0 z-0" aria-label={`进入星球：${room.name}`} />
 
-      <div className="pointer-events-none relative z-[1] flex flex-1 flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-1 min-w-0 text-base font-semibold leading-6 text-foreground">{room.name}</h3>
-          {room.isOwner && (
-            <Dropdown
-              trigger={['click']}
-              placement="bottomRight"
-              menu={{
-                items: menuItems,
-                onClick: ({ key, domEvent }) => {
-                  domEvent.stopPropagation();
-                  if (key === 'edit') onEdit?.();
-                  if (key === 'delete') onDelete?.();
-                }
-              }}
-            >
-              <button
-                type="button"
-                className="pointer-events-auto relative z-10 -mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-foreground-muted transition-colors hover:bg-surface-active hover:text-foreground"
-                aria-label={`管理星球：${room.name}`}
-              >
-                <EllipsisOutlined />
-              </button>
-            </Dropdown>
-          )}
-        </div>
+      {room.isOwner && <div className={styles.management}>
+        <Popover trigger="click" placement="bottomRight" open={managementOpen} onOpenChange={setManagementOpen}
+          content={<div className={styles.menu} aria-label="星球管理">
+            <Button variant="ghost" icon={<Icon name="edit" />} onClick={() => { setManagementOpen(false); onEdit?.(); }}>编辑星球</Button>
+            <Button variant="ghost" icon={<Icon name="trash" />} onClick={() => { setManagementOpen(false); onDelete?.(); }}>删除星球</Button>
+          </div>}>
+          <Button size="sm" variant="outline" icon={<Icon name="more" />} aria-label={`管理星球：${room.name}`}
+            aria-haspopup="dialog" aria-expanded={managementOpen} />
+        </Popover>
+      </div>}
 
-        <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-foreground-secondary">{room.description || '来这里坐坐，随便聊点什么。'}</p>
-
-        {room.tags.length > 0 && (
-          <div className="mt-2.5 flex min-h-5 flex-wrap gap-x-3 gap-y-1">
-            {room.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="inline-flex items-center text-[11px] text-foreground-muted">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-auto pt-4">
-          <div className="flex items-center justify-between text-[11px] text-foreground-muted">
-            <div className="flex items-center gap-2">
-              {room.isPrivate && <span>私密</span>}
-              {room.hasPassword && <LockOutlined aria-label="需要密码" />}
-              <span className="font-mono tracking-wide opacity-70">#{room.code}</span>
-            </div>
-            <span className="inline-flex items-center gap-1 font-medium text-foreground-secondary transition-colors group-hover:text-primary">
-              进入
-              <ArrowRightOutlined className="text-[10px]" />
-            </span>
-          </div>
+      <div className={styles.cardContent}>
+        <div className={styles.heading}><h3 className={styles.title}>{room.name}</h3></div>
+        <p className={styles.description}>{room.description || '留一个位置，聊聊生活里的小事。'}</p>
+        {room.tags.length > 0 && <div className={styles.tags}>
+          {room.tags.slice(0, 3).map(tag => <span key={tag} className={styles.tag}>#{tag}</span>)}
+        </div>}
+        <div className={styles.footer}>
+          <span className={styles.roomCode}>
+            {room.isPrivate && <Icon name="lock" />}
+            {room.hasPassword && <Icon name="lock" label="需要密码" />}
+            <span>#{room.code}</span>
+          </span>
+          <span className={styles.enter}>去聊聊 <Icon name="arrow-right" /></span>
         </div>
       </div>
-    </article>
+    </Card>
   );
 }

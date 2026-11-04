@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { CheckOutlined, CopyOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 
@@ -46,9 +47,9 @@ export function ProfileUuid({ uuid }: { uuid: string }) {
       <dd>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <code ref={valueRef} className="select-all break-all">{uuid}</code>
-          <button type="button" onClick={() => void copy()} className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-primary hover:bg-primary-soft" aria-label={status === 'copied' ? 'UUID 已复制' : '复制 UUID'}>
+          <Button variant="ghost" type="button" onClick={() => void copy()} className="inline-flex shrink-0 items-center gap-1" aria-label={status === 'copied' ? 'UUID 已复制' : '复制 UUID'}>
             {status === 'copied' ? <CheckOutlined /> : <CopyOutlined />}{status === 'copied' ? '已复制' : '复制'}
-          </button>
+          </Button>
         </div>
         {status === 'error' && <p className="mt-1 text-danger" role="alert">复制失败，请选中 UUID 手动复制</p>}
         <span className="sr-only" role="status">{status === 'copied' ? 'UUID 已复制' : ''}</span>

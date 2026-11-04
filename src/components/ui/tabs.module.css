@@ -1,0 +1,35 @@
+.root { display: flex; min-width: 0; width: fit-content; max-width: 100%; flex-direction: column; gap: .75rem; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+.block { width: 100%; }
+.viewport { min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.viewport::-webkit-scrollbar { display: none; }
+.track { --tabs-inset: 4px; --tabs-height: 36px; --tabs-gap: 4px; position: relative; display: flex; isolation: isolate; width: max-content; gap: var(--tabs-gap); height: var(--tabs-height); box-sizing: border-box; padding: var(--tabs-inset); border: 0; border-radius: var(--radius-md); background: hsl(var(--surface-inset)); touch-action: pan-y; }
+.block .track { width: 100%; min-width: max-content; }
+.sm { --tabs-inset: 3px; --tabs-height: 32px; --tabs-gap: 3px; border-radius: var(--radius-sm); }
+.lg { --tabs-inset: 5px; --tabs-height: 40px; --tabs-gap: 5px; }
+.indicator { position: absolute; z-index: -1; left: 0; top: var(--tabs-inset); bottom: var(--tabs-inset); width: 0; opacity: 0; border-radius: var(--radius-md); background: hsl(var(--surface)); background: light-dark(hsl(var(--surface)),color-mix(in srgb,hsl(var(--surface)) 80%,hsl(var(--foreground)))); box-shadow: var(--shadow-sm); pointer-events: none; transition: transform 220ms cubic-bezier(.2,.8,.2,1), width 220ms cubic-bezier(.2,.8,.2,1); }
+.sm .indicator { border-radius: var(--radius-sm); }
+.track[data-indicator] .indicator { opacity: 1; }
+.track[data-dragging] .indicator { transition: none; }
+.track[data-dragging], .track[data-dragging] .tab { cursor: grabbing; }
+/* Specialized tab hit areas use Button's transparent-surface contract; its focus and disabled behavior stay shared. */
+.track .tab[data-ui-surface] { position: relative; display: inline-flex; flex: 1 0 auto; min-width: 44px; min-height: calc(var(--tabs-height) - 2 * var(--tabs-inset)); height: calc(var(--tabs-height) - 2 * var(--tabs-inset)); padding: 0 .75rem; border-radius: var(--radius-md); color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); touch-action: pan-y; text-decoration: none; }
+.track.sm .tab[data-ui-surface] { border-radius: var(--radius-sm); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
+.track .tab[data-ui-surface]:focus-visible { outline-offset: -2px; }
+.track .tab[data-ui-surface][data-active], .track .tab[data-ui-surface][data-preview] { color: hsl(var(--foreground)); }
+.label { display: inline-flex; min-width: 0; align-items: center; justify-content: center; gap: .375rem; white-space: nowrap; }
+.panel { min-width: 0; }
+.panel[hidden] { display: none; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .indicator { background: linear-gradient(150deg,
+      light-dark(hsl(var(--surface) / .96),color-mix(in srgb,hsl(var(--surface)) 76%,hsl(var(--foreground)))),
+      light-dark(hsl(var(--surface) / .84),color-mix(in srgb,hsl(var(--surface)) 86%,hsl(var(--foreground)))));
+    -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / .08), inset 0 -1px 0 hsl(var(--border) / .35), var(--shadow-sm); }
+}
+@media (prefers-reduced-transparency: reduce) { .indicator { background: hsl(var(--surface)); background: light-dark(hsl(var(--surface)),color-mix(in srgb,hsl(var(--surface)) 80%,hsl(var(--foreground)))); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--shadow-sm); } }
+@media (forced-colors: active) {
+  .indicator { background: Highlight; box-shadow: none; forced-color-adjust: none; }
+  .track .tab[data-ui-surface][data-active], .track .tab[data-ui-surface][data-preview] { color: HighlightText; forced-color-adjust: none; }
+  .track[data-dragging] .tab[data-ui-surface][data-active]:not([data-preview]) { color: CanvasText; }
+}
+@media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }

@@ -1,5 +1,8 @@
 'use client';
 
+import { Input } from '@/components/ui/input';
+
+import { Button } from '@/components/ui/button';
 import {
   CheckOutlined,
   CloseOutlined,
@@ -11,7 +14,9 @@ import {
   ShareAltOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Modal, Popconfirm, Tag } from 'antd';
+import { Tag } from 'antd';
+import { Modal } from '@/components/ui/modal';
+import { Popconfirm } from '@/components/ui/popconfirm';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { soulChat } from '../../core';
@@ -207,15 +212,15 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
       {room && (
         <div className="max-h-[75vh] overflow-y-auto pr-1 pt-1">
           <div className="flex items-start gap-3 border-b border-border pb-4 pt-1">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">{room.isPrivate ? <LockOutlined /> : <GlobalOutlined />}</div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">{room.isPrivate ? <LockOutlined /> : <GlobalOutlined />}</div>
             <div className="min-w-0 flex-1"><h2 className="truncate text-lg font-semibold text-foreground">{room.name}</h2><div className="mt-1 font-mono text-xs font-medium tracking-wider text-primary">ID · {room.code}</div></div>
-            <button type="button" onClick={() => void copyRoomId()} className="inline-flex items-center gap-1.5 rounded-lg bg-surface-hover px-3 py-1.5 text-xs font-medium text-foreground-secondary hover:bg-surface-hover"><CopyOutlined />{idCopied ? '已复制' : '复制 ID'}</button>
+            <Button size="sm" variant="outline" type="button" onClick={() => void copyRoomId()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium"><CopyOutlined />{idCopied ? '已复制' : '复制 ID'}</Button>
           </div>
 
           <section className="mt-5"><h3 className="text-xs font-medium text-foreground-muted">简介</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-foreground-secondary">{room.description || '暂无简介'}</p></section>
-          {room.tags.length > 0 && <section className="mt-4"><h3 className="text-xs font-medium text-foreground-muted">标签</h3><div className="mt-2 flex flex-wrap gap-1.5">{room.tags.map((tag) => <span key={tag} className="rounded-md bg-background-secondary px-2 py-1 text-xs font-medium text-foreground-secondary">{tag}</span>)}</div></section>}
+          {room.tags.length > 0 && <section className="mt-4"><h3 className="text-xs font-medium text-foreground-muted">标签</h3><div className="mt-2 flex flex-wrap gap-1.5">{room.tags.map((tag) => <span key={tag} className="rounded-sm bg-surface-inset px-2 py-1 text-xs font-medium text-foreground-secondary">{tag}</span>)}</div></section>}
 
-          <dl className="mt-5 rounded-xl bg-background-secondary px-4 py-2 text-sm">
+          <dl className="mt-5 rounded-lg bg-surface-inset px-4 py-2 text-sm">
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">可见范围</dt><dd className="font-medium text-foreground">{room.isPrivate ? '私密星球' : '公开星球'}</dd></div>
             {!room.isPrivate && <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">进入密码</dt><dd className="font-medium text-foreground">{room.hasPassword ? '已设置' : '未设置'}</dd></div>}
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建人</dt><dd className="font-medium text-foreground">{room.owner.name}{room.owner.userId ? ` @${room.owner.userId}` : ''}</dd></div>
@@ -231,17 +236,17 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
                 </div>
                 {!passwordEditing && (
                   <div className="flex gap-2">
-                    <button
+                    <Button size="sm" variant="ghost"
                       type="button"
                       disabled={passwordSaving}
                       onClick={() => { setPasswordEditing(true); setPassword(''); setPasswordError(''); setPasswordNotice(''); }}
-                      className="rounded-lg bg-primary-soft px-3 py-1.5 text-xs font-medium text-primary disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs font-medium"
                     >
                       {room.hasPassword ? '修改密码' : '设置密码'}
-                    </button>
+                    </Button>
                     {room.hasPassword && (
-                      <Popconfirm title="撤销进入密码？" description="撤销后，其他用户可直接进入该公开星球。" okText="撤销密码" cancelText="取消" okButtonProps={{ danger: true, loading: passwordSaving }} onConfirm={() => savePassword(false)}>
-                        <button type="button" disabled={passwordSaving} className="rounded-lg bg-danger-soft px-3 py-1.5 text-xs font-medium text-danger disabled:opacity-50">撤销密码</button>
+                      <Popconfirm title="撤销进入密码？" description="撤销后，其他用户可直接进入该公开星球。" okText="撤销密码" cancelText="取消" okButtonProps={{ loading: passwordSaving }} onConfirm={() => savePassword(false)}>
+                        <Button size="sm" variant="ghost" type="button" disabled={passwordSaving} className="px-3 py-1.5 text-xs font-medium">撤销密码</Button>
                       </Popconfirm>
                     )}
                   </div>
@@ -251,7 +256,7 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
                 <form className="mt-4" onSubmit={(event) => { event.preventDefault(); void savePassword(true); }}>
                   <label htmlFor="room-info-password" className="mb-1.5 block text-sm font-medium text-foreground">{room.hasPassword ? '新密码' : '进入密码'}</label>
                   <div className="flex flex-wrap gap-2">
-                    <input
+                    <Input
                       id="room-info-password"
                       type="password"
                       value={password}
@@ -262,10 +267,10 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
                       disabled={passwordSaving}
                       onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
                       placeholder="输入 2-4 位数字或字母"
-                      className="min-w-0 flex-1 rounded-xl border border-border bg-input px-3.5 py-2 text-sm text-input-foreground outline-none placeholder:text-input-placeholder focus:border-border-focus focus:ring-2 focus:ring-ring/10 disabled:opacity-50"
+                      className="min-w-0 flex-1"
                     />
-                    <button type="submit" disabled={passwordSaving || !/^[A-Za-z0-9]{2,4}$/.test(password)} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">{passwordSaving ? '保存中...' : '保存密码'}</button>
-                    <button type="button" disabled={passwordSaving} onClick={() => { setPasswordEditing(false); setPassword(''); setPasswordError(''); }} className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-active disabled:opacity-50">取消</button>
+                    <Button variant="primary" type="submit" disabled={passwordSaving || !/^[A-Za-z0-9]{2,4}$/.test(password)} className="px-4 py-2 text-sm font-medium">{passwordSaving ? '保存中...' : '保存密码'}</Button>
+                    <Button variant="ghost" type="button" disabled={passwordSaving} onClick={() => { setPasswordEditing(false); setPassword(''); setPasswordError(''); }} className="px-3 py-2 text-sm font-medium">取消</Button>
                   </div>
                 </form>
               )}
@@ -278,17 +283,17 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
             <section className="mt-6 border-t border-border pt-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div><h3 className="text-sm font-semibold text-foreground">访问申请与成员</h3><p className="mt-0.5 text-xs text-foreground-muted">待处理 {management?.pendingCount ?? room.pendingRequestCount} 人 · 已授权 {management?.members.length ?? 0} 人</p></div>
-                <button type="button" disabled={managementLoading} onClick={() => void loadManagement()} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-foreground-secondary hover:bg-surface-hover"><ReloadOutlined className={managementLoading ? 'animate-spin' : ''} />刷新</button>
+                <Button size="sm" variant="outline" type="button" disabled={managementLoading} onClick={() => void loadManagement()} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs"><ReloadOutlined className={managementLoading ? 'animate-spin' : ''} />刷新</Button>
               </div>
               {managementLoading && !management ? <div className="py-8 text-center text-sm text-foreground-muted"><LoadingOutlined className="mr-2" />加载中...</div> : (
                 <>
                   <div className="mt-4"><div className="mb-2 text-xs font-medium text-foreground-muted">申请记录</div><div className="grid gap-2">
-                    {management?.applications.length ? management.applications.map((record) => <Applicant key={record.id} record={record} actions={record.status === 'pending' ? <><button type="button" disabled={actingId === record.id} onClick={() => void decide(record, 'approved')} className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-success-soft text-success" title="同意"><CheckOutlined /></button><button type="button" disabled={actingId === record.id} onClick={() => void decide(record, 'rejected')} className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-danger-soft text-danger" title="拒绝"><CloseOutlined /></button></> : undefined} />) : <div className="rounded-lg bg-background-secondary px-3 py-5 text-center text-sm text-foreground-muted">暂无申请记录</div>}
+                    {management?.applications.length ? management.applications.map((record) => <Applicant key={record.id} record={record} actions={record.status === 'pending' ? <><Button size="sm" aria-label="同意" variant="ghost" iconOnly type="button" disabled={actingId === record.id} onClick={() => void decide(record, 'approved')} className="inline-flex h-8 w-8 items-center justify-center" title="同意"><CheckOutlined /></Button><Button size="sm" aria-label="拒绝" variant="ghost" iconOnly type="button" disabled={actingId === record.id} onClick={() => void decide(record, 'rejected')} className="inline-flex h-8 w-8 items-center justify-center" title="拒绝"><CloseOutlined /></Button></> : undefined} />) : <div className="rounded-md bg-surface-inset px-3 py-5 text-center text-sm text-foreground-muted">暂无申请记录</div>}
                   </div></div>
                   <div className="mt-4"><div className="mb-2 text-xs font-medium text-foreground-muted">已授权成员</div><div className="grid gap-2">
-                    {management?.members.length ? management.members.map((record) => <Applicant key={record.id} record={record} actions={<Popconfirm title="删除该成员的访问权限？" description="如果对方正在聊天室，将被立即移出。" okText="删除授权" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void revoke(record)}><button type="button" disabled={actingId === record.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-danger-soft text-danger" title="删除授权"><UserDeleteOutlined /></button></Popconfirm>} />) : <div className="rounded-lg bg-background-secondary px-3 py-5 text-center text-sm text-foreground-muted">暂无已授权成员</div>}
+                    {management?.members.length ? management.members.map((record) => <Applicant key={record.id} record={record} actions={<Popconfirm title="删除该成员的访问权限？" description="如果对方正在聊天室，将被立即移出。" okText="删除授权" cancelText="取消" onConfirm={() => void revoke(record)}><Button size="sm" aria-label="删除授权" variant="ghost" iconOnly type="button" disabled={actingId === record.id} className="inline-flex h-8 w-8 items-center justify-center" title="删除授权"><UserDeleteOutlined /></Button></Popconfirm>} />) : <div className="rounded-md bg-surface-inset px-3 py-5 text-center text-sm text-foreground-muted">暂无已授权成员</div>}
                   </div></div>
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-background-secondary px-3 py-2.5"><div><div className="text-sm font-medium text-foreground">免审邀请链接</div><div className="mt-0.5 text-xs text-foreground-muted">重新生成后，原链接立即失效。</div></div><Popconfirm title="重新生成邀请链接？" description="原链接将立即失效，已授权成员不受影响。" okText="重新生成" cancelText="取消" onConfirm={() => void rotateInvite()}><button type="button" className="rounded-lg bg-surface-hover px-3 py-1.5 text-xs font-medium text-foreground-secondary hover:bg-surface-hover">重新生成</button></Popconfirm></div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-md bg-surface-inset px-3 py-2.5"><div><div className="text-sm font-medium text-foreground">免审邀请链接</div><div className="mt-0.5 text-xs text-foreground-muted">重新生成后，原链接立即失效。</div></div><Popconfirm title="重新生成邀请链接？" description="原链接将立即失效，已授权成员不受影响。" okText="重新生成" cancelText="取消" onConfirm={() => void rotateInvite()}><Button size="sm" variant="outline" type="button" className="px-3 py-1.5 text-xs font-medium">重新生成</Button></Popconfirm></div>
                 </>
               )}
               {managementError && <p className="mt-3 text-xs text-danger">{managementError}</p>}
@@ -297,8 +302,8 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
 
           {shareState === 'error' && <p className="mt-3 text-xs text-danger">分享失败，请稍后重试。</p>}
           <div className="mt-5 flex justify-end gap-2 pt-3">
-            <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-active">关闭</button>
-            <button type="button" disabled={room.isPrivate && room.isCreator && !management?.inviteToken} onClick={() => void handleShare()} className="inline-flex min-w-28 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover disabled:opacity-50"><ShareAltOutlined />{shareState === 'shared' ? '已分享' : shareState === 'copied' ? '链接已复制' : room.isPrivate && room.isCreator ? '分享免审链接' : '分享星球'}</button>
+            <Button variant="ghost" type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium">关闭</Button>
+            <Button variant="primary" type="button" disabled={room.isPrivate && room.isCreator && !management?.inviteToken} onClick={() => void handleShare()} className="inline-flex min-w-28 items-center justify-center gap-2 px-4 py-2 text-sm font-medium"><ShareAltOutlined />{shareState === 'shared' ? '已分享' : shareState === 'copied' ? '链接已复制' : room.isPrivate && room.isCreator ? '分享免审链接' : '分享星球'}</Button>
           </div>
         </div>
       )}
