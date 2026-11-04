@@ -23,11 +23,10 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
   const scene = scenes[Array.from(room.code || room.id).reduce((hash, letter) => hash + letter.charCodeAt(0), 0) % scenes.length];
 
   return (
-    <Card padding="md" className={styles.roomCard} bodyClassName={styles.roomBody}
-      cover={<div className={styles.cover} data-scene={scene}>
-        <span className={styles.coverCaption}>{room.isPrivate ? '私密星球' : '公共星球'}</span>
-        <PlanetIllustration variant={scene} size="lg" className={styles.coverPlanet} />
-      </div>}>
+    <Card padding="md" bodyWrap={false} interactive className={styles.roomCard} data-managed={room.isOwner || undefined}>
+      <div className={styles.decoration} data-scene={scene} aria-hidden="true">
+        <PlanetIllustration variant={scene} className={styles.backgroundPlanet} />
+      </div>
       <Button data-ui-surface variant="ghost" type="button" onClick={onClick}
         className="absolute inset-0 z-0" aria-label={`进入星球：${room.name}`} />
 
@@ -50,11 +49,11 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
         </div>}
         <div className={styles.footer}>
           <span className={styles.roomCode}>
-            {room.isPrivate && <Icon name="lock" />}
+            <Icon name={room.isPrivate ? 'lock' : 'globe'} />
             {room.hasPassword && <Icon name="lock" label="需要密码" />}
-            <span>#{room.code}</span>
+            <span>{room.isPrivate ? '私密' : '公共'} · #{room.code}</span>
           </span>
-          <span className={styles.enter}>去聊聊 <Icon name="arrow-right" /></span>
+          <span className={styles.enter}>去聊聊 <Icon name="arrow-right" className={styles.enterArrow} /></span>
         </div>
       </div>
     </Card>

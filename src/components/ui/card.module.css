@@ -15,7 +15,10 @@
 :where(.header + .body) { padding-top: .75rem; }
 :where(.header:last-child) { padding-bottom: var(--card-padding); }
 :where(.footer) { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; padding: var(--card-padding); padding-top: 0; }
-.link { text-decoration: none; transition: box-shadow 180ms ease, transform 180ms ease; }
+.link { text-decoration: none; }
+.interactive { transition: box-shadow 180ms ease, transform 180ms ease; }
+.interactive:is(:focus-visible, :has(:focus-visible)) { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 .link:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
-@media (hover: hover) and (pointer: fine) { .link:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); } }
-@media (prefers-reduced-motion: reduce) { .link { transition: none; transform: none; } }
+@media (hover: hover) and (pointer: fine) { .interactive:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); } }
+@media (hover: none) and (pointer: coarse) { .interactive:active { box-shadow: var(--shadow-sm); transform: scale(.99); } }
+@media (prefers-reduced-motion: reduce) { .interactive { transition: none; transform: none !important; } }

@@ -1,6 +1,6 @@
 # UI 组件
 
-组件预览、主题色、字体与圆角目录：`/uikit`。页面读取 `src/styles/index.css`，同步展示浅色与深色配置，不维护第二套色值。
+组件预览入口：`/uikit`，按操作按钮、表单输入、导航切换、内容展示、状态反馈、浮层与弹窗、图标、文字分类。顶部可切换暖橘、晴蓝、鸢紫三种主题色，深浅模式由顶栏切换；文字区仅展示六级字号示例，末尾“主题色”以色卡与名称展示所有语义颜色，随当前皮肤和模式更新。预览沿用 `src/styles/index.css` 的主题变量，不维护第二套色值。
 
 全站操作按钮使用 `Button`，只提供三种外观：
 
@@ -115,6 +115,8 @@ items 支持 key/label/children/disabled，配合 activeKey/defaultActiveKey/onC
 
 Card 为无外边框的轻阴影容器，默认 lg 圆角、16px 内距，padding="sm" 为12px、"none" 无内距。支持 title/description/extra/cover/footer/bodyClassName（仅布局），支持 ref 透传；bodyWrap={false} 保留既有直接子节点，适合瀑布流测量和编辑器布局。默认 article，as 支持 div/section/a/link。href 明确选择导航语义；含独立操作时保持普通容器，把导航放在内部，避免交互嵌套。首页与星球列表卡片已使用统一 Card。
 
+`interactive` 为含独立操作的 Card 开启轻微抬升和阴影反馈，不改变容器语义或添加点击行为；链接 Card 默认启用相同反馈。键盘聚焦内部操作时同样反馈，减少动态效果偏好下关闭位移。
+
 ## 弹窗与提醒
 
 Modal、AlertDialog、useConfirm 均为原生实现。桌面默认可拖动标题，位置受可视区域约束；Modal、AlertDialog 与全局确认在手机统一从底部滑入；桌面提醒保持居中。采用 xl 圆角、无外边框和柔和阴影。
@@ -155,7 +157,7 @@ Alert 为行内提醒，支持 type="info" | "success" | "warning" | "error"、m
 
 颜色仍是 HSL 通道，CSS 使用 `hsl(var(--primary))`；阴影使用 `var(--shadow-md)`。`primary-foreground` / `accent-foreground` 配实色底，柔和底色上的普通正文使用 `foreground`。页面底色使用 `background`；卡片、浮层和分段控件选中背景使用或派生自 `surface`；输入框和分段控件底色使用 `surface-inset`，输入聚焦保留原填充；按压与悬停表面分别使用 `surface-active`、`surface-hover`。控件正文与占位文字使用 `foreground`、`foreground-muted`，边框使用 `border`。`sidebar-active` 保留为跟随主色派生的语义角色。
 
-深色中性色采用低饱和暖灰：页面背景最沉静，卡片抬亮一层，输入与内嵌区域再抬亮一层，保持无外框组件的轮廓清楚。辅助文字与提示同步提亮，保证在输入表面上的可读性；主色、强调色及其派生角色保持原有配色。`/uikit` 的基础组件区同时展示三层表面与实际控件，颜色目录仍直接读取主题文件。
+深色中性色采用低饱和暖灰：页面背景最沉静，卡片抬亮一层，输入与内嵌区域再抬亮一层，保持无外框组件的轮廓清楚。辅助文字与提示同步提亮，保证在输入表面上的可读性；主色、强调色及其派生角色保持原有配色。可在 `/uikit` 切换深浅模式，检查各类组件的实际表现。
 
 ### 换肤与局部范围
 
@@ -226,4 +228,4 @@ UIKit 与公共组件已接入这些字号角色，新功能沿用同一套定�
 | heading | 24px | 20px | 区块标题 |
 | display | 32px | 28px | 页面主标题 |
 
-上述 px 为浏览器默认 16px 根字号下的参考；实际定义仍用 rem，保留用户字体设置。触屏热区独立于字号，输入框不会再通过 coarse pointer 规则升为 16px；html 的 text-size-adjust 保持 100%，避免移动浏览器对独立文本块额外放大。目录同时从主题文件读取桌面与移动尺寸，Portal 继续同步六个已解析字体 token。
+上述 px 为浏览器默认 16px 根字号下的参考；实际定义仍用 rem，保留用户字体设置。触屏热区独立于字号，输入框不会再通过 coarse pointer 规则升为 16px；html 的 text-size-adjust 保持 100%，避免移动浏览器对独立文本块额外放大。`/uikit` 的文字示例随视口使用对应字号，Portal 继续同步六个已解析字体 token。
