@@ -29,6 +29,8 @@ export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChang
 }
 type TabElement = HTMLButtonElement | HTMLAnchorElement;
 type Drag = { pointerId: number; startX: number; startY: number; clientX: number; original?: string; preview: string; active: boolean };
+/** Light tick on supporting devices (Android / app webviews) whenever the drag crosses into another tab. */
+const tick = () => { try { navigator.vibrate?.(6); } catch {} };
 
 /** Glass items sit in an opaque track. A drag previews selection and commits only on release. */
 export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md', disabled = false,
@@ -78,7 +80,7 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     if (!state || !container) return;
     drag.current = null;
     if (scrollFrame.current !== null) { cancelAnimationFrame(scrollFrame.current); scrollFrame.current = null; }
-    delete container.dataset.dragging;
+    delete container.dataset.dragging; delete container.dataset.pressed;
     elements.current.forEach(element => delete element.dataset.preview);
     if (state.active) {
       clickGuard.current.afterDrag();
@@ -113,6 +115,7 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     const key = element?.dataset.tabKey;
     if (event.button !== 0 || !event.isPrimary || !key || !enabledKeys().includes(key)) return;
     clickGuard.current.pointerDown();
+    if (track.current) track.current.dataset.pressed = '';
     drag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, clientX: event.clientX, original: currentKey.current, preview: key, active: false };
   };
   const previewAt = (clientX: number) => {
@@ -124,6 +127,7 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     });
     if (!candidates.length) { finish(false); return; }
     const nearest = nearestTab(candidates.map(item => ({ ...item, left: item.rect.left, width: item.rect.width })), clientX)!;
+    if (state.preview !== nearest.key) tick();
     state.preview = nearest.key;
     elements.current.forEach((element, key) => element.toggleAttribute('data-preview', key === nearest.key));
     const bounds = container.getBoundingClientRect();
@@ -168,7 +172,7 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     <div ref={viewport} className={styles.viewport}>
       <div ref={track} className={cn(styles.track, styles[size])} role={navigation ? 'navigation' : 'tablist'}
         aria-label={labelledBy ? undefined : label} aria-labelledby={labelledBy} aria-orientation={navigation ? undefined : 'horizontal'}
-        onPointerDown={startDrag} onPointerMove={moveDrag}
+        onPointerDown={startDrag} onPointerMove={moveDrag} onDragStart={event => event.preventDefault()}
         onPointerUp={event => { if (drag.current?.pointerId === event.pointerId) finish(true); }}
         onPointerCancel={event => { if (drag.current?.pointerId === event.pointerId) finish(false); }}
         onLostPointerCapture={event => { if (event.target === track.current && drag.current?.pointerId === event.pointerId) finish(false); }}
@@ -196,7 +200,7 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
             ref: (element: TabElement | null) => { if (element) elements.current.set(item.key, element); else elements.current.delete(item.key); }
           };
           const content = <span className={styles.label}>{item.label}</span>;
-          if (navigation) return <a {...common} key={item.key} data-ui-button="" href={unavailable ? undefined : item.href}
+          if (navigation) return <a {...common} key={item.key} data-ui-button="" draggable={false} onDragStart={event => event.preventDefault()} href={unavailable ? undefined : item.href}
             className={buttonClassName({ variant: 'ghost', size, className: styles.tab })} aria-current={active ? 'page' : undefined}
             aria-disabled={unavailable || undefined} tabIndex={unavailable ? -1 : undefined}
             onClick={event => {

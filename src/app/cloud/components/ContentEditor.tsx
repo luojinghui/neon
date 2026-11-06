@@ -147,7 +147,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
   const renderInput = (fullScreen = false) => <LinkTextArea
     autoSize={fullScreen ? false : { minRows: layout.minRows, maxRows: layout.maxRows }}
     aria-label={fullScreen ? '展开编辑内容' : '发送内容'}
-    placeholder="输入文字、粘贴图片，或将文件拖到这里，Shift+Enter 发送"
+    placeholder="输入内容，或拖入文件"
     onKeyDown={event => {
       // 普通换行仍用 Enter；Shift+Enter 直接发送，输入法组字过程中不触发。
       if (event.key !== 'Enter' || !event.shiftKey || event.repeat || event.nativeEvent.isComposing) return;
@@ -169,7 +169,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
   />;
   const dragOverlay = isDragging && <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary-soft/50 backdrop-blur-[2px] pointer-events-none">
     <Icon name="inbox" className="text-4xl text-primary mb-2" />
-    <span className="text-sm text-primary font-medium">释放以添加文件或文件夹</span>
+    <span className="text-sm text-primary font-medium">松开添加文件</span>
   </div>;
 
   return (
@@ -200,9 +200,9 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
       <div className="cloud-editor-attachments" hidden={!hasFiles}>
         <div className="cloud-editor-file-summary">
           <span className="text-xs text-foreground-muted">
-            已选择 {files.length} 个文件，共 {formatFileSize(files.reduce((sum, f) => sum + f.size, 0))}
+            {files.length} 个文件 · {formatFileSize(files.reduce((sum, f) => sum + f.size, 0))}
           </span>
-          <Button variant="ghost" size="sm" type="button" aria-expanded={showFiles} onClick={() => setFilesExpanded(!showFiles)}>{showFiles ? '收起附件' : '展开附件'}</Button>
+          <Button variant="ghost" size="sm" type="button" aria-expanded={showFiles} onClick={() => setFilesExpanded(!showFiles)}>{showFiles ? '收起' : '展开'}</Button>
         </div>
         <div className="cloud-editor-file-list" hidden={!showFiles}>
           {files.map((item) => (
@@ -242,7 +242,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
         title="展开编辑"
         open={expanded}
         onCancel={closeExpanded}
-        footer={<div className="cloud-expanded-footer"><span>{hasFiles ? `已选择 ${files.length} 个附件，完成编辑后可发送` : ''}</span><Button variant="primary" onClick={closeExpanded}>完成编辑</Button></div>}
+        footer={<div className="cloud-expanded-footer"><span>{hasFiles ? `${files.length} 个附件` : ''}</span><Button variant="primary" onClick={closeExpanded}>完成编辑</Button></div>}
         width={1120}
         rootClassName="cloud-expanded-root"
         className="cloud-expanded-dialog"

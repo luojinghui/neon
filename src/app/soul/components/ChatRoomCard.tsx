@@ -51,7 +51,7 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
           <span className={styles.roomCode}>
             <Icon name={room.isPrivate ? 'lock' : 'globe'} />
             {room.hasPassword && <Icon name="lock" label="需要密码" />}
-            <span>{room.isPrivate ? '私密' : '公共'} · #{room.code}</span>
+            <span>{room.isPrivate ? '私密' : '公共'}</span>
           </span>
           <span className={styles.enter}>去聊聊 <Icon name="arrow-right" className={styles.enterArrow} /></span>
         </div>

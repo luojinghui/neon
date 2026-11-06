@@ -128,7 +128,12 @@ export function Modal({ open = false, title, children, onCancel, onOk, footer, o
     const unlock = lockDialogScroll(doc);
     const focusFirst = () => {
       const autofocus = panel.querySelector<HTMLElement>('[autofocus],[data-autofocus]');
-      (autofocus ?? getDialogFocusable([panel])[0] ?? panel).focus({ preventScroll: true });
+      const target = autofocus ?? getDialogFocusable([panel])[0] ?? panel;
+      // Focusing a text field while a sheet is still sliding in makes mobile browsers scroll the page and raise the keyboard
+      // mid-animation, so the sheet jumps. On touch devices keep focus on the panel and let the user tap the field.
+      const textual = target.matches('input:not([type=checkbox]):not([type=radio]):not([type=button]),textarea,[contenteditable="true"]');
+      const touch = doc.defaultView?.matchMedia('(pointer: coarse)').matches;
+      (textual && touch ? panel : target).focus({ preventScroll: true });
     };
     focusFirst();
     const isInside = (node: Node | null) => !!node && (panel.contains(node) || [...insideNodes.current].some(item => item.contains(node)));
@@ -176,7 +181,8 @@ export function Modal({ open = false, title, children, onCancel, onOk, footer, o
     return clampDialogDrag(point, { left: rect.left - offset.x, top: rect.top - offset.y, width: rect.width, height: rect.height },
       { left: view?.offsetLeft ?? 0, top: view?.offsetTop ?? 0, width: view?.width ?? win.innerWidth, height: view?.height ?? win.innerHeight });
   };
-  useEffect(() => {
+  // Layout effect: the first painted frame must already use the visual viewport, otherwise the dialog shifts after paint.
+  useLayoutEffect(() => {
     if (!open || !panel) return;
     const win = panel.ownerDocument.defaultView!;
     const syncViewport = () => {

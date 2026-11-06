@@ -1,35 +1,35 @@
-.roomCard { position: relative; min-height: 176px; }
+.roomCard { position: relative; min-height: 148px; --card-padding: 1.125rem; }
 .cardContent { position: relative; z-index: 1; display: flex; min-width: 0; flex: 1; flex-direction: column; pointer-events: none; }
-.decoration { position: absolute; inset: 0; overflow: hidden; border-radius: var(--radius-lg); background: radial-gradient(ellipse at top right, hsl(var(--primary-soft) / .9), transparent 70%); pointer-events: none; }
-.decoration[data-scene='comet'] { background: radial-gradient(ellipse at top right, hsl(var(--accent-soft) / .9), transparent 70%); }
-.backgroundPlanet { position: absolute; top: .875rem; right: 1.25rem; opacity: .2; transform: rotate(-12deg); transition: opacity 240ms ease, transform 320ms ease; }
+.decoration { position: absolute; inset: 0; overflow: hidden; border-radius: var(--radius-lg); background: radial-gradient(circle at 100% 0%, hsl(var(--primary-soft) / .55), transparent 62%); pointer-events: none; }
+.decoration[data-scene='comet'] { background: radial-gradient(circle at 100% 0%, hsl(var(--accent-soft) / .55), transparent 62%); }
+.backgroundPlanet { position: absolute; top: .75rem; right: 1rem; opacity: .1; transform: rotate(-12deg) scale(.9); transition: opacity 240ms ease, transform 320ms ease; }
 .heading { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: .5rem; }
 .roomCard[data-managed] .heading { padding-inline-end: 2.25rem; }
-.title { display: -webkit-box; min-width: 0; margin: 0; overflow: hidden; color: hsl(var(--foreground)); font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-.description { display: -webkit-box; margin-top: .375rem; overflow: hidden; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body); line-height: var(--line-height-body); -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-.tags { display: flex; min-width: 0; flex-wrap: wrap; gap: .25rem .625rem; margin-top: .5rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
-.tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.footer { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: .75rem; margin-top: auto; padding-top: .75rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
+.title { display: -webkit-box; min-width: 0; margin: 0; overflow: hidden; color: hsl(var(--foreground)); font-size: var(--font-size-body-lg); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.description { display: -webkit-box; margin-top: .25rem; overflow: hidden; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body); line-height: var(--line-height-body); -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.tags { display: flex; min-width: 0; flex-wrap: wrap; gap: .375rem; margin-top: .625rem; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
+.tag { max-width: 100%; overflow: hidden; padding: .0625rem .5rem; border-radius: 9999px; background: hsl(var(--foreground) / .05); text-overflow: ellipsis; white-space: nowrap; }
+.footer { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: .75rem; margin-top: auto; padding-top: .875rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .roomCode { display: flex; min-width: 0; align-items: center; gap: .375rem; }
 .roomCode > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.enter { display: inline-flex; flex: none; align-items: center; gap: .375rem; color: hsl(var(--foreground-secondary)); }
+.enter { display: inline-flex; flex: none; align-items: center; gap: .25rem; color: hsl(var(--foreground-muted)); transition: color 180ms ease; }
 .enterArrow { transition: color 180ms ease, transform 180ms ease; }
 .management { position: absolute; top: .625rem; right: .625rem; z-index: 2; }
 .menu { display: grid; min-width: 8rem; gap: .25rem; }
 .menu > button { justify-content: flex-start; }
-.roomCard:has([data-ui-surface]:focus-visible) .backgroundPlanet { opacity: .34; transform: translate(-3px, -2px) rotate(-5deg); }
+.roomCard:has([data-ui-surface]:focus-visible) .backgroundPlanet { opacity: .2; transform: translate(-3px, -2px) rotate(-5deg); }
 .roomCard:has([data-ui-surface]:focus-visible) .enterArrow { color: hsl(var(--primary)); transform: translateX(3px); }
 @media (hover: hover) and (pointer: fine) {
-  .roomCard:hover .backgroundPlanet { opacity: .34; transform: translate(-3px, -2px) rotate(-5deg); }
+  .roomCard:hover .backgroundPlanet { opacity: .2; transform: translate(-3px, -2px) rotate(-5deg) scale(.95); }
+  .roomCard:hover .enter { color: hsl(var(--primary)); }
   .roomCard:hover .enterArrow { color: hsl(var(--primary)); transform: translateX(3px); }
 }
 @media (hover: none) and (pointer: coarse) {
-  .roomCard:has([data-ui-surface]:active) .backgroundPlanet { opacity: .34; }
+  .roomCard:has([data-ui-surface]:active) .backgroundPlanet { opacity: .2; }
   .roomCard:has([data-ui-surface]:active) .enterArrow { color: hsl(var(--primary)); }
 }
 @media (max-width: 640px) {
-  .roomCard { min-height: 168px; }
-  .title { font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); }
+  .roomCard { min-height: 140px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .backgroundPlanet, .enterArrow { transition: none; }

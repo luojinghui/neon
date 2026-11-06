@@ -44,13 +44,18 @@ export default function MomentsPage() {
         <div className="app-content-width">
           <Suspense fallback={null}><MomentPermalink /></Suspense>
           <header className="moment-journal-intro">
-            <div className="moment-journal-copy">
-              <h1>生活里的小事</h1>
-              <p className="moment-journal-description">分享近况，看看大家的日常。</p>
+            <div className="moment-journal-top">
+              <div className="moment-journal-copy">
+                <h1>星尘日记</h1>
+              </div>
+              <div className="moment-journal-art" aria-hidden="true"><PlanetIllustration size="md" /></div>
             </div>
-            <div className="moment-journal-art" aria-hidden="true"><PlanetIllustration size="lg" /></div>
             <div className="moment-journal-actions" role="group" aria-label="心迹操作">
-              <Button variant="primary" type="button" onClick={() => setComposerOpen(true)} icon={<Icon name="edit" />}>创作</Button>
+              <button type="button" className="moment-journal-prompt" onClick={() => setComposerOpen(true)}>
+                <Icon name="edit" />
+                <span className="moment-journal-prompt-text">此刻在想什么？</span>
+                <em>创作</em>
+              </button>
               <Button variant="ghost" type="button" icon={<Icon name={loading ? 'loading' : 'refresh'} />} onClick={() => void load()} disabled={loading || loadingMore} aria-label="刷新心迹" aria-busy={loading || loadingMore || undefined} />
             </div>
           </header>

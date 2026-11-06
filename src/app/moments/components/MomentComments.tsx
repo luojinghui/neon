@@ -304,11 +304,11 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
                 <MomentAvatar author={comment.author} link={false} size={30} />
                 <span className="min-w-0 text-left">
                   <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <strong className="text-sm font-medium text-foreground">{comment.author.name}</strong>
-                    <span className="text-[11px] text-foreground-muted">{formatMomentTime(comment.createdAt)}{comment.isEdited ? ' · 已编辑' : ''}</span>
+                    <strong className="text-caption font-medium text-foreground-secondary">{comment.author.name}</strong>
+                    <span className="text-caption text-foreground-muted">{formatMomentTime(comment.createdAt)}{comment.isEdited ? ' · 已编辑' : ''}</span>
                   </span>
                   {!editing && (
-                    <span className="mt-1 block break-words text-sm leading-6 text-foreground-secondary">
+                    <span className="mt-0.5 block break-words text-sm leading-6 text-foreground">
                       {comment.replyTo && <span className="mr-1 text-primary">回复 @{comment.replyTo.userId}</span>}
                       {comment.text}
                     </span>
@@ -326,7 +326,7 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
                 </div>
               )}
 
-              {selected && !editing && (
+              {!editing && (
                 <div className="moment-comment-actions">
                   <Button variant="ghost" type="button" disabled={busy} onClick={() => startReply(comment)}><RollbackOutlined />回复</Button>
                   {comment.canEdit && <Button variant="ghost" type="button" disabled={busy} onClick={() => { setEditingId(comment.id); setEditDraft(comment.text); }}><EditOutlined />编辑</Button>}

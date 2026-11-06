@@ -87,17 +87,17 @@
 .plaza-feed-heading h2 { font-size: 1rem; font-weight: 600; letter-spacing: 0.02em; }
 .plaza-feed-heading p { margin-top: 0.375rem; font-size: 0.8125rem; color: hsl(var(--foreground-muted)); }
 
-.plaza-card-list { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1rem; }
+.plaza-card-list { column-count: 1; column-gap: 1rem; }
+.plaza-card-list > .plaza-card { display: block; width: 100%; margin: 0 0 1rem; break-inside: avoid; -webkit-column-break-inside: avoid; }
 @media (min-width: 768px) {
-  .plaza-card-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+  .plaza-card-list { column-count: 2; column-gap: 1rem; }
 }
-.cloud-page .plaza-card { padding: 1.5rem 1.5rem 0.75rem; }
-.plaza-card-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; margin-bottom: 1.125rem; font-size: 0.6875rem; letter-spacing: 0.02em; color: hsl(var(--foreground-muted)); }
-.plaza-card-meta time:last-child { opacity: 0.8; }
-.plaza-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.9; font-size: 0.9375rem; color: hsl(var(--foreground)); user-select: text; }
-.plaza-text.is-collapsed { display: -webkit-box; -webkit-line-clamp: 12; -webkit-box-orient: vertical; overflow: hidden; }
+.cloud-page .plaza-card { padding: 1rem 1.125rem 0.5rem; }
+.plaza-card-meta { margin-bottom: 0.5rem; font-size: 0.75rem; color: hsl(var(--foreground-muted)); font-variant-numeric: tabular-nums; }
+.plaza-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; font-size: 0.9375rem; color: hsl(var(--foreground)); user-select: text; }
+.plaza-text.is-collapsed { display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 .plaza-expand { margin-top: 0.375rem; }
-.plaza-files { display: grid; gap: 0.5rem; margin-top: 1.125rem; }
+.plaza-files { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
 .plaza-file { display: flex; min-width: 0; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: var(--radius-md); background: hsl(var(--surface-inset)); }
 .plaza-files > .plaza-file { width: fit-content; max-width: 100%; }
 .plaza-file-icon { flex-shrink: 0; color: hsl(var(--foreground-muted)); }
@@ -105,8 +105,8 @@
 .plaza-file-info > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; user-select: text; }
 .plaza-file-info small { font-size: 0.6875rem; color: hsl(var(--foreground-muted)); }
 
-.plaza-images { display: grid; width: 100%; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 1rem; }
-.plaza-images[data-count='1'] { display: block; width: min(100%, calc(min(20rem, 46dvh) * var(--plaza-image-ratio, 1.333333))); }
+.plaza-images { display: grid; width: 100%; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.375rem; margin-top: 0.75rem; }
+.plaza-images[data-count='1'] { display: block; width: 100%; }
 .plaza-image { min-width: 0; overflow: hidden; border-radius: var(--radius-lg); background: hsl(var(--surface-inset)); }
 .cloud-page button.plaza-image-preview { display: block; width: 100%; aspect-ratio: 1; height: auto; margin: 0; padding: 0; overflow: hidden; border: 0; cursor: zoom-in; }
 .plaza-images[data-count='1'] .plaza-image-preview { aspect-ratio: var(--plaza-image-ratio, 1.333333); max-height: min(20rem, 46dvh); }
@@ -114,7 +114,7 @@
 .plaza-image .plaza-file { border-radius: 0; padding: 0.5rem 0.75rem; background: transparent; }
 .plaza-images:not([data-count='1']) .plaza-file { gap: 0.375rem; padding: 0.4rem 0.5rem; }
 .plaza-images:not([data-count='1']) .plaza-file-icon { display: none; }
-.plaza-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 1.25rem; border-top: 0; padding-top: 0.625rem; }
+.plaza-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem; margin-inline: -0.375rem; padding-top: 0.25rem; color: hsl(var(--foreground-muted)); }
 .plaza-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
 
 .plaza-empty, .plaza-share-empty { display: flex; align-items: center; flex-direction: column; padding: 4rem 1rem; text-align: center; }
@@ -144,7 +144,7 @@
   .cloud-page .app-topbar-controls { gap: 0.375rem; }
 
   .plaza-content { gap: 1.5rem; }
-  .cloud-page .plaza-card { padding: 1rem 1rem 0.625rem; }
+  .cloud-page .plaza-card { padding: 0.875rem 1rem 0.375rem; }
   .plaza-card-meta { font-size: 0.625rem; }
   .plaza-text { font-size: 0.875rem; }
   .plaza-image .plaza-file { gap: 0.25rem; padding-inline: 0.375rem; }

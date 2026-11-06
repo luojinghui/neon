@@ -15,5 +15,6 @@
 }
 
 .moment-action > [data-ui-icon] { font-size: var(--font-size-title); }
-.moment-action-count { font-variant-numeric: tabular-nums; }
+.moment-action { min-width: 3.75rem; justify-content: flex-start; }
+.moment-action-count { display: inline-block; min-width: 2ch; text-align: start; font-variant-numeric: tabular-nums; }
 .moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: var(--font-size-caption); }

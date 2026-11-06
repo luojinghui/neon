@@ -1,6 +1,5 @@
 'use client';
 
-import { Tooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import '@/styles/index.css';
 import { useEffect, useState } from 'react';
@@ -20,6 +19,7 @@ import { useSoulStore } from '../store';
 import { MessageList } from './components/MessageList';
 import { ChatInput } from './components/ChatInput';
 import { ChatToolbar } from './components/ChatToolbar';
+import { Icon } from '@/components/ui/icon';
 import { RoomAccessModal } from './components/RoomAccessModal';
 import { RoomInfoModal } from './components/RoomInfoModal';
 import { RoomCallNotice, RoomCallProvider } from './components/RoomCall';
@@ -58,8 +58,7 @@ function ChatRoomPage() {
     >
       <TopBar
         middle={
-          direct ? <div className="flex min-w-0 flex-col items-center"><span className="truncate text-sm font-medium">{roomName || '私信'}</span><span className="text-[10px] text-foreground-muted">一对一私信</span></div> : <Tooltip title="星球信息" placement="bottom">
-            <Button variant="ghost"
+          direct ? <div className="flex min-w-0 flex-col items-center"><span className="truncate text-sm font-medium">{roomName || '私信'}</span><span className="text-[10px] text-foreground-muted">一对一私信</span></div> : <Button variant="ghost"
               type="button"
               onClick={() => setRoomInfoOpen(true)}
               disabled={!room || accessState !== 'granted'}
@@ -71,7 +70,6 @@ function ChatRoomPage() {
                 <InfoCircleOutlined className="block shrink-0 text-sm text-foreground-muted" aria-hidden />
               </Badge>
             </Button>
-          </Tooltip>
         }
         right={
           <div className="flex items-center gap-2">
@@ -84,7 +82,7 @@ function ChatRoomPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {accessState === 'granted' ? <MessageList className="pt-[var(--app-page-top)]" /> : <div className="flex-1" />}
+        {accessState === 'granted' ? <MessageList className="pt-[var(--app-page-top)]" /> : accessState === 'joining' ? <div className="flex flex-1 flex-col items-center justify-center gap-2 text-caption text-foreground-muted" role="status"><Icon name="loading" />正在进入星球…</div> : <div className="flex-1" />}
 
         {accessState === 'granted' && (
           <div className="app-content-width shrink-0 pb-3 pt-2">

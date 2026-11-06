@@ -1,35 +1,38 @@
 .root { display: flex; min-width: 0; width: fit-content; max-width: 100%; flex-direction: column; gap: .75rem; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 .block { width: 100%; }
+.root, .root * { -webkit-user-drag: none; -webkit-touch-callout: none; }
 .viewport { min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .viewport::-webkit-scrollbar { display: none; }
-.track { --tabs-inset: 4px; --tabs-height: 36px; --tabs-gap: 4px; position: relative; display: flex; isolation: isolate; width: max-content; gap: var(--tabs-gap); height: var(--tabs-height); box-sizing: border-box; padding: var(--tabs-inset); border: 0; border-radius: var(--radius-md); background: hsl(var(--surface-inset)); touch-action: pan-y; }
+.track { --tabs-inset: 4px; --tabs-height: 38px; --tabs-gap: 2px; position: relative; display: flex; isolation: isolate; width: max-content; gap: var(--tabs-gap); height: var(--tabs-height); box-sizing: border-box; padding: var(--tabs-inset); border: 0; border-radius: 9999px; background: hsl(var(--foreground) / .055); box-shadow: inset 0 1px 2px hsl(var(--shadow-color) / .06), inset 0 0 0 1px hsl(var(--foreground) / .035); touch-action: pan-y; cursor: pointer; }
 .block .track { width: 100%; min-width: max-content; }
-.sm { --tabs-inset: 3px; --tabs-height: 32px; --tabs-gap: 3px; border-radius: var(--radius-sm); }
-.lg { --tabs-inset: 5px; --tabs-height: 40px; --tabs-gap: 5px; }
-.indicator { position: absolute; z-index: -1; left: 0; top: var(--tabs-inset); bottom: var(--tabs-inset); width: 0; opacity: 0; border-radius: var(--radius-md); background: hsl(var(--surface)); background: light-dark(hsl(var(--surface)),color-mix(in srgb,hsl(var(--surface)) 80%,hsl(var(--foreground)))); box-shadow: var(--shadow-sm); pointer-events: none; transition: transform 220ms cubic-bezier(.2,.8,.2,1), width 220ms cubic-bezier(.2,.8,.2,1); }
-.sm .indicator { border-radius: var(--radius-sm); }
+.sm { --tabs-inset: 3px; --tabs-height: 32px; }
+.lg { --tabs-inset: 4px; --tabs-height: 44px; }
+.indicator { position: absolute; z-index: -1; left: 0; top: var(--tabs-inset); bottom: var(--tabs-inset); width: 0; opacity: 0; border-radius: 9999px; pointer-events: none; transition: transform 320ms cubic-bezier(.34,1.3,.5,1), width 260ms cubic-bezier(.2,.8,.2,1), opacity 160ms ease; }
+/* Visuals live on ::before so press/drag can scale the thumb without fighting the translate on the box. */
+.indicator::before { position: absolute; inset: 0; border-radius: inherit; content: ''; background: linear-gradient(160deg, hsl(var(--surface)), hsl(var(--surface) / .86)); box-shadow: 0 0 0 1px hsl(var(--foreground) / .05), 0 1px 2px hsl(var(--shadow-color) / .08), 0 4px 10px -2px hsl(var(--shadow-color) / .1); transition: transform 240ms cubic-bezier(.34,1.4,.5,1), box-shadow 200ms ease; }
+.indicator::after { position: absolute; inset: 1px 8px auto; height: 45%; border-radius: 9999px; content: ''; background: linear-gradient(180deg, hsl(0 0% 100% / .55), transparent); opacity: .7; }
 .track[data-indicator] .indicator { opacity: 1; }
-.track[data-dragging] .indicator { transition: none; }
+.track[data-pressed] .indicator::before, .track[data-dragging] .indicator::before { transform: scale(1.06, 1.08); box-shadow: 0 0 0 1px hsl(var(--primary) / .18), 0 2px 4px hsl(var(--shadow-color) / .1), 0 10px 22px -4px hsl(var(--shadow-color) / .22); }
+.track[data-dragging] .indicator { transition: width 260ms cubic-bezier(.2,.8,.2,1), opacity 160ms ease; }
 .track[data-dragging], .track[data-dragging] .tab { cursor: grabbing; }
 /* Specialized tab hit areas use Button's transparent-surface contract; its focus and disabled behavior stay shared. */
-.track .tab[data-ui-surface] { position: relative; display: inline-flex; flex: 1 0 auto; min-width: 44px; min-height: calc(var(--tabs-height) - 2 * var(--tabs-inset)); height: calc(var(--tabs-height) - 2 * var(--tabs-inset)); padding: 0 .75rem; border-radius: var(--radius-md); color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); touch-action: pan-y; text-decoration: none; }
-.track.sm .tab[data-ui-surface] { border-radius: var(--radius-sm); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
+.track .tab[data-ui-surface] { position: relative; display: inline-flex; flex: 1 0 auto; min-width: 44px; min-height: calc(var(--tabs-height) - 2 * var(--tabs-inset)); height: calc(var(--tabs-height) - 2 * var(--tabs-inset)); padding: 0 .875rem; border-radius: 9999px; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); touch-action: pan-y; text-decoration: none; transition: color 160ms ease; }
+.track.sm .tab[data-ui-surface] { font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .track .tab[data-ui-surface]:focus-visible { outline-offset: -2px; }
 .track .tab[data-ui-surface][data-active], .track .tab[data-ui-surface][data-preview] { color: hsl(var(--foreground)); }
 .label { display: inline-flex; min-width: 0; align-items: center; justify-content: center; gap: .375rem; white-space: nowrap; }
 .panel { min-width: 0; }
 .panel[hidden] { display: none; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .indicator { background: linear-gradient(150deg,
-      light-dark(hsl(var(--surface) / .96),color-mix(in srgb,hsl(var(--surface)) 76%,hsl(var(--foreground)))),
-      light-dark(hsl(var(--surface) / .84),color-mix(in srgb,hsl(var(--surface)) 86%,hsl(var(--foreground)))));
-    -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / .08), inset 0 -1px 0 hsl(var(--border) / .35), var(--shadow-sm); }
+  .track { background: hsl(var(--foreground) / .045); -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); }
+  .indicator::before { background: linear-gradient(160deg, hsl(var(--surface) / .92), hsl(var(--surface) / .7)); -webkit-backdrop-filter: blur(10px) saturate(1.6); backdrop-filter: blur(10px) saturate(1.6); }
 }
-@media (prefers-reduced-transparency: reduce) { .indicator { background: hsl(var(--surface)); background: light-dark(hsl(var(--surface)),color-mix(in srgb,hsl(var(--surface)) 80%,hsl(var(--foreground)))); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--shadow-sm); } }
+@media (hover: hover) and (pointer: fine) { .track .tab[data-ui-surface]:not([data-active]):not(:disabled):hover { color: hsl(var(--foreground)); } }
+@media (prefers-reduced-transparency: reduce) { .track { background: hsl(var(--surface-inset)); -webkit-backdrop-filter: none; backdrop-filter: none; } .indicator::before { background: hsl(var(--surface)); -webkit-backdrop-filter: none; backdrop-filter: none; } .indicator::after { display: none; } }
 @media (forced-colors: active) {
-  .indicator { background: Highlight; box-shadow: none; forced-color-adjust: none; }
+  .indicator::before { background: Highlight; box-shadow: none; forced-color-adjust: none; }
+  .indicator::after { display: none; }
   .track .tab[data-ui-surface][data-active], .track .tab[data-ui-surface][data-preview] { color: HighlightText; forced-color-adjust: none; }
   .track[data-dragging] .tab[data-ui-surface][data-active]:not([data-preview]) { color: CanvasText; }
 }
-@media (prefers-reduced-motion: reduce) { .indicator { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .indicator, .indicator::before { transition: none; } .track[data-pressed] .indicator::before, .track[data-dragging] .indicator::before { transform: none; } }

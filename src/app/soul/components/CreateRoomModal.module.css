@@ -1,7 +1,7 @@
 .access { min-width: 0; margin: 0; border: 0; padding: 0; }
 .accessLegend { margin-bottom: .5rem; padding: 0; color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); }
 .accessBody { display: grid; gap: .625rem; min-width: 0; }
-.entrySettings { min-width: 0; border-radius: var(--radius-lg); padding: .875rem; background: hsl(var(--surface-hover)); }
+.entrySettings { min-width: 0; border-radius: var(--radius-lg); padding: .75rem .875rem; background: hsl(var(--foreground) / .035); }
 .passwordHeading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 1rem; }
 .passwordCopy { display: grid; min-width: 0; gap: .25rem; }
 .settingTitle { color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); }

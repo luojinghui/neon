@@ -10,9 +10,9 @@
   align-items: center;
   gap: .5rem;
   padding: 0 .75rem;
-  border: 1px solid transparent;
+  border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
-  background: hsl(var(--surface-inset));
+  background: hsl(var(--surface));
   /* The mode palette owns the writing plane; do not darken the light surface. */
   color: hsl(var(--foreground));
   font-size: var(--font-size-body);
@@ -58,9 +58,9 @@
 .action { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 1.5rem; height: 1.75rem; border-radius: var(--radius-sm); }
 .action > :where(button, span), .action > span > button { width: 100%; height: 100%; }
 .action svg { width: 1rem; height: 1rem; }
-.decoration { position: absolute; z-index: 1; top: .125rem; right: .25rem; transform: translateY(.25rem) scale(.9); width: 2rem; height: 2rem; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 150ms ease, transform 150ms ease; }
+.decoration { position: absolute; z-index: 1; top: 0; right: .25rem; transform: translateY(.375rem) rotate(-14deg) scale(.8); width: 2.25rem; height: 2.25rem; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 160ms ease, transform 280ms cubic-bezier(.34,1.56,.64,1); }
 .decoration > * { width: 100%; height: 100%; }
-.field:focus-within:not([data-disabled='true']) > .decoration { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.field:focus-within:not([data-disabled='true']) > .decoration { opacity: 1; visibility: visible; transform: translateY(0) rotate(0) scale(1); }
 .textareaField { display: flex; flex-direction: column; align-items: stretch; padding-block: .625rem; gap: .375rem; }
 .textarea { display: block; min-height: 0; padding: 0; resize: vertical; }
 .textarea[data-autosize='true'] { resize: none; }
@@ -96,7 +96,7 @@
 .spinner { position: absolute; z-index: 1; left: .375rem; width: .75rem; height: .75rem; color: hsl(var(--foreground-muted)); }
 .switch .choiceInput:checked ~ .spinner { left: auto; right: .375rem; }
 @media (hover: hover) and (pointer: fine) {
-  .field:not([data-disabled='true']):not(:focus-within):hover { background: color-mix(in srgb, hsl(var(--surface-inset)) 98%, hsl(var(--foreground))); }
+  .field:not([data-disabled='true']):not(:focus-within):not([data-status]):hover { border-color: hsl(var(--border-hover)); }
   .choice:not([data-disabled='true']):hover .choiceMark { border-color: hsl(var(--primary)); }
 }
 @media (pointer: coarse) {
@@ -108,26 +108,26 @@
 @media (prefers-reduced-motion: reduce) { .field, .decoration, .choiceMark, .switchTrack, .switchTrack::before { transition: none; } }
 
 /* Card radio appearance owns the entire option surface; native radios retain
-   label activation, grouping, form values and directional keyboard selection. */
+   label activation, grouping, form values and directional keyboard selection.
+   Unselected tiles are quiet outlines; the selected tile gets a tinted fill, a primary ring and a filled icon. */
 .group[data-appearance='card'] { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: .5rem; }
-.choice[data-appearance='card'] { display: block; min-width: 0; padding: .875rem .75rem; border: 0; border-radius: var(--radius-lg); background: hsl(var(--surface-inset)); transition: background-color 150ms ease, box-shadow 150ms ease; }
-.choice[data-appearance='card'] > .choiceMark { position: absolute; top: .875rem; right: .75rem; width: 1rem; height: 1rem; }
+.choice[data-appearance='card'] { display: block; min-width: 0; padding: .75rem; border: 0; border-radius: var(--radius-lg); background: hsl(var(--surface)); box-shadow: inset 0 0 0 1px hsl(var(--border)); transition: background-color 160ms ease, box-shadow 160ms ease; }
+.choice[data-appearance='card'] > .choiceMark { position: absolute; top: .75rem; right: .75rem; width: 1rem; height: 1rem; }
 .choice[data-appearance='card'] > .choiceMark::after { width: .4375rem; height: .4375rem; }
-.choice[data-appearance='card']:has(> .choiceInput:checked) { background: hsl(var(--primary-soft)); box-shadow: var(--shadow-sm); }
-.choice[data-appearance='card']:has(> .choiceInput:focus-visible) { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.choice[data-appearance='card']:has(> .choiceInput:checked) { background: hsl(var(--primary-soft) / .7); box-shadow: inset 0 0 0 1.5px hsl(var(--primary) / .7); }
+.choice[data-appearance='card']:has(> .choiceInput:focus-visible) { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .choice[data-appearance='card'] > .choiceInput:focus-visible + .choiceMark { outline: none; }
-.radioCardContent { display: flex; min-width: 0; align-items: flex-start; gap: .625rem; }
-.radioCardIcon { display: flex; flex: none; width: 1.75rem; height: 1.75rem; align-items: center; justify-content: center; border-radius: var(--radius-md); background: hsl(var(--surface)); color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body-lg); line-height: var(--line-height-body); }
-.choice[data-appearance='card']:has(> .choiceInput:checked) .radioCardIcon { color: hsl(var(--primary)); }
-.radioCardText { display: grid; min-width: 0; gap: .25rem; }
+.radioCardContent { display: flex; min-width: 0; align-items: center; gap: .625rem; }
+.radioCardIcon { display: flex; flex: none; width: 2rem; height: 2rem; align-items: center; justify-content: center; border-radius: 9999px; background: hsl(var(--foreground) / .06); color: hsl(var(--foreground-secondary)); font-size: var(--font-size-body-lg); line-height: var(--line-height-body); transition: background-color 160ms ease, color 160ms ease; }
+.choice[data-appearance='card']:has(> .choiceInput:checked) .radioCardIcon { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.radioCardText { display: grid; min-width: 0; gap: .125rem; }
 .radioCardTitle { padding-inline-end: 1.25rem; font-weight: var(--font-weight-medium); font-size: var(--font-size-body); line-height: var(--line-height-body); overflow-wrap: anywhere; }
 .radioCardDescription { color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); overflow-wrap: anywhere; }
-@media (hover: hover) and (pointer: fine) { .choice[data-appearance='card']:not([data-disabled='true']):not(:has(> .choiceInput:checked)):hover { background: hsl(var(--surface-hover)); } }
+@media (hover: hover) and (pointer: fine) { .choice[data-appearance='card']:not([data-disabled='true']):not(:has(> .choiceInput:checked)):hover { background: hsl(var(--surface-hover)); box-shadow: inset 0 0 0 1px hsl(var(--border-hover)); } }
 @media (max-width: 360px) { .group[data-appearance='card'] { grid-template-columns: minmax(0, 1fr); } }
-@media (prefers-reduced-motion: reduce) { .choice[data-appearance='card'] { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .choice[data-appearance='card'], .radioCardIcon { transition: none; } }
 
 /* A decoration stays inside the writing plane, including scrollable dialog bodies. */
 .field:has(> .decoration) { padding-inline-end: 2.75rem; }
 .choice[data-appearance='card'][data-indicator='false'] > .choiceMark { display: none; }
 .choice[data-appearance='card'][data-indicator='false'] .radioCardTitle { padding-inline-end: 0; }
-.choice[data-appearance='card'][data-indicator='false']:has(> .choiceInput:checked) { box-shadow: inset 3px 0 0 hsl(var(--primary)); }

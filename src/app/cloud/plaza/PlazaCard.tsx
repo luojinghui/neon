@@ -63,14 +63,14 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
 
   const remove = () => modal.confirm({
     centered: true,
-    title: '删除这张卡片？',
-    content: '删除后所有人将无法继续查看，附件和分享链接也会失效。',
-    okText: '删除卡片', cancelText: '取消', okButtonProps: { danger: true },
+    title: '删除这条内容？',
+    content: '删除后无法恢复。',
+    okText: '删除', cancelText: '取消', okButtonProps: { danger: true },
     async onOk() {
       try {
         await deletePlazaMessage(item.messageId);
         onUnavailable(item.messageId);
-        message.success('卡片已删除');
+        message.success('已删除');
       } catch (error) {
         message.error(error instanceof Error ? error.message : '删除失败，请重试');
         throw error;
@@ -86,12 +86,11 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
 
   return <Card padding="none" bodyWrap={false} className={`cloud-panel plaza-card${detail ? ' plaza-card-detail' : ''}`} aria-label="广场内容" data-message-id={item.messageId}>
     <div className="plaza-card-meta">
-      <time dateTime={item.createdAt} title={`发布于 ${new Date(item.createdAt).toLocaleString()}`}>{dateTime(item.createdAt)}</time>
-      <time dateTime={item.expireAt} title={`到期时间 ${new Date(item.expireAt).toLocaleString()}`}>{dateTime(item.expireAt)} 到期</time>
+      <time dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>{dateTime(item.createdAt)}</time>
     </div>
     {item.content && <div className="plaza-body">
       <div className={`plaza-text${isLong && !expanded ? ' is-collapsed' : ''}`}><LinkifiedText text={item.content} /></div>
-      {isLong && !detail && <Button variant="ghost" type="button" className="plaza-expand" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? '收起正文' : '展开全文'}</Button>}
+      {isLong && !detail && <Button variant="ghost" type="button" className="plaza-expand" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? '收起' : '展开'}</Button>}
     </div>}
     {previewImages.length > 0 && <div className="plaza-images" data-count={previewImages.length} style={{ '--plaza-image-ratio': singleRatio } as CSSProperties}>
       {previewImages.map(file => <div key={file.fileId} className="plaza-image">
@@ -110,22 +109,22 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
       </div>)}
     </div>}
     {visibleFiles.some(file => !isPreviewImage(file.mimeType) || brokenImages.has(file.fileId)) && <div className="plaza-files">{visibleFiles.filter(file => !isPreviewImage(file.mimeType) || brokenImages.has(file.fileId)).map(fileRow)}</div>}
-    {item.files.length > 6 && !detail && <Button variant="ghost" type="button" className="plaza-expand" aria-expanded={allFiles} onClick={() => setAllFiles(!allFiles)}>{allFiles ? '收起附件' : `查看全部 ${item.files.length} 个附件`}</Button>}
+    {item.files.length > 6 && !detail && <Button variant="ghost" type="button" className="plaza-expand" aria-expanded={allFiles} onClick={() => setAllFiles(!allFiles)}>{allFiles ? '收起' : `全部 ${item.files.length} 个附件`}</Button>}
     <div className="plaza-card-footer">
       <div className="plaza-card-actions">
-        {item.content && <Button variant="ghost" size="sm" type="button" onClick={() => void copy(item.content)}><CopyOutlined /><span>复制</span></Button>}
-        {json.valid && <Button variant="ghost" size="sm" type="button" onClick={() => setJsonOpen(true)}><FileTextOutlined /><span>JSON 解析</span></Button>}
-        <Button variant="ghost" size="sm" type="button" onClick={() => setShareOpen(true)}><ShareAltOutlined /><span>分享</span></Button>
+        {item.content && <Button variant="ghost" size="sm" iconOnly type="button" aria-label="复制内容" onClick={() => void copy(item.content)}><CopyOutlined /></Button>}
+        {json.valid && <Button variant="ghost" size="sm" iconOnly type="button" aria-label="JSON 解析" onClick={() => setJsonOpen(true)}><FileTextOutlined /></Button>}
+        <Button variant="ghost" size="sm" iconOnly type="button" aria-label="分享" onClick={() => setShareOpen(true)}><ShareAltOutlined /></Button>
       </div>
-      <Button variant="ghost" iconOnly type="button" aria-label="删除卡片" title="删除卡片" onClick={remove}><DeleteOutlined /></Button>
+      <Button variant="ghost" size="sm" iconOnly type="button" aria-label="删除" onClick={remove}><DeleteOutlined /></Button>
     </div>
     <JsonViewerModal open={jsonOpen} value={json.valid ? json.value : undefined} onClose={() => setJsonOpen(false)} onCopy={() => { if (json.valid) void copy(JSON.stringify(json.value, null, 2), 'JSON'); }} />
     <Modal title="分享卡片" open={shareOpen} onCancel={() => setShareOpen(false)} footer={null} centered width={440}>
       <div className="plaza-share-dialog">
         <div className="plaza-qr"><QRCode value={shareUrl} color="#202020" bgColor="#ffffff" size={168} bordered={false} /></div>
-        <p>扫描二维码，直接查看这张卡片</p>
+        <p>扫码查看</p>
         <div className="plaza-link-row"><Input aria-label="卡片分享链接" prefix={<LinkOutlined />} readOnly value={shareUrl} onFocus={event => event.target.select()} /><Button variant="primary" icon={<CopyOutlined />} onClick={() => void copy(shareUrl, '链接')}>复制链接</Button></div>
-        <small>有效至 {new Date(item.expireAt).toLocaleString()} · 删除后链接失效</small>
+        
       </div>
     </Modal>
   </Card>;

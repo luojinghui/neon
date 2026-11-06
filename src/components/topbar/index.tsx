@@ -38,7 +38,6 @@ export function TopBar({ middle, right, backHref = '/', backLabel = '首页', le
                 replace
                 className={buttonClassName({ iconOnly: true })}
                 aria-label={`返回${backLabel}`}
-                title={`返回${backLabel}`}
               >
                 <LeftOutlined className="text-sm" />
               </Link>

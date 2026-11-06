@@ -2,9 +2,8 @@
 
 import '@/styles/index.css';
 import { Footer } from '@/components/footer';
-import { PlanetIllustration } from '@/components/ui/planet-illustration';
 import { Card } from '@/components/card';
-import { HomeGreeting } from '@/components/home-greeting';
+import { HomeHero } from '@/components/home-hero';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { ProfileShortcut } from './profile/components/ProfileShortcut';
 import { TopBar } from '@/components/topbar';
@@ -51,11 +50,7 @@ export default function Home() {
       />
 
       <main className="app-content-width flex-1 pb-8 pt-24 sm:pt-28">
-        <div className="mb-8 text-center sm:mb-10">
-          <PlanetIllustration size="lg" className="mb-3" />
-          <h1 className="text-display font-semibold tracking-tight text-foreground">Soul 星球</h1>
-          <HomeGreeting />
-        </div>
+        <HomeHero />
 
         <nav aria-label="探索 Soul 星球" className="mx-auto grid w-full max-w-[1008px] grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
           {cards.map((card) => (

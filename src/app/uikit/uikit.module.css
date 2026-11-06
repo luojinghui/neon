@@ -3,7 +3,7 @@
 .sidebar { min-width: 0; padding-top: .75rem; }
 .navLabel { margin: 0 .75rem 1rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); }
 .sidebar nav { display: flex; flex-direction: column; gap: .25rem; }
-.sidebar a { display: block; padding: .625rem .75rem; border-radius: var(--radius-md); color: hsl(var(--foreground-secondary)); white-space: nowrap; }
+.sidebar a { display: block; padding: .5rem .75rem; border-radius: 9999px; transition: background-color 150ms ease, color 150ms ease; color: hsl(var(--foreground-secondary)); white-space: nowrap; }
 .sidebar a[aria-current] { background: hsl(var(--primary-soft)); color: hsl(var(--foreground)); font-weight: var(--font-weight-medium); }
 .sidebar a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .main { min-width: 0; min-height: 0; overflow-y: auto; padding: .5rem .375rem 3rem; background: hsl(var(--background)); color: hsl(var(--foreground)); scroll-behavior: smooth; }
@@ -13,8 +13,8 @@
 .skinToolbar { gap: .5rem; }
 .skinToolbar > span { margin-right: .25rem; }
 .section { margin-bottom: 2rem; scroll-margin-top: 1rem; }
-.sectionTitle { margin-bottom: .875rem; font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); }
-.exampleGrid, .buttonGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.sectionTitle { margin-bottom: 1rem; font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); }
+.exampleGrid, .buttonGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .buttonGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 1rem; }
 .example { display: grid; min-width: 0; align-content: start; gap: 1rem; }
 .exampleHeading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .375rem .75rem; }
@@ -23,6 +23,7 @@
 .stack, .field { display: grid; min-width: 0; align-content: start; gap: 1rem; }
 .field { gap: .5rem; }
 .field > span { color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); }
+.glassStage { position: relative; display: grid; gap: .75rem; padding: 1.25rem; border-radius: var(--radius-lg); overflow: hidden; background: radial-gradient(circle at 15% 20%, hsl(var(--primary) / .22), transparent 55%), radial-gradient(circle at 85% 80%, hsl(var(--accent) / .2), transparent 55%), hsl(var(--background)); }
 .note { color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .fullWidth { grid-column: 1 / -1; }
 .tabExample { display: grid; min-width: 0; gap: .5rem; }
@@ -41,7 +42,7 @@
 .typeRow p { min-width: 0; overflow-wrap: anywhere; }
 .colorGrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem .75rem; }
 .colorTile { display: grid; min-width: 0; align-content: start; gap: .375rem; }
-.colorSwatch { display: block; height: 2.5rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-md); }
+.colorSwatch { display: block; height: 2.75rem; border-radius: var(--radius-md); box-shadow: inset 0 0 0 1px hsl(var(--foreground) / .08); }
 @media (hover: hover) and (pointer: fine) { .sidebar a:hover { background: hsl(var(--surface-hover)); color: hsl(var(--foreground)); } }
 @media (max-width: 1100px) { .layout { grid-template-columns: 136px minmax(0, 1fr); gap: 1.25rem; } .buttonGrid { grid-template-columns: minmax(0, 1fr); } .buttonGrid .stack { gap: .75rem; } .iconGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 720px) {

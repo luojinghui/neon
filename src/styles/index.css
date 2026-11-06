@@ -44,24 +44,24 @@
      Mode tones, neutral surfaces, status meanings and typography stay independent.
      Set data-skin on html for the app, or on a container for a local scope. */
   :root, [data-skin='orange'] {
-    --skin-primary-hue: 24;
-    --skin-primary-saturation: 85%;
-    --skin-accent-hue: 12;
-    --skin-accent-saturation: 75%;
+    --skin-primary-hue: 23;
+    --skin-primary-saturation: 78%;
+    --skin-accent-hue: 8;
+    --skin-accent-saturation: 62%;
   }
 
   [data-skin='blue'] {
-    --skin-primary-hue: 220;
-    --skin-primary-saturation: 76%;
-    --skin-accent-hue: 268;
-    --skin-accent-saturation: 68%;
+    --skin-primary-hue: 218;
+    --skin-primary-saturation: 66%;
+    --skin-accent-hue: 262;
+    --skin-accent-saturation: 56%;
   }
 
   [data-skin='violet'] {
-    --skin-primary-hue: 268;
-    --skin-primary-saturation: 68%;
-    --skin-accent-hue: 320;
-    --skin-accent-saturation: 65%;
+    --skin-primary-hue: 262;
+    --skin-primary-saturation: 56%;
+    --skin-accent-hue: 322;
+    --skin-accent-saturation: 54%;
   }
 
   /* 2. Mode-owned semantics. These values never depend on the selected skin.
@@ -69,88 +69,88 @@
   :root, .light {
     color-scheme: light;
     /* Preserve the original warm-orange palette, including its subtle role differences. */
-    --tone-solid: 58%;
-    --tone-hover: 50%;
+    --tone-solid: 60%;
+    --tone-hover: 53%;
     --tone-primary-desaturate: 0%;
-    --tone-soft: 94%;
-    --tone-soft-saturation: 80%;
+    --tone-soft: 95%;
+    --tone-soft-saturation: 74%;
     --tone-soft-hue-offset: 4;
-    --tone-accent-solid: 62%;
+    --tone-accent-solid: 64%;
     --tone-accent-desaturate: 0%;
-    --tone-accent-soft: 93%;
-    --tone-accent-soft-saturation: 60%;
+    --tone-accent-soft: 95%;
+    --tone-accent-soft-saturation: 55%;
     --tone-on-solid: 0 0% 100%;
-    --tone-focus-saturation: 80%;
-    --tone-sidebar-solid: 55%;
+    --tone-focus-saturation: 72%;
+    --tone-sidebar-solid: 56%;
     --tone-bubble-hue-offset: 3;
-    --tone-bubble-saturation: 76%;
-    --tone-bubble-solid: 92%;
+    --tone-bubble-saturation: 70%;
+    --tone-bubble-solid: 93%;
     --tone-bubble-text-saturation: 55%;
     --tone-bubble-text-solid: 30%;
 
-    --background: 36 30% 98%;
-    --surface: 36 30% 100%;
-    --surface-inset: 33 22% 95%;
-    --surface-hover: 33 20% 97%;
-    --surface-active: 30 18% 92%;
-    --foreground: 24 20% 18%;
-    --foreground-secondary: 24 12% 42%;
-    --foreground-muted: 24 8% 46%;
-    --border: 30 14% 88%;
-    --border-hover: 28 18% 78%;
+    --background: 34 33% 97.5%;
+    --surface: 34 40% 100%;
+    --surface-inset: 32 24% 94.5%;
+    --surface-hover: 32 26% 96.5%;
+    --surface-active: 30 20% 91.5%;
+    --foreground: 24 18% 19%;
+    --foreground-secondary: 24 11% 41%;
+    --foreground-muted: 24 7% 45%;
+    --border: 30 16% 90%;
+    --border-hover: 28 18% 80%;
 
-    --success: 152 50% 42%;
-    --success-soft: 152 35% 92%;
-    --warning: 42 85% 52%;
-    --warning-soft: 42 65% 93%;
-    --danger: 4 65% 56%;
-    --danger-soft: 4 45% 94%;
-    --info: 200 65% 50%;
-    --info-soft: 200 45% 93%;
+    --success: 152 42% 42%;
+    --success-soft: 152 32% 93%;
+    --warning: 40 78% 52%;
+    --warning-soft: 40 60% 93%;
+    --danger: 4 58% 57%;
+    --danger-soft: 4 42% 95%;
+    --info: 204 56% 51%;
+    --info-soft: 204 42% 94%;
 
     --overlay: 24 20% 14% / 0.35;
     --shadow-color: 24 15% 20%;
-    --tone-shadow-sm: 0.04;
-    --tone-shadow-md: 0.06;
-    --tone-shadow-lg: 0.08;
-    --tone-shadow-xl: 0.1;
+    --tone-shadow-sm: 0.035;
+    --tone-shadow-md: 0.05;
+    --tone-shadow-lg: 0.07;
+    --tone-shadow-xl: 0.09;
   }
 
   .dark {
     color-scheme: dark;
-    --tone-solid: 62%;
-    --tone-hover: 70%;
-    --tone-primary-desaturate: 5%;
-    --tone-soft: 20%;
-    --tone-soft-saturation: 40%;
+    --tone-solid: 64%;
+    --tone-hover: 71%;
+    --tone-primary-desaturate: 10%;
+    --tone-soft: 22%;
+    --tone-soft-saturation: 30%;
     --tone-soft-hue-offset: 0;
-    --tone-accent-solid: 65%;
-    --tone-accent-desaturate: 10%;
-    --tone-accent-soft: 20%;
-    --tone-accent-soft-saturation: 30%;
+    --tone-accent-solid: 67%;
+    --tone-accent-desaturate: 14%;
+    --tone-accent-soft: 22%;
+    --tone-accent-soft-saturation: 24%;
     --tone-on-solid: 0 0% 100%;
-    --tone-focus-saturation: 75%;
+    --tone-focus-saturation: 68%;
     --tone-sidebar-solid: 60%;
     --tone-bubble-hue-offset: 0;
-    --tone-bubble-saturation: 34%;
-    --tone-bubble-solid: 27%;
+    --tone-bubble-saturation: 28%;
+    --tone-bubble-solid: 28%;
     --tone-bubble-text-saturation: 0%;
     --tone-bubble-text-solid: 100%;
 
     /* Warm charcoal planes: page → card → inset controls, each a visible step
        lighter. Keep these neutral roles independent of the brand skin. */
-    --background: 28 8% 16%;
-    --surface: 28 7% 23%;
-    --surface-inset: 28 6% 30%;
-    --surface-hover: 28 7% 27%;
-    --surface-active: 28 6% 34%;
+    --background: 28 9% 14.5%;
+    --surface: 28 8% 20%;
+    --surface-inset: 28 7% 26%;
+    --surface-hover: 28 8% 24%;
+    --surface-active: 28 7% 30%;
     --foreground: 30 10% 92%;
     --foreground-secondary: 28 8% 80%;
     --foreground-muted: 26 6% 76%;
-    --border: 28 6% 36%;
+    --border: 28 6% 31%;
     --border-hover: 28 8% 44%;
 
-    --success: 152 45% 50%;
+    --success: 152 38% 52%;
     --success-soft: 152 25% 16%;
     --warning: 42 75% 58%;
     --warning-soft: 42 35% 16%;
@@ -188,10 +188,10 @@
     --chat-bubble-other-foreground: var(--foreground);
 
     --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / var(--tone-shadow-sm));
-    --shadow-md: 0 4px 12px hsl(var(--shadow-color) / var(--tone-shadow-md));
+    --shadow-md: 0 1px 2px hsl(var(--shadow-color) / var(--tone-shadow-sm)), 0 6px 16px -4px hsl(var(--shadow-color) / var(--tone-shadow-md));
     --shadow-lg: 0 8px 24px hsl(var(--shadow-color) / var(--tone-shadow-lg));
     --shadow-xl: 0 16px 48px hsl(var(--shadow-color) / var(--tone-shadow-xl));
-    --shadow-card: 0 2px 6px hsl(var(--shadow-color) / var(--tone-shadow-sm)), 0 12px 32px -12px hsl(var(--shadow-color) / var(--tone-shadow-xl));
+    --shadow-card: 0 0 0 1px hsl(var(--border) / .55), 0 1px 2px hsl(var(--shadow-color) / var(--tone-shadow-sm)), 0 8px 24px -14px hsl(var(--shadow-color) / var(--tone-shadow-xl));
   }
 
   html {

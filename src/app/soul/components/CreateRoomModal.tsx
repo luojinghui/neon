@@ -154,8 +154,8 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
               { value: 'private', label: '私密', description: '仅授权成员可加入', icon: <Icon name="lock" /> }
             ]} />
 
-            <div className={styles.entrySettings}>
-              {!isPrivate ? <>
+            {!isPrivate && <div className={styles.entrySettings}>
+              <>
                 <div className={styles.passwordHeading}>
                   <div className={styles.passwordCopy}>
                     <p className={styles.settingTitle}>进入密码 <span className={styles.optional}>可选</span></p>
@@ -171,11 +171,8 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
                     onChange={event => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
                     placeholder={isEditing && room?.hasPassword ? '留空表示保留原密码' : '设置 2–4 位数字或字母'} />
                 </div>
-              </> : <div className={styles.privateNote}>
-                <Icon name="lock" className={styles.privateIcon} />
-                <div className={styles.passwordCopy}><p className={styles.settingTitle}>留给受邀的朋友</p><p className={styles.settingDescription}>不在公共列表展示，授权成员无需密码即可进入。</p></div>
-              </div>}
-            </div>
+              </>
+            </div>}
           </div>
         </fieldset>
 

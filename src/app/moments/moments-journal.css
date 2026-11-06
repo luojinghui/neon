@@ -5,21 +5,23 @@
 
 .moments-screen .moment-scroll-area { padding: var(--app-page-top) 0 3rem; }
 
-.moment-journal-intro {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  max-width: 32rem;
-  align-items: center;
-  gap: 1rem 1.5rem;
-  margin-bottom: 1.25rem;
-  padding-block: 0.25rem 0.5rem;
-}
-
-.moment-journal-copy { min-width: 0; }
-.moment-journal-art { display: grid; grid-column: 2; grid-row: 1 / 3; width: 7rem; height: 6.25rem; place-items: center; background: radial-gradient(ellipse, hsl(var(--primary-soft) / 0.75), transparent 70%); pointer-events: none; }
-.moment-journal-actions { display: flex; grid-column: 1; align-items: center; gap: 0.5rem; }
-.moment-journal-intro h1 { color: hsl(var(--foreground)); font-size: var(--font-size-heading); font-weight: var(--font-weight-semibold); line-height: var(--line-height-heading); }
-.moment-journal-description { margin-top: 0.5rem; color: var(--moment-muted); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.moment-journal-intro { display: grid; max-width: 32rem; gap: 0.75rem; margin-bottom: 1.25rem; padding-block: 0; }
+.moment-journal-top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; }
+.moment-journal-copy { display: grid; min-width: 0; gap: 0.25rem; }
+.moment-journal-date { justify-self: start; padding: 0.125rem 0.625rem; border-radius: 9999px; background: hsl(var(--primary-soft)); color: hsl(var(--primary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); font-weight: var(--font-weight-medium); }
+.moment-journal-date:empty { display: none; }
+.moment-journal-intro h1 { margin-top: 0.25rem; color: hsl(var(--foreground)); font-size: var(--font-size-heading); font-weight: var(--font-weight-semibold); line-height: var(--line-height-heading); letter-spacing: -0.01em; }
+.moment-journal-description { color: var(--moment-muted); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.moment-journal-art { flex: none; display: grid; width: 4rem; height: 3.5rem; place-items: center; background: radial-gradient(circle, hsl(var(--primary-soft) / 0.8), transparent 68%); pointer-events: none; animation: moment-float 6s ease-in-out infinite; }
+.moment-journal-actions { display: flex; align-items: center; gap: 0.5rem; }
+.moment-journal-prompt { display: flex; min-width: 0; flex: 1; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.5rem 0 0.875rem; border: 0; border-radius: 9999px; background: hsl(var(--surface)); box-shadow: var(--shadow-card); color: hsl(var(--foreground-muted)); font-size: var(--font-size-body); text-align: start; cursor: pointer; transition: box-shadow 180ms ease, transform 180ms ease; }
+.moment-journal-prompt-text { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.moment-journal-prompt > em { flex: none; padding: 0.3125rem 0.875rem; border-radius: 9999px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: var(--font-size-caption); font-style: normal; font-weight: var(--font-weight-medium); transition: background-color 160ms ease; }
+.moment-journal-prompt:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.moment-journal-prompt:active { transform: scale(0.985); }
+@media (hover: hover) and (pointer: fine) { .moment-journal-prompt:hover { box-shadow: 0 0 0 1px hsl(var(--border-hover) / 0.7), var(--shadow-md); } .moment-journal-prompt:hover > em { background: hsl(var(--primary-hover)); } }
+@keyframes moment-float { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .moment-journal-art { animation: none; } .moment-journal-prompt { transition: none; } }
 
 .moments-screen .moment-primary-button,
 .moments-screen .moment-empty-state button {

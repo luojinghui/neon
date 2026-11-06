@@ -155,7 +155,6 @@ function SoulPage() {
               onClick={openCreate}
               className="w-9 shrink-0 sm:w-auto"
               aria-label="创建星球"
-              title="创建星球"
             >
               <Icon name="plus" />
               <span className="hidden sm:inline">创建星球</span>

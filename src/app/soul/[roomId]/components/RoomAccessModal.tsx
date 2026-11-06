@@ -21,9 +21,10 @@ export function RoomAccessModal({ onBack }: Props) {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    if (accessState === 'password-required') setPassword('');
+    if (accessState === 'password-required') { setPassword(''); setVerified(false); }
   }, [accessState]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -32,9 +33,14 @@ export function RoomAccessModal({ onBack }: Props) {
     setLocalError('');
     setSubmitting(true);
     try {
-      await soulChat.submitRoomPassword(password);
+      // A wrong password resolves false (the store returns to 'password-required' with accessError); it does not throw.
+      const ok = await soulChat.submitRoomPassword(password);
+      // On success keep the loading state until the store flips to 'granted' and this dialog unmounts.
+      setVerified(ok);
+      if (!ok) setPassword('');
     } catch (error) {
       setLocalError(error instanceof Error ? error.message : '验证失败，请重试');
+      setPassword('');
     } finally {
       setSubmitting(false);
     }
@@ -112,45 +118,45 @@ export function RoomAccessModal({ onBack }: Props) {
     );
   }
 
-  if (accessState !== 'password-required') return null;
+  // submitRoomPassword moves the store through 'joining'; keep the same dialog mounted meanwhile so it neither closes nor re-slides in.
+  const passwordFlow = accessState === 'password-required' || (accessState === 'joining' && (submitting || verified));
+  if (!passwordFlow) return null;
 
+  const valid = /^[A-Za-z0-9]{2,4}$/.test(password);
+  const busy = submitting || verified;
   return (
     <Modal title="验证星球密码" open footer={null} closable={false} keyboard={false} maskClosable={false} centered width={400}>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4 flex items-center gap-3 rounded-md bg-primary-soft p-3 text-primary">
+      <form onSubmit={handleSubmit} aria-busy={busy || undefined}>
+        <div className="mb-4 flex items-center gap-3 rounded-lg bg-primary-soft p-3 text-primary">
           <LockOutlined className="text-lg" />
-          <div>
-            <div className="text-sm font-medium">该星球需要密码</div>
-            <div className="mt-0.5 font-mono text-xs tracking-wider opacity-80">ID · {roomId}</div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium">{room?.name || '该星球需要密码'}</div>
+            <div className="mt-0.5 font-mono text-xs tracking-wider opacity-80">ID · {room?.code || roomId}</div>
           </div>
         </div>
-        <label htmlFor="room-access-password" className="mb-1 block text-sm font-medium text-foreground">
-          密码
-        </label>
+        <label htmlFor="room-access-password" className="mb-1.5 block text-sm font-medium text-foreground">密码</label>
         <Input
           id="room-access-password"
-          autoFocus
           type="password"
           inputMode="text"
           autoComplete="off"
           value={password}
           minLength={2}
           maxLength={4}
-          onChange={(event) => setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+          disabled={busy}
+          status={localError || accessError ? 'error' : undefined}
+          onChange={(event) => { setPassword(event.target.value.replace(/[^A-Za-z0-9]/g, '')); if (localError) setLocalError(''); }}
           placeholder="输入 2-4 位数字或字母"
           className="w-full"
         />
-        {(localError || accessError) && <p className="mt-2 text-xs text-danger">{localError || accessError}</p>}
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="ghost" type="button" onClick={onBack} className="px-4 py-2 text-sm font-medium">
-            返回列表
-          </Button>
-          <Button variant="primary"
-            type="submit"
-            disabled={submitting || !/^[A-Za-z0-9]{2,4}$/.test(password)}
-            className="px-5 py-2 text-sm font-medium"
-          >
-            {submitting ? '验证中...' : '验证并进入'}
+        <p className="mt-2 min-h-[1.25rem] text-xs" role={localError || accessError ? 'alert' : 'status'}
+          style={{ color: localError || accessError ? 'hsl(var(--danger))' : 'hsl(var(--foreground-muted))' }}>
+          {verified ? '验证通过，正在进入星球…' : submitting ? '正在验证…' : localError || accessError || ''}
+        </p>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button variant="ghost" type="button" onClick={onBack} disabled={busy} className="px-4 py-2 text-sm font-medium">返回列表</Button>
+          <Button variant="primary" type="submit" loading={busy} disabled={busy || !valid} className="px-5 py-2 text-sm font-medium">
+            {verified ? '进入中' : submitting ? '验证中' : '验证并进入'}
           </Button>
         </div>
       </form>

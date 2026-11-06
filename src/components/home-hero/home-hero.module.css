@@ -1,0 +1,18 @@
+.hero { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; text-align: center; isolation: isolate; }
+.glow { position: absolute; inset: -4rem -2rem -1rem; z-index: -1; overflow: hidden; pointer-events: none; -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%); }
+.glow i { position: absolute; width: 22rem; height: 22rem; border-radius: 50%; filter: blur(48px); opacity: .5; animation: drift 14s ease-in-out infinite alternate; }
+.glow i:first-child { left: 50%; top: -2rem; margin-left: -17rem; background: hsl(var(--primary-soft)); }
+.glow i:last-child { left: 50%; top: 1rem; margin-left: -3rem; background: hsl(var(--accent-soft)); animation-delay: -6s; }
+.star { position: absolute; z-index: -1; border-radius: 50%; background: hsl(var(--primary) / .55); animation: twinkle 3.2s ease-in-out infinite; pointer-events: none; }
+.stage { --lean-x: 0; --lean-y: 0; position: relative; display: grid; place-items: center; width: min(100%, 22rem); padding: .25rem 0 .75rem; }
+.planet { display: grid; place-items: center; padding: .5rem; border: 0; border-radius: 50%; background: none; cursor: pointer; transform: translate3d(calc(var(--lean-x) * 10px), calc(var(--lean-y) * 6px), 0) rotate(calc(var(--lean-x) * 4deg)); transition: transform 280ms cubic-bezier(.2,.8,.2,1); -webkit-tap-highlight-color: transparent; }
+.planet:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 4px; }
+.planet:active .bounce { transform: scale(.92); }
+.bounce { display: grid; animation: pop 560ms cubic-bezier(.34,1.56,.64,1); transition: transform 140ms ease; }
+.bubble { position: absolute; top: -.25rem; left: 50%; z-index: 2; max-width: 16rem; padding: .375rem .75rem; border-radius: 9999px; background: hsl(var(--surface)); box-shadow: var(--shadow-card); color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); white-space: nowrap; opacity: 0; pointer-events: none; transform: translate(-50%, 6px) scale(.9); transition: opacity 180ms ease, transform 260ms cubic-bezier(.34,1.56,.64,1); }
+.bubble[data-show] { opacity: 1; transform: translate(-50%, -8px) scale(1); }
+.title { color: hsl(var(--foreground)); font-size: var(--font-size-display); line-height: var(--line-height-display); font-weight: var(--font-weight-semibold); letter-spacing: -.01em; }
+@keyframes drift { to { transform: translate(2.5rem, 1.5rem) scale(1.12); } }
+@keyframes twinkle { 0%, 100% { opacity: .15; transform: scale(.8); } 50% { opacity: .8; transform: scale(1.2); } }
+@keyframes pop { 0% { transform: scale(1); } 35% { transform: scale(1.14) rotate(-6deg); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .glow i, .star, .bounce { animation: none; } .planet, .bubble { transition: none; } }

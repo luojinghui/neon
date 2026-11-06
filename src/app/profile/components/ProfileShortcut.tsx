@@ -18,7 +18,6 @@ export function ProfileShortcut({ returnTo = '/' }: { returnTo?: string }) {
       href={`${createProfileHref('', { returnTo })}${unread > 0 ? '&section=messages' : ''}`}
       className={buttonClassName({ iconOnly: true, className: 'relative' })}
       aria-label={profile ? `打开${profile.name}的个人中心` : '打开个人中心'}
-      title={profile ? `${profile.name} · 个人中心` : '个人中心'}
     >
       {unread > 0 && <span aria-label={`${unread} 条未读私信`} className="absolute right-0.5 top-0.5 z-10 h-2.5 w-2.5 rounded-full border-2 border-surface bg-danger" />}
       {profile ? (

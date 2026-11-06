@@ -72,3 +72,16 @@
   .moment-comment-sheet .moment-comment-list { padding-right: 0.8rem; padding-left: 0.8rem; }
   .moment-comment-sheet .moment-comment-footer { padding-right: 1rem; padding-left: 1rem; }
 }
+
+/* Plain comment list: avatar, name + time, text, then small text actions. No fills, no hover states. */
+.moment-comment .moment-comment-main[data-ui-button] { height: auto; min-height: 0; justify-content: flex-start; align-items: flex-start; padding: 0; border-radius: 0; background: transparent !important; box-shadow: none; text-align: start; white-space: normal; font-weight: var(--font-weight-regular); cursor: default; }
+.moment-comment .moment-comment-main strong { font-weight: var(--font-weight-medium); }
+.moment-comment { padding: 0.25rem 0; }
+.moment-comment .moment-comment-actions { display: flex; gap: 1rem; margin: 0.25rem 0 0 2.65rem; }
+.moment-comment .moment-comment-actions button[data-ui-button] { height: auto; min-height: 0; gap: 0.25rem; padding: 0; border-radius: 0; background: transparent !important; box-shadow: none; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); }
+@media (hover: hover) and (pointer: fine) { .moment-comment .moment-comment-actions button[data-ui-button]:hover { color: hsl(var(--foreground)); } .moment-comment .moment-comment-actions button[data-ui-button]:last-child:not(:first-child):hover { color: hsl(var(--danger)); } }
+.moment-comment-edit { margin-left: 2.65rem; }
+
+/* The antd wrapper paints its own square shadow behind the rounded sheet; the section owns the shadow and radius. */
+.moment-comment-sheet .ant-drawer-content-wrapper, .moment-comment-sheet .moment-comment-sheet-wrapper { background: transparent; box-shadow: none; }
+.moment-comment-sheet .ant-drawer-content { background: transparent; }

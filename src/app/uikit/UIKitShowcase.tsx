@@ -122,6 +122,14 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
               { key: 'disabled', label: '禁用', disabled: true }
             ]} />
           </div>)}</div></Example>
+          <div className={styles.fullWidth} style={{ marginTop: '1.25rem' }}><Example title="玻璃质感 · 拖拽选择" name="Tabs">
+            <div className={styles.glassStage}>
+              <Tabs block size="lg" aria-label="拖拽选择示例" items={[
+                { key: 'public', label: '公共' }, { key: 'owned', label: '我的' }, { key: 'joined', label: '已加入' }, { key: 'recent', label: '最近' }
+              ]} />
+              <span className={styles.note}>PC 按住滑块拖动，App 触摸滑动；经过每个选项时有轻触反馈，松手确认，Esc 取消。</span>
+            </div>
+          </Example></div>
         </Section>
 
         <Section id="display" title="内容展示">
