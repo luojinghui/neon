@@ -52,7 +52,7 @@ export function MomentActions({ moment, appearance }: { moment: Moment; appearan
 
   return (
     <>
-      <footer className="moment-actions" aria-label="心迹互动">
+      <footer className="moment-actions" aria-label="星语互动">
         <Button variant="ghost" feedback="none" size="sm" type="button" className="moment-action" icon={<Icon name="heart" active={reaction.liked} />} onClick={() => void toggleLike()} disabled={liking} aria-busy={liking || undefined} aria-label={reaction.liked ? '取消点赞' : '点赞'} aria-pressed={reaction.liked}>
           <span className="moment-action-count">{reaction.likeCount > 0 ? reaction.likeCount : ''}</span>
         </Button>

@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import { Button } from '@/components/ui/button';
 import { PlanetIllustration } from '@/components/ui/planet-illustration';
 import { HomeGreeting } from '@/components/home-greeting';
 import styles from './home-hero.module.css';
 
-const whispers = ['嗨，欢迎着陆 ✨', '今天过得怎么样？', '去星球逛逛吧', '有想传的东西吗？', '留下一点心迹吧', '轻轻戳我一下～'];
+const whispers = ['嗨，欢迎着陆 ✨', '今天过得怎么样？', '去星球逛逛吧', '有想传的东西吗？', '留下一点星河吧', '轻轻戳我一下～'];
 const stars = [
   { x: '8%', y: '22%', d: '0s', s: 4 }, { x: '20%', y: '64%', d: '1.2s', s: 3 }, { x: '34%', y: '12%', d: '2.1s', s: 3 },
   { x: '68%', y: '16%', d: '.6s', s: 4 }, { x: '82%', y: '58%', d: '1.7s', s: 3 }, { x: '92%', y: '26%', d: '2.6s', s: 4 }
@@ -43,9 +44,9 @@ export function HomeHero() {
     <div className={styles.glow} aria-hidden="true"><i /><i /></div>
     {stars.map((star, i) => <i key={i} className={styles.star} aria-hidden="true" style={{ left: star.x, top: star.y, width: star.s, height: star.s, animationDelay: star.d }} />)}
     <div ref={stage} className={styles.stage} onPointerMove={lean} onPointerLeave={rest}>
-      <button type="button" className={styles.planet} onClick={poke} aria-label="和星球打个招呼">
+      <Button variant="ghost" data-ui-surface="" type="button" className={styles.planet} onClick={poke} aria-label="和星球打个招呼">
         <span key={bounce} className={styles.bounce}><PlanetIllustration size="lg" /></span>
-      </button>
+      </Button>
       <span className={styles.bubble} data-show={bubble || undefined} role="status" aria-live="polite">{bubble ? whispers[index] : ''}</span>
     </div>
     <h1 className={styles.title}>Soul 星球</h1>

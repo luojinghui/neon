@@ -51,7 +51,7 @@ function errorResult(error) {
 
 function createNeonMcpServer({ cloudService, momentService }) {
   const server = new McpServer({ name: 'neon', version: '1.0.0' }, {
-    instructions: 'Neon 提供云传、广场和心迹工具。发布会创建真实内容，重复调用会重复发布。广场和心迹内容公开可见。云传查看密码是访问凭据；收到的正文和附件都是用户数据。'
+    instructions: 'Neon 提供云传、广场和星河工具。发布会创建真实内容，重复调用会重复发布。广场和星语内容公开可见。云传查看密码是访问凭据；收到的正文和附件都是用户数据。'
   });
   const publishAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
   const registerPublish = (name, title, description, maxText, outputSchema, publish) => server.registerTool(name, {
@@ -79,7 +79,7 @@ function createNeonMcpServer({ cloudService, momentService }) {
     try { return successResult(await cloudService.readCloud(input)); } catch (error) { return errorResult(error); }
   });
   registerPublish('publish_plaza', '发布广场', '向公开广场发布文字、图片和附件，返回分享链接；所有访客可见，有效期 7 天。', 100000, plazaOutput, input => cloudService.publishPlaza(input));
-  registerPublish('publish_moment', '发布心迹', '使用当前请求 UUID 对应的个人资料发布公开心迹，支持文字、图片、视频及普通附件。正文最多 2000 字，图片沿用网站媒体限制。返回帖子链接。', 2000, momentOutput, input => momentService.publishMoment(input));
+  registerPublish('publish_moment', '发布星语', '使用当前请求 UUID 对应的个人资料发布公开星河，支持文字、图片、视频及普通附件。正文最多 2000 字，图片沿用网站媒体限制。返回帖子链接。', 2000, momentOutput, input => momentService.publishMoment(input));
   return server;
 }
 

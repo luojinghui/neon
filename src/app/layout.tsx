@@ -6,6 +6,7 @@ import { PWA_ICON_VERSION, PWA_NAME, PWA_THEME_COLORS } from '@/lib/pwa';
 import '@/styles/index.css';
 import { SocialProvider } from './social/SocialProvider';
 import { PushNotifications } from '@/components/push/PushNotifications';
+import { skinBootScript } from '@/components/theme/skin-boot';
 
 export const metadata: Metadata = {
   title: 'Soul',
@@ -49,6 +50,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body suppressHydrationWarning className={cn('font-sans antialiased bg-background text-foreground')}>
+        <script dangerouslySetInnerHTML={{ __html: skinBootScript }} />
         <Suspense fallback={null}>
           <ClientThemeWrapper><SocialProvider /><PushNotifications />{children}</ClientThemeWrapper>
         </Suspense>

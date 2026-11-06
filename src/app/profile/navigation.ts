@@ -19,7 +19,7 @@ export function getProfileBackLabel(returnTo: string): string {
   if (returnTo === '/soul') return '星球';
   if (returnTo === '/cloud') return '云传';
   if (isPlazaReturnTo(returnTo)) return '广场';
-  if (returnTo === '/moments') return '心迹';
+  if (returnTo === '/moments') return '星河';
   if (returnTo === '/doodle') return '漫游相机';
   if (returnTo === '/profile') return '个人中心';
   return '首页';

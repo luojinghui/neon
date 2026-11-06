@@ -24,7 +24,6 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
   const isEditing = Boolean(room);
   const formId = useId();
   const [name, setName] = useState('');
-  const [tags, setTags] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [passwordEnabled, setPasswordEnabled] = useState(false);
@@ -35,7 +34,6 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
   useEffect(() => {
     if (!open) return;
     setName(room?.name || '');
-    setTags(room?.tags.join('、') || '');
     setDescription(room?.description || '');
     setIsPrivate(room?.isPrivate || false);
     setPasswordEnabled(room?.hasPassword || false);
@@ -51,10 +49,6 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
     const input: CreateRoomInput = {
       name,
       description,
-      tags: tags
-        .split(/[,，、\s]+/)
-        .map((tag) => tag.trim())
-        .filter(Boolean),
       isPrivate,
       passwordEnabled,
       password
@@ -106,26 +100,8 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
         </div>
 
         <div>
-          <div id="room-tags-label" className="mb-1.5 block text-body font-medium text-foreground">
-            标签 <span className="font-normal text-foreground-muted">· 可选</span>
-          </div>
-          <Input
-            id="room-tags"
-            aria-labelledby="room-tags-label"
-            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-            focusDecoration={<PlanetIllustration size="sm" variant="comet" />}
-            value={tags}
-            maxLength={80}
-            disabled={isSaving}
-            onChange={(event) => setTags(event.target.value)}
-            placeholder="日常、音乐、治愈，最多 5 个"
-            className="w-full"
-          />
-        </div>
-
-        <div>
           <div id="room-description-label" className="mb-1.5 block text-body font-medium text-foreground">
-            描述 <span className="font-normal text-foreground-muted">· 可选</span>
+            描述
           </div>
           <Textarea
             id="room-description"
@@ -158,7 +134,7 @@ export function CreateRoomModal({ open, room, onClose, onSaved }: Props) {
               <>
                 <div className={styles.passwordHeading}>
                   <div className={styles.passwordCopy}>
-                    <p className={styles.settingTitle}>进入密码 <span className={styles.optional}>可选</span></p>
+                    <p className={styles.settingTitle}>进入密码</p>
                   </div>
                   <Switch id="room-password-enabled" checked={passwordEnabled} disabled={isSaving}
                     aria-label="开启进入密码" aria-controls="room-password-panel"

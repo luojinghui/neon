@@ -18,14 +18,14 @@ export function MomentPermalink() {
   useEffect(() => {
     if (!id) return;
     if (!/^[A-Za-z0-9_-]{16}$/.test(id)) {
-      setResult({ id, moment: null, error: '心迹地址无效' });
+      setResult({ id, moment: null, error: '星语地址无效' });
       return;
     }
     const controller = new AbortController();
     getMoment(id, controller.signal).then((moment) => {
       if (!controller.signal.aborted) setResult({ id, moment, error: '' });
     }).catch((error) => {
-      if (!controller.signal.aborted) setResult({ id, moment: null, error: error instanceof Error ? error.message : '心迹加载失败' });
+      if (!controller.signal.aborted) setResult({ id, moment: null, error: error instanceof Error ? error.message : '星河加载失败' });
     });
     return () => controller.abort();
   }, [id]);
@@ -38,7 +38,7 @@ export function MomentPermalink() {
   };
 
   if (!id) return null;
-  if (result?.id !== id) return <p className="px-4 py-2 text-sm text-foreground-muted" role="status">正在读取指定心迹…</p>;
+  if (result?.id !== id) return <p className="px-4 py-2 text-sm text-foreground-muted" role="status">正在读取指定星语…</p>;
   if (result.error) return <div className="moment-inline-error" role="alert">{result.error}<Button variant="ghost" type="button" className="ml-3" onClick={close}>关闭</Button></div>;
   if (!result.moment) return null;
   return <MomentViewer moment={result.moment} onClose={close} onDeleted={() => { close(); void refreshMomentFeed(false, true); }} />;

@@ -57,7 +57,7 @@ export interface ChatRoom {
   code: string;
   name: string;
   description: string;
-  tags: string[];
+  tags?: string[];
   onlineCount?: number;
   status: 'online';
   isPrivate: boolean;
@@ -77,7 +77,6 @@ export interface ChatRoom {
 export interface CreateRoomInput {
   name: string;
   description: string;
-  tags: string[];
   isPrivate: boolean;
   passwordEnabled: boolean;
   password?: string;

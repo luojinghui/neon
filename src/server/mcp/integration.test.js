@@ -146,7 +146,7 @@ integration('只配置 UUID 的真实 HTTP MCP 客户端完成四工具图文附
   await assert.rejects(plazaRepository.get(plaza.messageId), { status: 404 });
 });
 
-integration('两个用户仅使用各自 UUID 并发发布心迹，作者身份相互隔离', async (t) => {
+integration('两个用户仅使用各自 UUID 并发发布星语，作者身份相互隔离', async (t) => {
   const { moments, ownerUuid, profile, secondUuid, secondProfile, base, connect } = await createFixture(t, 'multi-user');
   const [first, second] = await Promise.all([connect(ownerUuid), connect(secondUuid)]);
   const requests = Array.from({ length: 6 }, (_, index) => ({

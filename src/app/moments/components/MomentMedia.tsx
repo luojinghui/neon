@@ -28,7 +28,7 @@ export function MomentMediaView({ media, immersive = false }: Props) {
   if (!media.length) return null;
 
   return (
-    <div className={`moment-media-view${immersive ? ' moment-media-view-immersive' : ''}`} role="region" aria-label="心迹图片与视频">
+    <div className={`moment-media-view${immersive ? ' moment-media-view-immersive' : ''}`} role="region" aria-label="星语图片与视频">
       {images.length > 0 && (
         <div
           className="moment-media-grid"
@@ -49,7 +49,7 @@ export function MomentMediaView({ media, immersive = false }: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.url}
-                alt={item.name || `心迹图片 ${index + 1}`}
+                alt={item.name || `星语图片 ${index + 1}`}
                 className="moment-media-image"
                 loading="lazy"
                 decoding="async"
@@ -66,7 +66,7 @@ export function MomentMediaView({ media, immersive = false }: Props) {
         </div>
       )}
       {selectedIndex >= 0 && (
-        <ImageViewer images={images} currentIndex={selectedIndex} onSelect={setSelectedId} onClose={closePreview} title="心迹影像" />
+        <ImageViewer images={images} currentIndex={selectedIndex} onSelect={setSelectedId} onClose={closePreview} title="星河影像" />
       )}
       {videos.length > 0 && (
         <div className="moment-media-video-list">
@@ -75,7 +75,7 @@ export function MomentMediaView({ media, immersive = false }: Props) {
               key={item.id}
               src={item.url}
               className="moment-media-video"
-              label={`心迹视频 ${index + 1}`}
+              label={`星语视频 ${index + 1}`}
             />
           ))}
         </div>

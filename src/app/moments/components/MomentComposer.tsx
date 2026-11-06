@@ -125,7 +125,7 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
     const accepted = Array.from(files).filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'));
     if (accepted.length !== files.length) setError('仅支持图片和视频文件');
     setMedia((current) => [...current, ...accepted].slice(0, 9));
-    if (currentMediaCount(media.length, accepted.length) > 9) setError('每条心迹最多添加 9 个图片或视频');
+    if (currentMediaCount(media.length, accepted.length) > 9) setError('每条星语最多添加 9 个图片或视频');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -275,14 +275,14 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
       }}>
         <header className="moment-composer-head">
           <Button variant="ghost" type="button" onClick={close} disabled={saving}>取消</Button>
-          <h2 id="moment-composer-heading">发布心迹</h2>
+          <h2 id="moment-composer-heading">发布星语</h2>
           <Button variant="primary" type="button" onClick={() => void publish()} disabled={saving || recording || requestingMicrophone}>{saving && <LoadingOutlined />}{saving ? '发布中' : '发布'}</Button>
         </header>
 
         <div className="moment-composer-body">
           <label className="moment-composer-text">
-            <span className="sr-only">心迹文字</span>
-            <Textarea aria-label="心迹文字" value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={2000} rows={5} showCount placeholder="此刻，想说点什么……" autoFocus />
+            <span className="sr-only">星语文字</span>
+            <Textarea aria-label="星语文字" value={text} disabled={saving} onChange={(event) => setText(event.target.value)} maxLength={2000} rows={5} showCount placeholder="此刻，想说点什么……" autoFocus />
           </label>
 
           {media.length > 0 && (

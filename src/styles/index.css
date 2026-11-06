@@ -64,6 +64,20 @@
     --skin-accent-saturation: 54%;
   }
 
+  [data-skin='green'] {
+    --skin-primary-hue: 160;
+    --skin-primary-saturation: 44%;
+    --skin-accent-hue: 192;
+    --skin-accent-saturation: 48%;
+  }
+
+  [data-skin='rose'] {
+    --skin-primary-hue: 342;
+    --skin-primary-saturation: 60%;
+    --skin-accent-hue: 16;
+    --skin-accent-saturation: 62%;
+  }
+
   /* 2. Mode-owned semantics. These values never depend on the selected skin.
      .light also establishes an explicit light scope inside a dark document. */
   :root, .light {
@@ -139,11 +153,11 @@
 
     /* Warm charcoal planes: page → card → inset controls, each a visible step
        lighter. Keep these neutral roles independent of the brand skin. */
-    --background: 28 9% 14.5%;
-    --surface: 28 8% 20%;
-    --surface-inset: 28 7% 26%;
-    --surface-hover: 28 8% 24%;
-    --surface-active: 28 7% 30%;
+    --background: 28 8% 16%;
+    --surface: 28 7% 23%;
+    --surface-inset: 28 6% 30%;
+    --surface-hover: 28 7% 27%;
+    --surface-active: 28 6% 34%;
     --foreground: 30 10% 92%;
     --foreground-secondary: 28 8% 80%;
     --foreground-muted: 26 6% 76%;

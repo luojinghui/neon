@@ -31,7 +31,7 @@ test('creates persistent mixed-media moments and lists them newest first', async
   const fixture = createFixture();
   try {
     const first = await fixture.repository.createMoment(
-      { ownerUuid: OWNER_UUID, text: '第一条心迹', location: { latitude: 39.9, longitude: 116.4, label: '北京' } },
+      { ownerUuid: OWNER_UUID, text: '第一条星语', location: { latitude: 39.9, longitude: 116.4, label: '北京' } },
       { media: [{ buffer: Buffer.from('image-one'), mimeType: 'image/jpeg', name: 'sunset.jpg' }] }
     );
     fixture.setNow('2026-09-14T09:00:00.000Z');
@@ -165,7 +165,7 @@ test('deleting a profile removes its moments, authored comments, and dangling re
   const fixture = createFixture();
   try {
     const ownedMoment = await fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text: '会随人员删除' });
-    await fixture.repository.createComment(ownedMoment.id, OTHER_UUID, { text: '心迹内的评论' });
+    await fixture.repository.createComment(ownedMoment.id, OTHER_UUID, { text: '星河内的评论' });
     const retainedMoment = await fixture.repository.createMoment({ ownerUuid: OTHER_UUID, text: '应继续保留' });
     const authoredComment = await fixture.repository.createComment(retainedMoment.id, OWNER_UUID, { text: '需要清理的评论' });
     const retainedReply = await fixture.repository.createComment(retainedMoment.id, THIRD_UUID, { text: '保留的回复', replyToCommentId: authoredComment.id });
@@ -205,7 +205,7 @@ test('persists 2000-character moments and rejects text beyond the limit', async 
     assert.equal(reloaded.getMoment(moment.id).text, text);
     await assert.rejects(
       () => fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text: `${text}迹` }),
-      { code: 'MOMENT_TEXT_INVALID', message: '心迹文字不能超过 2000 个字符' }
+      { code: 'MOMENT_TEXT_INVALID', message: '星语文字不能超过 2000 个字符' }
     );
   } finally {
     await cleanupFixture(fixture);
@@ -275,7 +275,7 @@ test('concurrent likes across repository instances do not duplicate likes or los
 test('legacy moments without likes load as unliked and can persist their first like', async () => {
   const fixture = createFixture();
   try {
-    const moment = await fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text: '旧版心迹' });
+    const moment = await fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text: '旧版星河' });
     delete moment.likedBy;
     fs.writeFileSync(fixture.repository.dataFile, JSON.stringify({ version: 1, moments: [moment] }));
     const legacy = new MomentRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.repository.uploadDirectory });
@@ -285,7 +285,7 @@ test('legacy moments without likes load as unliked and can persist their first l
     assert.deepEqual(await legacy.setMomentLiked(moment.id, OWNER_UUID, true), { liked: true, likeCount: 1 });
     const reloaded = new MomentRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.repository.uploadDirectory });
     assert.deepEqual(reloaded.getMoment(moment.id).likedBy, [OWNER_UUID]);
-    assert.equal(reloaded.getMoment(moment.id).text, '旧版心迹');
+    assert.equal(reloaded.getMoment(moment.id).text, '旧版星河');
   } finally {
     await cleanupFixture(fixture);
   }
@@ -294,7 +294,7 @@ test('legacy moments without likes load as unliked and can persist their first l
 test('deleting a profile cleans its likes even when it owns no moments or comments', async () => {
   const fixture = createFixture();
   try {
-    const moment = await fixture.repository.createMoment({ ownerUuid: OTHER_UUID, text: '保留的心迹' });
+    const moment = await fixture.repository.createMoment({ ownerUuid: OTHER_UUID, text: '保留的星河' });
     await fixture.repository.setMomentLiked(moment.id, OWNER_UUID, true);
     await fixture.repository.setMomentLiked(moment.id, THIRD_UUID, true);
     assert.deepEqual(await fixture.repository.deleteByOwner(OWNER_UUID), { count: 0, commentCount: 0 });

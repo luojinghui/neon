@@ -5,7 +5,7 @@ import type { MomentAttachment } from '../types';
 export function MomentAttachments({ attachments = [] }: { attachments?: MomentAttachment[] }) {
   if (!attachments.length) return null;
   return (
-    <ul className="mx-4 grid min-w-0 gap-2" aria-label="心迹附件">
+    <ul className="mx-4 grid min-w-0 gap-2" aria-label="星语附件">
       {attachments.map((file) => (
         <li key={file.id} className="min-w-0">
           <a href={file.url} download={file.name} className={buttonClassName({ block: true, className: 'min-w-0 justify-start' })}>

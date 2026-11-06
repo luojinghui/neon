@@ -49,9 +49,9 @@ export function MomentCard({ moment, onDeleted }: Props) {
   const remove = () => {
     if (deleting) return;
     modal.confirm({
-      title: '删除整条心迹？',
+      title: '删除整条星语？',
       content: '正文、媒体、语音和全部评论都会被永久删除。',
-      okText: '删除心迹',
+      okText: '删除星语',
       cancelText: '取消',
       async onOk() {
         setDeleting(true);
@@ -94,7 +94,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
         </div>
         {moment.canDelete && (
           <Dropdown menu={menu} trigger={['click']} placement="bottomRight">
-            <Button variant="ghost" iconOnly type="button" aria-label="管理这条心迹"><MoreOutlined /></Button>
+            <Button variant="ghost" iconOnly type="button" aria-label="管理这条星语"><MoreOutlined /></Button>
           </Dropdown>
         )}
       </header>

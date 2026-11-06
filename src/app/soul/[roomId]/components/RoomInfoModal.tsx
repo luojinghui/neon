@@ -121,7 +121,6 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
         roomId: room.id,
         name: room.name,
         description: room.description,
-        tags: room.tags,
         isPrivate: room.isPrivate,
         passwordEnabled: enabled,
         password: enabled ? password : ''
@@ -218,7 +217,6 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
           </div>
 
           <section className="mt-5"><h3 className="text-xs font-medium text-foreground-muted">简介</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-foreground-secondary">{room.description || '暂无简介'}</p></section>
-          {room.tags.length > 0 && <section className="mt-4"><h3 className="text-xs font-medium text-foreground-muted">标签</h3><div className="mt-2 flex flex-wrap gap-1.5">{room.tags.map((tag) => <span key={tag} className="rounded-sm bg-surface-inset px-2 py-1 text-xs font-medium text-foreground-secondary">{tag}</span>)}</div></section>}
 
           <dl className="mt-5 rounded-lg bg-surface-inset px-4 py-2 text-sm">
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">可见范围</dt><dd className="font-medium text-foreground">{room.isPrivate ? '私密星球' : '公开星球'}</dd></div>

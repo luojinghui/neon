@@ -129,17 +129,17 @@ export function MomentDataTable(props: Props) {
   };
   const columns: TableColumnsType<Moment> = [
     { title: '作者', width: 180, render: (_, item) => <div>{item.author.name}<p className="text-xs text-foreground-muted">@{item.author.userId}</p></div> },
-    { title: '心迹内容', render: (_, item) => <div><p className="line-clamp-2 max-w-md whitespace-pre-wrap break-words">{item.text || '媒体心迹'}</p><span className="text-xs text-foreground-muted">{item.media.length} 个影像{item.voice ? ' · 含语音' : ''}{item.location ? ` · ${item.location.label || '含位置'}` : ''}</span></div> },
+    { title: '星语内容', render: (_, item) => <div><p className="line-clamp-2 max-w-md whitespace-pre-wrap break-words">{item.text || '媒体星河'}</p><span className="text-xs text-foreground-muted">{item.media.length} 个影像{item.voice ? ' · 含语音' : ''}{item.location ? ` · ${item.location.label || '含位置'}` : ''}</span></div> },
     { title: '互动', width: 120, render: (_, item) => `${item.likeCount} 赞 / ${item.commentCount} 评论` },
     { title: '发布时间', width: 180, render: (_, item) => date(item.createdAt) },
-    { title: '操作', width: 150, render: (_, item) => <div className="flex gap-1"><Button variant="ghost" type="button" size="sm" onClick={() => setSelected(item)}>查看管理</Button><Popconfirm title="删除这条心迹及全部媒体和评论？" okText="删除" cancelText="取消" onConfirm={() => remove(item)}><Button variant="ghost" disabled={busy}>删除</Button></Popconfirm></div> }
+    { title: '操作', width: 150, render: (_, item) => <div className="flex gap-1"><Button variant="ghost" type="button" size="sm" onClick={() => setSelected(item)}>查看管理</Button><Popconfirm title="删除这条星语及全部媒体和评论？" okText="删除" cancelText="取消" onConfirm={() => remove(item)}><Button variant="ghost" disabled={busy}>删除</Button></Popconfirm></div> }
   ];
   return <section>
-    <h2 className="mb-2 text-lg font-semibold">全部心迹</h2><p className="mb-4 text-xs text-foreground-muted">查看所有用户的文字、影像、语音、位置和评论，可删除心迹或单条评论。</p>
-    <Input.Search className="mb-4 max-w-md" placeholder="搜索心迹文字或 ID" aria-label="搜索全部心迹" onSearch={(value) => { setSearch(value); setPage(1); }} allowClear />
+    <h2 className="mb-2 text-lg font-semibold">全部星语</h2><p className="mb-4 text-xs text-foreground-muted">查看所有用户的文字、影像、语音、位置和评论，可删除星语或单条评论。</p>
+    <Input.Search className="mb-4 max-w-md" placeholder="搜索星语文字或 ID" aria-label="搜索全部星语" onSearch={(value) => { setSearch(value); setPage(1); }} allowClear />
     <LoadError error={error} retry={() => void load()} />
     <Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ current: page, pageSize: 20, total: data?.total || 0, onChange: setPage, showSizeChanger: false }} />
-    <Modal title="心迹管理" open={Boolean(selected)} onCancel={() => { if (!busy) setSelected(null); }} footer={null} width={800} destroyOnHidden>
+    <Modal title="星语管理" open={Boolean(selected)} onCancel={() => { if (!busy) setSelected(null); }} footer={null} width={800} destroyOnHidden>
       {selected && <div className="max-h-[70vh] space-y-4 overflow-y-auto">
         <div>{selected.author.name} · @{selected.author.userId}<p className="text-xs text-foreground-muted">{date(selected.createdAt)} · {selected.likeCount} 赞</p></div>
         <p className="whitespace-pre-wrap break-words">{selected.text}</p>

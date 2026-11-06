@@ -44,16 +44,13 @@ export function ChatRoomCard({ room, onClick, onEdit, onDelete }: Props) {
       <div className={styles.cardContent}>
         <div className={styles.heading}><h3 className={styles.title}>{room.name}</h3></div>
         <p className={styles.description}>{room.description || '留一个位置，聊聊生活里的小事。'}</p>
-        {room.tags.length > 0 && <div className={styles.tags}>
-          {room.tags.slice(0, 3).map(tag => <span key={tag} className={styles.tag}>#{tag}</span>)}
-        </div>}
         <div className={styles.footer}>
           <span className={styles.roomCode}>
             <Icon name={room.isPrivate ? 'lock' : 'globe'} />
             {room.hasPassword && <Icon name="lock" label="需要密码" />}
             <span>{room.isPrivate ? '私密' : '公共'}</span>
           </span>
-          <span className={styles.enter}>去聊聊 <Icon name="arrow-right" className={styles.enterArrow} /></span>
+          <span className={styles.enter}><Icon name="arrow-right" className={styles.enterArrow} /></span>
         </div>
       </div>
     </Card>

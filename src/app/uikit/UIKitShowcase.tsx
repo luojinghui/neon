@@ -5,6 +5,8 @@ import { Icon } from '@/components/ui/icon';
 import { Button, type ButtonVariant } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs } from '@/components/ui/tabs';
+import { Menu } from '@/components/ui/menu';
+import { AppearancePanel } from '@/components/theme/appearance-panel';
 import { Alert, AlertDialog } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
 import { Popconfirm } from '@/components/ui/popconfirm';
@@ -21,7 +23,7 @@ import type { ThemeCatalog } from './theme-catalog';
 import styles from './uikit.module.css';
 
 const sections = [
-  ['buttons', '操作按钮'], ['forms', '表单输入'], ['navigation', '导航切换'],
+  ['buttons', '操作按钮'], ['forms', '表单输入'], ['navigation', '导航切换'], ['menus', '菜单与外观'],
   ['display', '内容展示'], ['feedback', '状态反馈'], ['overlays', '浮层与弹窗'],
   ['icons', '图标'], ['typography', '文字'], ['colors', '主题色']
 ] as const;
@@ -130,6 +132,22 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
               <span className={styles.note}>PC 按住滑块拖动，App 触摸滑动；经过每个选项时有轻触反馈，松手确认，Esc 取消。</span>
             </div>
           </Example></div>
+        </Section>
+
+        <Section id="menus" title="菜单与外观">
+          <div className={styles.exampleGrid}>
+            <Example title="菜单" name="Menu"><Menu>
+              <Menu.Section title="快捷操作">
+                <Menu.Item icon={<Icon name="plus" />} label="创建星球" description="开辟一颗新的星球" onClick={() => setStatus('点击了创建星球')} />
+                <Menu.Item icon={<Icon name="search" />} label="搜索星球" trailing={<Icon name="arrow-right" />} onClick={() => setStatus('点击了搜索星球')} />
+              </Menu.Section>
+              <Menu.Section title="账号">
+                <Menu.Item icon={<Icon name="user" />} label="个人中心" href="/profile" />
+                <Menu.Item tone="danger" icon={<Icon name="trash" />} label="清除缓存" onClick={() => setStatus('点击了清除缓存')} />
+              </Menu.Section>
+            </Menu></Example>
+            <Example title="外观面板" name="AppearancePanel"><AppearancePanel /><span className={styles.note}>模式与主题色全站同步，选择会保存在本机。</span></Example>
+          </div>
         </Section>
 
         <Section id="display" title="内容展示">

@@ -85,7 +85,7 @@ function VoicePlayer({ voice }: Props) {
   };
 
   return (
-    <div className={`moment-voice-player${error ? ' has-error' : ''}`} role="group" aria-label="心迹语音播放器">
+    <div className={`moment-voice-player${error ? ' has-error' : ''}`} role="group" aria-label="星语语音播放器">
       <audio
         ref={audioRef}
         src={voice.url}

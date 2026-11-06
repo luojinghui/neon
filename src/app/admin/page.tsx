@@ -610,7 +610,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
       render: (_, profile) => (
         <div className="flex items-center gap-1">
           <Tooltip title={profile.isSystem ? '系统账户不可编辑' : '编辑'}><Button variant="ghost" size="sm" iconOnly aria-label="编辑" type="button" disabled={profile.isSystem} onClick={() => openEdit(profile)}><EditOutlined /></Button></Tooltip>
-          <Popconfirm disabled={profile.isSystem} title="删除这个人员？" description="其创建的星球、心迹、评论和媒体文件也会被删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(profile)}>
+          <Popconfirm disabled={profile.isSystem} title="删除这个人员？" description="其创建的星球、星语、评论和媒体文件也会被删除。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void remove(profile)}>
             <Tooltip title={profile.isSystem ? '系统账户不可删除' : '删除'}><Button variant="ghost" size="sm" iconOnly aria-label="删除" type="button" disabled={profile.isSystem}><DeleteOutlined /></Button></Tooltip>
           </Popconfirm>
         </div>
@@ -789,7 +789,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
     { key: 'cloud', label: '云传数据', icon: <CloudOutlined /> },
     { key: 'rooms', label: '聊天室', icon: <GlobalOutlined /> },
     { key: 'directs', label: '全部私信', icon: <SolutionOutlined /> },
-    { key: 'moments', label: '心迹管理', icon: <PictureOutlined /> },
+    { key: 'moments', label: '星语管理', icon: <PictureOutlined /> },
     { key: 'access', label: '访问申请', icon: <SolutionOutlined /> },
     { key: 'users', label: '人员数据', icon: <TeamOutlined /> },
     { key: 'push', label: '消息推送', icon: <BellOutlined /> },

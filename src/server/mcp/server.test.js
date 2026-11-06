@@ -64,7 +64,7 @@ async function fixture(t) {
   return { base, calls, client, profiles };
 }
 
-test('真实 HTTP 客户端发现四工具并执行图文发布、密码查询和心迹发布', async t => {
+test('真实 HTTP 客户端发现四工具并执行图文发布、密码查询和星河发布', async t => {
   const { client, calls } = await fixture(t);
   const connection = await client();
   const { tools } = await connection.listTools();
@@ -144,7 +144,7 @@ test('HTTP 仅用已有用户 UUID 认证，并校验 Host、Origin、JSON 和�
   assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/mcp`)).status, 404);
 });
 
-test('两个 UUID 并发调用时，心迹作者按每次请求隔离且身份不能由工具参数覆盖', async t => {
+test('两个 UUID 并发调用时，星河作者按每次请求隔离且身份不能由工具参数覆盖', async t => {
   const { client } = await fixture(t);
   const [one, two] = await Promise.all([client(), client('auto', OTHER_UUID)]);
   const results = await Promise.all([one, two, one, two].map((connection, index) => connection.callTool({ name: 'publish_moment', arguments: { text: `消息 ${index}` } })));

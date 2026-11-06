@@ -128,7 +128,7 @@ export default function ProfilePage() {
       setMomentsLoaded(true);
     } catch (momentError) {
       if (request !== momentsRequest.current) return;
-      setMomentsError(momentError instanceof Error ? momentError.message : '心迹加载失败');
+      setMomentsError(momentError instanceof Error ? momentError.message : '星河加载失败');
     } finally {
       if (request === momentsRequest.current) {
         momentsInFlight.current = false;
@@ -208,7 +208,7 @@ export default function ProfilePage() {
                 <Tabs id="profile-content-tabs" panelId="profile-content-panel" className="profile-tabs" aria-label="个人主页内容" activeKey={activeSection}
                   onChange={key => setActiveSection(key as typeof activeSection)} items={([
                     { id: 'profile', label: '资料' },
-                    { id: 'moments', label: '心迹' },
+                    { id: 'moments', label: '星河' },
                     ...(isOwner ? [{ id: 'messages', label: '私信' }, { id: 'friends', label: '好友收藏' }] as const : [])
                   ] as const).map((section) => ({ key: section.id, label: <>
                     {section.label}

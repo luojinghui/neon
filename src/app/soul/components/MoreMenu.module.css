@@ -1,0 +1,11 @@
+.root { gap: .5rem; }
+.profile { display: flex; min-width: 0; align-items: center; gap: .75rem; padding: .625rem; border-radius: var(--radius-lg); background: linear-gradient(135deg, hsl(var(--primary-soft) / .9), hsl(var(--accent-soft) / .6)); color: hsl(var(--foreground)); text-decoration: none; transition: filter 160ms ease; -webkit-tap-highlight-color: transparent; }
+.profile:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.avatar, .avatarFallback { flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: hsl(var(--surface)); object-fit: cover; box-shadow: 0 0 0 2px hsl(var(--surface)); }
+.avatarFallback { display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--primary)); }
+.who { display: grid; min-width: 0; flex: 1; }
+.who strong { overflow: hidden; font-weight: var(--font-weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
+.who small { color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); }
+.go { color: hsl(var(--foreground-secondary)); transition: transform 180ms ease; }
+@media (hover: hover) and (pointer: fine) { .profile:hover .go { transform: translateX(3px); } }
+.appearance { padding: .25rem .625rem .5rem; }

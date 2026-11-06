@@ -55,7 +55,7 @@ function publicDetailRoute(repository) {
 test('MCP publishes mixed media and downloadable ordinary files with a configured author', async (t) => {
   const { repository, service } = fixture(t);
   const result = await service.publishMoment({
-    text: '带附件的心迹',
+    text: '带附件的星河',
     ownerUuid: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
     files: [
       { name: 'image.png', mimeType: 'image/png', buffer: Buffer.from('image') },

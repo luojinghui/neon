@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const voiceFiles = getFiles(form, 'voice');
     const totalBytes = [...mediaFiles, ...attachmentFiles, ...voiceFiles].reduce((sum, file) => sum + file.size, 0);
     if (totalBytes > MAX_REQUEST_BYTES) throw Object.assign(new Error('本次上传内容过大'), { code: 'REQUEST_TOO_LARGE' });
-    if (voiceFiles.length > 1) throw Object.assign(new Error('每条心迹只能包含一段语音'), { code: 'MOMENT_MEDIA_INVALID' });
+    if (voiceFiles.length > 1) throw Object.assign(new Error('每条星语只能包含一段语音'), { code: 'MOMENT_MEDIA_INVALID' });
 
     const [media, files, voice] = await Promise.all([
       Promise.all(mediaFiles.map(readFile)),

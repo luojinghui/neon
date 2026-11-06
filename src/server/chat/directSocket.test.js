@@ -197,11 +197,11 @@ test('admin APIs authenticate, expose all direct history with lossless paginatio
   assert.equal(new Set([...older.messages, ...recent.messages].map((message) => message.id)).size, 55);
   assert.equal((await accepted(b, 'social:list')).conversations.find((item) => item.id === roomId).unreadCount, 55, 'admin viewing never consumes recipient unread state');
   assert.equal((await f.api('/directs/soul-harbor/messages')).status, 404);
-  const moment = await f.moments.createMoment({ ownerUuid: f.profiles[0].uuid, text: '后台管理心迹' });
+  const moment = await f.moments.createMoment({ ownerUuid: f.profiles[0].uuid, text: '后台管理星河' });
   const comment = await f.moments.createComment(moment.id, f.profiles[1].uuid, { text: '管理评论' });
   assert.equal((await f.api(`/moments/${moment.id}`, { admin: false, method: 'DELETE' })).status, 401);
   const feed = await (await f.api('/moments')).json();
-  assert.equal(feed.items[0].text, '后台管理心迹'); assert.equal(feed.items[0].comments.length, 1);
+  assert.equal(feed.items[0].text, '后台管理星河'); assert.equal(feed.items[0].comments.length, 1);
   assert.equal((await f.api(`/moments/${moment.id}/comments/${comment.id}`, { method: 'DELETE' })).status, 204);
   assert.equal((await f.api(`/moments/${moment.id}`, { method: 'DELETE' })).status, 204);
   assert.equal((await (await f.api('/moments')).json()).total, 0);

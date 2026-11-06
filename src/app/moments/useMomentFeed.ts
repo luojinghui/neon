@@ -30,7 +30,7 @@ export async function refreshMomentFeed(append = false, silent = false): Promise
       replaceMomentFeed(owner, version, { ...first, items: unique, page: lastPage, hasMore: lastPage * MOMENT_PAGE_SIZE < first.total });
     } catch (error) {
       const current = useMomentFeedStore.getState();
-      if (current.owner === owner && current.version === version && (!silent || !current.data)) useMomentFeedStore.setState({ error: error instanceof Error ? error.message : '心迹加载失败' });
+      if (current.owner === owner && current.version === version && (!silent || !current.data)) useMomentFeedStore.setState({ error: error instanceof Error ? error.message : '星河加载失败' });
     } finally {
       if (pending === request) {
         pending = null;

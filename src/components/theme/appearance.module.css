@@ -1,0 +1,15 @@
+.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: .875rem; min-width: 0; }
+.group { display: grid; gap: .5rem; min-width: 0; }
+.heading { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; padding-inline: .125rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); font-weight: var(--font-weight-medium); }
+.heading em { color: hsl(var(--foreground-secondary)); font-style: normal; font-weight: var(--font-weight-regular); }
+.swatches { display: flex; flex-wrap: wrap; gap: .625rem; padding-inline: .125rem; }
+.swatch[data-ui-button] { position: relative; display: inline-flex; width: 2.25rem; min-width: 2.25rem; min-height: 0; height: 2.25rem; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 200ms cubic-bezier(.34,1.56,.64,1); }
+.swatch[data-ui-button]:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.swatch[data-ui-button]:active { transform: scale(.92); }
+/* Each swatch carries data-skin, so its colours come straight from the real skin variables. */
+.dot { position: relative; display: block; width: 1.75rem; height: 1.75rem; overflow: hidden; border-radius: 50%; background: hsl(var(--primary)); box-shadow: inset 0 0 0 1px hsl(0 0% 100% / .35), 0 1px 3px hsl(var(--shadow-color) / .25); transition: box-shadow 160ms ease; }
+.dotAccent { position: absolute; right: -.25rem; bottom: -.25rem; width: .875rem; height: .875rem; border-radius: 50%; background: hsl(var(--accent)); }
+.swatch[data-ui-button][aria-checked='true'] { box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 3.5px hsl(var(--primary)); }
+.check { position: absolute; color: hsl(var(--primary-foreground)); font-size: .75rem; filter: drop-shadow(0 1px 1px hsl(0 0% 0% / .3)); pointer-events: none; }
+@media (hover: hover) and (pointer: fine) { .swatch[data-ui-button]:hover { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .swatch[data-ui-button] { transition: none; } }

@@ -84,7 +84,7 @@ const radiusRoles = [
   { role: 'lg', label: '大尺寸', usage: '卡片、Popover、媒体' },
   { role: 'xl', label: '超大尺寸', usage: '弹窗、抽屉、面板' }
 ] as const;
-const skinLabels: Record<string, string> = { orange: '暖橘', blue: '晴蓝', violet: '鸢紫' };
+const skinLabels: Record<string, string> = { orange: '暖橘', blue: '晴蓝', violet: '鸢紫', green: '松青', rose: '蔷薇' };
 const skinSelector = /^\[data-skin=['"]?([\w-]+)['"]?\]$/;
 
 function groupFor(name: string): string {

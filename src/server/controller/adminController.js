@@ -278,7 +278,7 @@ function mountAdminController(app, io) {
   router.get('/moments/:id', (req, res, next) => {
     try {
       const moment = momentRepository.getMoment(req.params.id);
-      if (!moment) return res.status(404).json({ error: '心迹不存在', code: 'MOMENT_NOT_FOUND' });
+      if (!moment) return res.status(404).json({ error: '星河不存在', code: 'MOMENT_NOT_FOUND' });
       return res.json({ item: presentMoment(moment, { isAdmin: true }) });
     } catch (error) { next(error); }
   });

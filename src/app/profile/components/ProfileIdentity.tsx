@@ -161,7 +161,7 @@ export function ProfileIdentity({ profile, isOwner, onSaved, onCompose }: Props)
           {editing === 'userId' ? fieldEditor('userId', '专属 ID') : <div className="profile-handle"><span>@{profile.userId}</span>{editButton('userId', '编辑专属 ID')}</div>}
         </div>
         <div className="profile-primary-action">
-          {canEdit && <Button variant="primary" type="button" className="profile-compose" onClick={onCompose}><PlusOutlined />写心迹</Button>}
+          {canEdit && <Button variant="primary" type="button" className="profile-compose" onClick={onCompose}><PlusOutlined />写星河</Button>}
           {!isOwner && !profile.isSystem && <ContactActions key={profile.publicKey} contact={profile} />}
         </div>
       </div>

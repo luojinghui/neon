@@ -22,21 +22,21 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
   const selectedMoment = moments.find((moment) => moment.id === selectedId);
 
   return (
-    <section className="moment-profile-gallery" aria-label="心迹列表" aria-busy={loading}>
+    <section className="moment-profile-gallery" aria-label="星语列表" aria-busy={loading}>
       <header className="moment-profile-heading"><div><h2>时光切片</h2><p>{moments.length} 条记录 · {moments.reduce((sum, moment) => sum + (moment.likeCount || 0), 0)} 次喜欢</p></div></header>
-      {loading && <div className="moment-profile-status" role="status"><Icon name="loading" /><span>正在读取心迹…</span></div>}
+      {loading && <div className="moment-profile-status" role="status"><Icon name="loading" /><span>正在读取星语…</span></div>}
       {error && (
         <div className="moment-profile-status is-error" role="alert">
           <span>{error}</span>
           {onRetry && <Button variant="ghost" type="button" onClick={onRetry} disabled={loading}><Icon name="refresh" />重试</Button>}
         </div>
       )}
-      {!loading && !error && moments.length === 0 && <div className="moment-profile-empty">还没有留下心迹。</div>}
+      {!loading && !error && moments.length === 0 && <div className="moment-profile-empty">还没有留下星语。</div>}
       <div className="moment-profile-grid">
         {moments.map((moment) => {
           const firstMedia = moment.media[0];
           return (
-            <Button variant="outline" key={moment.id} type="button" className={`moment-profile-entry ${firstMedia ? 'has-media' : ''}`} onClick={() => setSelectedId(moment.id)} aria-label={`查看心迹：${moment.text || (moment.voice ? '语音心迹' : moment.attachments?.[0]?.name || '图片与视频')}`}>
+            <Button variant="outline" key={moment.id} type="button" className={`moment-profile-entry ${firstMedia ? 'has-media' : ''}`} onClick={() => setSelectedId(moment.id)} aria-label={`查看星河：${moment.text || (moment.voice ? '语音星河' : moment.attachments?.[0]?.name || '图片与视频')}`}>
               {!firstMedia && <span className="moment-profile-note-label"><Icon name={moment.voice ? 'audio' : 'edit'} />{moment.voice ? '声音日记' : '随手记'}</span>}
               {firstMedia && (
                 <span className="moment-profile-cover">

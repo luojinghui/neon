@@ -24,7 +24,7 @@ test('the catalog separates semantic colors, typography and radii from skin para
   const { colors, shadows, typography, radii, skins, palettes } = catalog();
   assert.equal(colors.length, 34, 'only the semantic palette is public');
   assert.equal(shadows.length, 5);
-  assert.deepEqual(Array.from(skins, item => item.name), ['orange', 'blue', 'violet']);
+  assert.deepEqual(Array.from(skins, item => item.name), ['orange', 'blue', 'violet', 'green', 'rose']);
   for (const item of colors) {
     assert.match(item.light, /^hsl\(.+\)$/);
     assert.match(item.dark, /^hsl\(.+\)$/);
@@ -64,21 +64,21 @@ test('shared semantic roles resolve consistently in every palette', () => {
   assert.ok(shadows.find(item => item.name === '--shadow-card').light.includes(color('--shadow-color').light.slice(4, -1)));
 });
 
-test('the default orange skin preserves the original brand palette in both modes', () => {
+test('the default orange skin keeps its softened palette in both modes', () => {
   const { palettes } = catalog();
   const expected = {
-    '--primary': ['24 85% 58%', '24 80% 62%'],
-    '--primary-hover': ['24 85% 50%', '24 80% 70%'],
-    '--primary-soft': ['28 80% 94%', '24 40% 20%'],
+    '--primary': ['23 78% 60%', '23 68% 64%'],
+    '--primary-hover': ['23 78% 53%', '23 68% 71%'],
+    '--primary-soft': ['27 74% 95%', '23 30% 22%'],
     '--primary-foreground': ['0 0% 100%', '0 0% 100%'],
-    '--accent': ['12 75% 62%', '12 65% 65%'],
-    '--accent-soft': ['12 60% 93%', '12 30% 20%'],
+    '--accent': ['8 62% 64%', '8 48% 67%'],
+    '--accent-soft': ['8 55% 95%', '8 24% 22%'],
     '--accent-foreground': ['0 0% 100%', '0 0% 100%'],
-    '--ring': ['24 80% 58%', '24 75% 58%'],
-    '--border-focus': ['24 80% 58%', '24 75% 58%'],
-    '--chat-bubble-self': ['27 76% 92%', '24 34% 27%'],
-    '--chat-bubble-self-foreground': ['24 55% 30%', '0 0% 100%'],
-    '--sidebar-active': ['24 80% 55%', '24 75% 60%']
+    '--ring': ['23 72% 58%', '23 68% 58%'],
+    '--border-focus': ['23 72% 58%', '23 68% 58%'],
+    '--chat-bubble-self': ['26 70% 93%', '23 28% 28%'],
+    '--chat-bubble-self-foreground': ['23 55% 30%', '0 0% 100%'],
+    '--sidebar-active': ['23 72% 56%', '23 68% 60%']
   };
   // Hue is immaterial for achromatic white; the scoped formula retains the skin's hue.
   const normalize = color => color.replace(/^hsl\([\d.]+ 0% 100%\)$/, 'hsl(0 0% 100%)');

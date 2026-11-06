@@ -1,20 +1,18 @@
 'use client';
 
 import { Tooltip } from '@/components/ui/tooltip';
-import { Button, buttonClassName } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Tabs } from '@/components/ui/tabs';
 import '@/styles/index.css';
 import { Icon } from '@/components/ui/icon';
-import { Dropdown } from 'antd';
+import { Popover } from '@/components/ui/popover';
 import { Modal } from '@/components/ui/modal';
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TopBar } from '@/components/topbar';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { createProfileHref } from '../profile/navigation';
 import { ProfileShortcut } from '../profile/components/ProfileShortcut';
 import { ChatRoomGrid } from './components/ChatRoomGrid';
+import { MoreMenu } from './components/MoreMenu';
 import { ChatRoomCardSkeleton } from './components/ChatRoomCardSkeleton';
 import { CreateRoomModal } from './components/CreateRoomModal';
 import { SearchRoomModal } from './components/SearchRoomModal';
@@ -102,41 +100,13 @@ function SoulPage() {
                 <Icon name="search" />
               </Button>
             </Tooltip>
-            <Tooltip title="更多" placement="bottom">
-              <Dropdown
-                open={moreOpen}
-                onOpenChange={setMoreOpen}
-                trigger={['click']}
-                placement="bottomRight"
-                arrow={false}
-                popupRender={() => (
-                  <div className="w-44 rounded-lg border border-border bg-surface p-1.5 shadow-lg">
-                    <Link
-                      href={createProfileHref('', { returnTo: '/soul' })}
-                      onClick={() => setMoreOpen(false)}
-                      className={buttonClassName({ variant: 'ghost', className: 'flex h-9 w-full items-center justify-start gap-2.5 px-3 text-body' })}
-                    >
-                      <Icon name="user" />
-                      <span>个人中心</span>
-                    </Link>
-                    <div className="flex min-h-10 items-center justify-between gap-3 rounded-md px-3 text-body text-foreground-secondary">
-                      <span>主题模式</span>
-                      <ThemeToggle />
-                    </div>
-                  </div>
-                )}
-              >
-                <Button size="sm" variant="outline" iconOnly
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center"
-                  aria-label="更多操作"
-                  aria-haspopup="menu"
-                  aria-expanded={moreOpen}
-                >
-                  <Icon name="more" />
-                </Button>
-              </Dropdown>
-            </Tooltip>
+            <Popover trigger="click" placement="bottomRight" open={moreOpen} onOpenChange={setMoreOpen}
+              content={<div style={{ width: '100%', minWidth: '15.5rem' }}><MoreMenu onClose={() => setMoreOpen(false)} onCreate={() => { setMoreOpen(false); openCreate(); }} onSearch={() => { setMoreOpen(false); setSearchOpen(true); }} /></div>}>
+              <Button size="sm" variant="outline" iconOnly type="button" className="inline-flex h-8 w-8 items-center justify-center"
+                aria-label="更多操作" aria-haspopup="dialog" aria-expanded={moreOpen}>
+                <Icon name="more" />
+              </Button>
+            </Popover>
           </div>
         }
       />
@@ -146,7 +116,7 @@ function SoulPage() {
           <div className="mb-5 flex min-w-0 items-center justify-between gap-2">
             <Tabs id="soul-room-tabs" panelId="soul-room-panel" size="md" className="min-w-0" aria-label="星球类型" activeKey={activeTab}
               onChange={key => setActiveTab(key as RoomTab)} items={[
-                { key: 'public', label: `公共星球 ${publicRooms.length}` },
+                { key: 'public', label: `公共 ${publicRooms.length}` },
                 { key: 'owned', label: `我的 ${ownedRooms.length}` },
                 { key: 'joined', label: `已加入 ${joinedRooms.length}` }
               ]} />

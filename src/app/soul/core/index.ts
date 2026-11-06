@@ -143,7 +143,7 @@ export class SoulChat {
     const normalized = {
       name: input.name.trim(),
       description: input.description.trim(),
-      tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 5),
+      tags: [] as string[],
       isPrivate: input.isPrivate === true,
       passwordEnabled: input.isPrivate !== true && input.passwordEnabled === true,
       password: input.isPrivate === true ? '' : input.password?.trim() || ''
@@ -161,7 +161,7 @@ export class SoulChat {
       roomId: input.roomId,
       name: input.name.trim(),
       description: input.description.trim(),
-      tags: [...new Set(input.tags.map((tag) => tag.trim()).filter(Boolean))].slice(0, 5),
+      tags: [] as string[],
       isPrivate: input.isPrivate === true,
       passwordEnabled: input.isPrivate !== true && input.passwordEnabled === true,
       password: input.isPrivate === true ? '' : input.password?.trim() || ''

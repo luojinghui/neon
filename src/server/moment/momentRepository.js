@@ -85,7 +85,7 @@ class MomentRepository {
 
   ensureLoaded(force = false) {
     this.load(force);
-    if (this.loadError) throw new MomentRepositoryError('心迹数据暂时无法读取，请稍后重试', 'MOMENT_STORAGE_UNAVAILABLE');
+    if (this.loadError) throw new MomentRepositoryError('星河数据暂时无法读取，请稍后重试', 'MOMENT_STORAGE_UNAVAILABLE');
   }
 
   runMutation(task) {
@@ -95,7 +95,7 @@ class MomentRepository {
     }).catch((error) => {
       if (error instanceof MomentRepositoryError) throw error;
       console.error('Moment storage operation failed:', error.message);
-      throw new MomentRepositoryError('心迹数据保存失败，请稍后重试', 'MOMENT_STORAGE_UNAVAILABLE');
+      throw new MomentRepositoryError('星河数据保存失败，请稍后重试', 'MOMENT_STORAGE_UNAVAILABLE');
     });
     this.writeQueue = operation.then(() => undefined, () => undefined);
     return operation;
@@ -128,19 +128,19 @@ class MomentRepository {
 
   getMoment(idValue) {
     this.ensureLoaded();
-    const id = this.requireId(idValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const id = this.requireId(idValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const moment = this.moments.get(id);
     return moment ? clone(moment) : null;
   }
 
   async createMoment(input = {}, attachments = {}) {
     const ownerUuid = this.requireUuid(input.ownerUuid);
-    const text = this.optionalText(input.text, MAX_TEXT_LENGTH, `心迹文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
+    const text = this.optionalText(input.text, MAX_TEXT_LENGTH, `星语文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
     const location = this.normalizeLocation(input.location);
     const mediaInput = Array.isArray(attachments.media) ? attachments.media : [];
     const fileInput = Array.isArray(attachments.files) ? attachments.files : [];
     const voiceInput = attachments.voice || null;
-    if (mediaInput.length + fileInput.length > MAX_MEDIA_ITEMS) throw new MomentRepositoryError(`每条心迹最多上传 ${MAX_MEDIA_ITEMS} 个图片、视频或附件`, 'MOMENT_MEDIA_INVALID');
+    if (mediaInput.length + fileInput.length > MAX_MEDIA_ITEMS) throw new MomentRepositoryError(`每条星语最多上传 ${MAX_MEDIA_ITEMS} 个图片、视频或附件`, 'MOMENT_MEDIA_INVALID');
     if (!text && mediaInput.length === 0 && fileInput.length === 0 && !voiceInput) throw new MomentRepositoryError('写点文字，或添加图片、视频、附件、语音后再发布', 'MOMENT_CONTENT_EMPTY');
 
     return this.runMutation(async () => {
@@ -183,12 +183,12 @@ class MomentRepository {
   }
 
   async deleteMoment(idValue, actorUuidValue = '', options = {}) {
-    const id = this.requireId(idValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const id = this.requireId(idValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const actorUuid = actorUuidValue ? this.requireUuid(actorUuidValue) : '';
     return this.runMutation(async () => {
       const moment = this.moments.get(id);
-      if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
-      if (options.isAdmin !== true && moment.ownerUuid !== actorUuid) throw new MomentRepositoryError('只能删除自己发布的心迹', 'MOMENT_FORBIDDEN');
+      if (!moment) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
+      if (options.isAdmin !== true && moment.ownerUuid !== actorUuid) throw new MomentRepositoryError('只能删除自己发布的星语', 'MOMENT_FORBIDDEN');
       this.moments.delete(id);
       try {
         await this.persistUnlocked();
@@ -240,12 +240,12 @@ class MomentRepository {
   }
 
   async setMomentLiked(momentIdValue, actorUuidValue, liked) {
-    const momentId = this.requireId(momentIdValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const momentId = this.requireId(momentIdValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const actorUuid = this.requireUuid(actorUuidValue);
     if (typeof liked !== 'boolean') throw new MomentRepositoryError('点赞状态必须为布尔值', 'MOMENT_LIKE_INVALID');
     return this.runMutation(async () => {
       const moment = this.moments.get(momentId);
-      if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
+      if (!moment) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
       const alreadyLiked = moment.likedBy.includes(actorUuid);
       if (alreadyLiked === liked) return { liked, likeCount: moment.likedBy.length };
       const likedBy = liked ? [...moment.likedBy, actorUuid] : moment.likedBy.filter((uuid) => uuid !== actorUuid);
@@ -267,7 +267,7 @@ class MomentRepository {
   }
 
   async createComment(momentIdValue, ownerUuidValue, input = {}) {
-    const momentId = this.requireId(momentIdValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const momentId = this.requireId(momentIdValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const ownerUuid = this.requireUuid(ownerUuidValue);
     const text = this.requireText(input.text, MAX_COMMENT_LENGTH, '评论不能为空且不能超过 500 个字符', 'COMMENT_TEXT_INVALID');
     const requestedReplyId = String(input.replyToCommentId || '').trim();
@@ -275,7 +275,7 @@ class MomentRepository {
 
     return this.runMutation(async () => {
       const moment = this.moments.get(momentId);
-      if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
+      if (!moment) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
       const replyTarget = replyToCommentId ? moment.comments.find((comment) => comment.id === replyToCommentId) : null;
       if (replyToCommentId && !replyTarget) throw new MomentRepositoryError('回复的评论不存在或已被删除', 'COMMENT_NOT_FOUND');
       const now = new Date(this.now()).toISOString();
@@ -301,13 +301,13 @@ class MomentRepository {
   }
 
   async updateComment(momentIdValue, commentIdValue, actorUuidValue, input = {}) {
-    const momentId = this.requireId(momentIdValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const momentId = this.requireId(momentIdValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const commentId = this.requireId(commentIdValue, '评论地址无效', 'COMMENT_ID_INVALID');
     const actorUuid = this.requireUuid(actorUuidValue);
     const text = this.requireText(input.text, MAX_COMMENT_LENGTH, '评论不能为空且不能超过 500 个字符', 'COMMENT_TEXT_INVALID');
     return this.runMutation(async () => {
       const moment = this.moments.get(momentId);
-      if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
+      if (!moment) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
       const index = moment.comments.findIndex((comment) => comment.id === commentId);
       if (index < 0) throw new MomentRepositoryError('评论不存在或已被删除', 'COMMENT_NOT_FOUND');
       const current = moment.comments[index];
@@ -327,12 +327,12 @@ class MomentRepository {
   }
 
   async deleteComment(momentIdValue, commentIdValue, actorUuidValue = '', options = {}) {
-    const momentId = this.requireId(momentIdValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const momentId = this.requireId(momentIdValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const commentId = this.requireId(commentIdValue, '评论地址无效', 'COMMENT_ID_INVALID');
     const actorUuid = actorUuidValue ? this.requireUuid(actorUuidValue) : '';
     return this.runMutation(async () => {
       const moment = this.moments.get(momentId);
-      if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
+      if (!moment) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
       const comment = moment.comments.find((item) => item.id === commentId);
       if (!comment) throw new MomentRepositoryError('评论不存在或已被删除', 'COMMENT_NOT_FOUND');
       if (options.isAdmin !== true && comment.ownerUuid !== actorUuid) throw new MomentRepositoryError('只能删除自己的评论', 'COMMENT_FORBIDDEN');
@@ -352,9 +352,9 @@ class MomentRepository {
   }
 
   requireMoment(idValue) {
-    const id = this.requireId(idValue, '心迹地址无效', 'MOMENT_ID_INVALID');
+    const id = this.requireId(idValue, '星语地址无效', 'MOMENT_ID_INVALID');
     const moment = this.moments.get(id);
-    if (!moment) throw new MomentRepositoryError('这条心迹不存在或已被删除', 'MOMENT_NOT_FOUND');
+    if (!moment) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
     return moment;
   }
 

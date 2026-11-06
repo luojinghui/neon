@@ -30,9 +30,9 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
   const remove = () => {
     if (deleting) return;
     modal.confirm({
-      title: '删除整条心迹？',
+      title: '删除整条星语？',
       content: '正文、媒体、语音和全部评论都会被永久删除。',
-      okText: '删除心迹',
+      okText: '删除星语',
       cancelText: '取消',
       async onOk() {
         setDeleting(true);
@@ -49,7 +49,7 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
   };
 
   return (
-    <Modal open onCancel={onClose} footer={null} centered destroyOnHidden width={800} title="心迹详情" className="moment-viewer-modal">
+    <Modal open onCancel={onClose} footer={null} centered destroyOnHidden width={800} title="星语详情" className="moment-viewer-modal">
       <article className="moment-viewer">
         <header className="moment-viewer-author">
           <MomentAvatar author={moment.author} size={38} />

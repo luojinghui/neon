@@ -26,8 +26,8 @@ export default function Home() {
       tone: 'primary' as const
     },
     {
-      title: '心迹',
-      description: '这颗星球的日常切片',
+      title: '星河',
+      description: '每一句话，都是一颗星',
       href: '/moments',
       icon: <Icon name="heart" />,
       tone: 'accent' as const
