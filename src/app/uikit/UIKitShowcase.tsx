@@ -188,6 +188,14 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
         </Section>
 
         <Section id="colors" title="主题色">
+          <div className={styles.exampleGrid}>
+            {(['light', 'dark'] as const).map(mode => <div key={mode} className={`${styles.themePreview} ${mode}`} data-skin={skin}>
+              <p className={styles.note}>{mode === 'light' ? '浅色' : '深色'}页面背景随主题色变化</p>
+              <Popover trigger="click" fitViewport boundaryPadding={12} width="min(288px, calc(100vw - 24px))" content={<Tabs block size="sm" defaultActiveKey="second" aria-label={`${mode}浮层选项`} items={[
+                { key: 'first', label: '第一项' }, { key: 'second', label: '第二项' }, { key: 'disabled', label: '禁用', disabled: true }
+              ]} />}><Button>{mode === 'light' ? '浅色' : '深色'}范围浮层</Button></Popover>
+            </div>)}
+          </div>
           <Card><ul className={styles.colorGrid} aria-label="主题颜色">{catalog.colors.map(color => <li key={color.name} className={styles.colorTile} title={color.name}>
             <span className={styles.colorSwatch} data-color-token={color.name} style={{ backgroundColor: `hsl(var(${color.name}))` }} aria-hidden="true" />
             <span className={styles.note}>{color.label}</span>

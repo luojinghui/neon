@@ -1,6 +1,6 @@
 # UI 组件
 
-组件预览入口：`/uikit`，按操作按钮、表单输入、导航切换、内容展示、状态反馈、浮层与弹窗、图标、文字分类。顶部可切换暖橘、晴蓝、鸢紫三种主题色，深浅模式由顶栏切换；文字区仅展示六级字号示例，末尾“主题色”以色卡与名称展示所有语义颜色，随当前皮肤和模式更新。预览沿用 `src/styles/index.css` 的主题变量，不维护第二套色值。
+组件预览入口：`/uikit`，按操作按钮、表单输入、导航切换、内容展示、状态反馈、浮层与弹窗、图标、文字分类。顶部可切换暖橘、晴蓝、鸢紫、松青、蔷薇五种主题色，深浅模式由顶栏切换；文字区仅展示六级字号示例，末尾“主题色”展示所有语义颜色，以及局部深浅背景与浮层示例，随当前皮肤和模式更新。预览沿用 `src/styles/index.css` 的主题变量，不维护第二套色值。
 
 全站操作按钮使用 `Button`，只提供三种外观：
 
@@ -113,6 +113,8 @@ Tabs 使用实底轨道和半透明玻璃选中项。sm / md / lg **总高度**�
 
 items 支持 key/label/children/disabled，配合 activeKey/defaultActiveKey/onChange、size/block。children 自动生成关联 tabpanel；业务内容外置时用 panelId 关联，tab id 为 `${id}-tab-${encodeURIComponent(key)}`。导航 item 使用 href/onNavigate，保留真实链接及修饰键行为。
 
+Tabs 的滑块使用轨道内的布局尺寸定位，浮层缩放入场时仍与选中项对齐；拖动时将指针坐标换算到同一坐标系。选项沿用 Button 的 `data-ui-surface` 透明热区约定，选中、按下及悬停时不会叠加第二层按钮底色。
+
 Card 为无外边框的轻阴影容器，默认 lg 圆角、16px 内距，padding="sm" 为12px、"none" 无内距。支持 title/description/extra/cover/footer/bodyClassName（仅布局），支持 ref 透传；bodyWrap={false} 保留既有直接子节点，适合瀑布流测量和编辑器布局。默认 article，as 支持 div/section/a/link。href 明确选择导航语义；含独立操作时保持普通容器，把导航放在内部，避免交互嵌套。首页与星球列表卡片已使用统一 Card。
 
 `interactive` 为含独立操作的 Card 开启轻微抬升和阴影反馈，不改变容器语义或添加点击行为；链接 Card 默认启用相同反馈。键盘聚焦内部操作时同样反馈，减少动态效果偏好下关闭位移。
@@ -137,16 +139,17 @@ Alert 为行内提醒，支持 type="info" | "success" | "warning" | "error"、m
 
 | 层 | 配置内容 | 变化范围 |
 | --- | --- | --- |
-| 皮肤输入 | `--skin-primary-hue/saturation`、`--skin-accent-hue/saturation`，每个皮肤 4 个参数 | 主色、强调色及其派生角色随皮肤变化 |
-| 模式语义 | 文字、背景/表面、边框、状态、遮罩和阴影基色；`--tone-*` 保留原有角色的明度、饱和度、色相偏移、实底前景与阴影透明度 | 随深浅模式变化，普通换肤保持不变 |
-| 派生角色 | 主色、强调色、焦点、聊天气泡和侧栏选中项等引用上层变量 | 自动联动，保留角色语义 |
+| 皮肤输入 | `--skin-primary-hue/saturation`、`--skin-accent-hue/saturation`，每个皮肤 4 个参数 | 主色、强调色、页面背景及其他派生角色随皮肤变化 |
+| 模式语义 | 文字、中性表面、边框、状态、遮罩和阴影基色；`--tone-*` 保留原有角色的明度、饱和度、色相偏移、实底前景与阴影透明度 | 随深浅模式变化，普通换肤保持不变 |
+| 派生角色 | 页面背景、主色、强调色、焦点、聊天气泡和侧栏选中项等引用上层变量 | 自动联动，保留角色语义 |
 
-每种模式只维护 **20 个独立语义色值**：10 个中性色（3 个文字、页面背景、4 个表面、2 个边框）、8 个状态色（成功/警告/危险/信息各含实色与柔和底色），以及遮罩、阴影基色。公开颜色 API 只保留 **34 个语义角色**（20 个独立值 + 14 个派生角色），另有 **5 个阴影规格**。页面与组件直接消费语义变量，不再维护兼容别名层。
+每种模式只维护 **19 个独立语义色值**：9 个中性色（3 个文字、4 个表面、2 个边框）、8 个状态色（成功/警告/危险/信息各含实色与柔和底色），以及遮罩、阴影基色。公开颜色 API 只保留 **34 个语义角色**（19 个独立值 + 15 个派生角色），另有 **5 个阴影规格**。页面与组件直接消费语义变量，不再维护兼容别名层。
 
 | 使用场景 | 优先使用的变量 | 是否随皮肤变色 |
 | --- | --- | --- |
 | 正文、辅助说明、弱提示 | `--foreground`、`--foreground-secondary`、`--foreground-muted` | 否 |
-| 页面、卡片、输入/内嵌区域、交互背景 | `--background`、`--surface`、`--surface-inset`、`--surface-hover/active` | 否 |
+| 页面背景 | `--background` | 随主色色相变化，深浅模式保留各自的饱和度与明度 |
+| 卡片、输入/内嵌区域、交互背景 | `--surface`、`--surface-inset`、`--surface-hover/active` | 否 |
 | 主要操作、链接、选中强调 | `--primary`、`--primary-hover`、`--primary-soft`、`--primary-foreground` | 是 |
 | 次要视觉强调 | `--accent`、`--accent-soft`、`--accent-foreground` | 是 |
 | 默认/悬停边框、键盘焦点 | `--border`、`--border-hover`、`--border-focus`、`--ring` | 仅焦点跟随主色 |
@@ -161,7 +164,9 @@ Alert 为行内提醒，支持 type="info" | "success" | "warning" | "error"、m
 
 ### 换肤与局部范围
 
-当前皮肤为 `orange`（默认）、`blue`、`violet`。全局在 `html` 上设置 `data-skin`，深浅模式继续由 `next-themes` 的 `.light` / `.dark` 管理：
+页面背景通过 `--tone-background-hue-offset/saturation/lightness` 派生，默认暖橘保持浅色 `34 33% 97.5%`、深色 `28 8% 16%`。浏览器顶栏的 `theme-color` 在换肤和切换模式时读取实际页面底色；Portal 继续同步现有 `--background`，不新增颜色 API。
+
+当前皮肤为 `orange`（默认）、`blue`、`violet`、`green`、`rose`。全局在 `html` 上设置 `data-skin`，深浅模式继续由 `next-themes` 的 `.light` / `.dark` 管理：
 
 ```ts
 document.documentElement.dataset.skin = 'blue';

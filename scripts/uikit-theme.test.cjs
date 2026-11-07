@@ -67,6 +67,7 @@ test('shared semantic roles resolve consistently in every palette', () => {
 test('the default orange skin keeps its softened palette in both modes', () => {
   const { palettes } = catalog();
   const expected = {
+    '--background': ['34 33% 97.5%', '28 8% 16%'],
     '--primary': ['23 78% 60%', '23 68% 64%'],
     '--primary-hover': ['23 78% 53%', '23 68% 71%'],
     '--primary-soft': ['27 74% 95%', '23 30% 22%'],
@@ -89,7 +90,20 @@ test('the default orange skin keeps its softened palette in both modes', () => {
   }
 });
 
-test('dark neutral planes remain distinct and readable across skins', () => {
+test('page background follows each skin while preserving mode depth and neutral controls', () => {
+  const { colors, palettes } = catalog();
+  assert.equal(colors.find(color => color.name === '--background').scope, 'skin');
+  const hues = { orange: [34, 28], blue: [229, 223], violet: [273, 267], green: [171, 165], rose: [353, 347] };
+  for (const [skin, [lightHue, darkHue]] of Object.entries(hues)) {
+    assert.equal(palettes[skin]['--background'].light, `hsl(${lightHue} 33% 97.5%)`);
+    assert.equal(palettes[skin]['--background'].dark, `hsl(${darkHue} 8% 16%)`);
+    for (const name of ['--foreground', '--surface', '--surface-inset', '--border']) {
+      assert.deepEqual(palettes[skin][name], palettes.orange[name], `${skin}: ${name} stays neutral`);
+    }
+  }
+});
+
+test('dark page and neutral planes remain distinct and readable across skins', () => {
   const { palettes } = catalog();
   const luminance = value => {
     const channels = value.match(/^hsl\(([\d.]+) ([\d.]+)% ([\d.]+)%\)$/);
@@ -106,7 +120,9 @@ test('dark neutral planes remain distinct and readable across skins', () => {
   for (const [skin, values] of Object.entries(palettes)) {
     const level = name => luminance(values[`--${name}`].dark);
     const planes = ['background', 'surface', 'surface-inset'].map(level);
-    assert.ok(planes[0] >= .02, `${skin}: page stays above near-black`);
+    // Hue shifts slightly change luminance at the same 16% HSL lightness.
+    // Even the darkest channel at 8% saturation is sRGB .1472 (linear .0189).
+    assert.ok(planes[0] >= .0189, `${skin}: page stays above near-black`);
     for (let index = 1; index < planes.length; index += 1) {
       assert.ok(planes[index] > planes[index - 1], `${skin}: each plane is lighter`);
       assert.ok(contrast(planes[index], planes[index - 1]) >= 1.25, `${skin}: adjacent planes remain visibly distinct`);

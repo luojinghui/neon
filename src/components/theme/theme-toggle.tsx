@@ -16,7 +16,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
 
   return (
     <Popover trigger="click" placement="bottomRight" open={open} onOpenChange={setOpen}
-      content={<div style={{ width: '100%', minWidth: '15rem' }}><AppearancePanel /></div>}>
+      fitViewport boundaryPadding={12} width="min(288px, calc(100vw - 24px))" content={<AppearancePanel />}>
       <Button iconOnly type="button" className={`touch-manipulation ${className}`} aria-label="外观设置" aria-haspopup="dialog" aria-expanded={open}>
         <Icon name="palette" />
       </Button>

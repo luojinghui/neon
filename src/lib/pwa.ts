@@ -1,7 +1,8 @@
-// Keep these in sync with --background in src/styles/index.css.
+// Pre-hydration fallback for the default orange skin. BrowserThemeSync reads
+// the actual CSS background after hydration, including the selected skin.
 export const PWA_THEME_COLORS = {
-  light: '#fbfaf8',
-  dark: '#1d1916'
+  light: '#fbf9f7',
+  dark: '#2c2926'
 } as const;
 
 export const PWA_NAME = 'Soul星球';

@@ -38,7 +38,7 @@
 .button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .button:disabled, .button[aria-disabled='true'] { cursor: not-allowed; opacity: 0.45; }
 .button:disabled { pointer-events: auto; }
-.ghost:not(.feedbackNone)[aria-pressed='true'], .ghost:not(.feedbackNone)[aria-selected='true'], .ghost:not(.feedbackNone)[aria-current='true'], .ghost:not(.feedbackNone)[aria-expanded='true'], .ghost:not(.feedbackNone)[aria-checked='true'] { background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
+.ghost:not(.feedbackNone):not([data-ui-surface]):is([aria-pressed='true'], [aria-selected='true'], [aria-current='true'], [aria-expanded='true'], [aria-checked='true']) { background: hsl(var(--surface-active)); color: hsl(var(--foreground)); }
 .outline[aria-pressed='true'], .outline[aria-selected='true'] { border-color: hsl(var(--border-focus)); color: hsl(var(--foreground)); }
 @media (hover: hover) and (pointer: fine) {
   .outline:hover:not(:disabled):not([aria-disabled='true']):not([data-ui-surface]) { border-color: hsl(var(--border-hover)); background: hsl(var(--surface-hover)); color: hsl(var(--foreground)); }
@@ -51,5 +51,5 @@
 .primary:active:not(:disabled):not([data-ui-surface]) { border-color: hsl(var(--primary-hover)); background: hsl(var(--primary-hover)); }
 /* Media activation areas are transparent hit targets, with the same focus ring. */
 .button[data-ui-surface] { border-radius: inherit; min-height: 0; border: 0; padding: 0; background: transparent; }
-.button[data-ui-surface]:is(:hover, :active, [aria-pressed='true'], [aria-selected='true'], [aria-current='true'], [aria-expanded='true']) { background: transparent; }
+.button[data-ui-surface]:is(:hover, :active, [aria-pressed='true'], [aria-selected='true'], [aria-current='true'], [aria-expanded='true'], [aria-checked='true']) { background: transparent; }
 @media (prefers-reduced-motion: reduce) { .button { transition: none; } .button:is(:hover, :active) { transform: none !important; } }

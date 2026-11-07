@@ -26,6 +26,7 @@
     "test:experience": "node --test scripts/experience.test.cjs",
     "test:cloud": "node --test scripts/cloud-input.test.cjs scripts/cloud-plaza.test.cjs",
     "test:ui": "node --test scripts/button.test.cjs scripts/uikit-theme.test.cjs scripts/overlay.test.cjs scripts/tabs.test.cjs",
+    "test:ui:browser": "node scripts/appearance-browser.cjs",
     "test:cloud:browser": "node scripts/cloud-navigation-browser.cjs",
     "test:cloud:editor": "node scripts/cloud-editor-browser.cjs",
     "mcp:stdio": "node scripts/neon-mcp.cjs",

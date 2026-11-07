@@ -58,6 +58,7 @@ test('site controls use UIKit buttons and overlays instead of Ant Design impleme
   function walk(directory) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const filename = path.join(directory, entry.name);
+      const normalizedFilename = filename.split(path.sep).join('/');
       if (entry.isDirectory()) { walk(filename); continue; }
       if (!/\.tsx?$/.test(filename) || filename.endsWith('.d.ts')) continue;
       const source = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true, filename.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
@@ -71,8 +72,8 @@ test('site controls use UIKit buttons and overlays instead of Ant Design impleme
             }
           }
         }
-        if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(source) === 'button' && !filename.endsWith('/ui/button.tsx')) failures.push(`${filename}: defines a separate native button`);
-        if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && !filename.includes('/components/ui/')) {
+        if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(source) === 'button' && !normalizedFilename.endsWith('/ui/button.tsx')) failures.push(`${filename}: defines a separate native button`);
+        if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && !normalizedFilename.includes('/components/ui/')) {
           const tag = node.tagName.getText(source);
           const type = node.attributes.properties.find(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(source) === 'type');
           const nativeType = type?.initializer && ts.isStringLiteral(type.initializer) ? type.initializer.text : 'text';

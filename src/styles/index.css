@@ -101,8 +101,11 @@
     --tone-bubble-solid: 93%;
     --tone-bubble-text-saturation: 55%;
     --tone-bubble-text-solid: 30%;
+    /* Page tint follows the skin; keep the original orange HSL and mode depth. */
+    --tone-background-hue-offset: 11;
+    --tone-background-saturation: 33%;
+    --tone-background-lightness: 97.5%;
 
-    --background: 34 33% 97.5%;
     --surface: 34 40% 100%;
     --surface-inset: 32 24% 94.5%;
     --surface-hover: 32 26% 96.5%;
@@ -150,10 +153,11 @@
     --tone-bubble-solid: 28%;
     --tone-bubble-text-saturation: 0%;
     --tone-bubble-text-solid: 100%;
+    --tone-background-hue-offset: 5;
+    --tone-background-saturation: 8%;
+    --tone-background-lightness: 16%;
 
-    /* Warm charcoal planes: page → card → inset controls, each a visible step
-       lighter. Keep these neutral roles independent of the brand skin. */
-    --background: 28 8% 16%;
+    /* Card and inset controls remain neutral, each lighter than the page. */
     --surface: 28 7% 23%;
     --surface-inset: 28 6% 30%;
     --surface-hover: 28 7% 27%;
@@ -185,6 +189,7 @@
      Re-declare at EVERY scope boundary: inherited custom properties are already
      computed at their parent, so changing a seed alone cannot recompute derived roles. */
   :root, .light, .dark, [data-skin] {
+    --background: calc(var(--skin-primary-hue) + var(--tone-background-hue-offset)) var(--tone-background-saturation) var(--tone-background-lightness);
     --primary: var(--skin-primary-hue) calc(var(--skin-primary-saturation) - var(--tone-primary-desaturate)) var(--tone-solid);
     --primary-hover: var(--skin-primary-hue) calc(var(--skin-primary-saturation) - var(--tone-primary-desaturate)) var(--tone-hover);
     --primary-soft: calc(var(--skin-primary-hue) + var(--tone-soft-hue-offset)) var(--tone-soft-saturation) var(--tone-soft);

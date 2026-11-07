@@ -57,9 +57,10 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     const container = track.current, thumb = indicator.current, element = key ? elements.current.get(key) : undefined;
     if (!container || !thumb) return;
     if (!element || !container.clientWidth) { delete container.dataset.indicator; return; }
-    const bounds = container.getBoundingClientRect(), rect = element.getBoundingClientRect();
-    thumb.style.width = `${rect.width}px`;
-    thumb.style.transform = `translateX(${left ?? rect.left - bounds.left}px)`;
+    // The thumb uses track-local CSS pixels. Client rects include ancestor scale
+    // (e.g. a Popover entering at .8), which would leave it too small and offset.
+    thumb.style.width = `${element.offsetWidth}px`;
+    thumb.style.transform = `translateX(${left ?? element.offsetLeft}px)`;
     container.dataset.indicator = '';
   }, []);
 
@@ -123,7 +124,7 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     if (!state || !container) return;
     const candidates = enabledKeys().flatMap(key => {
       const element = elements.current.get(key);
-      return element ? [{ key, rect: element.getBoundingClientRect() }] : [];
+      return element ? [{ key, element, rect: element.getBoundingClientRect() }] : [];
     });
     if (!candidates.length) { finish(false); return; }
     const nearest = nearestTab(candidates.map(item => ({ ...item, left: item.rect.left, width: item.rect.width })), clientX)!;
@@ -131,9 +132,11 @@ export function Tabs({ items, activeKey, defaultActiveKey, onChange, size = 'md'
     state.preview = nearest.key;
     elements.current.forEach((element, key) => element.toggleAttribute('data-preview', key === nearest.key));
     const bounds = container.getBoundingClientRect();
-    const min = Math.min(...candidates.map(item => item.rect.left)) - bounds.left;
-    const max = Math.max(...candidates.map(item => item.rect.right)) - bounds.left - nearest.rect.width;
-    draw(nearest.key, Math.max(min, Math.min(max, clientX - bounds.left - nearest.rect.width / 2)));
+    const localX = bounds.width ? (clientX - bounds.left) * container.offsetWidth / bounds.width : 0;
+    const width = nearest.element.offsetWidth;
+    const min = Math.min(...candidates.map(item => item.element.offsetLeft));
+    const max = Math.max(...candidates.map(item => item.element.offsetLeft + item.element.offsetWidth)) - width;
+    draw(nearest.key, Math.max(min, Math.min(max, localX - width / 2)));
   };
   const previewRef = useRef(previewAt);
   previewRef.current = previewAt;
