@@ -41,25 +41,26 @@ export default function MomentsPage() {
       />
 
       <main ref={scrollRef} className="moment-scroll-area chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="app-content-width">
+        <div className="app-content-width moment-journal-content">
           <Suspense fallback={null}><MomentPermalink /></Suspense>
           <header className="moment-hero">
-            <div className="moment-hero-art" aria-hidden="true"><PlanetIllustration size="md" /></div>
-            <p className="moment-hero-tagline">每一句话，都是一颗星</p>
-            <div className="moment-hero-actions" role="group" aria-label="星语操作">
-              <Button variant="ghost" data-ui-surface="" type="button" className="moment-journal-prompt" onClick={() => setComposerOpen(true)}>
-                <Icon name="edit" />
-                <span className="moment-journal-prompt-text">向星河说点什么…</span>
-                <em>发布</em>
-              </Button>
-              <Button variant="ghost" type="button" icon={<Icon name={loading ? 'loading' : 'refresh'} />} onClick={() => void load()} disabled={loading || loadingMore} aria-label="刷新星河" aria-busy={loading || loadingMore || undefined} />
+            <div className="moment-hero-intro">
+              <PlanetIllustration size="sm" />
+              <p className="moment-hero-tagline">每一句话，都是一颗星</p>
             </div>
+            <Card as="div" padding="sm" bodyWrap={false} className="moment-hero-actions" role="group" aria-label="星语操作">
+              <Button variant="ghost" align="start" type="button" icon={<Icon name="edit" />} className="moment-journal-prompt" aria-label="写一条星语" aria-haspopup="dialog" aria-expanded={composerOpen} onClick={() => setComposerOpen(true)}>
+                <span className="moment-journal-prompt-text">向星河说点什么…</span>
+              </Button>
+              <Button variant="ghost" type="button" icon={<Icon name="refresh" />} loading={loading || loadingMore} onClick={() => void load()} aria-label="刷新星河" />
+              <Button variant="primary" type="button" aria-haspopup="dialog" aria-expanded={composerOpen} onClick={() => setComposerOpen(true)}>发布</Button>
+            </Card>
           </header>
 
           <section className="moment-feed-section" aria-label="星河动态" aria-busy={loading}>
             {loading && items.length === 0 ? (
               <div className="moment-feed-grid" aria-label="正在加载星河">
-                {[0, 1, 2].map((index) => <Card as="div" key={index} padding="none" bodyWrap={false} className="moment-card-skeleton" aria-hidden="true"><div /><div /><div /></Card>)}
+                {[0, 1, 2, 3].map((index) => <Card as="div" key={index} padding="none" bodyWrap={false} className="moment-card-skeleton" aria-hidden="true"><div /><div /><div /></Card>)}
               </div>
             ) : error && items.length === 0 ? (
               <div className="moment-empty-state" role="alert">

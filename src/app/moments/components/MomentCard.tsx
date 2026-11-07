@@ -37,8 +37,10 @@ export function MomentCard({ moment, onDeleted }: Props) {
     const element = textRef.current;
     if (!element) return;
     const measure = () => {
-      const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
-      setCanExpand(element.scrollHeight > lineHeight * 10 + 1);
+      const style = getComputedStyle(element);
+      const lineHeight = parseFloat(style.lineHeight);
+      const previewLines = parseInt(style.getPropertyValue('--moment-preview-lines'), 10) || 4;
+      setCanExpand(element.scrollHeight > lineHeight * previewLines + 1);
     };
     measure();
     const observer = new ResizeObserver(measure);

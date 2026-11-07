@@ -1,22 +1,18 @@
 /* Individual posts share a quiet surface; the page itself stays open. */
 .moments-screen {
-  --moment-muted: color-mix(in srgb, hsl(var(--foreground-secondary)) 90%, hsl(var(--foreground-muted)));
+  --moment-muted: hsl(var(--foreground-secondary));
+  --moment-preview-lines: 4;
 }
 
 .moments-screen .moment-scroll-area { padding: var(--app-page-top) 0 3rem; }
+.moment-journal-content { max-width: 1008px; }
 
-.moment-hero { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; text-align: center; }
-.moment-hero-art { display: grid; width: 4.5rem; height: 4rem; place-items: center; background: radial-gradient(circle, hsl(var(--primary-soft) / 0.8), transparent 68%); pointer-events: none; animation: moment-float 6s ease-in-out infinite; }
+.moment-hero { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 1.5rem; text-align: center; }
+.moment-hero-intro { display: flex; align-items: center; justify-content: center; gap: 0.625rem; }
 .moment-hero-tagline { color: var(--moment-muted); font-size: var(--font-size-body); line-height: var(--line-height-body); }
-.moment-hero-actions { display: flex; width: min(100%, 28rem); align-items: center; gap: 0.5rem; margin-top: 0.25rem; }
-.moment-journal-prompt[data-ui-button] { display: flex; height: auto; justify-content: flex-start; font-weight: var(--font-weight-regular); min-width: 0; flex: 1; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.5rem 0 0.875rem; border: 0; border-radius: 9999px; background: hsl(var(--surface)); box-shadow: var(--shadow-card); color: hsl(var(--foreground-muted)); font-size: var(--font-size-body); text-align: start; cursor: pointer; transition: box-shadow 180ms ease, transform 180ms ease; }
-.moment-journal-prompt-text { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.moment-journal-prompt[data-ui-button] > em { flex: none; padding: 0.3125rem 0.875rem; border-radius: 9999px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: var(--font-size-caption); font-style: normal; font-weight: var(--font-weight-medium); transition: background-color 160ms ease; }
-.moment-journal-prompt[data-ui-button]:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
-.moment-journal-prompt[data-ui-button]:active { transform: scale(0.985); }
-@media (hover: hover) and (pointer: fine) { .moment-journal-prompt[data-ui-button]:hover { box-shadow: 0 0 0 1px hsl(var(--border-hover) / 0.7), var(--shadow-md); } .moment-journal-prompt[data-ui-button]:hover > em { background: hsl(var(--primary-hover)); } }
-@keyframes moment-float { 50% { transform: translateY(-4px); } }
-@media (prefers-reduced-motion: reduce) { .moment-hero-art { animation: none; } .moment-journal-prompt[data-ui-button] { transition: none; } }
+.moment-hero-actions { display: flex; flex-direction: row; width: min(100%, 40rem); align-items: center; gap: 0.5rem; }
+.moment-journal-prompt { min-width: 0; flex: 1; }
+.moment-journal-prompt-text { min-width: 0; flex: 1; overflow: hidden; text-align: start; text-overflow: ellipsis; white-space: nowrap; }
 
 .moments-screen .moment-primary-button,
 .moments-screen .moment-empty-state button {
@@ -24,7 +20,7 @@
 }
 
 .moment-feed-section { min-width: 0; }
-.moments-screen .moment-feed-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+.moments-screen .moment-feed-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.25rem; }
 
 .moments-screen .moment-card {
   min-width: 0;
@@ -32,7 +28,7 @@
   flex: 0 0 auto;
   align-self: start;
   overflow: hidden;
-  padding: 1rem 1rem 0.45rem;
+  padding: 1.25rem 1.25rem 0.75rem;
 }
 
 .moments-screen .moment-card-head { min-height: 2rem; align-items: center; padding: 0; }
@@ -40,33 +36,32 @@
 .moment-card-byline { margin-top: 0.1rem; color: var(--moment-muted); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .moment-card-byline time { white-space: nowrap; }
 .moments-screen .moment-icon-button { margin-right: -0.5rem; }
-.moment-entry-content { min-width: 0; margin: 0.65rem 0 0; }
-.moment-post-copy { margin-bottom: 0.65rem; }
-.moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: var(--line-height-body); }
-.moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 10; }
+.moment-entry-content { display: flex; flex-direction: column; min-width: 0; margin: 0.875rem 0 0; }
+.moment-post-copy { margin-bottom: 0.75rem; }
+.moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); }
+.moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: var(--moment-preview-lines); }
 .moment-expand-button { margin-top: 0.25rem; }
-.moments-screen .moment-media-view { margin: 0; }
+.moments-screen .moment-media-view { --moment-media-max-height: min(22rem, 50dvh); margin: 0 0 0.75rem; }
 .moment-card-voice { padding: 0.25rem 0 0.5rem; }
 .moment-media-view + .moment-card-voice { margin-top: 0.75rem; }
 .moments-screen .moment-voice-player { border: 0; background: hsl(var(--surface-inset)); }
 .moments-screen .moment-card-meta { justify-content: flex-start; padding: 0.55rem 0 0; color: var(--moment-muted); font-size: var(--font-size-caption); }
-.moments-screen .moment-actions { min-height: 2.75rem; justify-content: flex-start; gap: 0.65rem; margin-top: 0.25rem; border: 0; padding: 0; }
-.moments-screen .moment-action:first-child { margin-left: -0.55rem; }
+.moments-screen .moment-actions { min-height: 2.75rem; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; border: 0; padding: 0.5rem 0 0; }
 .moments-screen .moment-action-error { padding-left: 0; }
 
 .moments-screen .moment-load-more {
   width: fit-content;
-  margin: 3rem auto 0;
+  margin: 2rem auto 0;
 }
 .moment-feed-end { margin-top: 2rem; color: var(--moment-muted); font-size: var(--font-size-caption); line-height: var(--line-height-caption); text-align: center; }
 .moments-screen .moment-empty-state { min-height: 19rem; border: 0; border-radius: 0; padding: 2rem 1rem; background: transparent; }
 .moments-screen .moment-empty-state > .moment-empty-icon { margin-bottom: 1.25rem; color: var(--moment-muted); font-size: 2rem; }
 .moments-screen .moment-empty-state p { color: var(--moment-muted); line-height: 1.8; }
 
-.moments-screen .moment-card-skeleton { min-width: 0; height: 22rem; padding: 1.25rem; }
+.moments-screen .moment-card-skeleton { min-width: 0; height: 17rem; padding: 1.25rem; }
 .moments-screen .moment-card-skeleton > div:first-child { width: 10rem; height: 2.5rem; margin: 0 0 1rem; }
 .moments-screen .moment-card-skeleton > div:nth-child(2) { width: 70%; height: 0.7rem; margin: 0 0 1rem; }
-.moments-screen .moment-card-skeleton > div:last-child { height: 13rem; margin: 0; }
+.moments-screen .moment-card-skeleton > div:last-child { height: 8rem; margin: 0; }
 
 /* Keep the composer and comment sheet's functional boundaries visible. */
 .moment-journal-composer .moment-composer-head { border-bottom: 1px solid hsl(var(--border)); }
@@ -81,17 +76,18 @@
 
 
 @media (min-width: 768px) {
-  .moments-screen .moment-feed-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.25rem; }
+  .moments-screen .moment-feed-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .moments-screen .moment-feed-grid[data-masonry="ready"] { grid-auto-rows: 1px; grid-auto-flow: row dense; row-gap: 0; }
 }
 
-@media (min-width: 1200px) {
-  .moments-screen .moment-feed-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 767px) {
+  /* Ignore desktop spans immediately, even before the resize observer runs. */
+  .moments-screen .moment-feed-grid > * { grid-row: auto !important; }
 }
 
 @media (max-width: 640px) {
-  .moment-journal-intro { gap: 0.875rem 1rem; margin-bottom: 1rem; }
-  .moment-hero-art { width: 5.25rem; height: 5.25rem; }
-  .moment-journal-description { margin-top: 0.375rem; }
-  .moments-screen .moment-card { padding: 0.85rem 0.85rem 0.35rem; }
+  .moments-screen .moment-scroll-area { padding-top: calc(var(--app-topbar-height) + 1rem); }
+  .moment-hero { gap: 0.75rem; margin-bottom: 1.25rem; }
+  .moment-hero-actions { gap: 0.25rem; }
+  .moments-screen .moment-card { padding: 1rem 1rem 0.5rem; }
 }
