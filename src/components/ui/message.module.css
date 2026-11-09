@@ -1,0 +1,8 @@
+.host { position: fixed; top: calc(var(--app-safe-top, 0px) + var(--app-topbar-height, 0px) + 0.5rem); left: 0; right: 0; z-index: 1100; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0 1rem; pointer-events: none; }
+.item { display: inline-flex; max-width: min(100%, 28rem); align-items: center; gap: 0.5rem; padding: 0.625rem 1rem; border-radius: var(--radius-lg); background: hsl(var(--surface)); color: hsl(var(--foreground)); box-shadow: var(--shadow-lg); font-family: var(--font-sans); font-size: var(--font-size-body); line-height: var(--line-height-body); animation: messageIn 200ms ease; pointer-events: auto; }
+.item[data-type='success'] > :first-child { color: hsl(var(--success)); }
+.item[data-type='error'] > :first-child { color: hsl(var(--danger)); }
+.item[data-type='warning'] > :first-child { color: hsl(var(--warning)); }
+.item[data-type='info'] > :first-child, .item[data-type='loading'] > :first-child { color: hsl(var(--info)); }
+@keyframes messageIn { from { opacity: 0; transform: translateY(-0.5rem); } }
+@media (prefers-reduced-motion: reduce) { .item { animation: none; } }

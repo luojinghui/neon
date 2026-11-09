@@ -78,7 +78,6 @@ import {
   SettingOutlined,
   ShareAltOutlined,
   ShrinkOutlined,
-  BgColorsOutlined,
   SkinOutlined,
   SmileOutlined,
   SolutionOutlined,
@@ -99,6 +98,16 @@ import {
   ZoomOutOutlined
 } from '@ant-design/icons';
 import styles from './icon.module.css';
+
+/** Artist's palette: rounded body with a thumb hole and colour wells; stroke-only so it inherits text colour. */
+function PaletteGlyph({ spin: _spin, ...props }: { spin?: boolean } & React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.9 2-1.8 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z" />
+    <circle cx="7.5" cy="11.5" r="1.1" fill="currentColor" stroke="none" />
+    <circle cx="10.5" cy="7.5" r="1.1" fill="currentColor" stroke="none" />
+    <circle cx="15.5" cy="7.8" r="1.1" fill="currentColor" stroke="none" />
+  </svg>;
+}
 
 /** Every icon currently used by the app is registered here; pages share size and state effects. */
 export const iconRegistry = {
@@ -186,7 +195,7 @@ export const iconRegistry = {
   'share-alt': ShareAltOutlined,
   'shrink': ShrinkOutlined,
   'skin': SkinOutlined,
-  'palette': BgColorsOutlined,
+  'palette': PaletteGlyph,
   'smile': SmileOutlined,
   'solution': SolutionOutlined,
   'star': StarOutlined,

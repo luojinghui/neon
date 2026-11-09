@@ -17,7 +17,9 @@ import {
   StarFilled,
   ThunderboltFilled
 } from '@ant-design/icons';
-import { App, QRCode, Spin } from 'antd';
+import { QRCode } from '@/components/ui/qrcode';
+import { Spin } from '@/components/ui/display';
+import { useMessage } from '@/components/ui/message';
 import NextImage from 'next/image';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import { TopBar } from '@/components/topbar';
@@ -221,7 +223,7 @@ async function readQrImage(holder: HTMLDivElement | null) {
 }
 
 export default function DoodleStudio() {
-  const { message } = App.useApp();
+  const message = useMessage();
   const modal = useConfirm();
   const [mode, setMode] = useState<StudioMode>('welcome');
   const [cameraError, setCameraError] = useState('');
@@ -919,7 +921,7 @@ export default function DoodleStudio() {
                 {shareInfo && (
                   <div className="mt-5 rounded-lg bg-white p-4">
                     <div className="flex gap-4">
-                      <div ref={qrHolderRef} className="shrink-0"><QRCode type="svg" value={shareInfo.url} size={112} color="#201a17" bgColor="#ffffff" bordered={false} /></div>
+                      <div ref={qrHolderRef} className="shrink-0"><QRCode value={shareInfo.url} size={112} color="#201a17" bgColor="#ffffff" /></div>
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1 text-sm font-black text-[#15966a]"><CheckCircleFilled /> 链接已生效</p>
                         <p className="mt-2 text-xs font-bold text-[#75645c]">有效至 {expiresLabel}</p>
@@ -951,8 +953,6 @@ export default function DoodleStudio() {
 
 export function DoodleStudioWithApp() {
   return (
-    <App>
-      <DoodleStudio />
-    </App>
+    <DoodleStudio />
   );
 }

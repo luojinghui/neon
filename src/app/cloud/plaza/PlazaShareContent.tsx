@@ -4,7 +4,7 @@ import { buttonClassName } from '@/components/ui/button-styles';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-import { Skeleton } from 'antd';
+import { Skeleton } from '@/components/ui/display';
 import { FileTextOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import PlazaCard from './PlazaCard';

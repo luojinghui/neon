@@ -9,7 +9,7 @@
 import { CloudAPI } from '@/action';
 import { useCloudStore, FileItem } from './store';
 import { HISTORY_KEY, TEXT_HISTORY_KEY, MAX_HISTORY, MAX_TEXT_HISTORY } from '@/constants/cloud';
-import { MessageInstance } from 'antd/es/message/interface';
+import type { MessageInstance } from '@/components/ui/message';
 import { CLOUD_VERSION, CLOUD_VERSION_DISMISSED_KEY } from './version';
 import { copyShareCode } from './clipboard';
 

@@ -1,0 +1,19 @@
+.root { position: fixed; inset: 0; color: hsl(var(--foreground)); font-family: var(--font-sans); font-size: var(--font-size-body); line-height: var(--line-height-body); -webkit-tap-highlight-color: transparent; }
+.root[data-state='closed'] { display: none; }
+.root[data-state='exiting'] { pointer-events: none; }
+.mask { position: absolute; inset: 0; background: hsl(var(--overlay)); transition: opacity 200ms ease; }
+.wrapper { position: absolute; display: flex; max-width: 100%; transition: transform 420ms cubic-bezier(.16, 1, .3, 1); }
+.root[data-placement='bottom'] .wrapper { right: 0; bottom: 0; left: 0; max-height: 100%; }
+.root[data-placement='right'] .wrapper { top: 0; right: 0; bottom: 0; }
+.root[data-placement='left'] .wrapper { top: 0; bottom: 0; left: 0; }
+.section { display: flex; width: 100%; min-width: 0; min-height: 0; flex-direction: column; outline: none; background: hsl(var(--surface)); box-shadow: var(--shadow-xl); }
+.root[data-placement='bottom'] .section { border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: env(safe-area-inset-bottom); }
+.header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid hsl(var(--border)); }
+.title { min-width: 0; flex: 1; font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); }
+.body { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; padding: 1.25rem; }
+.root[data-state='prepare'] .mask, .root[data-state='exiting'] .mask { opacity: 0; }
+.root[data-state='prepare'] .wrapper, .root[data-state='exiting'] .wrapper { transform: translate3d(0, 100%, 0); }
+.root[data-placement='right'][data-state='prepare'] .wrapper, .root[data-placement='right'][data-state='exiting'] .wrapper { transform: translate3d(100%, 0, 0); }
+.root[data-placement='left'][data-state='prepare'] .wrapper, .root[data-placement='left'][data-state='exiting'] .wrapper { transform: translate3d(-100%, 0, 0); }
+.root[data-state='exiting'] .wrapper { transition-duration: 280ms; transition-timing-function: cubic-bezier(.4, 0, .7, .2); }
+@media (prefers-reduced-motion: reduce) { .mask, .wrapper { transition: none !important; } }

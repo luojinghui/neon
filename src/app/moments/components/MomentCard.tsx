@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useConfirm } from '@/components/ui/confirm';
 import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined, MoreOutlined } from '@ant-design/icons';
-import { Dropdown, type MenuProps } from 'antd';
+import { Dropdown, type DropdownItem } from '@/components/ui/dropdown';
 import Link from 'next/link';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { createProfileHref } from '@/app/profile/navigation';
@@ -69,18 +69,16 @@ export function MomentCard({ moment, onDeleted }: Props) {
     });
   };
 
-  const menu: MenuProps = {
-    items: [
-      {
-        key: 'delete',
-        danger: true,
-        icon: deleting ? <LoadingOutlined /> : <DeleteOutlined />,
-        label: '删除',
-        disabled: deleting,
-        onClick: () => void remove()
-      }
-    ]
-  };
+  const menuItems: DropdownItem[] = [
+    {
+      key: 'delete',
+      danger: true,
+      icon: deleting ? <LoadingOutlined /> : <DeleteOutlined />,
+      label: '删除',
+      disabled: deleting,
+      onClick: () => void remove()
+    }
+  ];
 
   return (
     <Card padding="none" bodyWrap={false} id={`moment-${moment.id}`} className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
@@ -95,7 +93,7 @@ export function MomentCard({ moment, onDeleted }: Props) {
           </div>
         </div>
         {moment.canDelete && (
-          <Dropdown menu={menu} trigger={['click']} placement="bottomRight">
+          <Dropdown items={menuItems} trigger={['click']} placement="bottomRight">
             <Button variant="ghost" iconOnly type="button" aria-label="管理这条星语"><MoreOutlined /></Button>
           </Dropdown>
         )}

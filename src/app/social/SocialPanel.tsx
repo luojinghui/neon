@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { MessageOutlined, ReloadOutlined, SearchOutlined, StarOutlined, UserAddOutlined } from '@ant-design/icons';
-import { Badge } from 'antd';
+import { Badge } from '@/components/ui/display';
 import { useRef, useState } from 'react';
 import { createProfileHref } from '../profile/navigation';
 import { getProfileAvatar } from '../profile/types';

@@ -34,14 +34,12 @@
     "prepare:vision": "node scripts/prepare-vision-assets.cjs"
   },
   "dependencies": {
-    "@ant-design/cssinjs": "2.1.2",
     "@ant-design/icons": "^6.1.0",
     "@mediapipe/tasks-vision": "0.10.35",
     "@modelcontextprotocol/client": "2.4.0",
     "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
     "@uiw/react-json-view": "2.0.0-alpha.39",
-    "antd": "^6.3.3",
     "clsx": "^2.1.1",
     "dompurify": "3.4.17",
     "express": "4.22.3",
@@ -52,6 +50,7 @@
     "next-themes": "^0.4.6",
     "pdfjs-dist": "6.3.289",
     "postcss": "8.5.26",
+    "qrcode": "^1.5.4",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "socket.io": "4.8.3",
@@ -63,6 +62,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
     "eslint": "^8",

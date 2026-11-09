@@ -234,3 +234,16 @@ UIKit 与公共组件已接入这些字号角色，新功能沿用同一套定�
 | display | 32px | 28px | 页面主标题 |
 
 上述 px 为浏览器默认 16px 根字号下的参考；实际定义仍用 rem，保留用户字体设置。触屏热区独立于字号，输入框不会再通过 coarse pointer 规则升为 16px；html 的 text-size-adjust 保持 100%，避免移动浏览器对独立文本块额外放大。`/uikit` 的文字示例随视口使用对应字号，Portal 继续同步六个已解析字体 token。
+
+## 展示与反馈（已完全替代 antd）
+
+项目不再依赖 `antd`，仅保留 `@ant-design/icons` 图标。以下组件颜色全部来自主题变量：
+
+| 组件 | 引用 | 说明 |
+| --- | --- | --- |
+| `Tag` `Badge` `Skeleton` `Spin` `Space` | `@/components/ui/display` | Tag 的 `color` 接受 `success / processing / error / warning / accent`，并兼容 `green / blue / red / gold / purple` 别名 |
+| `Table` | `@/components/ui/table` | 支持 columns（`render`、`ellipsis`、`fixed: 'right'`）、`scroll.x`、`pagination`（传 `total` 为服务端分页）、`expandable`、`locale.emptyText` |
+| `Dropdown` | `@/components/ui/dropdown` | `items` + `trigger` + `placement`，基于 Popover 与 Menu |
+| `Drawer` | `@/components/ui/drawer` | `placement` 为 `bottom / right / left`，与 Modal 共用层级、滚动锁定与 Esc 处理 |
+| `QRCode` | `@/components/ui/qrcode` | 输出内联 SVG；为保证扫码对比度，默认黑底白码，可用 `color` / `bgColor` 覆盖 |
+| `message` / `useMessage` | `@/components/ui/message` | 全局轻提示，`success / error / warning / info / loading`；`MessageHost` 已挂在主题包装器中 |

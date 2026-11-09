@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
  * Last modified  : 2025-12-07 23:30:00
  */
 
-import { Space } from 'antd';
+import { Space } from '@/components/ui/display';
 import { CopyOutlined } from '@ant-design/icons';
 import JsonView from '@uiw/react-json-view';
 import { useCloudStore } from '../store';

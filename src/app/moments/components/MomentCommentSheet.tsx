@@ -1,6 +1,6 @@
 'use client';
 
-import { Drawer } from 'antd';
+import { Drawer } from '@/components/ui/drawer';
 import { CloseOutlined } from '@ant-design/icons';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';

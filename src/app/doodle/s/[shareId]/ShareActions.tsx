@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm';
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons';
-import { App } from 'antd';
+import { useMessage } from '@/components/ui/message';
 import { useEffect, useState } from 'react';
 import { getOrCreateIdentity } from '@/app/profile/client';
 import { deleteDoodleShare } from '../../client';
@@ -16,7 +16,7 @@ type ShareActionsProps = {
 };
 
 function Actions({ id, title, imageUrl, pageUrl }: ShareActionsProps) {
-  const { message } = App.useApp();
+  const message = useMessage();
   const modal = useConfirm();
   const [isOwner, setIsOwner] = useState(false);
   const getAbsolutePageUrl = () => new URL(pageUrl, window.location.origin).toString();
@@ -81,8 +81,6 @@ function Actions({ id, title, imageUrl, pageUrl }: ShareActionsProps) {
 
 export default function ShareActions(props: ShareActionsProps) {
   return (
-    <App>
-      <Actions {...props} />
-    </App>
+    <Actions {...props} />
   );
 }

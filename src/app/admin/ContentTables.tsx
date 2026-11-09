@@ -6,7 +6,8 @@ import { Modal } from '@/components/ui/modal';
 import { Popconfirm } from '@/components/ui/popconfirm';
 import { Button } from '@/components/ui/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Table, Tag, type TableColumnsType } from 'antd';
+import { Table, type TableColumnsType } from '@/components/ui/table';
+import { Tag } from '@/components/ui/display';
 import { Alert } from '@/components/ui/alert';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import { MomentMediaView } from '../moments/components/MomentMedia';
@@ -100,7 +101,7 @@ export function DirectDataTable(props: Props) {
     <h2 className="mb-2 text-lg font-semibold">全部私信</h2><p className="mb-4 text-xs text-foreground-muted">共 {data?.items.length || 0} 个会话，可查看所有用户的私信历史与附件。</p>
     <Input.Search className="mb-4 max-w-md" placeholder="搜索双方昵称、ID 或最近消息" aria-label="搜索全部私信" value={search} onChange={(event) => setSearch(event.target.value)} />
     <LoadError error={error} retry={() => void load()} />
-    <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 850 }} pagination={{ pageSize: 20, showSizeChanger: false }} />
+    <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 850 }} pagination={{ pageSize: 20 }} />
     <Modal title="私信内容" open={Boolean(selected)} onCancel={() => setSelected(null)} footer={null} width={800} destroyOnHidden>{selected && <DirectHistory key={`${selected.id}:${props.refreshToken}`} conversation={selected} {...props} />}</Modal>
   </section>;
 }
@@ -138,7 +139,7 @@ export function MomentDataTable(props: Props) {
     <h2 className="mb-2 text-lg font-semibold">全部星语</h2><p className="mb-4 text-xs text-foreground-muted">查看所有用户的文字、影像、语音、位置和评论，可删除星语或单条评论。</p>
     <Input.Search className="mb-4 max-w-md" placeholder="搜索星语文字或 ID" aria-label="搜索全部星语" onSearch={(value) => { setSearch(value); setPage(1); }} allowClear />
     <LoadError error={error} retry={() => void load()} />
-    <Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ current: page, pageSize: 20, total: data?.total || 0, onChange: setPage, showSizeChanger: false }} />
+    <Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ current: page, pageSize: 20, total: data?.total || 0, onChange: setPage }} />
     <Modal title="星语管理" open={Boolean(selected)} onCancel={() => { if (!busy) setSelected(null); }} footer={null} width={800} destroyOnHidden>
       {selected && <div className="max-h-[70vh] space-y-4 overflow-y-auto">
         <div>{selected.author.name} · @{selected.author.userId}<p className="text-xs text-foreground-muted">{date(selected.createdAt)} · {selected.likeCount} 赞</p></div>
@@ -163,5 +164,5 @@ export function DoodleShareTable(props: Props) {
     { title: '状态', render: (_, item) => <Tag color={item.state === 'active' ? 'success' : 'default'}>{item.state === 'active' ? '有效' : item.state === 'expired' ? '已过期' : '已删除'}</Tag> },
     { title: '有效期至', render: (_, item) => date(item.expiresAt) }
   ];
-  return <section><h2 className="mb-2 text-lg font-semibold">漫游相机分享链接</h2><p className="mb-4 text-xs text-foreground-muted">显示已生成的分享链接，包括未关联审核记录的历史分享。</p><LoadError error={error} retry={() => void load()} /><Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: false }} /></section>;
+  return <section><h2 className="mb-2 text-lg font-semibold">漫游相机分享链接</h2><p className="mb-4 text-xs text-foreground-muted">显示已生成的分享链接，包括未关联审核记录的历史分享。</p><LoadError error={error} retry={() => void load()} /><Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ pageSize: 20 }} /></section>;
 }

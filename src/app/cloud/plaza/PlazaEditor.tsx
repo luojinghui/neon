@@ -3,7 +3,7 @@
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 
-import { App } from 'antd';
+import { useMessage } from '@/components/ui/message';
 import { CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { ContentEditorView, type EditorController } from '../components/ContentEditor';
@@ -16,7 +16,7 @@ import { usePlazaStore, setPlazaText, readPlazaHistory, savePlazaHistory, addPla
 
 export default function PlazaEditor() {
   const state = usePlazaStore();
-  const { message } = App.useApp();
+  const message = useMessage();
   const [json, setJson] = useState<{ value: unknown } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   useEffect(readPlazaHistory, []);

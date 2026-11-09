@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/modal';
  * Last modified  : 2025-12-07 23:30:00
  */
 
-import { QRCode } from 'antd';
+import { QRCode } from '@/components/ui/qrcode';
 import { useCloudStore } from '../store';
 import { neonCloud } from '../core';
 
@@ -20,7 +20,7 @@ export default function QRModal() {
   return (
     <Modal title="分享二维码" open={isQRModalOpen} onCancel={() => neonCloud.closeQRModal()} footer={null} centered>
       <div className="flex flex-col items-center space-y-4 py-4">
-        <QRCode value={shareLink} size={200} bordered={false} />
+        <QRCode value={shareLink} size={200} />
         <p className="text-foreground-muted text-sm">扫描二维码访问内容</p>
       </div>
     </Modal>

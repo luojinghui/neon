@@ -1,7 +1,7 @@
 'use client';
 
 import '@/styles/index.css';
-import { App } from 'antd';
+import { useMessage } from '@/components/ui/message';
 import { Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCloudStore } from './store';
@@ -31,7 +31,7 @@ function CloudPage() {
   const viewKey = isPlaza ? messageId !== null ? `share:${messageId}` : 'plaza' : 'cloud';
   const scrollPositions = useRef<Record<string, number>>({});
   const handledQueryPassword = useRef<string | null>(null);
-  const { message } = App.useApp();
+  const message = useMessage();
   const contentRef = useRef<HTMLElement>(null);
   const shareInfoRef = useRef<HTMLDivElement>(null);
   const sendSuccessVersion = useCloudStore((state) => state.sendSuccessVersion);
@@ -131,8 +131,8 @@ function CloudPage() {
 
 export default function Home() {
   return (
-    <App message={{ top: 'calc(var(--app-safe-top) + var(--app-topbar-height) + 0.5rem)' }}><Suspense fallback={<div className="app-screen bg-background" />}>
+    <Suspense fallback={<div className="app-screen bg-background" />}>
       <CloudPage />
-    </Suspense></App>
+    </Suspense>
   );
 }

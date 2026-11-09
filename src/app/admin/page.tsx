@@ -35,7 +35,8 @@ import {
   TeamOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Table, Tag, type TableColumnsType } from 'antd';
+import { Table, type TableColumnsType } from '@/components/ui/table';
+import { Tag } from '@/components/ui/display';
 import { Alert } from '@/components/ui/alert';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import Link from 'next/link';
@@ -280,7 +281,7 @@ function CloudDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePr
         columns={columns}
         dataSource={items}
         scroll={{ x: 1120 }}
-        pagination={{ current: page, pageSize: 50, total, showSizeChanger: false, onChange: setPage, showTotal: (count) => `共 ${count} 条` }}
+        pagination={{ current: page, pageSize: 50, total, onChange: setPage, showTotal: (count) => `共 ${count} 条` }}
       />
 
       <Modal title="云传隐私数据" open={Boolean(viewing)} onCancel={() => setViewing(null)} footer={null} centered width={720} destroyOnHidden>
@@ -394,7 +395,7 @@ function RoomAccessTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
   return (
     <section>
       <div className="mb-4"><h2 className="text-lg font-semibold text-foreground">私密星球访问</h2><p className="mt-1 text-xs text-foreground-muted">待处理 {pendingCount} 条 · 已授权 {memberCount} 人 · 共 {items.length} 条记录</p></div>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 900 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 900 }} pagination={{ pageSize: 20, showTotal: (count) => `共 ${count} 条` }} />
     </section>
   );
 }
@@ -499,7 +500,7 @@ function RoomDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
         <h2 className="text-lg font-semibold text-foreground">全部聊天室</h2>
         <p className="mt-1 text-xs text-foreground-muted">公开及私密星球共 {items.length} 个 · {totals.messages} 条消息 · 附件 {formatBytes(totals.bytes)}</p>
       </div>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 1180 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 个` }} />
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} scroll={{ x: 1180 }} pagination={{ pageSize: 20, showTotal: (count) => `共 ${count} 个` }} />
 
       <Modal title="编辑星球信息" open={Boolean(editing)} onCancel={() => setEditing(null)} onOk={() => void save()} okText="保存" cancelText="取消" confirmLoading={saving} centered destroyOnHidden>
         <div className="grid gap-4">
@@ -624,7 +625,7 @@ function UserDataTable({ refreshToken, onUnauthorized, setNotice }: DataTablePro
         <div><h2 className="text-lg font-semibold text-foreground">全部人员</h2><p className="mt-1 text-xs text-foreground-muted">共 {items.length} 个资料账户，包含系统账户</p></div>
         <Button variant="primary" type="button" onClick={openCreate}><PlusOutlined /> 新增人员</Button>
       </div>
-      <Table rowKey={(profile) => profile.uuid || profile.userId} loading={loading} columns={columns} dataSource={items} scroll={{ x: 1400 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 人` }} />
+      <Table rowKey={(profile) => profile.uuid || profile.userId} loading={loading} columns={columns} dataSource={items} scroll={{ x: 1400 }} pagination={{ pageSize: 20, showTotal: (count) => `共 ${count} 人` }} />
 
       <Modal title={editing === 'new' ? '新增人员' : '编辑人员信息'} open={Boolean(editing)} onCancel={() => setEditing(null)} onOk={() => void save()} okText="保存" cancelText="取消" confirmLoading={saving} centered destroyOnHidden>
         <div className="grid gap-4">
@@ -775,7 +776,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
         <div className="flex gap-2 text-xs"><Tag color="processing">待审核 {stats.pending}</Tag><Tag>记录 {stats.total}</Tag></div>
       </div>
       {loadError && <Alert className="mb-4" type="error" showIcon message="审核数据加载失败" description={loadError} action={<Button variant="ghost" size="sm" iconOnly type="button" aria-label="重新加载审核数据" title="重新加载" onClick={() => void load()}><ReloadOutlined /></Button>} />}
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} locale={{ emptyText: loadError ? '审核数据暂时不可用' : '暂无审核记录' }} scroll={{ x: 1050 }} pagination={{ pageSize: 20, showSizeChanger: false, showTotal: (count) => `共 ${count} 条` }} />
+      <Table rowKey="id" loading={loading} columns={columns} dataSource={items} locale={{ emptyText: loadError ? '审核数据暂时不可用' : '暂无审核记录' }} scroll={{ x: 1050 }} pagination={{ pageSize: 20, showTotal: (count) => `共 ${count} 条` }} />
     </section>
   );
 }

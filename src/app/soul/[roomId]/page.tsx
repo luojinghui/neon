@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import '@/styles/index.css';
 import { useEffect, useState } from 'react';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Badge } from 'antd';
+import { Badge } from '@/components/ui/display';
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';

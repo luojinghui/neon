@@ -179,7 +179,6 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
         <div className="cloud-editor-heading-actions">
           {queryControls}
           {description && <span className="plaza-editor-note">{description}</span>}
-          <Tooltip title="展开编辑"><Button variant="ghost" className="cloud-editor-expand" aria-label="展开编辑" icon={<Icon name="expand" />} onClick={openExpanded} /></Tooltip>
         </div>
       </div>
       {/* 拖拽区域包裹 TextArea */}
@@ -235,6 +234,7 @@ export function ContentEditorView({ controller, text, files, isDragging, isSendi
         {showHistoryButton && (
           <Tooltip title="历史"><Button aria-label="历史" icon={<Icon name="history" />} onClick={() => controller.showHistoryModal()} /></Tooltip>
         )}
+        <Tooltip title="全屏编辑"><Button className="cloud-editor-expand" aria-label="展开编辑" icon={<Icon name="fullscreen" />} onClick={openExpanded} /></Tooltip>
       </div>
 
       <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => controller.handleFileSelect(e)} />

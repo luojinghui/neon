@@ -14,6 +14,12 @@ import { useConfirm } from '@/components/ui/confirm';
 import { Popover } from '@/components/ui/popover';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
+import { Tag, Badge, Skeleton, Spin, Space } from '@/components/ui/display';
+import { Table, type TableColumnsType } from '@/components/ui/table';
+import { Dropdown } from '@/components/ui/dropdown';
+import { Drawer } from '@/components/ui/drawer';
+import { QRCode } from '@/components/ui/qrcode';
+import { useMessage } from '@/components/ui/message';
 import { PlanetIllustration } from '@/components/ui/planet-illustration';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -21,6 +27,15 @@ import { FormShowcase } from './FormShowcase';
 import { IconShowcase } from './IconShowcase';
 import type { ThemeCatalog } from './theme-catalog';
 import styles from './uikit.module.css';
+
+type DemoRow = { id: number; name: string; status: 'sent' | 'failed'; note: string };
+const demoRows: DemoRow[] = Array.from({ length: 12 }, (_, index) => ({ id: index + 1, name: `示例记录 ${index + 1}`, status: index % 4 === 3 ? 'failed' : 'sent', note: '用于演示表格的单元格内容与省略效果，内容较长时会被截断。' }));
+const demoColumns: TableColumnsType<DemoRow> = [
+  { title: '名称', dataIndex: 'name', width: 140 },
+  { title: '状态', width: 100, render: (_, row) => <Tag color={row.status === 'sent' ? 'success' : 'error'}>{row.status === 'sent' ? '已发送' : '失败'}</Tag> },
+  { title: '备注', dataIndex: 'note', ellipsis: true },
+  { title: '操作', fixed: 'right', width: 90, render: () => <Button variant="ghost" size="sm">查看</Button> }
+];
 
 const sections = [
   ['buttons', '操作按钮'], ['forms', '表单输入'], ['navigation', '导航切换'], ['menus', '菜单与外观'],
@@ -57,6 +72,8 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
   const main = useRef<HTMLElement>(null);
   const loadingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confirm = useConfirm();
+  const message = useMessage();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => () => { if (loadingTimer.current) clearTimeout(loadingTimer.current); }, []);
   useEffect(() => {
@@ -154,6 +171,17 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
           <div className={styles.exampleGrid}>
             <Example title="卡片" name="Card"><Card interactive title="周末漫游" description="收集一些喜欢的日常。" extra={<Icon name="globe" />} footer={<Button size="sm" onClick={() => setStatus('已查看卡片内容')}>查看详情</Button>}><p className={styles.note}>支持标题、内容与底部操作；悬停或聚焦操作可预览交互反馈。</p></Card></Example>
             <Example title="插图" name="PlanetIllustration"><div className={styles.illustrations}>{(['planet', 'comet', 'satellite'] as const).map(variant => <div key={variant}><PlanetIllustration variant={variant} /><span className={styles.note}>{variant}</span></div>)}</div></Example>
+            <Example title="标签" name="Tag"><div className={styles.row}>
+              <Tag>默认</Tag><Tag color="success">成功</Tag><Tag color="processing">处理中</Tag><Tag color="warning">警告</Tag><Tag color="error">错误</Tag><Tag color="accent">强调</Tag><Tag icon={<Icon name="lock" />}>带图标</Tag>
+            </div></Example>
+            <Example title="徽标" name="Badge"><div className={styles.row}>
+              <Badge count={5} /><Badge count={120} overflowCount={99} /><Badge dot><Icon name="bell" size="lg" /></Badge><Badge count={3}><Icon name="comment" size="lg" /></Badge>
+            </div></Example>
+            <Example title="骨架屏" name="Skeleton"><Skeleton active paragraph={{ rows: 3 }} /></Example>
+            <Example title="加载中" name="Spin"><div className={styles.row}><Spin size="small" /><Spin /><Spin size="large" /></div></Example>
+            <Example title="间距" name="Space"><Space size={16}><Button size="sm">复制</Button><Button size="sm" variant="ghost">关闭</Button><Tag>标签</Tag></Space></Example>
+            <Example title="二维码" name="QRCode"><div className={styles.row}><QRCode value="https://soul.example.com/uikit" size={128} /><span className={styles.note}>内联 SVG，默认黑码白底以保证扫码对比度。</span></div></Example>
+            <div className={styles.fullWidth}><Example title="表格" name="Table"><Table rowKey="id" columns={demoColumns} dataSource={demoRows} scroll={{ x: 560 }} pagination={{ pageSize: 5, showTotal: count => `共 ${count} 条` }} /></Example></div>
           </div>
         </Section>
 
@@ -165,6 +193,10 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
             <Alert type="error" showIcon message="加载失败，请重试" />
             {noticeVisible ? <Alert key="closable" showIcon message="这条提醒可以关闭" closable onClose={() => setNoticeVisible(false)} /> : <div><Button size="sm" onClick={() => setNoticeVisible(true)}>重新显示可关闭提醒</Button></div>}
           </div></Example>
+          <div style={{ marginTop: '1.25rem' }}><Example title="轻提示" name="message / useMessage"><div className={styles.row}>
+            <Button onClick={() => message.success('操作成功')}>成功</Button><Button onClick={() => message.error('操作失败，请重试')}>错误</Button>
+            <Button onClick={() => message.warning('请注意')}>警告</Button><Button onClick={() => message.info('这是一条提示')}>信息</Button>
+          </div></Example></div>
         </Section>
 
         <Section id="overlays" title="浮层与弹窗">
@@ -172,6 +204,8 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
             <Example title="文字提示" name="Tooltip"><div className={styles.row}><Tooltip title="这里是提示内容"><Button>悬停或聚焦</Button></Tooltip><Tooltip title="禁用按钮的说明"><Button disabled>禁用提示</Button></Tooltip></div></Example>
             <Example title="气泡卡片" name="Popover"><div className={styles.row}><Popover trigger="click" open={popoverOpen} onOpenChange={setPopoverOpen} title="气泡卡片" content={<div className={styles.stack}><p>在浮层里放置内容与操作。</p><Tooltip title="关闭当前浮层"><Button onClick={() => setPopoverOpen(false)}>完成</Button></Tooltip></div>}><Button>打开气泡卡片</Button></Popover></div></Example>
             <Example title="气泡确认" name="Popconfirm"><div className={styles.row}><Popconfirm title="确认执行这个操作？" okText="确认" cancelText="取消" onConfirm={() => setStatus('已确认操作')}><Button>打开气泡确认</Button></Popconfirm></div></Example>
+            <Example title="下拉菜单" name="Dropdown"><div className={styles.row}><Dropdown items={[{ key: 'copy', label: '复制', icon: <Icon name="copy" />, onClick: () => message.success('已复制') }, { key: 'delete', label: '删除', icon: <Icon name="trash" />, danger: true, onClick: () => message.warning('已删除') }]}><Button iconOnly aria-label="更多操作" icon={<Icon name="more" />} /></Dropdown></div></Example>
+            <Example title="抽屉" name="Drawer"><div className={styles.row}><Button onClick={() => setDrawerOpen(true)}>打开抽屉</Button></div></Example>
             <Example title="对话框" name="Modal"><div className={styles.row}><Button onClick={() => setModalOpen(true)}>打开对话框</Button></div></Example>
             <Example title="提醒弹窗" name="AlertDialog"><div className={styles.row}><Button onClick={() => setAlertOpen(true)}>打开提醒弹窗</Button></div></Example>
             <Example title="全局确认" name="useConfirm"><div className={styles.row}><Button onClick={() => confirm.confirm({ title: '确认操作？', content: '确认后会显示操作结果。', okText: '确认', cancelText: '取消', themeSource: main.current, onOk: () => setStatus('已确认全局操作') })}>打开全局确认</Button></div></Example>
@@ -202,6 +236,7 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
           </li>)}</ul></Card>
         </Section>
 
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} placement="right" size={360} title="抽屉标题"><p className={styles.note}>右侧、左侧、底部三种方向，共用 Modal 的层级、滚动锁定与 Esc 关闭。</p></Drawer>
         <Modal title="编辑内容" open={modalOpen} confirmLoading={saving} onCancel={() => setModalOpen(false)} onOk={save} okText="保存" cancelText="取消">
           <div className={styles.stack}><label className={styles.field}><span>名称</span><Input placeholder="输入名称" allowClear focusDecoration={<PlanetIllustration size="sm" />} /></label><Popover trigger="click" content="浮层跟随当前组件的主题。"><Button variant="ghost">查看嵌套浮层</Button></Popover></div>
         </Modal>

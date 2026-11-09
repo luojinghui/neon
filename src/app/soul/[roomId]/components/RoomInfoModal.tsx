@@ -14,7 +14,7 @@ import {
   ShareAltOutlined,
   UserDeleteOutlined
 } from '@ant-design/icons';
-import { Tag } from 'antd';
+import { Tag } from '@/components/ui/display';
 import { Modal } from '@/components/ui/modal';
 import { Popconfirm } from '@/components/ui/popconfirm';
 import Image from 'next/image';

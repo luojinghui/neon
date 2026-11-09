@@ -14,14 +14,14 @@
   box-shadow: 0 -8px 48px rgb(0 0 0 / 0.12);
 }
 
-.moment-comment-sheet .ant-drawer-header {
+.moment-comment-sheet header {
   flex: 0 0 auto;
   border-bottom: 1px solid hsl(var(--border));
   padding: 1.1rem 1.25rem;
   background: hsl(var(--surface));
 }
 
-.moment-comment-sheet .ant-drawer-title { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
+.moment-comment-sheet header > div:first-child { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
 .moment-comment-sheet .moment-comment-sheet-body { display: flex; min-height: 0; overflow: hidden; padding: 0; }
 
 .moment-comment-sheet .moment-comments-in-sheet {
@@ -67,7 +67,7 @@
 .moment-sheet-empty p { font-size: 0.8rem; }
 
 @media (max-width: 640px) {
-  .moment-comment-sheet .ant-drawer-header { padding: 1rem; }
+  .moment-comment-sheet header { padding: 1rem; }
   .moment-comment-sheet .moment-comments-heading { padding-right: 1rem; padding-left: 1rem; }
   .moment-comment-sheet .moment-comment-list { padding-right: 0.8rem; padding-left: 0.8rem; }
   .moment-comment-sheet .moment-comment-footer { padding-right: 1rem; padding-left: 1rem; }
@@ -83,5 +83,4 @@
 .moment-comment-edit { margin-left: 2.65rem; }
 
 /* The antd wrapper paints its own square shadow behind the rounded sheet; the section owns the shadow and radius. */
-.moment-comment-sheet .ant-drawer-content-wrapper, .moment-comment-sheet .moment-comment-sheet-wrapper { background: transparent; box-shadow: none; }
-.moment-comment-sheet .ant-drawer-content { background: transparent; }
+.moment-comment-sheet .moment-comment-sheet-wrapper { background: transparent; box-shadow: none; }

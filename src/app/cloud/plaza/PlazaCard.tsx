@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useConfirm } from '@/components/ui/confirm';
 
-import { App, QRCode } from 'antd';
+import { QRCode } from '@/components/ui/qrcode';
+import { useMessage } from '@/components/ui/message';
 import { CopyOutlined, DeleteOutlined, DownloadOutlined, FileTextOutlined, LinkOutlined, PaperClipOutlined, ShareAltOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
@@ -22,7 +23,7 @@ type Props = { item: PlazaMessage; detail?: boolean; clockOffset: number; onUnav
 const dateTime = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value));
 
 export default function PlazaCard({ item, detail = false, clockOffset, onUnavailable }: Props) {
-  const { message } = App.useApp();
+  const message = useMessage();
   const modal = useConfirm();
   const [expanded, setExpanded] = useState(detail);
   const [allFiles, setAllFiles] = useState(detail);
@@ -121,7 +122,7 @@ export default function PlazaCard({ item, detail = false, clockOffset, onUnavail
     <JsonViewerModal open={jsonOpen} value={json.valid ? json.value : undefined} onClose={() => setJsonOpen(false)} onCopy={() => { if (json.valid) void copy(JSON.stringify(json.value, null, 2), 'JSON'); }} />
     <Modal title="分享卡片" open={shareOpen} onCancel={() => setShareOpen(false)} footer={null} centered width={440}>
       <div className="plaza-share-dialog">
-        <div className="plaza-qr"><QRCode value={shareUrl} color="#202020" bgColor="#ffffff" size={168} bordered={false} /></div>
+        <div className="plaza-qr"><QRCode value={shareUrl} color="#202020" bgColor="#ffffff" size={168} /></div>
         <p>扫码查看</p>
         <div className="plaza-link-row"><Input aria-label="卡片分享链接" prefix={<LinkOutlined />} readOnly value={shareUrl} onFocus={event => event.target.select()} /><Button variant="primary" icon={<CopyOutlined />} onClick={() => void copy(shareUrl, '链接')}>复制链接</Button></div>
         
