@@ -1,7 +1,7 @@
 /* Individual posts share a quiet surface; the page itself stays open. */
 .moments-screen {
   --moment-muted: hsl(var(--foreground-secondary));
-  --moment-preview-lines: 4;
+  --moment-preview-lines: 10;
 }
 
 .moments-screen .moment-scroll-area { padding: var(--app-page-top) 0 3rem; }
