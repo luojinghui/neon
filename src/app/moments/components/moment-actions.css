@@ -30,6 +30,5 @@
 .moment-action:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 1px; }
 
 .moment-action > [data-ui-icon] { font-size: 1.125rem; }
-.moment-action-count:empty { display: none; }
-.moment-action-count { display: inline-block; min-width: 1ch; text-align: start; font-variant-numeric: tabular-nums; }
+.moment-action-count { display: inline-block; min-width: 2ch; text-align: start; font-variant-numeric: tabular-nums; }
 .moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: var(--font-size-caption); }
