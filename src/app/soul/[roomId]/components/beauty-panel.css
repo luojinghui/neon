@@ -50,3 +50,11 @@
 }
 
 .beauty-panel-toggle { display: flex; align-items: center; gap: 0.65rem; font-size: var(--font-size-body); color: hsl(var(--foreground)); }
+
+/* label-free tile grid */
+.beauty-panel-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 3px; }
+.beauty-panel-tiles > button { display: block; padding: 0; height: auto; }
+.beauty-panel-tile { aspect-ratio: 1; border-radius: var(--radius-md); font-size: 11px; padding: 0; }
+.beauty-panel-tiles.is-square .beauty-panel-tile { padding: 4px; }
+.beauty-panel-tile .anticon { font-size: 16px; }
+.beauty-panel-tiles > button:hover .beauty-panel-tile { background: hsl(var(--primary-soft)); }
