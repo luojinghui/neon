@@ -33,7 +33,6 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
   const [prefer3d, setPrefer3d] = useState(value.sticker.type === 'FACE_STICKY_3D');
   const [beautyOn, setBeautyOn] = useState(value.brightness > 0 || value.whitening > 0);
   const sticker3d = value.sticker.type === 'NONE' ? prefer3d : value.sticker.type === 'FACE_STICKY_3D';
-  const effectsOn = value.brightness > 0 || value.whitening > 0 || value.background.type !== 'NONE' || value.sticker.type !== 'NONE' || value.avatar.type !== 'NONE';
   const summary = !cameraEnabled ? '开启摄像头后生效' : status.phase === 'error' ? status.message : '';
   const reset = () => {
     setBeautyOn(false);
