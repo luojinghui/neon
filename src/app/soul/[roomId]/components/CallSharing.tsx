@@ -130,8 +130,6 @@ function Screen({ stream }: { stream?: MediaStream | null }) {
 
 export function SharingStage({ view, session }: { view: CallView; session: CallSession }) {
   const presentation = view.presentation;
-  if (!presentation) return null;
-  const owner = presentation.ownerId === view.selfId;
   const stage = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   useEffect(() => {
@@ -143,6 +141,8 @@ export function SharingStage({ view, session }: { view: CallView; session: CallS
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
     else void stage.current?.requestFullscreen?.().catch(() => undefined);
   };
+  if (!presentation) return null;
+  const owner = presentation.ownerId === view.selfId;
   const ownerName = view.call?.participants.find(member => member.peerId === presentation.ownerId)?.name;
   const title = presentation.kind === 'whiteboard' ? '协作白板' : presentation.kind === 'screen' ? '屏幕共享' : presentation.file?.name;
   return <div ref={stage} className={`call-sharing-stage ${fullscreen ? 'is-fullscreen' : ''}`} aria-label="共享演示">
