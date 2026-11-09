@@ -46,8 +46,8 @@
 .moment-media-view + .moment-card-voice { margin-top: 0.75rem; }
 .moments-screen .moment-voice-player { border: 0; background: hsl(var(--surface-inset)); }
 .moments-screen .moment-card-meta { justify-content: flex-start; padding: 0.55rem 0 0; color: var(--moment-muted); font-size: var(--font-size-caption); }
-.moments-screen .moment-actions { min-height: 0; justify-content: flex-start; gap: 0.25rem; margin-top: 0; border: 0; padding: 0; }
-.moments-screen .moment-action:first-child { margin-left: -0.5rem; }
+.moments-screen .moment-actions { min-height: 0; justify-content: flex-start; gap: 0; margin-top: 0; border: 0; padding: 0; }
+.moments-screen .moment-action:first-child { margin-left: -0.4375rem; }
 .moments-screen .moment-action-error { padding-left: 0; }
 
 .moments-screen .moment-load-more {
