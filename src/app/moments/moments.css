@@ -241,7 +241,7 @@
 
 @keyframes moment-pulse { 50% { opacity: 0.56; } }
 
-.moment-composer { overflow: hidden; border-radius: var(--radius-xl); background: hsl(var(--surface)); }
+.moment-composer { position: relative; overflow: hidden; border-radius: var(--radius-xl); background: hsl(var(--surface)); }
 
 .moment-composer-head {
   display: grid;
@@ -327,3 +327,8 @@
   .moment-card-skeleton,
   .moment-recording-dot { animation: none; }
 }
+
+/* Drag-and-drop overlay for the composer. */
+.moment-composer[data-dragging] { outline: 2px dashed hsl(var(--primary)); outline-offset: -8px; }
+.moment-drop-hint { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; border-radius: inherit; background: hsl(var(--surface) / .88); color: hsl(var(--primary)); font-size: var(--font-size-body); font-weight: var(--font-weight-medium); pointer-events: none; }
+.moment-drop-hint > .anticon { font-size: 2rem; }

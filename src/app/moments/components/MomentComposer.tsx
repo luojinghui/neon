@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { AudioOutlined, DeleteOutlined, EnvironmentOutlined, LoadingOutlined, PictureOutlined, StopOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { createMoment } from '../client';
 import { formatVoiceDuration } from '../format';
 import type { Moment, MomentLocation } from '../types';
@@ -57,6 +57,8 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const dragDepthRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -82,6 +84,8 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
     setRecordingMs(0);
     setLocating(false);
     setError('');
+    dragDepthRef.current = 0;
+    setDragging(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -128,6 +132,9 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
     if (currentMediaCount(media.length, accepted.length) > 9) setError('每条星语最多添加 9 个图片或视频');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const hasFiles = (event: DragEvent<HTMLElement>) => Array.from(event.dataTransfer?.types || []).includes('Files');
+  const endDrag = () => { dragDepthRef.current = 0; setDragging(false); };
 
   const startRecording = async () => {
     if (saving || requestingMicrophoneRef.current) return;
@@ -267,12 +274,20 @@ export function MomentComposer({ open, onClose, onPublished, appearance }: Props
       styles={{ container: { padding: 0, overflow: 'hidden' }, body: { padding: 0 } }}
       rootClassName={appearance === 'journal' ? 'moment-journal-composer' : undefined}
     >
-      <div className="moment-composer" onPaste={event => {
+      <div
+        className="moment-composer"
+        data-dragging={dragging || undefined}
+        onDragEnter={event => { if (!hasFiles(event) || saving) return; event.preventDefault(); dragDepthRef.current += 1; setDragging(true); }}
+        onDragOver={event => { if (!hasFiles(event) || saving) return; event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }}
+        onDragLeave={event => { if (!hasFiles(event)) return; dragDepthRef.current = Math.max(0, dragDepthRef.current - 1); if (!dragDepthRef.current) setDragging(false); }}
+        onDrop={event => { if (!hasFiles(event)) return; event.preventDefault(); endDrag(); addMedia(Array.from(event.dataTransfer.files)); }}
+        onPaste={event => {
         const images = clipboardImages(event.clipboardData);
         if (!images.length) return;
         event.preventDefault();
         addMedia(images);
       }}>
+        {dragging && <div className="moment-drop-hint" aria-hidden="true"><PictureOutlined /><span>松开以添加图片或视频</span></div>}
         <header className="moment-composer-head">
           <Button variant="ghost" type="button" onClick={close} disabled={saving}>取消</Button>
           <h2 id="moment-composer-heading">发布星语</h2>
