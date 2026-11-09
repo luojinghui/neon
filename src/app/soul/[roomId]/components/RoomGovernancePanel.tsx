@@ -34,7 +34,7 @@ function NoticeEditor({ title, hint, value, maxLength, canEdit, onSave }: { titl
   };
 
   return (
-    <section className="mt-5">
+    <section className="rounded-lg bg-surface-inset px-3.5 py-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-medium text-foreground-muted">{title}</h3>
         {canEdit && !editing && <Button size="sm" variant="ghost" type="button" onClick={() => setEditing(true)} className="px-2 py-1 text-xs">{value ? '编辑' : '添加'}</Button>}
@@ -79,7 +79,17 @@ function MemberRow({ member, canKick, busy, onKick }: { member: RoomMember; canK
   );
 }
 
-export function RoomGovernancePanel({ room, open }: { room: ChatRoom; open: boolean }) {
+export function RoomNoticeSection({ room }: { room: ChatRoom }) {
+  const canManage = room.isOwner === true;
+  return (
+    <div className="mt-5 grid gap-3">
+      <NoticeEditor title="公告" hint="向所有成员发布公告（最多 500 字）" value={room.announcement?.text || ''} maxLength={500} canEdit={canManage} onSave={(text) => soulChat.updateRoomAnnouncement(text)} />
+      <NoticeEditor title="群规" hint="写下这个星球的规则（最多 2000 字）" value={room.rules?.text || ''} maxLength={2000} canEdit={canManage} onSave={(text) => soulChat.updateRoomRules(text)} />
+    </div>
+  );
+}
+
+export function RoomMembersSection({ room, open }: { room: ChatRoom; open: boolean }) {
   const membersVersion = useSoulStore((s) => s.membersVersion);
   const [members, setMembers] = useState<RoomMember[] | null>(null);
   const [error, setError] = useState('');
@@ -116,19 +126,14 @@ export function RoomGovernancePanel({ room, open }: { room: ChatRoom; open: bool
   };
 
   return (
-    <>
-      <NoticeEditor title="公告" hint="向所有成员发布公告（最多 500 字）" value={room.announcement?.text || ''} maxLength={500} canEdit={canManage} onSave={(text) => soulChat.updateRoomAnnouncement(text)} />
-      <NoticeEditor title="群规" hint="写下这个星球的规则（最多 2000 字）" value={room.rules?.text || ''} maxLength={2000} canEdit={canManage} onSave={(text) => soulChat.updateRoomRules(text)} />
-      <section className="mt-6 border-t border-border pt-5">
-        <h3 className="text-sm font-semibold text-foreground">成员{members ? ` · ${members.length}` : ''}</h3>
-        {!room.isPrivate && <p className="mt-0.5 text-xs text-foreground-muted">公开星球仅显示当前在线成员。</p>}
-        <div className="mt-2 divide-y divide-border">
-          {members === null ? <div className="py-6 text-center text-sm text-foreground-muted">加载中...</div> : members.length === 0 ? <div className="py-6 text-center text-sm text-foreground-muted">暂无成员</div> : members.map((member) => (
-            <MemberRow key={member.userId} member={member} busy={busyId === member.userId} canKick={canManage && member.role !== 'owner' && member.role !== 'admin' && member.userId !== selfId} onKick={() => void kick(member)} />
-          ))}
-        </div>
-        {error && <p role="alert" className="mt-2 text-xs text-danger">{error}</p>}
-      </section>
-    </>
+    <section>
+      <p className="text-xs text-foreground-muted">{members ? `${members.length} 位成员` : '加载中...'}{!room.isPrivate && ' · 公开星球仅显示在线成员'}</p>
+      <div className="mt-1 divide-y divide-border">
+        {members === null ? null : members.length === 0 ? <div className="py-6 text-center text-sm text-foreground-muted">暂无成员</div> : members.map((member) => (
+          <MemberRow key={member.userId} member={member} busy={busyId === member.userId} canKick={canManage && member.role !== 'owner' && member.role !== 'admin' && member.userId !== selfId} onKick={() => void kick(member)} />
+        ))}
+      </div>
+      {error && <p role="alert" className="mt-2 text-xs text-danger">{error}</p>}
+    </section>
   );
 }

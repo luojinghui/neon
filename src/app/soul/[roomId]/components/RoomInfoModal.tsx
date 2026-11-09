@@ -20,7 +20,8 @@ import { Popconfirm } from '@/components/ui/popconfirm';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { soulChat } from '../../core';
-import { RoomGovernancePanel } from './RoomGovernancePanel';
+import { RoomMembersSection, RoomNoticeSection } from './RoomGovernancePanel';
+import { Tabs } from '@/components/ui/tabs';
 import type { ChatRoom, RoomAccessManagement, RoomAccessRecord } from '../../core/types';
 
 type Props = {
@@ -78,6 +79,7 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordNotice, setPasswordNotice] = useState('');
+  const [tab, setTab] = useState('overview');
 
   const loadManagement = useCallback(async () => {
     if (!room?.isPrivate || !room.isCreator) return;
@@ -106,6 +108,7 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
     setPassword('');
     setPasswordError('');
     setPasswordNotice('');
+    setTab('overview');
   }, [open, room?.id]);
 
   const savePassword = async (enabled: boolean) => {
@@ -207,29 +210,43 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
     }
   };
 
+  const manageable = room?.isCreator === true;
+  const tabs = room ? [
+    { key: 'overview', label: '概览' },
+    { key: 'members', label: '成员' },
+    ...(manageable ? [{ key: 'manage', label: <span className="inline-flex items-center gap-1.5">管理{(management?.pendingCount ?? room.pendingRequestCount) > 0 && <span className="h-1.5 w-1.5 rounded-full bg-danger" aria-label="有待处理申请" />}</span> }] : [])
+  ] : [];
+
   return (
-    <Modal title="星球信息" open={open && Boolean(room)} onCancel={onClose} footer={null} centered destroyOnHidden width={680}>
+    <Modal title={null} open={open && Boolean(room)} onCancel={onClose} footer={null} centered destroyOnHidden width={560}>
       {room && (
-        <div className="max-h-[75vh] overflow-y-auto pr-1 pt-1">
-          <div className="flex items-start gap-3 border-b border-border pb-4 pt-1">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">{room.isPrivate ? <LockOutlined /> : <GlobalOutlined />}</div>
-            <div className="min-w-0 flex-1"><h2 className="truncate text-lg font-semibold text-foreground">{room.name}</h2><div className="mt-1 font-mono text-xs font-medium tracking-wider text-primary">ID · {room.code}</div></div>
-            <Button size="sm" variant="outline" type="button" onClick={() => void copyRoomId()} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium"><CopyOutlined />{idCopied ? '已复制' : '复制 ID'}</Button>
-          </div>
+        <div className="flex h-[min(620px,78vh)] flex-col">
+          <header className="flex items-center gap-3 pr-8">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">{room.isPrivate ? <LockOutlined /> : <GlobalOutlined />}</div>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-base font-semibold text-foreground">{room.name}</h2>
+              <button type="button" onClick={() => void copyRoomId()} title="复制 ID" className="mt-0.5 inline-flex items-center gap-1 font-mono text-xs text-foreground-muted hover:text-primary">
+                {room.code} · {room.isPrivate ? '私密' : room.hasPassword ? '公开 · 需密码' : '公开'}
+                {idCopied ? <CheckOutlined /> : <CopyOutlined />}
+              </button>
+            </div>
+          </header>
 
-          <section className="mt-5"><h3 className="text-xs font-medium text-foreground-muted">简介</h3><p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-foreground-secondary">{room.description || '暂无简介'}</p></section>
+          <Tabs className="mt-4" size="sm" block items={tabs} activeKey={tab} onChange={setTab} aria-label="星球信息分类" />
 
-          <dl className="mt-5 rounded-lg bg-surface-inset px-4 py-2 text-sm">
-            <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">可见范围</dt><dd className="font-medium text-foreground">{room.isPrivate ? '私密星球' : '公开星球'}</dd></div>
-            {!room.isPrivate && <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">进入密码</dt><dd className="font-medium text-foreground">{room.hasPassword ? '已设置' : '未设置'}</dd></div>}
-            <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建人</dt><dd className="font-medium text-foreground">{room.owner.name}{room.owner.userId ? ` @${room.owner.userId}` : ''}</dd></div>
-            <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建时间</dt><dd className="font-medium text-foreground">{formatCreatedAt(room.createdAt)}</dd></div>
-          </dl>
-
-          <RoomGovernancePanel room={room} open={open} />
-
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+            {tab === 'overview' && (
+              <>
+                <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground-secondary">{room.description || '暂无简介'}</p>
+                <p className="mt-2 text-xs text-foreground-muted">创建人 {room.owner.name} · {formatCreatedAt(room.createdAt)}</p>
+                <RoomNoticeSection room={room} />
+              </>
+            )}
+            {tab === 'members' && <RoomMembersSection room={room} open={open} />}
+            {tab === 'manage' && manageable && (
+              <>
           {!room.isPrivate && room.isCreator && (
-            <section className="mt-6 border-t border-border pt-5">
+            <section>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">管理进入密码</h3>
@@ -301,11 +318,14 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
             </section>
           )}
 
-          {shareState === 'error' && <p className="mt-3 text-xs text-danger">分享失败，请稍后重试。</p>}
-          <div className="mt-5 flex justify-end gap-2 pt-3">
-            <Button variant="ghost" type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium">关闭</Button>
-            <Button variant="primary" type="button" disabled={room.isPrivate && room.isCreator && !management?.inviteToken} onClick={() => void handleShare()} className="inline-flex min-w-28 items-center justify-center gap-2 px-4 py-2 text-sm font-medium"><ShareAltOutlined />{shareState === 'shared' ? '已分享' : shareState === 'copied' ? '链接已复制' : room.isPrivate && room.isCreator ? '分享免审链接' : '分享星球'}</Button>
+              </>
+            )}
           </div>
+
+          {shareState === 'error' && <p className="mt-2 text-xs text-danger">分享失败，请稍后重试。</p>}
+          <footer className="mt-4 flex justify-end border-t border-border pt-3">
+            <Button variant="primary" type="button" disabled={room.isPrivate && room.isCreator && !management?.inviteToken} onClick={() => void handleShare()} className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium"><ShareAltOutlined />{shareState === 'shared' ? '已分享' : shareState === 'copied' ? '链接已复制' : room.isPrivate && room.isCreator ? '分享免审链接' : '分享星球'}</Button>
+          </footer>
         </div>
       )}
     </Modal>
