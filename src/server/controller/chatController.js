@@ -223,6 +223,47 @@ function broadcastRoomUpdated(io, room) {
   if (members.size === 0) roomMembers.delete(room.id);
 }
 
+function buildRoomMembers(io, room) {
+  const byUser = new Map();
+  const ids = roomMembers.get(room.id) || new Set();
+  for (const socketId of ids) {
+    const memberSocket = io.sockets.sockets.get(socketId);
+    const user = memberSocket?.data.user;
+    if (!user) continue;
+    const role = room.ownerId === user.id ? 'owner' : isSuperAdmin(memberSocket) ? 'admin' : 'member';
+    const existing = byUser.get(user.userId);
+    if (existing && (existing.role === 'owner' || role === 'member')) continue;
+    byUser.set(user.userId, { userId: user.userId, name: user.name, avatarUrl: user.avatarUrl || '', role, online: true });
+  }
+  if (room.isPrivate && room.kind !== 'direct') {
+    for (const record of repository.getApprovedMemberRecords(room.id)) {
+      if (byUser.has(record.requesterUserId)) continue;
+      byUser.set(record.requesterUserId, { userId: record.requesterUserId, name: record.requesterName, avatarUrl: record.requesterAvatarUrl || '', role: 'member', online: false });
+    }
+  }
+  const owner = !room.isFixed ? getRoomOwner(room) : null;
+  if (owner?.userId && !byUser.has(owner.userId)) byUser.set(owner.userId, { ...owner, role: 'owner', online: false });
+  const rank = (member) => (member.role === 'owner' ? 0 : member.role === 'admin' ? 1 : member.online ? 2 : 3);
+  return [...byUser.values()].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'zh-CN'));
+}
+
+function emitMembersChanged(io, roomId) {
+  io.to(roomId).emit('room:members:changed', { roomId });
+}
+
+function kickRoomUser(io, roomId, userId, mode) {
+  const members = roomMembers.get(roomId);
+  for (const targetSocket of io.sockets.sockets.values()) {
+    if (targetSocket.data.user?.id !== userId || targetSocket.data.roomId !== roomId) continue;
+    targetSocket.emit('room:kicked', { roomId, mode });
+    calls.leave(targetSocket, io, 'kicked');
+    targetSocket.leave(roomId);
+    targetSocket.data.roomId = null;
+    members?.delete(targetSocket.id);
+  }
+  if (members?.size === 0) roomMembers.delete(roomId);
+}
+
 function leaveCurrentRoom(socket, io) {
   const roomId = socket.data.roomId;
   if (!roomId) return;
@@ -233,6 +274,7 @@ function leaveCurrentRoom(socket, io) {
   members?.delete(socket.id);
   if (members?.size === 0) roomMembers.delete(roomId);
   socket.data.roomId = null;
+  emitMembersChanged(io, roomId);
   broadcastRoomsChanged(io);
 }
 
@@ -353,6 +395,7 @@ const onSocket = (socket, io) => {
       roomMembers.set(room.id, members);
       expirePolls(io);
       const history = repository.getHistory(room.id, { limit: 50, user });
+      emitMembersChanged(io, room.id);
       broadcastRoomsChanged(io);
 
       return { room: presentRoom(room, user, admin), ...history };
@@ -481,10 +524,54 @@ const onSocket = (socket, io) => {
     });
   });
 
+  const governance = (action) => (payload, ack) => respond(ack, () => {
+    const user = requireUser(socket);
+    const admin = isSuperAdmin(socket);
+    const room = action(payload || {}, user, { isAdmin: admin });
+    broadcastRoomUpdated(io, room);
+    broadcastRoomsChanged(io);
+    return presentRoom(room, user, admin);
+  });
+  socket.on('room:announcement', governance((p, user, o) => repository.updateAnnouncement(p.roomId, p.text, user, o)));
+  socket.on('room:rules', governance((p, user, o) => repository.updateRules(p.roomId, p.text, user, o)));
+  socket.on('room:pin', governance((p, user, o) => repository.pinMessage(p.roomId, p.messageId, user, o)));
+  socket.on('room:unpin', governance((p, user, o) => repository.unpinMessage(p.roomId, p.messageId, user, o)));
+
+  socket.on('room:members', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      void user;
+      return { roomId: payload.roomId, members: buildRoomMembers(io, repository.getRoom(payload.roomId)) };
+    });
+  });
+
+  socket.on('room:kick', (payload, ack) => {
+    respond(ack, () => {
+      const user = requireUser(socket);
+      const admin = isSuperAdmin(socket);
+      const profile = profileRepository.getByUserId(payload?.targetUserId);
+      if (!profile?.uuid) throw new RoomRepositoryError('成员不存在', 'ROOM_KICK_TARGET_NOT_FOUND');
+      const targetId = `guest-${profile.uuid}`;
+      for (const targetSocket of io.sockets.sockets.values()) {
+        if (targetSocket.data.user?.id === targetId && isSuperAdmin(targetSocket)) {
+          throw new RoomRepositoryError('不能移出超级管理员', 'ROOM_KICK_FORBIDDEN');
+        }
+      }
+      const result = repository.kickMember(payload?.roomId, targetId, user, { isAdmin: admin });
+      kickRoomUser(io, result.room.id, targetId, result.mode);
+      emitMembersChanged(io, result.room.id);
+      if (result.mode === 'revoked') notifyRoomAccessChanged(io, result.room, targetId);
+      broadcastRoomsChanged(io);
+      return { roomId: result.room.id, members: buildRoomMembers(io, result.room) };
+    });
+  });
+
   socket.on('chat:delete', (payload, ack) => {
     respond(ack, () => {
       const user = requireJoinedRoom(socket, payload?.roomId);
+      const wasPinned = repository.getRoom(socket.data.roomId)?.pinnedMessageIds?.includes(payload?.messageId);
       const message = repository.deleteMessage(socket.data.roomId, payload?.messageId, user, { isAdmin: isSuperAdmin(socket) });
+      if (wasPinned) broadcastRoomUpdated(io, repository.getRoom(socket.data.roomId));
       io.to(socket.data.roomId).emit('chat:deleted', { roomId: socket.data.roomId, messageId: message.id });
       notifyDirectChanged(io, socket.data.roomId);
       broadcastRoomsChanged(io);
@@ -495,7 +582,9 @@ const onSocket = (socket, io) => {
   socket.on('chat:recall', (payload, ack) => {
     respond(ack, () => {
       const user = requireJoinedRoom(socket, payload?.roomId);
+      const wasPinned = repository.getRoom(socket.data.roomId)?.pinnedMessageIds?.includes(payload?.messageId);
       const message = repository.recallMessage(socket.data.roomId, payload?.messageId, user);
+      if (wasPinned) broadcastRoomUpdated(io, repository.getRoom(socket.data.roomId));
       io.to(socket.data.roomId).emit('chat:recalled', { roomId: socket.data.roomId, messageId: message.id });
       notifyDirectChanged(io, socket.data.roomId);
       broadcastRoomsChanged(io);

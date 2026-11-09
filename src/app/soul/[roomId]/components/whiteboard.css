@@ -10,6 +10,8 @@
 .call-board-popover { position: absolute; z-index: 6; top: 62px; left: 50%; display: flex; gap: 5px; padding: 8px; max-width: calc(100% - 24px); border: 1px solid hsl(var(--border)); border-radius: var(--radius-lg); background: hsl(var(--surface)); box-shadow: 0 8px 30px #0002; transform: translateX(-50%); }
 .call-board-popover.is-shapes > button { width: 56px; height: 58px; flex-direction: column; gap: 5px; font-size: 18px; --button-height: 58px; }
 .call-board-popover.is-shapes > button > span:last-child { font-size: 11px; }
+.call-board-popover.is-export > button { width: auto; min-width: 96px; height: 58px; flex-direction: column; gap: 5px; padding: 0 10px; font-size: 18px; --button-height: 58px; }
+.call-board-popover.is-export > button > span:last-child { font-size: 11px; white-space: nowrap; }
 .call-board-popover.is-width { display: block; width: 220px; padding: 14px; }
 .call-board-palette { display: flex; align-items: center; gap: 8px; padding: 4px; }
 .call-board-palette > button { width: 25px; height: 25px; --button-height: 25px; }

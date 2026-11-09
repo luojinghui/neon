@@ -61,6 +61,9 @@ const DEFAULT_MESSAGES = DEFAULT_ROOMS.map((room, index) => ({
   timestamp: Date.parse(room.createdAt) + 10_000
 }));
 
+const MAX_PINNED_MESSAGES = 3;
+const ROOM_KICK_BAN_MS = 10 * 60 * 1000;
+
 class RoomRepository {
   constructor(options = {}) {
     this.dataFile = options.dataFile || process.env.SOUL_CHAT_DATA_FILE || path.join(process.cwd(), '.data', 'soul-chat.json');
@@ -417,6 +420,7 @@ class RoomRepository {
     const room = this.rooms.get(roomId);
     if (!room) throw new RoomRepositoryError('星球不存在', 'ROOM_NOT_FOUND');
     if (room.kind === 'direct') return this.requireDirectParticipant(roomId, options.user);
+    if (options.isAdmin !== true && room.ownerId !== options.user?.id) this.assertNotBanned(room, options.user);
     if (room.isPrivate) {
       if (!this.canViewRoom(room, options.user, options.isAdmin === true) && this.isValidInviteToken(room, options.inviteToken)) {
         this.grantRoomAccessByInvite(room, options.user);
@@ -553,6 +557,116 @@ class RoomRepository {
     this.rooms.set(room.id, updated);
     this.persist();
     return updated.inviteToken;
+  }
+
+  updateAnnouncement(roomId, text, actor, options = {}) {
+    return this.updateGovernanceText(roomId, 'announcement', text, 500, actor, options);
+  }
+
+  updateRules(roomId, text, actor, options = {}) {
+    return this.updateGovernanceText(roomId, 'rules', text, 2000, actor, options);
+  }
+
+  updateGovernanceText(roomId, field, text, maxLength, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    if (typeof text !== 'string') throw new RoomRepositoryError('内容无效', 'ROOM_GOVERNANCE_INVALID');
+    const value = text.replace(/\r\n/g, '\n').trim();
+    if (value.length > maxLength) {
+      throw new RoomRepositoryError(`${field === 'rules' ? '群规' : '公告'}不能超过 ${maxLength} 个字符`, 'ROOM_GOVERNANCE_TOO_LONG');
+    }
+    const now = new Date().toISOString();
+    const updated = { ...room, updatedAt: now };
+    if (value) updated[field] = { text: value, updatedAt: now, updatedBy: actor?.id || 'admin' };
+    else delete updated[field];
+    this.rooms.set(room.id, updated);
+    this.persist();
+    return updated;
+  }
+
+  getPinnedMessages(room) {
+    const ids = Array.isArray(room.pinnedMessageIds) ? room.pinnedMessageIds : [];
+    const roomMessages = this.messages.get(room.id) || [];
+    return ids
+      .map((id) => roomMessages.find((message) => message.id === id))
+      .filter(Boolean)
+      .map((message) => ({
+        id: message.id,
+        senderName: message.senderName,
+        type: message.type,
+        content: message.type === 'game' ? '[游戏]' : String(message.content || message.attachment?.name || '').slice(0, 80),
+        timestamp: message.timestamp
+      }));
+  }
+
+  pinMessage(roomId, messageId, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    const message = (this.messages.get(room.id) || []).find((item) => item.id === messageId);
+    if (!message || String(message.id).startsWith('welcome-')) throw new RoomRepositoryError('消息不存在或已被删除', 'MESSAGE_NOT_FOUND');
+    const current = Array.isArray(room.pinnedMessageIds) ? room.pinnedMessageIds : [];
+    if (current.includes(messageId)) return room;
+    if (current.length >= MAX_PINNED_MESSAGES) {
+      throw new RoomRepositoryError(`最多置顶 ${MAX_PINNED_MESSAGES} 条消息，请先取消一条`, 'ROOM_PIN_LIMIT');
+    }
+    const updated = { ...room, pinnedMessageIds: [messageId, ...current], updatedAt: new Date().toISOString() };
+    this.rooms.set(room.id, updated);
+    this.persist();
+    return updated;
+  }
+
+  unpinMessage(roomId, messageId, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    const current = Array.isArray(room.pinnedMessageIds) ? room.pinnedMessageIds : [];
+    if (!current.includes(messageId)) return room;
+    const updated = { ...room, pinnedMessageIds: current.filter((id) => id !== messageId), updatedAt: new Date().toISOString() };
+    this.rooms.set(room.id, updated);
+    this.persist();
+    return updated;
+  }
+
+  assertNotBanned(room, user) {
+    const bans = room.bans;
+    if (!bans || !user?.id) return;
+    const expiresAt = Number(bans[user.id]);
+    if (!expiresAt) return;
+    if (expiresAt <= Date.now()) {
+      const rest = { ...bans };
+      delete rest[user.id];
+      this.rooms.set(room.id, { ...room, bans: rest });
+      return;
+    }
+    throw new RoomRepositoryError('你已被移出该星球，请稍后再试', 'ROOM_BANNED', { expiresAt });
+  }
+
+  /**
+   * Removes a member's right to stay in the room. Private rooms revoke the approval,
+   * password rooms drop the remembered password verification, and plain public rooms
+   * use a short ban because there is no membership record to revoke.
+   */
+  kickMember(roomId, targetId, actor, options = {}) {
+    const room = this.requireManagedRoom(roomId, actor, options.isAdmin === true);
+    if (!targetId || targetId === room.ownerId) throw new RoomRepositoryError('不能移出星球创建者', 'ROOM_KICK_FORBIDDEN');
+    if (targetId === actor?.id) throw new RoomRepositoryError('不能移出自己', 'ROOM_KICK_FORBIDDEN');
+    let mode;
+    if (room.isPrivate) {
+      const key = this.accessKey(room.id, targetId);
+      const current = this.roomAccess.get(key);
+      if (current?.status === 'approved') {
+        const now = new Date().toISOString();
+        this.roomAccess.set(key, { ...current, status: 'revoked', attemptCount: 0, decidedAt: now, decidedBy: options.isAdmin === true ? `admin:${options.adminId || 'super'}` : actor.id, updatedAt: now });
+      }
+      mode = 'revoked';
+    } else {
+      this.passwordAccess.delete(this.accessKey(room.id, targetId));
+      const expiresAt = Date.now() + ROOM_KICK_BAN_MS;
+      this.rooms.set(room.id, { ...room, bans: { ...(room.bans || {}), [targetId]: expiresAt } });
+      mode = 'banned';
+    }
+    this.persist();
+    return { room: this.rooms.get(room.id), mode };
+  }
+
+  getApprovedMemberRecords(roomId) {
+    return this.getRoomAccessRecords(roomId).filter((record) => record.status === 'approved');
   }
 
   listAllRoomAccess() {
@@ -1062,7 +1176,12 @@ class RoomRepository {
     const [message] = roomMessages.splice(messageIndex, 1);
     const latestMessage = roomMessages[roomMessages.length - 1];
     this.messages.set(room.id, roomMessages);
-    this.rooms.set(room.id, { ...room, lastMessageAt: latestMessage ? new Date(latestMessage.timestamp).toISOString() : null });
+    const pinned = Array.isArray(room.pinnedMessageIds) ? room.pinnedMessageIds.filter((id) => id !== message.id) : undefined;
+    this.rooms.set(room.id, {
+      ...room,
+      lastMessageAt: latestMessage ? new Date(latestMessage.timestamp).toISOString() : null,
+      ...(pinned ? { pinnedMessageIds: pinned } : {})
+    });
     this.deleteStoredAttachment(message);
     this.persist();
     return this.toPublicMessage(message);
@@ -1149,7 +1268,10 @@ class RoomRepository {
       isFixed: room.isFixed === true,
       createdAt: room.createdAt,
       lastMessageAt: room.lastMessageAt || null,
-      updatedAt: room.updatedAt || null
+      updatedAt: room.updatedAt || null,
+      announcement: room.announcement ? { text: room.announcement.text, updatedAt: room.announcement.updatedAt } : null,
+      rules: room.rules ? { text: room.rules.text, updatedAt: room.rules.updatedAt } : null,
+      pinnedMessages: this.getPinnedMessages(room)
     };
   }
 

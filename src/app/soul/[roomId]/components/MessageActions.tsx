@@ -33,6 +33,8 @@ const quickReplies = [
 export function MessageActions({ messageId, messageType, hasAttachment, isLocal, game }: MessageActionsProps) {
   const canDelete = useSoulStore((state) => state.room?.isOwner === true);
   const direct = useSoulStore((state) => state.room?.kind === 'direct');
+  const canPin = useSoulStore((state) => state.room?.isOwner === true && state.room.kind !== 'direct');
+  const pinned = useSoulStore((state) => state.room?.pinnedMessages?.some((item) => item.id === messageId) === true);
   const connected = useSoulStore((state) => state.connectionState === 'connected');
   const isSending = useSoulStore((state) => state.isSending);
   const canAccess = useSoulStore((state) => state.accessState === 'granted');
@@ -97,6 +99,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   if (canCopy) actions.push(<button type="button" key="copy" className={styles.actionButton} onClick={() => { soulChat.copyMessage(messageId); close(); }}><Icon name="copy" size={18} /><span>复制</span></button>);
   if (canDownload) actions.push(<button type="button" key="download" className={styles.actionButton} onClick={() => { soulChat.downloadMessage(messageId); close(); }}><Icon name="download" size={18} /><span>下载</span></button>);
   if (canShare) actions.push(<button type="button" key="share" className={styles.actionButton} onClick={() => { void soulChat.shareMessage(messageId); close(); }}><Icon name="share" size={18} /><span>分享</span></button>);
+  if (canPin && !game) actions.push(<button type="button" key="pin" disabled={!connected || !canAccess} className={styles.actionButton} onClick={() => { void soulChat.pinMessage(messageId, !pinned); close(); }}><Icon name="environment" size={18} /><span>{pinned ? '取消置顶' : '置顶'}</span></button>);
   if (isLocal) actions.push(<button type="button" key="recall" disabled={!connected || !canAccess} className={styles.actionButton} onClick={() => { void soulChat.recallMessage(messageId); close(); }}><Icon name="rollback" size={18} /><span>撤回</span></button>);
   if (canDelete && !isLocal) actions.push(
     <Popconfirm key="delete" open={deleteConfirmOpen} title="删除这条消息？" description="删除后，所有成员都会同步移除。" okText="删除" cancelText="取消" placement="top" fitViewport boundaryPadding={12}

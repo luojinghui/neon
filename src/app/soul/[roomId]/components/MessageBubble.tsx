@@ -100,7 +100,7 @@ export function MessageBubble({ message, onPreviewImage }: { message: ChatMessag
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
 
   return (
-    <article className={`flex w-full gap-2 py-2 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+    <article id={`msg-${message.id}`} className={`flex w-full gap-2 py-2 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
       <Link href={profileHref} data-ui-surface className={buttonClassName({ variant: 'ghost', size: 'sm', iconOnly: true, className: 'h-8 w-8 shrink-0' })} aria-label={`查看${message.senderName}的个人主页`}>
         <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="h-8 w-8 rounded-full bg-surface-hover object-cover" />
       </Link>

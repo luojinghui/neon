@@ -96,3 +96,53 @@ export function fitBoardItems(items: BoardItem[], width: number, height: number)
   const zoom = Math.max(MIN_BOARD_ZOOM, Math.min(2, Math.max(1, width - 80) / Math.max(80, right - x), Math.max(1, height - 80) / Math.max(80, bottom - y)));
   return { x: width / 2 - (x + right) / 2 * zoom, y: height / 2 - (y + bottom) / 2 * zoom, zoom };
 }
+
+const SVG_FONT = "system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
+const escapeXml = (value: string) => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[char] as string);
+const num = (value: number) => Math.round(value * 1000) / 1000;
+
+/** Bounding box of all items (stroke width not included), or null for an empty board. */
+export function boardContentBounds(items: BoardItem[]): BoardBounds | null {
+  if (!items.length) return null;
+  const boxes = items.map(boardItemBounds);
+  const x = Math.min(...boxes.map(box => box.x)), y = Math.min(...boxes.map(box => box.y));
+  return { x, y, width: Math.max(...boxes.map(box => box.x + box.width)) - x, height: Math.max(...boxes.map(box => box.y + box.height)) - y };
+}
+
+function boardItemToSvg(item: BoardItem): string {
+  if (item.kind === 'text') {
+    const lines = boardTextBox(item).lines;
+    const spans = lines.map((line, index) => `<tspan x="${num(item.x + 6)}" dy="${index ? num(item.fontSize * 1.4) : 0}">${escapeXml(line)}</tspan>`).join('');
+    return `<text x="${num(item.x + 6)}" y="${num(item.y + item.fontSize)}" fill="${escapeXml(item.color)}" font-size="${item.fontSize}" font-family="${SVG_FONT}">${spans}</text>`;
+  }
+  const color = escapeXml(item.color);
+  if (item.kind === 'stroke') {
+    if (item.points.length === 1) return `<circle cx="${num(item.points[0][0])}" cy="${num(item.points[0][1])}" r="${num(item.width / 2)}" fill="${color}"/>`;
+    return `<polyline points="${item.points.map(point => `${num(point[0])},${num(point[1])}`).join(' ')}" fill="none" stroke="${color}" stroke-width="${item.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  const box = boardItemBounds(item);
+  const paint = `fill="${item.fill ? color : 'none'}" fill-opacity="0.12" stroke="${color}" stroke-width="${item.width}"`;
+  if (item.shape === 'rectangle') return `<rect x="${num(box.x)}" y="${num(box.y)}" width="${num(box.width)}" height="${num(box.height)}" rx="2" ${paint}/>`;
+  if (item.shape === 'ellipse') return `<ellipse cx="${num(box.x + box.width / 2)}" cy="${num(box.y + box.height / 2)}" rx="${num(box.width / 2)}" ry="${num(box.height / 2)}" ${paint}/>`;
+  let output = `<line x1="${num(item.x)}" y1="${num(item.y)}" x2="${num(item.endX)}" y2="${num(item.endY)}" stroke="${color}" stroke-width="${item.width}" stroke-linecap="round"/>`;
+  if (item.shape === 'arrow') {
+    const angle = Math.atan2(item.endY - item.y, item.endX - item.x), head = 12 + item.width;
+    const points = [[item.endX - head * Math.cos(angle - .48), item.endY - head * Math.sin(angle - .48)], [item.endX, item.endY], [item.endX - head * Math.cos(angle + .48), item.endY - head * Math.sin(angle + .48)]];
+    output += `<polyline points="${points.map(point => `${num(point[0])},${num(point[1])}`).join(' ')}" fill="none" stroke="${color}" stroke-width="${item.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  return output;
+}
+
+/**
+ * Serialises the whole board (independent of the viewport) into a self-contained SVG on a
+ * white background. Returns null for an empty board.
+ */
+export function boardToSvg(items: BoardItem[], options: { padding?: number; background?: string } = {}): { svg: string; width: number; height: number } | null {
+  const bounds = boardContentBounds(items);
+  if (!bounds) return null;
+  const padding = options.padding ?? 32, background = options.background ?? '#ffffff';
+  const x = bounds.x - padding, y = bounds.y - padding;
+  const width = Math.max(1, Math.ceil(bounds.width + padding * 2)), height = Math.max(1, Math.ceil(bounds.height + padding * 2));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${num(x)} ${num(y)} ${width} ${height}"><rect x="${num(x)}" y="${num(y)}" width="${width}" height="${height}" fill="${escapeXml(background)}"/>${items.map(boardItemToSvg).join('')}</svg>`;
+  return { svg, width, height };
+}

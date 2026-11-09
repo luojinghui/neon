@@ -1,3 +1,4 @@
+import { message as toast } from '@/components/ui/message';
 import { useSoulStore } from '../store';
 import { ensureCurrentProfile, getOrCreateIdentity } from '../../profile/client';
 import { readRoomListCache, writeRoomListCache } from './roomListCache';
@@ -15,6 +16,7 @@ import type {
   RoomAccessChangedEvent,
   RoomAccessGateData,
   RoomAccessManagement,
+  RoomMember,
   ServerChatMessage,
   UpdateRoomInput
 } from './types';
@@ -234,6 +236,37 @@ export class SoulChat {
   public revokeRoomAccess(requesterId: string): Promise<RoomAccessManagement> {
     if (!this.roomId) return Promise.reject(new Error('星球尚未加载'));
     return this.transport.revokeRoomAccess(this.roomId, requesterId);
+  }
+
+  public async updateRoomAnnouncement(text: string): Promise<void> {
+    if (!this.roomId) throw new Error('星球尚未加载');
+    useSoulStore.getState().setRoom(await this.transport.updateRoomAnnouncement(this.roomId, text));
+  }
+
+  public async updateRoomRules(text: string): Promise<void> {
+    if (!this.roomId) throw new Error('星球尚未加载');
+    useSoulStore.getState().setRoom(await this.transport.updateRoomRules(this.roomId, text));
+  }
+
+  public async pinMessage(messageId: string, pinned: boolean): Promise<boolean> {
+    if (!this.roomId) return false;
+    try {
+      useSoulStore.getState().setRoom(await this.transport.pinMessage(this.roomId, messageId, pinned));
+      return true;
+    } catch (error) {
+      toast.error(this.getErrorMessage(error));
+      return false;
+    }
+  }
+
+  public async listRoomMembers(): Promise<RoomMember[]> {
+    if (!this.roomId) return [];
+    return (await this.transport.listRoomMembers(this.roomId)).members;
+  }
+
+  public async kickRoomMember(targetUserId: string): Promise<RoomMember[]> {
+    if (!this.roomId) throw new Error('星球尚未加载');
+    return (await this.transport.kickRoomMember(this.roomId, targetUserId)).members;
   }
 
   public async rotateRoomInvite(): Promise<string> {
@@ -486,6 +519,18 @@ export class SoulChat {
       this.transport.onMessageRecalled((event) => this.handleDeletedMessage(event.roomId, event.messageId)),
       this.transport.onRoomUpdated((room) => {
         if (this.mode === 'room' && room.id === this.roomId) useSoulStore.getState().setRoom(room);
+      }),
+      this.transport.onRoomMembersChanged((event) => {
+        if (this.mode === 'room' && event.roomId === this.roomId) useSoulStore.getState().bumpMembersVersion();
+      }),
+      this.transport.onRoomKicked((event) => {
+        if (this.mode !== 'room' || event.roomId !== this.roomId) return;
+        this.removeRoomCache(event.roomId);
+        const store = useSoulStore.getState();
+        store.setMessages([]);
+        store.setRoom(null);
+        toast.warning('你已被移出该星球');
+        store.setAccessState('deleted', '你已被移出该星球');
       }),
       this.transport.onRoomAccessRequested((event) => this.handleRoomAccessEvent(event)),
       this.transport.onRoomAccessChanged((event) => this.handleRoomAccessEvent(event)),

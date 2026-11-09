@@ -485,3 +485,10 @@
   border: 1px solid hsl(var(--border));
   padding: 0.45rem 0.6rem;
 }
+
+/* Briefly flash a chat message located from the pinned bar. */
+.soul-message-highlight { animation: soul-message-flash 1.8s ease-out; }
+@keyframes soul-message-flash {
+  0%, 40% { background-color: color-mix(in srgb, var(--color-primary, #6366f1) 18%, transparent); }
+  100% { background-color: transparent; }
+}

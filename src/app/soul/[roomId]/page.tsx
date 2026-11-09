@@ -21,6 +21,7 @@ import { ChatInput } from './components/ChatInput';
 import { ChatToolbar } from './components/ChatToolbar';
 import { Icon } from '@/components/ui/icon';
 import { RoomAccessModal } from './components/RoomAccessModal';
+import { RoomNoticeBars } from './components/RoomNoticeBars';
 import { RoomInfoModal } from './components/RoomInfoModal';
 import { RoomCallNotice, RoomCallProvider } from './components/RoomCall';
 
@@ -82,7 +83,8 @@ function ChatRoomPage() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {accessState === 'granted' ? <MessageList className="pt-[var(--app-page-top)]" /> : accessState === 'joining' ? <div className="flex flex-1 flex-col items-center justify-center gap-2 text-caption text-foreground-muted" role="status"><Icon name="loading" />正在进入星球…</div> : <div className="flex-1" />}
+        {accessState === 'granted' && <RoomNoticeBars />}
+        {accessState === 'granted' ? <MessageList className={room?.announcement?.text || room?.pinnedMessages?.length ? '' : 'pt-[var(--app-page-top)]'} /> : accessState === 'joining' ? <div className="flex flex-1 flex-col items-center justify-center gap-2 text-caption text-foreground-muted" role="status"><Icon name="loading" />正在进入星球…</div> : <div className="flex-1" />}
 
         {accessState === 'granted' && (
           <div className="app-content-width shrink-0 pb-3 pt-2">

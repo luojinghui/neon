@@ -127,3 +127,21 @@ test('shape resize supports negative space and clamps endpoints at the server wo
   const line = board.resizeBoardShape({ ...negative, shape: 'line' }, -1e8, 1e8);
   assert.equal(line.endX, -1000000); assert.equal(line.endY, 1000000);
 });
+
+test('boardToSvg exports every item cropped to content bounds and escapes text', () => {
+  assert.equal(board.boardToSvg([]), null);
+  const text = { id: 't', authorId: 'self', kind: 'text', color: '#ef4444', text: 'A <b> & "q"', x: 500, y: 400, fontSize: 20 };
+  const arrow = { ...shape, id: 'a', shape: 'arrow' };
+  const dot = { id: 'd', authorId: 'self', kind: 'stroke', color: '#16a34a', width: 6, points: [[-700, -500]] };
+  const result = board.boardToSvg([stroke, shape, arrow, dot, text, { ...shape, id: 'e', shape: 'ellipse', fill: true }], { padding: 10 });
+  assert.match(result.svg, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/);
+  for (const tag of ['<polyline', '<rect', '<ellipse', '<circle', '<text', '<line']) assert.ok(result.svg.includes(tag), tag);
+  assert.ok(result.svg.includes('A &lt;b&gt; &amp; &quot;q&quot;'));
+  assert.ok(result.svg.includes('fill="#2563eb" fill-opacity="0.12"'));
+  const bounds = board.boardContentBounds([stroke, shape, dot, text]);
+  assert.equal(result.width, Math.ceil(result.width));
+  assert.ok(result.width >= bounds.width + 20 - 600 && bounds.x === -700 && bounds.y === -500);
+  const single = board.boardToSvg([shape], { padding: 10 });
+  assert.equal(single.width, 400 + 20); assert.equal(single.height, 320 + 20);
+  assert.match(single.svg, /viewBox="-110 -90 420 340"/);
+});

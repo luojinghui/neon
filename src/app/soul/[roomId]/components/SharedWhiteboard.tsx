@@ -3,11 +3,15 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { AimOutlined, ArrowRightOutlined, BorderOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, DragOutlined, EditOutlined, FontSizeOutlined, MinusOutlined, PlusOutlined, SelectOutlined, UndoOutlined } from '@ant-design/icons';
+import { AimOutlined, ArrowRightOutlined, BorderOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, DownloadOutlined, DragOutlined, EditOutlined, FontSizeOutlined, MinusOutlined, PlusOutlined, SelectOutlined, UndoOutlined } from '@ant-design/icons';
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { BoardItem, Presentation } from '@/modules/webrtc/sharing';
 import { boardItemBounds, boardTextBox, boardToScreen, clampBoardCoordinate, fitBoardItems, hitTestBoardItem, moveBoardItem, resizeBoardShape, screenToBoard, zoomBoardAt, type BoardCamera, type BoardPoint } from '@/modules/webrtc/whiteboard';
 import type { CallSession } from '@/modules/webrtc/session';
+import { boardExportName, downloadBlob, renderBoardPngBlob, renderBoardSvgBlob } from '@/modules/webrtc/whiteboardExport';
+import { message as toast } from '@/components/ui/message';
+import { soulChat } from '../../core';
+import { useSoulStore } from '../../store';
 import './whiteboard.css';
 
 type TextItem = Extract<BoardItem, { kind: 'text' }>;
@@ -66,7 +70,9 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
   const [color, setColor] = useState('#334155');
   const [width, setWidth] = useState(4);
   const [fill, setFill] = useState(false);
-  const [popover, setPopover] = useState<'shapes' | 'color' | 'width' | null>(null);
+  const [popover, setPopover] = useState<'shapes' | 'color' | 'width' | 'export' | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const canSaveToRoom = useSoulStore(state => state.accessState === 'granted' && state.connectionState === 'connected' && state.room?.kind !== 'direct');
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState<BoardItem | null>(null);
   const [editing, setEditing] = useState<TextEditing | null>(null);
@@ -148,6 +154,24 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
     return [clientX - rect.left, clientY - rect.top];
   };
   const worldPoint = (screen: BoardPoint): BoardPoint => screenToBoard(screen, cameraRef.current).map(clampBoardCoordinate) as BoardPoint;
+  const exportBoard = async (mode: 'png' | 'svg' | 'room') => {
+    if (exporting || !items.length) return;
+    // Commit any pending style change or in-progress text/gesture before snapshotting.
+    flushStyle(); finishEditing(); finish();
+    const snapshot = [...items];
+    setExporting(true); setPopover(null);
+    try {
+      if (mode === 'svg') downloadBlob(renderBoardSvgBlob(snapshot), boardExportName('svg'));
+      else {
+        const blob = await renderBoardPngBlob(snapshot);
+        if (mode === 'png') downloadBlob(blob, boardExportName('png'));
+        else if (await soulChat.uploadAndSend(new File([blob], boardExportName('png'), { type: 'image/png' }))) toast.success('白板已保存到聊天记录');
+        else toast.error(useSoulStore.getState().chatError || '保存到房间失败，请重试');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '白板导出失败');
+    } finally { setExporting(false); }
+  };
   const chooseTool = (next: Tool) => { flushStyle(); finishEditing(); finish(); setTool(next); setSelectedId(''); setPopover(null); };
 
   useEffect(() => {
@@ -326,10 +350,12 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
       </div>
       <div className="call-board-tool-group">
         <Button variant="ghost" iconOnly type="button" aria-label="撤销白板操作" title="撤销我的上一步 (⌘/Ctrl+Z)" disabled={!presentation.items.some(item => item.authorId === selfId)} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('undo', presentation.epoch, undefined, presentation.id); }}><UndoOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="导出白板" title="导出 / 保存" aria-expanded={popover === 'export'} disabled={!items.length || exporting} onClick={() => { finishEditing(); setPopover(value => value === 'export' ? null : 'export'); }}><DownloadOutlined /></Button>
         <Button variant="ghost" iconOnly type="button" aria-label="清空白板" title="清空白板" disabled={!presentation.items.length} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('clear', presentation.epoch, undefined, presentation.id); }}><DeleteOutlined /></Button>
       </div>
     </div>
-    {popover && <div className={`call-board-popover is-${popover}`} role="group" aria-label={popover === 'shapes' ? '选择白板图形' : popover === 'color' ? '选择白板颜色' : '白板线条样式'}>
+    {popover && <div className={`call-board-popover is-${popover}`} role="group" aria-label={popover === 'shapes' ? '选择白板图形' : popover === 'color' ? '选择白板颜色' : popover === 'export' ? '导出白板' : '白板线条样式'}>
+      {popover === 'export' && <><Button variant="ghost" type="button" onClick={() => void exportBoard('png')}><DownloadOutlined /><span>下载 PNG</span></Button><Button variant="ghost" type="button" onClick={() => void exportBoard('svg')}><DownloadOutlined /><span>下载 SVG</span></Button><Button variant="ghost" type="button" disabled={!canSaveToRoom} title={canSaveToRoom ? undefined : '加入星球后可保存'} onClick={() => void exportBoard('room')}><CheckOutlined /><span>保存到房间</span></Button></>}
       {popover === 'shapes' && SHAPES.map(value => <Button variant="ghost" type="button" key={value.id} aria-label={value.label} title={value.label} aria-pressed={tool === value.id} onClick={() => { setShape(value.id); chooseTool(value.id); }}><ShapeIcon shape={value.id} /><span>{value.label}</span></Button>)}
       {popover === 'color' && <><div className="call-board-palette">{PALETTE.map(value => <Button iconOnly variant="ghost" key={value} type="button" style={{ backgroundColor: value }} aria-label={`使用颜色 ${value}`} aria-pressed={color === value} onClick={() => changeColor(value)} />)}<label title="自定义颜色"><PlusOutlined /><input type="color" aria-label="白板颜色" value={color} onChange={event => changeColor(event.target.value)} onPointerUp={flushStyle} onBlur={flushStyle} onKeyUp={flushStyle} /></label></div></>}
       {popover === 'width' && <><label className="call-board-width-slider"><span>线条粗细 <output>{width}</output></span><input type="range" min="1" max="16" step="1" aria-label="白板画笔粗细" value={width} onChange={event => changeWidth(Number(event.target.value))} onPointerUp={flushStyle} onBlur={flushStyle} onKeyUp={flushStyle} /></label>{shapeSelected && (tool === 'rectangle' || tool === 'ellipse') && <Checkbox className="call-board-fill" aria-label="填充图形" checked={fill} onChange={event => { setFill(event.target.checked); if (canEdit && selected?.kind === 'shape') queueStyle({ ...selected, fill: event.target.checked }); }}>填充图形</Checkbox>}</>}

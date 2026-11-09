@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { message as toast } from '@/components/ui/message';
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { ImageViewer } from '@/components/image-viewer/ImageViewer';
 import { useSoulStore } from '../../store';
@@ -64,6 +65,33 @@ export function MessageList({ className = '' }: MessageListProps) {
       });
     });
   }, [handleScroll]);
+
+  const jumpToMessageId = useSoulStore((s) => s.jumpToMessageId);
+  useEffect(() => {
+    if (!jumpToMessageId) return;
+    let cancelled = false;
+    const run = async () => {
+      for (let attempt = 0; attempt < 10 && !cancelled; attempt += 1) {
+        const target = document.getElementById(`msg-${jumpToMessageId}`);
+        if (target) {
+          isNearBottomRef.current = false;
+          target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          target.classList.add('soul-message-highlight');
+          window.setTimeout(() => target.classList.remove('soul-message-highlight'), 1800);
+          return;
+        }
+        const state = useSoulStore.getState();
+        if (!state.hasMoreHistory) break;
+        isRestoringHistoryRef.current = true;
+        await soulChat.loadMoreHistory();
+        await new Promise((resolve) => window.requestAnimationFrame(() => resolve(null)));
+        isRestoringHistoryRef.current = false;
+      }
+      if (!cancelled) toast.info('消息较早，请上滑查看');
+    };
+    void run().finally(() => { if (!cancelled) useSoulStore.getState().setJumpToMessageId(''); });
+    return () => { cancelled = true; };
+  }, [jumpToMessageId]);
 
   useEffect(() => {
     const read = () => { if (isNearBottomRef.current) void soulChat.markDirectRead(); };

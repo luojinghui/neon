@@ -72,6 +72,37 @@ export interface ChatRoom {
   createdAt: string;
   lastMessageAt?: string | null;
   updatedAt?: string | null;
+  announcement?: RoomNotice | null;
+  rules?: RoomNotice | null;
+  pinnedMessages?: PinnedMessage[];
+}
+
+export interface RoomNotice {
+  text: string;
+  updatedAt: string;
+}
+
+export interface PinnedMessage {
+  id: string;
+  senderName: string;
+  type: MessageType;
+  content: string;
+  timestamp: number;
+}
+
+export type RoomMemberRole = 'owner' | 'admin' | 'member';
+
+export interface RoomMember {
+  userId: string;
+  name: string;
+  avatarUrl: string;
+  role: RoomMemberRole;
+  online: boolean;
+}
+
+export interface RoomKickedEvent {
+  roomId: string;
+  mode: 'revoked' | 'banned';
 }
 
 export interface CreateRoomInput {

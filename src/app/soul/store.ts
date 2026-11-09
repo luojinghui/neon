@@ -26,6 +26,10 @@ interface SoulStore {
   setRooms: (rooms: ChatRoom[]) => void;
   setRoomsState: (state: RoomsState, error?: string) => void;
   setRoom: (room: ChatRoom | null) => void;
+  membersVersion: number;
+  bumpMembersVersion: () => void;
+  jumpToMessageId: string;
+  setJumpToMessageId: (id: string) => void;
   setMessages: (messages: ChatMessage[]) => void;
   mergeMessages: (messages: ChatMessage[]) => void;
   removeMessage: (messageId: string) => void;
@@ -60,6 +64,8 @@ const initialState = {
   roomId: '',
   room: null as ChatRoom | null,
   roomName: '',
+  membersVersion: 0,
+  jumpToMessageId: '',
   accessState: 'joining' as RoomAccessState,
   accessError: '',
   messages: [] as ChatMessage[],
@@ -78,6 +84,8 @@ export const useSoulStore = create<SoulStore>((set) => ({
   ...initialState,
   setRooms: (rooms) => set({ rooms, roomsState: 'ready', roomsError: '' }),
   setRoomsState: (roomsState, roomsError = '') => set({ roomsState, roomsError }),
+  bumpMembersVersion: () => set((state) => ({ membersVersion: state.membersVersion + 1 })),
+  setJumpToMessageId: (jumpToMessageId) => set({ jumpToMessageId }),
   setRoom: (room) => set({ room, roomId: room?.id || '', roomName: room?.name || '' }),
   setMessages: (messages) => set({ messages: mergeById([], messages) }),
   mergeMessages: (messages) => set((state) => ({ messages: mergeById(state.messages, messages) })),

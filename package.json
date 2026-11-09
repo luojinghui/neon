@@ -11,7 +11,7 @@
     "seed:admin": "node scripts/seed-admin.js",
     "verify:admin-db": "node scripts/verify-admin-db.js",
     "test:admin": "node --test src/server/admin/*.test.js",
-    "test:soul": "node --test src/server/chat/roomRepository.test.js src/server/chat/games.test.js src/server/chat/polls.test.js src/server/chat/pollSocket.test.js src/server/chat/roomPasswordSocket.test.js",
+    "test:soul": "node --test src/server/chat/roomRepository.test.js src/server/chat/roomGovernance.test.js src/server/chat/governanceSocket.test.js src/server/chat/games.test.js src/server/chat/polls.test.js src/server/chat/pollSocket.test.js src/server/chat/roomPasswordSocket.test.js",
     "test:webrtc": "node --test src/server/webrtc/callSignaling.test.js scripts/webrtc.test.cjs",
     "test:sharing": "node --test src/server/webrtc/sharing.test.js scripts/whiteboard.test.cjs",
     "test:webrtc:browser": "node scripts/webrtc-browser.cjs",

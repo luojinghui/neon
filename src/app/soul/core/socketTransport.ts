@@ -17,6 +17,8 @@ import type {
   RoomAccessManagement,
   RoomAccessSummary,
   RoomDeletedEvent,
+  RoomKickedEvent,
+  RoomMember,
   ServerChatMessage,
   UpdateRoomInput
 } from './types';
@@ -132,6 +134,38 @@ export class SocketChatTransport {
 
   public rotateRoomInvite(roomId: string): Promise<{ roomId: string; inviteToken: string }> {
     return this.emitWithAck<{ roomId: string; inviteToken: string }>('room:invite:rotate', { roomId });
+  }
+
+  public updateRoomAnnouncement(roomId: string, text: string): Promise<ChatRoom> {
+    return this.emitWithAck<ChatRoom>('room:announcement', { roomId, text });
+  }
+
+  public updateRoomRules(roomId: string, text: string): Promise<ChatRoom> {
+    return this.emitWithAck<ChatRoom>('room:rules', { roomId, text });
+  }
+
+  public pinMessage(roomId: string, messageId: string, pinned: boolean): Promise<ChatRoom> {
+    return this.emitWithAck<ChatRoom>(pinned ? 'room:pin' : 'room:unpin', { roomId, messageId });
+  }
+
+  public listRoomMembers(roomId: string): Promise<{ roomId: string; members: RoomMember[] }> {
+    return this.emitWithAck<{ roomId: string; members: RoomMember[] }>('room:members', { roomId });
+  }
+
+  public kickRoomMember(roomId: string, targetUserId: string): Promise<{ roomId: string; members: RoomMember[] }> {
+    return this.emitWithAck<{ roomId: string; members: RoomMember[] }>('room:kick', { roomId, targetUserId });
+  }
+
+  public onRoomKicked(listener: (event: RoomKickedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:kicked', listener);
+    return () => socket.off('room:kicked', listener);
+  }
+
+  public onRoomMembersChanged(listener: (event: { roomId: string }) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:members:changed', listener);
+    return () => socket.off('room:members:changed', listener);
   }
 
   public leaveRoom(): Promise<null> {

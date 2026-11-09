@@ -20,6 +20,7 @@ import { Popconfirm } from '@/components/ui/popconfirm';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { soulChat } from '../../core';
+import { RoomGovernancePanel } from './RoomGovernancePanel';
 import type { ChatRoom, RoomAccessManagement, RoomAccessRecord } from '../../core/types';
 
 type Props = {
@@ -224,6 +225,8 @@ export function RoomInfoModal({ room, open, onClose }: Props) {
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建人</dt><dd className="font-medium text-foreground">{room.owner.name}{room.owner.userId ? ` @${room.owner.userId}` : ''}</dd></div>
             <div className="flex items-center justify-between gap-4 py-2"><dt className="text-foreground-muted">创建时间</dt><dd className="font-medium text-foreground">{formatCreatedAt(room.createdAt)}</dd></div>
           </dl>
+
+          <RoomGovernancePanel room={room} open={open} />
 
           {!room.isPrivate && room.isCreator && (
             <section className="mt-6 border-t border-border pt-5">
