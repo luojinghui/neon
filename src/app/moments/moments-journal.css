@@ -38,7 +38,7 @@
 .moments-screen .moment-icon-button { margin-right: -0.5rem; }
 .moment-entry-content { display: flex; flex-direction: column; min-width: 0; margin: 0.5rem 0 0; }
 .moment-post-copy { margin-bottom: 0.5rem; }
-.moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); }
+.moments-screen .moment-card-text { padding: 0; color: hsl(var(--foreground)); font-size: var(--font-size-body); line-height: 1.6; }
 .moments-screen .moment-card-text.is-collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: var(--moment-preview-lines); }
 .moment-expand-button { margin-top: 0.25rem; }
 .moments-screen .moment-media-view { --moment-media-max-height: min(22rem, 50dvh); margin: 0 0 0.5rem; }
