@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useEffect, useRef, useState } from 'react';
 import { setMomentLiked } from '../client';
@@ -53,12 +52,14 @@ export function MomentActions({ moment, appearance }: { moment: Moment; appearan
   return (
     <>
       <footer className="moment-actions" aria-label="星语互动">
-        <Button variant="ghost" feedback="none" size="sm" type="button" className="moment-action" icon={<Icon name="heart" active={reaction.liked} />} onClick={() => void toggleLike()} disabled={liking} aria-busy={liking || undefined} aria-label={reaction.liked ? '取消点赞' : '点赞'} aria-pressed={reaction.liked}>
+        <button type="button" className="moment-action" onClick={() => void toggleLike()} disabled={liking} aria-busy={liking || undefined} aria-label={reaction.liked ? '取消点赞' : '点赞'} aria-pressed={reaction.liked}>
+          <Icon name="heart" active={reaction.liked} />
           <span className="moment-action-count">{reaction.likeCount > 0 ? reaction.likeCount : ''}</span>
-        </Button>
-        <Button variant="ghost" feedback="none" size="sm" type="button" className="moment-action" icon={<Icon name="comment" />} onClick={() => setCommentsOpen(true)} aria-label="查看评论" aria-haspopup="dialog" aria-expanded={commentsOpen}>
+        </button>
+        <button type="button" className="moment-action" onClick={() => setCommentsOpen(true)} aria-label="查看评论" aria-haspopup="dialog" aria-expanded={commentsOpen}>
+          <Icon name="comment" />
           <span className="moment-action-count">{commentCount > 0 ? commentCount : ''}</span>
-        </Button>
+        </button>
       </footer>
       {error && <p className="moment-action-error" role="alert">{error}，点击爱心重试。</p>}
       <MomentCommentSheet appearance={appearance} open={commentsOpen} moment={moment} onClose={() => setCommentsOpen(false)} onCountChange={setCommentCount} />

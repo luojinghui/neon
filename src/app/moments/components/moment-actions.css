@@ -2,19 +2,34 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  min-height: 3.4rem;
-  margin-top: 0.25rem;
+  min-height: 0;
+  margin-top: 0;
   border-top: 0;
-  padding: 0.2rem 0.75rem;
+  padding: 0.25rem 0.75rem;
 }
 
 .moment-action {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  height: 2rem;
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  background: transparent;
+  color: hsl(var(--foreground-secondary));
+  font: inherit;
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
 }
+.moment-action:hover { background: hsl(var(--surface-hover)); color: hsl(var(--foreground)); }
+.moment-action:disabled { cursor: default; opacity: 0.6; }
+.moment-action:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 1px; }
 
-.moment-action > [data-ui-icon] { font-size: var(--font-size-title); }
-.moment-action { min-width: 3.75rem; justify-content: flex-start; }
-.moment-action-count { display: inline-block; min-width: 2ch; text-align: start; font-variant-numeric: tabular-nums; }
+.moment-action > [data-ui-icon] { font-size: 1.125rem; }
+.moment-action-count:empty { display: none; }
+.moment-action-count { display: inline-block; min-width: 1ch; text-align: start; font-variant-numeric: tabular-nums; }
 .moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: var(--font-size-caption); }
