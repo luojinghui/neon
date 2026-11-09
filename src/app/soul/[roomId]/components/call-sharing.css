@@ -106,3 +106,14 @@
 .call-share-follow { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 .call-share-follow i { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--success)); }
 @media (max-width: 760px) { .call-share-follow { font-size: 10px; } .call-sharing-heading em { display: none; } }
+
+/* slim share popover */
+.call-share-menu { width: min(232px, calc(100% - 28px)); padding: 8px; bottom: calc(64px + env(safe-area-inset-bottom)); }
+.call-share-menu header { margin-bottom: 4px; padding-left: 4px; font-size: 12px; }
+.call-share-menu header > button { width: 24px; height: 24px; --button-height: 24px; }
+.call-share-options { gap: 2px; }
+.call-share-options > button { gap: 4px; padding: 6px 2px; }
+.call-share-option-icon { width: 30px; height: 30px; font-size: 15px; border-radius: var(--radius-md); }
+.call-share-option-title { font-size: 12px; }
+.call-share-drop { margin-top: 6px; padding: 4px 6px; font-size: 10px; }
+.call-share-menu .call-share-stop { margin-top: 4px; padding: 4px; font-size: 11px; }

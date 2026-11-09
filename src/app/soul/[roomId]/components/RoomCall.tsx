@@ -278,7 +278,7 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       if (!drag.current || !panel.current) return;
       setPosition({ x: Math.max(8, Math.min(window.innerWidth - panel.current.offsetWidth - 8, drag.current.left + event.clientX - drag.current.x)), y: Math.max(8, Math.min(window.innerHeight - panel.current.offsetHeight - 8, drag.current.top + event.clientY - drag.current.y)) });
     }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
-      <div className="min-w-0"><p className="soul-call-eyebrow">PLANET CONNECTION</p><h2>{roomName || '星球通话'}</h2><p className="soul-call-status" role="status"><span />{status}</p></div>
+      <div className="soul-call-title"><h2>{roomName || '星球通话'}</h2><p className="soul-call-status" role="status"><span />{status}</p></div>
       <div className="soul-call-header-actions">
         <Button variant="ghost" iconOnly type="button" className="soul-call-view-button" disabled={joining} aria-label="参会者列表" aria-expanded={participantsOpen} aria-controls="call-participants" onClick={() => { onMini(false); setActivePanel(open => open === 'participants' ? null : 'participants'); }}><TeamOutlined /></Button>
         <Button variant="ghost" iconOnly type="button" className="soul-call-view-button" disabled={joining} aria-label="画面设置" aria-expanded={effectsOpen} onClick={() => { onMini(false); if (!effectsOpen) setSelectedPeer(view.selfId); setActivePanel(open => open === 'effects' ? null : 'effects'); }}><SettingOutlined /></Button>
