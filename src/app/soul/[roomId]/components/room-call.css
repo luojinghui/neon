@@ -187,3 +187,10 @@ div.soul-call-effect-loading { border: 1px solid hsl(var(--border)); border-radi
 .soul-call-participants small { gap: 10px; margin-top: 3px; font-size: 14px; }
 .soul-call-participants small .is-off { color: hsl(var(--foreground-muted)); opacity: .55; }
 .soul-call-participants small .is-warn { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--danger)); }
+
+/* hangup: no green ring; keep red-only, soft focus halo */
+.soul-call-controls > button.is-hangup { border: 0; box-shadow: none; outline: none; }
+.soul-call-controls > button.is-hangup:focus-visible { outline: none; box-shadow: 0 0 0 3px hsl(var(--danger) / .28); }
+.soul-call-controls > button.is-hangup > svg { width: 20px; height: 20px; }
+.soul-call-controls > button:focus-visible:not(.is-hangup) { outline-color: hsl(var(--foreground-muted)); outline-offset: 0; }
+.soul-call-controls > button[aria-pressed=true].is-device { background: transparent; }
