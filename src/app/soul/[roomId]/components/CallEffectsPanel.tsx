@@ -35,7 +35,7 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
   const [beautyOn, setBeautyOn] = useState(value.brightness > 0 || value.whitening > 0);
   const sticker3d = value.sticker.type === 'NONE' ? prefer3d : value.sticker.type === 'FACE_STICKY_3D';
   const effectsOn = value.brightness > 0 || value.whitening > 0 || value.background.type !== 'NONE' || value.sticker.type !== 'NONE' || value.avatar.type !== 'NONE';
-  const summary = !cameraEnabled ? '开启摄像头后生效' : status.phase === 'loading' ? '正在应用到我的画面' : status.phase === 'error' ? status.message : effectsOn ? '已同步到通话画面' : beautyOn && category === 'beauty' ? '拖动滑块调节增量和美白' : '未开启画面效果';
+  const summary = !cameraEnabled ? '开启摄像头后生效' : status.phase === 'loading' ? '正在应用到我的画面' : status.phase === 'error' ? status.message : effectsOn ? '已同步到通话画面' : beautyOn && category === 'beauty' ? '拖动滑块调节亮度和美白' : '未开启画面效果';
   const reset = () => {
     setBeautyOn(false);
     onChange({ ...DEFAULT_CALL_VIDEO, background: { ...NONE_EFFECT }, sticker: { ...NONE_EFFECT }, avatar: { ...NONE_EFFECT } });
@@ -55,10 +55,10 @@ export function CallEffectsPanel({ value, status, cameraEnabled, onChange, onClo
       }} />
       {beautyOn ? <div className="beauty-panel-sliders">
         {(['brightness', 'whitening'] as const).map(field => <label className="beauty-panel-slider" key={field}>
-          <span className="beauty-panel-slider-label"><span>{field === 'whitening' ? <SkinOutlined /> : <BulbOutlined />}{field === 'whitening' ? '美白' : '增量'}</span><output>{value[field]}<small>%</small></output></span>
-          <input type="range" min={0} max={100} step={1} value={value[field]} aria-label={field === 'whitening' ? '美白' : '增量'} onChange={event => onChange({ [field]: Number(event.target.value) })} />
+          <span className="beauty-panel-slider-label"><span>{field === 'whitening' ? <SkinOutlined /> : <BulbOutlined />}{field === 'whitening' ? '美白' : '亮度'}</span><output>{value[field]}<small>%</small></output></span>
+          <input type="range" min={0} max={100} step={1} value={value[field]} aria-label={field === 'whitening' ? '美白' : '亮度'} onChange={event => onChange({ [field]: Number(event.target.value) })} />
         </label>)}
-      </div> : <p className="beauty-panel-hint">开启后可调节增量和美白</p>}
+      </div> : <p className="beauty-panel-hint">开启后可调节亮度和美白</p>}
     </div>}
     {category === 'background' && <TileGrid label="虚拟背景" tiles={BACKGROUND_TILES} current={value.background} onSelect={(selection) => onChange({ background: selection })} />}
     {category === 'sticker' && <div className="beauty-panel-page">

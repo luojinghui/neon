@@ -202,9 +202,13 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     return () => window.clearInterval(timer);
   }, [view.joinedAt]);
   useEffect(() => {
-    const reset = () => setPosition(null);
-    window.addEventListener('resize', reset);
-    return () => window.removeEventListener('resize', reset);
+    const clamp = () => setPosition((current) => {
+      const element = panel.current;
+      if (!current || !element) return null;
+      return { x: Math.max(8, Math.min(window.innerWidth - element.offsetWidth - 8, current.x)), y: Math.max(8, Math.min(window.innerHeight - element.offsetHeight - 8, current.y)) };
+    });
+    window.addEventListener('resize', clamp);
+    return () => window.removeEventListener('resize', clamp);
   }, []);
   useLayoutEffect(() => {
     const element = panel.current;
@@ -252,6 +256,11 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
 
   return <section ref={panel} tabIndex={-1} role={mini ? 'region' : 'dialog'} aria-modal={mini ? undefined : true} aria-label="星球通话" className={`soul-call-panel ${mini ? 'is-mini' : 'is-full'} ${effectsOpen ? 'is-editing' : ''}`} style={mini && position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : undefined} onKeyDown={(event) => {
     if (event.key === 'Escape') { event.preventDefault(); if (activePanel) closePanel(); else onMini(!mini); }
+    if (!mini && !joining && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"], .call-whiteboard')) {
+      const key = event.key.toLowerCase();
+      if (key === 'm' && !view.mediaBusy) { event.preventDefault(); void session.toggleDevice('audio'); }
+      else if (key === 'v' && !view.mediaBusy) { event.preventDefault(); onCamera(); }
+    }
     if (event.key === 'Tab' && !mini) {
       const focusable = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled):not([hidden]), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]') || []).filter(element => element.getClientRects().length);
       if (!focusable?.length) return;
@@ -260,7 +269,7 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
   }}>
-    <header className="soul-call-header" onPointerDown={(event) => {
+    <header className="soul-call-header" onDoubleClick={(event) => { if (mini && !(event.target as HTMLElement).closest('button')) onMini(false); }} onPointerDown={(event) => {
       if (!mini || (event.target as HTMLElement).closest('button')) return;
       const rect = panel.current!.getBoundingClientRect();
       drag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
@@ -301,10 +310,10 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
     {view.error && <div className="soul-call-error" role="status"><span>{view.error}</span><Button variant="ghost" iconOnly type="button" aria-label="关闭通话提示" onClick={session.clearError}><CloseOutlined /></Button></div>}
     <footer className="soul-call-footer">
       <div className="soul-call-controls">
-        <Button iconOnly variant="ghost" type="button" disabled={joining || view.mediaBusy} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</Button>
-        <Button iconOnly variant="ghost" type="button" disabled={joining || view.mediaBusy} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></Button>
-        <Button variant="ghost" iconOnly type="button" disabled={joining || view.shareBusy} aria-pressed={Boolean(view.presentation)} aria-label="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setActivePanel(open => open === 'sharing' ? null : 'sharing'); }}><DesktopOutlined /></Button>
-        <Button variant="primary" iconOnly type="button" aria-label={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></Button>
+        <Button iconOnly variant="ghost" type="button" className="is-device" disabled={joining || view.mediaBusy} aria-label={view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} title={`${view.microphoneEnabled ? '关闭麦克风' : '开启麦克风'} (M)`} aria-keyshortcuts="M" aria-pressed={view.microphoneEnabled} onClick={() => void session.toggleDevice('audio')}>{view.microphoneEnabled ? <MicrophoneLevel stream={view.localStream} /> : <AudioMutedOutlined />}</Button>
+        <Button iconOnly variant="ghost" type="button" className="is-device" disabled={joining || view.mediaBusy} aria-label={view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} title={`${view.cameraEnabled ? '关闭摄像头' : '开启摄像头'} (V)`} aria-keyshortcuts="V" aria-pressed={view.cameraEnabled} onClick={onCamera}><span className="soul-call-camera-icon"><VideoCameraOutlined />{!view.cameraEnabled && <i />}</span></Button>
+        <Button variant="ghost" iconOnly type="button" disabled={joining || view.shareBusy} aria-pressed={Boolean(view.presentation)} aria-label="共享内容" title="共享内容" aria-expanded={sharingOpen} onClick={() => { onMini(false); setActivePanel(open => open === 'sharing' ? null : 'sharing'); }}><DesktopOutlined /></Button>
+        <Button variant="primary" iconOnly type="button" className="is-hangup" aria-label={joining ? '取消通话' : '挂断通话'} title={joining ? '取消通话' : '挂断通话'} onClick={session.hangup}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M12 7C7.5 7 3.5 8.8 1 11.7v4.1c0 .7.6 1.2 1.3 1l4.2-1.1c.5-.1.8-.5.8-1v-2.8a16 16 0 0 1 9.4 0v2.8c0 .5.3.9.8 1l4.2 1.1c.7.2 1.3-.3 1.3-1v-4.1C20.5 8.8 16.5 7 12 7Z" /></svg></Button>
       </div>
     </footer>
     {sharingOpen && <ShareMenu view={view} session={session} onClose={closePanel} />}

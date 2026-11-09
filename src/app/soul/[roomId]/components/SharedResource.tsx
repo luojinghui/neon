@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import type { Presentation } from '@/modules/webrtc/sharing';
 import type { CallSession } from '@/modules/webrtc/session';
@@ -95,10 +96,14 @@ export function SharedResource({ presentation, session, owner }: { presentation:
   if (!resource) return <div className="call-share-loading" role="status">正在加载共享文件…</div>;
   return <div className="call-resource">
     <div className="call-share-tools">
-      {resource.pdf && <><Button variant="ghost" type="button" aria-label="共享文档上一页" disabled={!owner || presentation.page <= 1} onClick={() => void session.navigateShare(presentation.page - 1, 0)}>上一页</Button><span aria-live="polite">{presentation.page} / {resource.pdf.numPages}</span><Button variant="ghost" type="button" aria-label="共享文档下一页" disabled={!owner || presentation.page >= resource.pdf.numPages} onClick={() => void session.navigateShare(presentation.page + 1, 0)}>下一页</Button></>}
-      <span>{owner ? '你的翻页和滚动会同步给大家' : '正在跟随共享者'}</span>
+      {resource.pdf && <div className="call-share-pager"><Button variant="ghost" iconOnly type="button" aria-label="共享文档上一页" title="上一页 (←)" disabled={!owner || presentation.page <= 1} onClick={() => void session.navigateShare(presentation.page - 1, 0)}><LeftOutlined /></Button><span aria-live="polite">{presentation.page} / {resource.pdf.numPages}</span><Button variant="ghost" iconOnly type="button" aria-label="共享文档下一页" title="下一页 (→)" disabled={!owner || presentation.page >= resource.pdf.numPages} onClick={() => void session.navigateShare(presentation.page + 1, 0)}><RightOutlined /></Button></div>}
+      <span className="call-share-follow"><i aria-hidden="true" />{owner ? '你的翻页和滚动会同步给大家' : '正在跟随共享者'}</span>
     </div>
-    <div ref={scroller} className={`call-resource-scroll ${owner ? 'is-presenter' : 'is-viewer'}`} aria-label="共享文件内容" onScroll={event => {
+    <div ref={scroller} className={`call-resource-scroll ${owner ? 'is-presenter' : 'is-viewer'}`} aria-label="共享文件内容" tabIndex={0} onKeyDown={event => {
+      if (!owner || !resource.pdf) return;
+      if (event.key === 'ArrowLeft' && presentation.page > 1) { event.preventDefault(); void session.navigateShare(presentation.page - 1, 0); }
+      else if (event.key === 'ArrowRight' && presentation.page < resource.pdf.numPages) { event.preventDefault(); void session.navigateShare(presentation.page + 1, 0); }
+    }} onScroll={event => {
       if (!owner) return;
       const element = event.currentTarget;
       clearTimeout(scrollTimer.current);

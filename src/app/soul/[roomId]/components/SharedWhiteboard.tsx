@@ -302,16 +302,22 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
   return <div className="call-whiteboard" onKeyDown={event => {
     if ((event.target as HTMLElement).closest('textarea,input,select')) return;
     if (event.code === 'Space') { event.preventDefault(); space.current = true; }
+    if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+      const key = event.key.toLowerCase();
+      const next = ({ v: 'select', h: 'pan', p: 'pen', r: 'rectangle', o: 'ellipse', l: 'line', a: 'arrow' } as Record<string, Tool>)[key];
+      if (next) { event.preventDefault(); if (SHAPES.some(value => value.id === next)) setShape(next as Shape); chooseTool(next); }
+      else if (key === 't') { event.preventDefault(); chooseTool('text'); createText(screenToBoard([size.width / 2 - 60, size.height / 2 - 20], cameraRef.current)); }
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); void session.board('undo', presentation.epoch, undefined, presentation.id); }
     if (event.key === 'Escape' && (popover || selectedId)) { event.stopPropagation(); setPopover(null); setSelectedId(''); }
   }}>
     <div className="call-board-toolbar" role="toolbar" aria-label="白板工具">
       <div className="call-board-tool-group">
-        <Button variant="ghost" iconOnly type="button" aria-label="选择白板内容" title="选择" aria-pressed={tool === 'select'} onClick={() => chooseTool('select')}><SelectOutlined /></Button>
-        <Button variant="ghost" iconOnly type="button" aria-label="移动白板画布" title="移动画布" aria-pressed={tool === 'pan'} onClick={() => chooseTool('pan')}><DragOutlined /></Button>
-        <Button variant="ghost" iconOnly type="button" aria-label="白板画笔" title="画笔" aria-pressed={tool === 'pen'} onClick={() => chooseTool('pen')}><EditOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="选择白板内容" title="选择 (V)" aria-pressed={tool === 'select'} onClick={() => chooseTool('select')}><SelectOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="移动白板画布" title="移动画布 (H)" aria-pressed={tool === 'pan'} onClick={() => chooseTool('pan')}><DragOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="白板画笔" title="画笔 (P)" aria-pressed={tool === 'pen'} onClick={() => chooseTool('pen')}><EditOutlined /></Button>
         <Button variant="ghost" iconOnly type="button" aria-label="白板图形" title="图形" aria-expanded={popover === 'shapes'} aria-pressed={shapeSelected} onClick={() => { finishEditing(); setPopover(value => value === 'shapes' ? null : 'shapes'); }}><ShapeIcon shape={shape} /></Button>
-        <Button variant="ghost" iconOnly type="button" aria-label="添加白板文字" title="文字" aria-pressed={tool === 'text'} onClick={() => { chooseTool('text'); createText(screenToBoard([size.width / 2 - 60, size.height / 2 - 20], cameraRef.current)); }}><FontSizeOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="添加白板文字" title="文字 (T)" aria-pressed={tool === 'text'} onClick={() => { chooseTool('text'); createText(screenToBoard([size.width / 2 - 60, size.height / 2 - 20], cameraRef.current)); }}><FontSizeOutlined /></Button>
       </div>
       <div className="call-board-tool-group">
         <Button iconOnly variant="ghost" type="button" className="call-board-color-button" aria-label="画笔颜色" title="颜色" aria-expanded={popover === 'color'} onClick={() => setPopover(value => value === 'color' ? null : 'color')}><span style={{ backgroundColor: color }} /></Button>
@@ -319,7 +325,7 @@ export function SharedWhiteboard({ presentation, session, selfId }: { presentati
         {selected?.kind === 'text' && canEdit && <Button variant="ghost" iconOnly type="button" aria-label="编辑选中文字" title="编辑文字" onClick={() => beginText(selected)}><FontSizeOutlined /></Button>}
       </div>
       <div className="call-board-tool-group">
-        <Button variant="ghost" iconOnly type="button" aria-label="撤销白板操作" title="撤销我的上一步" disabled={!presentation.items.some(item => item.authorId === selfId)} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('undo', presentation.epoch, undefined, presentation.id); }}><UndoOutlined /></Button>
+        <Button variant="ghost" iconOnly type="button" aria-label="撤销白板操作" title="撤销我的上一步 (⌘/Ctrl+Z)" disabled={!presentation.items.some(item => item.authorId === selfId)} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('undo', presentation.epoch, undefined, presentation.id); }}><UndoOutlined /></Button>
         <Button variant="ghost" iconOnly type="button" aria-label="清空白板" title="清空白板" disabled={!presentation.items.length} onClick={() => { cancelStyle(); finishEditing(true); setSelectedId(''); void session.board('clear', presentation.epoch, undefined, presentation.id); }}><DeleteOutlined /></Button>
       </div>
     </div>

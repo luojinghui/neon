@@ -150,3 +150,15 @@ div.soul-call-effect-loading { border: 1px solid hsl(var(--border)); border-radi
   .is-full .soul-call-stage.has-group .is-thumbnail { grid-column: 2; grid-row: var(--tile-slot); }
   .is-full .soul-call-waiting p, .is-full .soul-call-orbit { display: none; }
 }
+
+/* Control bar: grouped pill, clear off-state for devices, danger hang-up. */
+.soul-call-controls { width: fit-content; max-width: 100%; margin: 0 auto; padding: 8px 12px; border: 1px solid hsl(var(--border)); border-radius: 999px; background: hsl(var(--surface)); box-shadow: 0 6px 24px #0000001a; }
+.soul-call-controls > button { border-radius: 50%; transition: background-color .15s, color .15s, transform .15s; }
+.soul-call-controls > button:active:not(:disabled) { transform: scale(.94); }
+.soul-call-controls > button.is-device[aria-pressed=false] { background: hsl(var(--danger-soft)); color: hsl(var(--danger)); }
+.soul-call-controls > button[aria-pressed=true]:not(.is-device):not(.is-hangup) { background: hsl(var(--primary-soft)); color: hsl(var(--primary)); }
+.soul-call-controls > button.is-hangup { width: 64px; border-radius: 999px; background: hsl(var(--danger)); color: #fff; }
+.soul-call-controls > button:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+.is-mini .soul-call-controls { padding: 4px 8px; box-shadow: none; }
+.is-mini .soul-call-controls > button.is-hangup { width: 46px; }
+@media (max-width: 760px) { .is-full .soul-call-controls { gap: 10px; padding: 6px 10px; } .is-full .soul-call-controls > button.is-hangup { width: 58px; } }
