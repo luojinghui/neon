@@ -180,3 +180,10 @@ div.soul-call-effect-loading { border: 1px solid hsl(var(--border)); border-radi
 .soul-call-controls > button[aria-pressed=true]:not(.is-device):not(.is-hangup) { background: hsl(var(--surface-inset)); color: hsl(var(--foreground)); }
 .soul-call-controls > button.is-hangup, .is-full .soul-call-controls > button.is-hangup { width: 48px; height: 38px; margin-left: 2px; border-radius: 999px; background: hsl(var(--danger)); color: #fff; }
 .soul-call-controls > button.is-hangup:hover:not(:disabled) { background: hsl(var(--danger)); filter: brightness(.94); }
+
+/* compact participant rows: name line + icon line */
+.soul-call-participants li { gap: 10px; padding: 10px 0; align-items: center; }
+.soul-call-member-avatar { width: 32px; height: 32px; font-size: 13px; }
+.soul-call-participants small { gap: 10px; margin-top: 3px; font-size: 14px; }
+.soul-call-participants small .is-off { color: hsl(var(--foreground-muted)); opacity: .55; }
+.soul-call-participants small .is-warn { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--danger)); }

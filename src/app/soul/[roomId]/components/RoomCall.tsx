@@ -302,8 +302,8 @@ function CallOverlay({ view, session, roomName, mini, onMini, onCamera, mobile }
         const state = local ? 'connected' : view.peers[member.peerId]?.connectionState;
         const microphone = local ? view.microphoneEnabled : member.microphoneEnabled;
         const camera = local ? view.cameraEnabled : member.cameraEnabled;
-        const connection = state === 'connected' ? '已连接' : state === 'failed' ? '连接失败' : state === 'disconnected' ? '重连中' : '连接中';
-        return <li key={member.peerId}><span className="soul-call-member-avatar" aria-hidden="true">{member.name.slice(0, 1) || '星'}</span><div><p>{member.name}{local ? '（我）' : ''}</p><span className={state === 'connected' ? 'is-connected' : ''}>{connection}</span><small>{microphone ? <AudioOutlined /> : <AudioMutedOutlined />}{microphone ? '麦克风开启' : '已静音'}<VideoCameraOutlined />{camera ? '视频开启' : '视频关闭'}</small></div></li>;
+        const abnormal = state === 'failed' || state === 'disconnected';
+        return <li key={member.peerId}><span className="soul-call-member-avatar" aria-hidden="true">{member.name.slice(0, 1) || '星'}</span><div><p>{member.name}{local ? '（我）' : ''}</p><small>{microphone ? <AudioOutlined title="麦克风开启" /> : <AudioMutedOutlined title="已静音" className="is-off" />}{camera ? <VideoCameraOutlined title="视频开启" /> : <VideoCameraOutlined title="视频关闭" className="is-off" />}{abnormal && <span className="is-warn" title={state === 'failed' ? '连接失败' : '重连中'} />}</small></div></li>;
       })}</ul>
     </aside>}
     </div>
