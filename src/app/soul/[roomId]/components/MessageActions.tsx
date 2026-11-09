@@ -91,17 +91,17 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
 
   const actions: ReactNode[] = [];
   if (game) {
-    actions.push(<Button key="resend" size="sm" variant="ghost" disabled={gameDisabled} className={styles.actionButton} onClick={() => void runGame()} icon={<Icon name={gamePending ? 'loading' : 'reload'} size={20} />}><span>重新发送</span></Button>);
-    if (canFinishGame) actions.push(<Button key="finish" size="sm" variant="ghost" disabled={gameDisabled} className={styles.actionButton} onClick={() => void runGame(true)} icon={<Icon name="check" size={20} />}><span>{game.kind === 'draw' ? '揭晓答案' : '取消邀请'}</span></Button>);
+    actions.push(<Button key="resend" size="sm" variant="ghost" disabled={gameDisabled} className={styles.actionButton} onClick={() => void runGame()} icon={<Icon name={gamePending ? 'loading' : 'reload'} size={18} />}><span>重新发送</span></Button>);
+    if (canFinishGame) actions.push(<Button key="finish" size="sm" variant="ghost" disabled={gameDisabled} className={styles.actionButton} onClick={() => void runGame(true)} icon={<Icon name="check" size={18} />}><span>{game.kind === 'draw' ? '揭晓答案' : '取消邀请'}</span></Button>);
   }
-  if (canCopy) actions.push(<Button key="copy" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="copy" size={20} />} onClick={() => { soulChat.copyMessage(messageId); close(); }}><span>复制</span></Button>);
-  if (canDownload) actions.push(<Button key="download" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="download" size={20} />} onClick={() => { soulChat.downloadMessage(messageId); close(); }}><span>下载</span></Button>);
-  if (canShare) actions.push(<Button key="share" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="share" size={20} />} onClick={() => { void soulChat.shareMessage(messageId); close(); }}><span>分享</span></Button>);
-  if (isLocal) actions.push(<Button key="recall" size="sm" variant="ghost" disabled={!connected || !canAccess} className={styles.actionButton} icon={<Icon name="rollback" size={20} />} onClick={() => { void soulChat.recallMessage(messageId); close(); }}><span>撤回</span></Button>);
+  if (canCopy) actions.push(<Button key="copy" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="copy" size={18} />} onClick={() => { soulChat.copyMessage(messageId); close(); }}><span>复制</span></Button>);
+  if (canDownload) actions.push(<Button key="download" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="download" size={18} />} onClick={() => { soulChat.downloadMessage(messageId); close(); }}><span>下载</span></Button>);
+  if (canShare) actions.push(<Button key="share" size="sm" variant="ghost" className={styles.actionButton} icon={<Icon name="share" size={18} />} onClick={() => { void soulChat.shareMessage(messageId); close(); }}><span>分享</span></Button>);
+  if (isLocal) actions.push(<Button key="recall" size="sm" variant="ghost" disabled={!connected || !canAccess} className={styles.actionButton} icon={<Icon name="rollback" size={18} />} onClick={() => { void soulChat.recallMessage(messageId); close(); }}><span>撤回</span></Button>);
   if (canDelete && !isLocal) actions.push(
     <Popconfirm key="delete" open={deleteConfirmOpen} title="删除这条消息？" description="删除后，所有成员都会同步移除。" okText="删除" cancelText="取消" placement="top" fitViewport boundaryPadding={12}
       onOpenChange={setDeleteConfirmOpen} onConfirm={() => { void soulChat.deleteMessage(messageId); close(); }} onCancel={() => setDeleteConfirmOpen(false)}>
-      <Button size="sm" variant="ghost" className={styles.actionButton} onClick={() => setDeleteConfirmOpen(true)} icon={<Icon name="delete" size={20} />}><span>删除</span></Button>
+      <Button size="sm" variant="ghost" className={styles.actionButton} onClick={() => setDeleteConfirmOpen(true)} icon={<Icon name="delete" size={18} />}><span>删除</span></Button>
     </Popconfirm>
   );
   const actionRows = Array.from({ length: Math.ceil(actions.length / 5) }, (_, index) => actions.slice(index * 5, index * 5 + 5));
@@ -137,7 +137,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
       boundaryPadding={12}
       radius="lg"
       arrow={false}
-      bodyStyle={{ padding: 4 }}
+      bodyStyle={{ padding: 2 }}
     >
       <Button size="sm" variant="ghost" iconOnly
         type="button"
