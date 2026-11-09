@@ -117,3 +117,8 @@
 .call-share-option-title { font-size: 12px; }
 .call-share-drop { margin-top: 6px; padding: 4px 6px; font-size: 10px; }
 .call-share-menu .call-share-stop { margin-top: 4px; padding: 4px; font-size: 11px; }
+
+/* sidebar tiles keep a 4:3 ratio instead of stretching to the full column height */
+@media (min-width: 761px) {
+  .soul-call-panel.is-full .soul-call-stage.has-sharing > .soul-call-tile { align-self: start; height: auto; aspect-ratio: 4 / 3; }
+}
