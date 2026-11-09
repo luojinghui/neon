@@ -23,8 +23,8 @@ export function MoreMenu({ onClose, onCreate, onSearch }: Props) {
       <Icon name="arrow-right" className={styles.go} />
     </Link>
     <Menu.Section title="快捷操作">
-      <Menu.Item icon={<Icon name="plus" />} label="创建星球" description="开辟一颗新的星球" onClick={onCreate} />
-      <Menu.Item icon={<Icon name="search" />} label="搜索星球" description="用名称或 ID 找到它" onClick={onSearch} />
+      <Menu.Item icon={<Icon name="plus" />} label="创建星球" onClick={onCreate} />
+      <Menu.Item icon={<Icon name="search" />} label="搜索星球" onClick={onSearch} />
     </Menu.Section>
     <Menu.Section><div className={styles.appearance}><AppearancePanel /></div></Menu.Section>
   </Menu>;
