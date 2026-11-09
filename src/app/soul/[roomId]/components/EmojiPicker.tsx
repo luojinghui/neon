@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { useEffect, useRef } from 'react';
 import { soulChat } from '../../core';
+import { insertChatText } from './insertText';
 
 const EMOJIS = [
   '😀',
@@ -82,8 +83,7 @@ export function EmojiPicker({ onClose }: { onClose: () => void }) {
             key={emoji}
             type="button"
             onClick={() => {
-              void soulChat.sendEmoji(emoji);
-              onClose();
+              insertChatText(emoji);
             }}
             className="flex h-8 w-8 items-center justify-center text-xl"
             aria-label={`发送 ${emoji}`}

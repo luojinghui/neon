@@ -65,3 +65,10 @@
   .moment-media-view-immersive { margin: 0; }
   .moment-media-grid { gap: 4px; }
 }
+
+/* Compact feed layout: multi-image grids share one 16:9 frame instead of growing by rows. */
+.moment-media-grid[data-compact]:not([data-count='1']) { aspect-ratio: 16 / 9; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.moment-media-grid[data-compact][data-count='2'] { grid-template-rows: minmax(0, 1fr); }
+.moment-media-grid[data-compact][data-count='3'] { aspect-ratio: 16 / 9; }
+.moment-media-grid[data-compact]:not([data-count='1']) .moment-media-tile { aspect-ratio: auto; }
+.moment-media-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / 0.5); color: #fff; font-size: 1.25rem; font-weight: 600; }

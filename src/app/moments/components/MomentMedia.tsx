@@ -7,6 +7,9 @@ import { ImageViewer } from '@/components/image-viewer/ImageViewer';
 import { VideoPlayer } from '@/components/video-player/VideoPlayer';
 import './moment-media.css';
 
+// Feed cards show at most four tiles in a 16:9 frame (like X) so the first screen holds more posts.
+const FEED_IMAGE_LIMIT = 4;
+
 type Props = {
   media: MomentMedia[];
   immersive?: boolean;
@@ -32,12 +35,13 @@ export function MomentMediaView({ media, immersive = false }: Props) {
       {images.length > 0 && (
         <div
           className="moment-media-grid"
-          data-count={images.length}
+          data-count={immersive ? images.length : Math.min(images.length, FEED_IMAGE_LIMIT)}
+          data-compact={immersive ? undefined : ''}
           style={{ '--moment-single-ratio': singleRatio } as CSSProperties}
           role="group"
           aria-label={`共 ${images.length} 张图片，点击可查看大图`}
         >
-          {images.map((item, index) => (
+          {(immersive ? images : images.slice(0, FEED_IMAGE_LIMIT)).map((item, index) => (
             <Button variant="ghost" data-ui-surface
               key={item.id}
               type="button" className="moment-media-tile"
@@ -61,6 +65,9 @@ export function MomentMediaView({ media, immersive = false }: Props) {
                   }
                 }}
               />
+              {!immersive && index === FEED_IMAGE_LIMIT - 1 && images.length > FEED_IMAGE_LIMIT && (
+                <span className="moment-media-more" aria-hidden>+{images.length - FEED_IMAGE_LIMIT}</span>
+              )}
             </Button>
           ))}
         </div>
