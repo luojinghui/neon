@@ -16,27 +16,35 @@
 .video-player-poster { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
 .video-player-poster { pointer-events: none; }
 .video-player-surface[data-ui-button] { position: absolute; inset: 0; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; }
-.video-player-play { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border: 1px solid hsl(var(--border)); border-radius: 50%; background: hsl(var(--surface)); color: hsl(var(--foreground));  backdrop-filter: blur(8px); font-size: 1.5rem; }
-.video-player-duration { position: absolute; left: 0.65rem; bottom: 0.65rem; border-radius: var(--radius-sm); padding: 0.15rem 0.4rem; background: #0008; font-size: 0.7rem; font-variant-numeric: tabular-nums; pointer-events: none; }
-.video-player-controls { position: absolute; right: 0; bottom: 0; left: 0; padding: 0.75rem 0.4rem 0.2rem; background: linear-gradient(transparent, #000b); pointer-events: none; }
-.video-player-controls[data-visible='false'] { left: auto; padding-top: 0; background: transparent; }
-.video-player-toolbar { display: flex; align-items: center; gap: 0.15rem; }
-.video-player-toolbar [data-ui-button],
+/* Overlay sits on video frames, so it uses a fixed dark glass instead of theme surfaces. */
+.video-player-play { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 50%; background: #0007; color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 1.35rem; transition: opacity .2s ease, transform .2s ease; }
+.video-player-play[data-visible='false'] { opacity: 0; transform: scale(.88); pointer-events: none; }
+.video-player-duration { position: absolute; left: 0.6rem; bottom: 0.6rem; border-radius: var(--radius-sm); padding: 0.1rem 0.4rem; background: #0007; font-size: 0.7rem; font-variant-numeric: tabular-nums; pointer-events: none; }
+.video-player-controls { position: absolute; right: 0; bottom: 0; left: 0; display: flex; align-items: center; gap: 0.25rem; padding: 1.75rem 0.25rem 0.15rem; background: linear-gradient(transparent, #0009); pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+.video-player-controls[data-visible='false'] { opacity: 0; transform: translateY(0.5rem); }
+.video-player-controls[data-visible='false'] * { pointer-events: none !important; }
+.video-player-controls [data-ui-button] { flex: none; color: #fff; pointer-events: auto; filter: drop-shadow(0 1px 2px #0008); }
 .video-player-error [data-ui-button] { pointer-events: auto; }
-.video-player-fullscreen { margin-left: auto; }
-.video-player-time { flex: 1; min-width: 0; white-space: nowrap; font-size: 0.68rem; font-variant-numeric: tabular-nums; }
+.video-player-time { flex: none; min-width: 2.2rem; text-align: center; white-space: nowrap; font-size: 0.68rem; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #0008; pointer-events: none; }
 .video-player input:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
-.video-player-seek { display: block; appearance: none; -webkit-appearance: none; width: calc(100% - 1rem); height: 1.5rem; margin: 0 0.5rem; border: 0; padding: 0; background: transparent; cursor: pointer; pointer-events: auto; touch-action: pan-y; }
-.video-player-seek::-webkit-slider-runnable-track { height: 3px; border-radius: 9999px; background: linear-gradient(to right, #fff var(--video-progress), #ffffff55 var(--video-progress)); }
-.video-player-seek::-moz-range-track { height: 3px; border-radius: 9999px; background: #ffffff55; }
+.video-player-seek { flex: 1; min-width: 0; display: block; appearance: none; -webkit-appearance: none; height: 1.5rem; margin: 0 0.15rem; border: 0; padding: 0; background: transparent; cursor: pointer; pointer-events: auto; touch-action: pan-y; }
+.video-player-seek::-webkit-slider-runnable-track { height: 3px; border-radius: 9999px; background: linear-gradient(to right, #fff var(--video-progress), #ffffff4d var(--video-progress)); }
+.video-player-seek::-moz-range-track { height: 3px; border-radius: 9999px; background: #ffffff4d; }
 .video-player-seek::-moz-range-progress { height: 3px; background: #fff; }
-.video-player-seek::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4.5px; border: 0; border-radius: 50%; background: #fff; }
-.video-player-seek::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; }
+.video-player-seek::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 11px; height: 11px; margin-top: -4px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px #ffffff33; }
+.video-player-seek::-moz-range-thumb { width: 11px; height: 11px; border: 0; border-radius: 50%; background: #fff; }
+/* Unobtrusive progress hint once the controls have faded out. */
+.video-player-progress-line { position: absolute; left: 0; bottom: 0; width: var(--video-progress); height: 2px; background: #ffffffcc; pointer-events: none; transition: opacity .2s ease; }
+.video-player[data-chrome='shown'] .video-player-progress-line { opacity: 0; }
+.video-player[data-chrome='hidden'] { cursor: none; }
 .video-player-error { color: hsl(var(--foreground)); position: absolute; inset: 0; display: flex; flex-wrap: wrap; align-content: center; align-items: center; justify-content: center; gap: 0.4rem 0.8rem; padding: 1rem 1rem 3rem; background: hsl(var(--surface)); font-size: 0.75rem; text-align: center; }
 .video-player-error > span { width: 100%; }
 .video-player:fullscreen,
 .video-player.is-expanded { width: 100%; height: 100%; max-width: none; aspect-ratio: auto; border-radius: 0; background: #000; }
 .video-player.is-expanded { position: fixed; inset: 0; z-index: 10000; width: 100vw; height: 100vh; height: 100dvh; }
 .video-player:fullscreen .video-player-controls,
-.video-player.is-expanded .video-player-controls { padding: 1.5rem max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left)); }
-@media (prefers-reduced-motion: reduce) { .video-player .anticon-spin { animation: none; } }
+.video-player.is-expanded .video-player-controls { padding: 2.5rem max(0.5rem, env(safe-area-inset-right)) max(0.5rem, env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left)); }
+@media (prefers-reduced-motion: reduce) {
+  .video-player .anticon-spin { animation: none; }
+  .video-player-play, .video-player-controls { transition: none; }
+}

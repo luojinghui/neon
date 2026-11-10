@@ -2,13 +2,14 @@
 
 import { Button, buttonClassName } from '@/components/ui/button';
 import { FullscreenExitOutlined, FullscreenOutlined, LoadingOutlined, PauseOutlined, CaretRightFilled, ReloadOutlined } from '@ant-design/icons';
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
 import { formatVideoTime, useVideoPreview } from './useVideoPreview';
 import './video-player.css';
 
 type Props = { src: string; poster?: string; label?: string; className?: string };
 type WebKitVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void; webkitExitFullscreen?: () => void };
 const PLAY_EVENT = 'neon-video-play';
+const CONTROLS_IDLE_MS = 2600;
 
 // A new source gets its own playback state, including when a feed item is refreshed.
 export function VideoPlayer(props: Props) {
@@ -27,6 +28,19 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
   const [error, setError] = useState('');
   const [fullscreen, setFullscreen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [controlsShown, setControlsShown] = useState(true);
+  const hideTimerRef = useRef<number | undefined>(undefined);
+  const pointerTypeRef = useRef('');
+
+  const clearHideTimer = () => window.clearTimeout(hideTimerRef.current);
+  // Controls stay up while paused; during playback they fade after a short idle period.
+  const revealControls = () => {
+    setControlsShown(true);
+    clearHideTimer();
+    if (videoRef.current && !videoRef.current.paused) hideTimerRef.current = window.setTimeout(() => setControlsShown(false), CONTROLS_IDLE_MS);
+  };
+  const hideControls = () => { clearHideTimer(); if (videoRef.current && !videoRef.current.paused) setControlsShown(false); };
+  useEffect(() => clearHideTimer, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -97,6 +111,17 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
     if (video.paused) void play();
     else video.pause();
   };
+  // Touch: tapping the picture shows/hides controls, the center button plays/pauses.
+  // Mouse and keyboard: clicking the picture plays/pauses directly.
+  const onSurfaceClick = (event: MouseEvent<HTMLButtonElement>) => {
+    const touch = pointerTypeRef.current === 'touch' || pointerTypeRef.current === 'pen';
+    const onCenter = (event.target as HTMLElement).closest('.video-player-play');
+    if (touch && started && !onCenter && !videoRef.current?.paused) {
+      if (controlsShown) hideControls(); else revealControls();
+      return;
+    }
+    togglePlayback();
+  };
   const seek = (value: number) => {
     const video = videoRef.current;
     if (!video || !duration) return;
@@ -117,14 +142,32 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
     setExpanded(true);
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    revealControls();
     if (event.target instanceof HTMLInputElement) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault(); seek(time + (event.key === 'ArrowRight' ? 5 : -5));
     }
+    if ((event.key === 'k' || event.key === 'K') && !(event.target instanceof HTMLButtonElement)) { event.preventDefault(); togglePlayback(); }
   };
+  const showChrome = !started || controlsShown || !playing || waiting;
+  const showCenter = !error && (!started || !playing || waiting || (controlsShown && pointerTypeRef.current === 'touch'));
+  const progress = duration ? Math.min(100, time / duration * 100) : 0;
 
   return (
-    <div ref={rootRef} className={`video-player${started ? ' is-started' : ''}${expanded ? ' is-expanded' : ''} ${className}`} style={{ '--video-ratio': ratio } as CSSProperties} role={expanded ? 'dialog' : 'region'} aria-modal={expanded || undefined} aria-label={label} onKeyDown={onKeyDown}>
+    <div
+      ref={rootRef}
+      className={`video-player${started ? ' is-started' : ''}${expanded ? ' is-expanded' : ''} ${className}`}
+      style={{ '--video-ratio': ratio, '--video-progress': `${progress}%` } as CSSProperties}
+      data-chrome={showChrome ? 'shown' : 'hidden'}
+      role={expanded ? 'dialog' : 'region'}
+      aria-modal={expanded || undefined}
+      aria-label={label}
+      onKeyDown={onKeyDown}
+      onPointerDown={(event) => { pointerTypeRef.current = event.pointerType; }}
+      onPointerMove={(event) => { if (event.pointerType === 'mouse') revealControls(); }}
+      onPointerLeave={(event) => { if (event.pointerType === 'mouse') hideControls(); }}
+      onFocus={revealControls}
+    >
       <video
         ref={videoRef}
         className="video-player-media"
@@ -134,10 +177,10 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
         x5-playsinline="true"
         preload="metadata"
         aria-label={label}
-        onPlay={() => { setStarted(true); setPlaying(true); setError(''); document.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: videoRef.current })); }}
+        onPlay={() => { setStarted(true); setPlaying(true); setError(''); revealControls(); document.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: videoRef.current })); }}
         onPlaying={() => setWaiting(false)}
-        onPause={() => { setPlaying(false); setWaiting(false); }}
-        onEnded={() => { setPlaying(false); setWaiting(false); }}
+        onPause={() => { clearHideTimer(); setControlsShown(true); setPlaying(false); setWaiting(false); }}
+        onEnded={() => { clearHideTimer(); setControlsShown(true); setPlaying(false); setWaiting(false); }}
         onWaiting={() => { if (started) setWaiting(true); }}
         onCanPlay={() => setWaiting(false)}
         onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
@@ -145,25 +188,25 @@ function Player({ src, poster, label = '视频', className = '' }: Props) {
       />
       {!started && cover && /* eslint-disable-next-line @next/next/no-img-element */
         <img className="video-player-poster" src={cover} alt="" aria-hidden="true" />}
-      {!error && <Button variant="ghost" data-ui-surface type="button" className="video-player-surface" aria-label={playing ? '暂停视频' : '播放视频'} onClick={togglePlayback}>
-        {(!playing || waiting) && <span className="video-player-play" aria-hidden="true">{waiting ? <LoadingOutlined spin /> : <CaretRightFilled />}</span>}
+      {!error && <Button variant="ghost" data-ui-surface type="button" className="video-player-surface" aria-label={playing ? '暂停视频' : '播放视频'} onClick={onSurfaceClick}>
+        <span className="video-player-play" data-visible={showCenter} aria-hidden="true">
+          {waiting ? <LoadingOutlined spin /> : playing ? <PauseOutlined /> : <CaretRightFilled />}
+        </span>
       </Button>}
       {!started && !error && duration > 0 && <span className="video-player-duration">{formatVideoTime(duration)}</span>}
+      {started && !error && <span className="video-player-progress-line" aria-hidden="true" />}
       {error && <div className="video-player-error" role="alert">
         <span>{error}</span>
         <Button size="sm" type="button" onClick={() => void play()}><ReloadOutlined />重试</Button>
         <a href={src} className={buttonClassName({ size: 'sm' })} target="_blank" rel="noopener noreferrer">打开原视频</a>
       </div>}
-      <div className="video-player-controls" data-visible={started || expanded || fullscreen}>
-        {started && <input className="video-player-seek" type="range" min={0} max={duration || 0} step={0.1} value={Math.min(time, duration)} disabled={!duration} aria-label="视频播放进度" aria-valuetext={`${formatVideoTime(time)} / ${formatVideoTime(duration)}`} onChange={(event) => seek(Number(event.target.value))} style={{ '--video-progress': `${duration ? Math.min(100, time / duration * 100) : 0}%` } as CSSProperties} />}
-        <div className="video-player-toolbar">
-          {started && <>
-            <Button size="lg" iconOnly type="button" aria-label={playing ? '暂停' : '继续播放'} onClick={togglePlayback}>{playing ? <PauseOutlined /> : <CaretRightFilled />}</Button>
-            <span className="video-player-time">{formatVideoTime(time)} / {formatVideoTime(duration)}</span>
-          </>}
-          <Button size="lg" ref={fullscreenButtonRef} type="button" iconOnly className="video-player-fullscreen" aria-label={fullscreen || expanded ? '退出全屏' : '全屏播放'} onClick={() => void toggleFullscreen()}>{fullscreen || expanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />}</Button>
-        </div>
-      </div>
+      {(started || expanded || fullscreen) && !error && <div className="video-player-controls" data-visible={showChrome}>
+        <Button variant="ghost" feedback="none" size="sm" iconOnly type="button" tabIndex={showChrome ? undefined : -1} aria-label={playing ? '暂停' : '继续播放'} onClick={togglePlayback}>{playing ? <PauseOutlined /> : <CaretRightFilled />}</Button>
+        <span className="video-player-time">{formatVideoTime(time)}</span>
+        <input className="video-player-seek" type="range" min={0} max={duration || 0} step={0.1} value={Math.min(time, duration)} disabled={!duration} tabIndex={showChrome ? undefined : -1} aria-label="视频播放进度" aria-valuetext={`${formatVideoTime(time)} / ${formatVideoTime(duration)}`} onPointerDown={revealControls} onChange={(event) => { revealControls(); seek(Number(event.target.value)); }} />
+        <span className="video-player-time">{formatVideoTime(duration)}</span>
+        <Button variant="ghost" feedback="none" size="sm" ref={fullscreenButtonRef} type="button" iconOnly tabIndex={showChrome ? undefined : -1} aria-label={fullscreen || expanded ? '退出全屏' : '全屏播放'} onClick={() => void toggleFullscreen()}>{fullscreen || expanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />}</Button>
+      </div>}
     </div>
   );
 }
