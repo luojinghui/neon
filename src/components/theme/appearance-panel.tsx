@@ -3,7 +3,6 @@
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { Tabs } from '@/components/ui/tabs';
 import { cn } from '@/utils/cn';
 import { SKINS, useSkin } from './skins';
@@ -35,7 +34,6 @@ export function AppearancePanel({ className }: { className?: string }) {
         {SKINS.map(item => <Button key={item.name} variant="ghost" data-ui-surface="" type="button" role="radio" aria-checked={skin === item.name} aria-label={item.label}
           data-skin={item.name} className={styles.swatch} onClick={() => setSkin(item.name)}>
           <span className={styles.dot}><span className={styles.dotAccent} /></span>
-          {skin === item.name && <Icon name="check" className={styles.check} />}
         </Button>)}
       </div>
     </div>
