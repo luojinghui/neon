@@ -28,9 +28,14 @@ type Gesture = {
   distance: number;
   time: number;
   moved: boolean;
+  // Locked on the first meaningful move: horizontal pages, downward dismisses.
+  axis: '' | 'x' | 'y';
 };
 
-function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'onClose'>) {
+const DISMISS_DISTANCE = 140;
+type GestureEventLike = Event & { scale: number; clientX: number; clientY: number };
+
+function ImageStage({ images, currentIndex, onSelect, onClose, variant }: Props) {
   const isSticker = variant === 'sticker';
   const currentKey = imageKey(images[currentIndex]);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -43,6 +48,8 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [transform, setTransform] = useState(INITIAL_TRANSFORM);
   const [offset, setOffset] = useState(0);
+  const [dismiss, setDismiss] = useState({ x: 0, y: 0 });
+  const statusRef = useRef<ImageStatus>('loading');
   const [dragging, setDragging] = useState(false);
   const [settling, setSettling] = useState(false);
   const [animateSwipe, setAnimateSwipe] = useState(false);
@@ -50,6 +57,15 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
   const [attempts, setAttempts] = useState<Record<string, number>>({});
   const status = statuses[currentKey] || 'loading';
   const attempt = attempts[currentKey] || 0;
+  statusRef.current = status;
+
+  // Fade the viewer chrome and backdrop while the image is pulled down.
+  const setDismissDrag = useCallback((next: { x: number; y: number }) => {
+    setDismiss(next);
+    const viewer = stageRef.current?.closest<HTMLElement>('.image-viewer');
+    const height = stageRef.current?.clientHeight || 1;
+    viewer?.style.setProperty('--viewer-dismiss', String(Math.min(1, Math.max(0, next.y) / (height * 0.5))));
+  }, []);
 
   const setImageStatus = useCallback((key: string, next: ImageStatus) => {
     setStatuses((previous) => previous[key] === next ? previous : { ...previous, [key]: next });
@@ -69,10 +85,11 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
     transformRef.current = INITIAL_TRANSFORM;
     setTransform(INITIAL_TRANSFORM);
     setOffset(0);
+    setDismissDrag({ x: 0, y: 0 });
     setDragging(false);
     setSettling(false);
     setAnimateSwipe(false);
-  }, [currentKey]);
+  }, [currentKey, setDismissDrag]);
 
   const updateTransform = useCallback((next: ImageTransform) => {
     const stage = stageRef.current;
@@ -92,6 +109,42 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
       if (transitionTimer.current) clearTimeout(transitionTimer.current);
     };
   }, [updateTransform]);
+
+  // PC zoom: mouse wheel, trackpad pinch (ctrl+wheel in Chromium/Firefox, gesture events in Safari).
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || isSticker) return;
+    const zoomBy = (factor: number, clientX: number, clientY: number, base = transformRef.current) => {
+      if (statusRef.current !== 'ready') return;
+      const rect = stage.getBoundingClientRect();
+      const anchor = { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 };
+      updateTransform(pinchTransform(base, anchor, anchor, (transformRef.current.scale * factor) / base.scale));
+    };
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? stage.clientHeight : 1);
+      zoomBy(Math.exp(-Math.max(-100, Math.min(100, delta)) * (event.ctrlKey ? 0.01 : 0.002)), event.clientX, event.clientY);
+    };
+    let gestureBase = INITIAL_TRANSFORM;
+    const onGestureStart = (event: Event) => { event.preventDefault(); gestureBase = transformRef.current; };
+    const onGestureChange = (event: Event) => {
+      event.preventDefault();
+      // iOS also fires these for touch pinches, which pointer events already handle.
+      if (pointers.current.size) return;
+      const gesture = event as GestureEventLike;
+      const rect = stage.getBoundingClientRect();
+      const anchor = { x: gesture.clientX - rect.left - rect.width / 2, y: gesture.clientY - rect.top - rect.height / 2 };
+      if (statusRef.current === 'ready') updateTransform(pinchTransform(gestureBase, anchor, anchor, gesture.scale));
+    };
+    stage.addEventListener('wheel', onWheel, { passive: false });
+    stage.addEventListener('gesturestart', onGestureStart);
+    stage.addEventListener('gesturechange', onGestureChange);
+    return () => {
+      stage.removeEventListener('wheel', onWheel);
+      stage.removeEventListener('gesturestart', onGestureStart);
+      stage.removeEventListener('gesturechange', onGestureChange);
+    };
+  }, [isSticker, updateTransform]);
 
   // A cached image can finish loading before React attaches its load listener.
   useLayoutEffect(() => {
@@ -119,7 +172,7 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
       kind: two ? 'pinch' : transformRef.current.scale > 1 ? 'pan' : 'swipe',
       start: point, latest: point, transform: transformRef.current,
       distance: two ? Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) : 0,
-      time: performance.now(), moved: two
+      time: performance.now(), moved: two, axis: ''
     };
   };
 
@@ -151,7 +204,12 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
     if (Math.hypot(dx, dy) > 8) active.moved = true;
     if (active.kind === 'pan') {
       updateTransform({ ...active.transform, x: active.transform.x + dx, y: active.transform.y + dy });
-    } else if (Math.abs(dx) > Math.abs(dy)) {
+      return;
+    }
+    if (!active.axis && active.moved) active.axis = dy > 0 && Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+    if (active.axis === 'y') {
+      setDismissDrag({ x: dx * 0.6, y: Math.max(0, dy) });
+    } else if (active.axis === 'x') {
       const atEdge = (dx > 0 && currentIndex === 0) || (dx < 0 && currentIndex === images.length - 1);
       setOffset(dx * (atEdge ? 0.22 : 1));
     }
@@ -171,10 +229,16 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
     gesture.current = null;
     setDragging(false);
     setAnimateSwipe(true);
-    if (!active || cancelled) { setOffset(0); return; }
+    if (!active || cancelled) { setOffset(0); setDismissDrag({ x: 0, y: 0 }); return; }
     const dx = event.clientX - active.start.x;
     const dy = event.clientY - active.start.y;
-    const direction = active.kind === 'swipe' ? swipeDirection(dx, dy, performance.now() - active.time, stageRef.current!.clientWidth) : 0;
+    if (active.axis === 'y') {
+      const fast = dy / Math.max(performance.now() - active.time, 1) > 0.6 && dy > 40;
+      if (dy > Math.min(DISMISS_DISTANCE, stageRef.current!.clientHeight * 0.2) || fast) { onClose(); return; }
+      setDismissDrag({ x: 0, y: 0 });
+      return;
+    }
+    const direction = active.kind === 'swipe' && active.axis === 'x' ? swipeDirection(dx, dy, performance.now() - active.time, stageRef.current!.clientWidth) : 0;
     const next = images[currentIndex + direction];
     if (direction && next) {
       setSettling(true);
@@ -198,7 +262,7 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
       <div
         ref={stageRef}
         className={`image-viewer-stage${dragging ? ' is-dragging' : ''}${transform.scale > 1 ? ' is-zoomed' : ''}`}
-        aria-label={isSticker ? '表情预览' : '图片区域，左右滑动切换，双击或双指缩放'}
+        aria-label={isSticker ? '表情预览' : '图片区域，左右滑动切换，下滑关闭，双击、滚轮或双指缩放'}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={(event) => endPointer(event)}
@@ -221,7 +285,7 @@ function ImageStage({ images, currentIndex, onSelect, variant }: Omit<Props, 'on
                   alt={relative === 0 ? item.name || `图片 ${currentIndex + 1}` : ''}
                   draggable={false}
                   className="image-viewer-image"
-                  style={{ transform: relative === 0 ? `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})` : undefined, opacity: statuses[key] === 'ready' ? 1 : 0 }}
+                  style={{ transform: relative === 0 ? (dismiss.y || dismiss.x ? `translate3d(${dismiss.x}px, ${dismiss.y}px, 0) scale(${Math.max(0.6, 1 - dismiss.y / 800)})` : `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`) : undefined, opacity: statuses[key] === 'ready' ? 1 : 0 }}
                   onLoad={() => setImageStatus(key, 'ready')}
                   onError={() => setImageStatus(key, 'error')}
                 />
@@ -326,7 +390,7 @@ export function ImageViewer({ images, currentIndex, onSelect, onClose, title = '
         </div>
       ) : (
         <div className="image-viewer-main">
-          <ImageStage images={images} currentIndex={currentIndex} onSelect={onSelect} variant={variant} />
+          <ImageStage images={images} currentIndex={currentIndex} onSelect={onSelect} onClose={onClose} variant={variant} />
           {images.length > 1 && <>
             <Button variant="ghost" type="button" className="image-viewer-arrow is-previous" size="lg" iconOnly aria-label="上一张图片" title="上一张 (←)" disabled={currentIndex === 0} onClick={() => onSelect(images[currentIndex - 1].id)}><LeftOutlined /></Button>
             <Button variant="ghost" type="button" className="image-viewer-arrow is-next" size="lg" iconOnly aria-label="下一张图片" title="下一张 (→)" disabled={currentIndex === images.length - 1} onClick={() => onSelect(images[currentIndex + 1].id)}><RightOutlined /></Button>

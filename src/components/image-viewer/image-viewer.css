@@ -11,7 +11,7 @@
   overflow: hidden;
   border: 0;
   color: hsl(var(--foreground));
-  background: hsl(var(--background));
+  background: hsl(var(--background) / calc(1 - var(--viewer-dismiss, 0)));
   color-scheme: normal;
   overscroll-behavior: contain;
   -webkit-tap-highlight-color: transparent;
@@ -107,3 +107,7 @@
 @media (prefers-reduced-motion: reduce) {
   .image-viewer *, .image-viewer *::before, .image-viewer *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* Pull-down-to-close: chrome fades out faster than the backdrop. */
+.image-viewer:not(.is-sticker) :is(.image-viewer-header, .image-viewer-footer, .image-viewer-zoom, .image-viewer-arrow) { opacity: calc(1 - var(--viewer-dismiss, 0) * 2.5); }
+.image-viewer:not(.is-sticker)::backdrop { opacity: calc(1 - var(--viewer-dismiss, 0)); }
