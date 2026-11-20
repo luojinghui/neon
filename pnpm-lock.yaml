@@ -55,8 +55,8 @@ importers:
         specifier: 18.0.14
         version: 18.0.14
       mongoose:
-        specifier: 8.24.4
-        version: 8.24.4
+        specifier: 8.24.10
+        version: 8.24.10
       next:
         specifier: 15.5.28
         version: 15.5.28(@types/node@20.17.9)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -1798,16 +1798,16 @@ packages:
       socks:
         optional: true
 
-  mongoose@8.24.4:
-    resolution: {integrity: sha512-DoV8hYy5ssoh/j99rhYzeS2BLLcLJZ+EGQYfe/Ln+yMorBy0wgKdlwJBj59zJ1N0MnEKQypbeqUYFB0FVThmYg==}
+  mongoose@8.24.10:
+    resolution: {integrity: sha512-mvIBeudAZjSXteYMl66KA/2SJoTPAYqkkFLiZK5mzrquNDbDwmtvnK9azSRXKz0TWcCcc5ATG6WiOU0qsp2xNw==}
     engines: {node: '>=16.20.1'}
 
   mpath@0.9.0:
     resolution: {integrity: sha512-ikJRQTk8hw5DEoFVxHG1Gn9T/xcjtdnOKIU1JTmGjZZlg9LST2mBLmcX3/ICIbgJydT2GOc15RnNy5mHmzfSew==}
     engines: {node: '>=4.0.0'}
 
-  mquery@5.0.0:
-    resolution: {integrity: sha512-iQMncpmEK8R8ncT8HJGsGc9Dsp8xcgYMVSbs5jgnm1lFHTZqMJTUWTDx1LBO8+mK3tPNZWFLBghQEIOULSTHZg==}
+  mquery@5.0.1:
+    resolution: {integrity: sha512-C99lWV0TFI34pS008jBsi3JrE2xZPnTgUw5yApQR71nRP0hxLy8D5m1Lbbk83c8AQWJwdJ0329HzFtZ1MRTUIw==}
     engines: {node: '>=14.0.0'}
 
   ms@2.0.0:
@@ -4381,13 +4381,13 @@ snapshots:
       bson: 6.10.4
       mongodb-connection-string-url: 3.0.2
 
-  mongoose@8.24.4:
+  mongoose@8.24.10:
     dependencies:
       bson: 6.10.4
       kareem: 2.6.3
       mongodb: 6.20.0
       mpath: 0.9.0
-      mquery: 5.0.0
+      mquery: 5.0.1
       ms: 2.1.3
       sift: 17.1.3
     transitivePeerDependencies:
@@ -4402,7 +4402,7 @@ snapshots:
 
   mpath@0.9.0: {}
 
-  mquery@5.0.0:
+  mquery@5.0.1:
     dependencies:
       debug: 4.4.3
     transitivePeerDependencies:
