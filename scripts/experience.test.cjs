@@ -81,9 +81,12 @@ test('vision downloads share in-flight bytes, report progress, reuse cache and r
 });
 
 test('planet cache isolates identities, retains an empty result and rejects stale/corrupt data', () => {
+  assert.equal(cache.ROOM_LIST_MAX_AGE, 60 * 24 * 60 * 60 * 1000);
   const s = storage();
   cache.writeRoomListCache('a', [room('first')], s);
   assert.equal(cache.readRoomListCache('a', s)[0].id, 'first');
+  s.setItem('neon:planet-list:v1:a', JSON.stringify({ owner: 'a', rooms: [room('month-old')], savedAt: Date.now() - 30 * 24 * 60 * 60 * 1000 }));
+  assert.equal(cache.readRoomListCache('a', s)[0].id, 'month-old');
   assert.equal(cache.readRoomListCache('b', s), null);
   cache.writeRoomListCache('b', [], s);
   assert.deepEqual(cache.readRoomListCache('b', s), []);

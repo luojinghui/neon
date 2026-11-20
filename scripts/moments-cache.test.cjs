@@ -33,10 +33,13 @@ function fixture(t) {
 
 test('moment cache persists empty results, isolates identities and rejects stale or malformed snapshots', t => {
   const f = fixture(t);
+  assert.equal(f.MOMENT_CACHE_MAX_AGE, 60 * 24 * 60 * 60 * 1000);
   f.restoreMomentFeed('a');
   f.replaceMomentFeed('a', f.state().version, response([item('one')]));
   assert.equal(f.readMomentFeedCache('a').items[0].id, 'one');
   assert.equal(f.readMomentFeedCache('a').items[0].canDelete, false, 'cached administrator privileges are not reused');
+  f.storage.setItem('neon:moment-feed:v1:a', JSON.stringify({ owner: 'a', savedAt: Date.now() - 30 * 24 * 60 * 60 * 1000, data: response([item('month-old')]) }));
+  assert.equal(f.readMomentFeedCache('a').items[0].id, 'month-old');
   assert.equal(f.readMomentFeedCache('b'), null);
   f.restoreMomentFeed('b');
   f.replaceMomentFeed('b', f.state().version, response());

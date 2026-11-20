@@ -1,7 +1,7 @@
 import type { ChatRoom } from './types';
 
 const PREFIX = 'neon:planet-list:v1:';
-export const ROOM_LIST_MAX_AGE = 6 * 60 * 60 * 1000;
+export const ROOM_LIST_MAX_AGE = 60 * 24 * 60 * 60 * 1000;
 
 export function readRoomListCache(owner: string, storage?: Pick<Storage, 'getItem' | 'removeItem'>): ChatRoom[] | null {
   try {

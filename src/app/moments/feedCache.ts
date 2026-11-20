@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import type { Moment, MomentListResponse } from './types';
 
 const PREFIX = 'neon:moment-feed:v1:';
-export const MOMENT_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
+export const MOMENT_CACHE_MAX_AGE = 60 * 24 * 60 * 60 * 1000;
 export const MOMENT_PAGE_SIZE = 12;
 type FeedState = { owner: string; data: MomentListResponse | null; version: number; loading: boolean; loadingMore: boolean; error: string };
 export const useMomentFeedStore = create<FeedState>(() => ({ owner: '', data: null, version: 0, loading: false, loadingMore: false, error: '' }));
