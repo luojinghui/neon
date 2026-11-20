@@ -41,5 +41,5 @@ export function MomentPermalink() {
   if (result?.id !== id) return <p className="px-4 py-2 text-body text-foreground-muted" role="status">正在读取指定星语…</p>;
   if (result.error) return <div className="moment-inline-error" role="alert">{result.error}<Button variant="ghost" type="button" className="ml-3" onClick={close}>关闭</Button></div>;
   if (!result.moment) return null;
-  return <MomentViewer moment={result.moment} onClose={close} onDeleted={() => { close(); void refreshMomentFeed(false, true); }} />;
+  return <MomentViewer moment={result.moment} onClose={close} onDeleted={() => { close(); void refreshMomentFeed(false, true); }} onUpdated={(updated) => { setResult({ id, moment: updated, error: '' }); void refreshMomentFeed(false, true); }} />;
 }

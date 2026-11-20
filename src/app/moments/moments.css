@@ -261,9 +261,156 @@
 .moment-composer-head h2 { font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); color: hsl(var(--foreground)); }
 .moment-composer-head button { width: fit-content; }
 .moment-composer-head button:last-child { justify-self: end; display: inline-flex; align-items: center; }
-.moment-composer-body { padding: 1rem 1.1rem 1.15rem; }
+.moment-composer-body { padding: 1rem 1.25rem 0.875rem; }
 
-.moment-composer-text { position: relative; display: block; }
+.moment-editor-canvas {
+  display: block;
+  min-height: 16rem;
+  max-height: min(68dvh, 42rem);
+  overflow-y: auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  padding: 1.0625rem 1.25rem;
+  background: hsl(var(--surface-inset));
+  cursor: text;
+  transition: border-color 160ms ease;
+}
+.moment-editor-canvas:focus-within { border-color: hsl(var(--border-focus)); }
+.moment-editor-canvas > * + * { margin-top: 0.75rem; }
+
+/* CSS Grid mirror guarantees exact text height with zero flex shrinkage, overlap, or scroll jumps. */
+.moment-canvas-field {
+  display: grid;
+  position: relative;
+  min-height: calc(1em * var(--line-height-body-lg));
+}
+.moment-canvas-field.is-tall { min-height: 13.5rem; }
+
+.moment-canvas-mirror,
+.moment-canvas-textarea {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.moment-canvas-mirror {
+  visibility: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+.moment-canvas-textarea {
+  height: 100%;
+  background: transparent;
+  color: hsl(var(--foreground));
+  resize: none;
+  overflow: hidden;
+  outline: none;
+}
+.moment-canvas-textarea::placeholder { color: hsl(var(--foreground-muted)); }
+
+.moment-canvas-media { display: block; cursor: default; }
+.moment-canvas-media.is-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem; }
+.moment-canvas-media.is-grid[data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.moment-canvas-image {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.65);
+  border-radius: var(--radius-md);
+  background: hsl(var(--surface));
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  transition: outline-color 140ms ease, border-color 140ms ease;
+}
+.moment-canvas-media.is-grid .moment-canvas-image,
+.moment-canvas-image.is-loading,
+.moment-canvas-image.is-error { width: 100%; }
+.moment-canvas-image[data-selected='true'],
+.moment-canvas-image:focus-visible {
+  border-color: hsl(var(--primary));
+  outline-color: hsl(var(--ring) / 0.45);
+}
+
+.moment-canvas-image-frame { position: relative; display: block; }
+.moment-canvas-image-frame > img { display: block; max-width: 100%; max-height: 20rem; width: auto; height: auto; object-fit: contain; }
+.moment-canvas-media.is-grid .moment-canvas-image-frame { aspect-ratio: 4 / 3; width: 100%; }
+.moment-canvas-media.is-grid .moment-canvas-image-frame > img { width: 100%; height: 100%; max-height: none; object-fit: cover; }
+
+.moment-canvas-image-overlay {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem;
+  background: hsl(var(--surface) / 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
+  transition: opacity 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .moment-canvas-image-overlay { opacity: 0; }
+  .moment-canvas-image:hover .moment-canvas-image-overlay,
+  .moment-canvas-image[data-selected='true'] .moment-canvas-image-overlay,
+  .moment-canvas-image:focus-within .moment-canvas-image-overlay { opacity: 1; }
+}
+
+.moment-canvas-image-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  color: hsl(var(--foreground-secondary));
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.moment-canvas-image-status > button { margin-left: auto; }
+
+.moment-canvas-image-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: hsl(var(--danger-soft));
+  color: hsl(var(--foreground));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+.moment-canvas-image-error-text { display: flex; min-width: 0; flex: 1 1 12rem; align-items: center; gap: 0.45rem; }
+.moment-canvas-image-error-ops { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+
+.moment-inline-figure { margin: 0.125rem 0; width: fit-content; max-width: 100%; overflow: hidden; border: 1px solid hsl(var(--border) / 0.6); border-radius: var(--radius-lg); background: hsl(var(--surface-inset)); }
+.moment-inline-image-trigger { display: block; max-width: 100%; }
+.moment-inline-image { display: block; max-width: 100%; max-height: 20rem; width: auto; height: auto; object-fit: contain; }
+.moment-inline-figure.is-immersive .moment-inline-image { max-height: min(36rem, 68dvh); }
+
+.moment-inline-grid { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.375rem; margin: 0.125rem 0; }
+.moment-inline-grid[data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.moment-inline-grid-item {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: var(--radius-md);
+  background: hsl(var(--surface-inset));
+}
+.moment-inline-grid-tile { display: block; width: 100%; height: 100%; }
+.moment-inline-grid-tile > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 
 
@@ -300,10 +447,33 @@
 .moment-location-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moment-location-chip > span + span { color: hsl(var(--foreground-muted)); }
 
-.moment-composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.85rem; border-top: 0; padding-top: 0; }
+.moment-composer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.65);
+  padding-top: 0.625rem;
+}
+.moment-composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin-left: -0.5rem; }
 .moment-composer-tools button { display: inline-flex; align-items: center; }
-.moment-composer-hint { margin-top: 0.55rem; font-size: var(--font-size-caption); line-height: var(--line-height-caption); color: hsl(var(--foreground-muted)); }
-.moment-composer-body > .moment-inline-error { margin-top: 0.65rem; }
+.moment-composer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  margin-left: auto;
+  color: hsl(var(--foreground-muted));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-variant-numeric: tabular-nums;
+}
+.moment-composer-meta-loading { display: inline-flex; align-items: center; gap: 0.25rem; color: hsl(var(--primary)); }
+.moment-composer-meta-error { color: hsl(var(--danger)); }
+.moment-composer-count.is-over { color: hsl(var(--danger)); font-weight: var(--font-weight-medium); }
+.moment-composer-body > .moment-inline-error { margin-top: 0.625rem; }
 
 @media (max-width: 800px) {
   .moment-feed-grid { grid-template-columns: minmax(0, 1fr); }
@@ -320,6 +490,9 @@
   .moment-comments-heading,
   .moment-comment-composer { padding-right: 0.8rem; padding-left: 0.8rem; }
   .moment-file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .moment-composer-body { padding: 0.875rem 1rem 0.75rem; }
+  .moment-editor-canvas { min-height: 11rem; max-height: min(50dvh, 24rem); padding: 0.875rem; }
+  .moment-canvas-field.is-tall { min-height: 9rem; }
 }
 
 @media (max-width: 410px) {

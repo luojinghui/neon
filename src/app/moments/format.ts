@@ -18,10 +18,39 @@ export function formatVoiceDuration(durationMs: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+import type { MomentBlock, MomentImageBlock } from './types';
+
 export function splitMomentParagraphs(text: string): string[] {
   return text
     .replace(/\r\n?/g, '\n')
     .replace(/^(?:[ \t]*\n)+|(?:\n[ \t]*)+$/g, '')
     .split(/\n(?:[ \t]*\n)+/)
     .filter((block) => block.trim().length > 0);
+}
+
+/**
+ * Separate posts whose images all sit cleanly at the end (rendered via the standard
+ * MomentMediaView grid) from true interleaved articles (text -> image -> text).
+ */
+export function splitTrailingImages(blocks?: MomentBlock[]): {
+  interleavedBlocks: MomentBlock[];
+  trailingImages: MomentImageBlock[];
+  hasInterleavedImages: boolean;
+} {
+  if (!Array.isArray(blocks) || blocks.length === 0) {
+    return { interleavedBlocks: [], trailingImages: [], hasInterleavedImages: false };
+  }
+  const firstImageIndex = blocks.findIndex((block) => block.type === 'image');
+  if (firstImageIndex < 0) {
+    return { interleavedBlocks: blocks, trailingImages: [], hasInterleavedImages: false };
+  }
+  const hasTextAfterImage = blocks.slice(firstImageIndex + 1).some((block) => block.type === 'text' && block.text.trim().length > 0);
+  if (hasTextAfterImage) {
+    return { interleavedBlocks: blocks, trailingImages: [], hasInterleavedImages: true };
+  }
+  return {
+    interleavedBlocks: blocks.slice(0, firstImageIndex),
+    trailingImages: blocks.slice(firstImageIndex).filter((block): block is MomentImageBlock => block.type === 'image'),
+    hasInterleavedImages: false
+  };
 }

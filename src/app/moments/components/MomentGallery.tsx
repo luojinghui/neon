@@ -15,9 +15,10 @@ type Props = {
   error?: string;
   onRetry?: () => void;
   onDeleted: (id: string) => void;
+  onUpdated?: (moment: Moment) => void;
 };
 
-export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted }: Props) {
+export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted, onUpdated }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedMoment = moments.find((moment) => moment.id === selectedId);
 
@@ -34,7 +35,9 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
       {!loading && !error && moments.length === 0 && <div className="moment-profile-empty">还没有留下星语。</div>}
       <div className="moment-profile-grid">
         {moments.map((moment) => {
-          const firstMedia = moment.media[0];
+          const inlineImages = (moment.blocks || []).filter((block) => block.type === 'image');
+          const firstMedia = moment.media[0] || inlineImages[0];
+          const totalMediaCount = moment.media.length + inlineImages.length;
           return (
             <Button variant="outline" key={moment.id} type="button" className={`moment-profile-entry ${firstMedia ? 'has-media' : ''}`} onClick={() => setSelectedId(moment.id)} aria-label={`查看星河：${moment.text || (moment.voice ? '语音星河' : moment.attachments?.[0]?.name || '图片与视频')}`}>
               {!firstMedia && <span className="moment-profile-note-label"><Icon name={moment.voice ? 'audio' : 'edit'} />{moment.voice ? '声音日记' : '随手记'}</span>}
@@ -46,7 +49,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
                   ) : <VideoCover src={firstMedia.url} />}
                   <span className="moment-profile-media-badge">
                     <Icon name={firstMedia.type === 'video' ? 'play-circle-filled' : 'picture'} />
-                    {moment.media.length > 1 ? `${moment.media.length} 项媒体` : firstMedia.type === 'video' ? '视频' : '图片'}
+                    {totalMediaCount > 1 ? `${totalMediaCount} 项媒体` : firstMedia.type === 'video' ? '视频' : '图片'}
                   </span>
                 </span>
               )}
@@ -66,6 +69,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
           moment={selectedMoment}
           onClose={() => setSelectedId(null)}
           onDeleted={(id) => { setSelectedId(null); onDeleted(id); }}
+          onUpdated={(updated) => { onUpdated?.(updated); onRetry?.(); }}
         />
       )}
     </section>

@@ -7,9 +7,10 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 const ID_PATTERN = /^[A-Za-z0-9_-]{16}$/;
 const UPLOAD_PATTERN = /^\/uploads\/moments\/([A-Za-z0-9_-]{16}-[A-Za-z0-9_-]{8}\.(?:jpg|png|webp|gif|mp4|webm|mov|m4a|mp3|ogg|wav|aac))$/;
 const ATTACHMENT_URL_PATTERN = /^\/api\/moments\/([A-Za-z0-9_-]{16})\/attachments\/([A-Za-z0-9_-]{16})$/;
-const MAX_TEXT_LENGTH = 2000;
+const MAX_TEXT_LENGTH = 10000;
 const MAX_COMMENT_LENGTH = 500;
 const MAX_MEDIA_ITEMS = 9;
+const MAX_INLINE_IMAGES = 30;
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
 const MIME_TYPES = new Map([
@@ -135,18 +136,45 @@ class MomentRepository {
 
   async createMoment(input = {}, attachments = {}) {
     const ownerUuid = this.requireUuid(input.ownerUuid);
-    const text = this.optionalText(input.text, MAX_TEXT_LENGTH, `星语文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
+    const hasBlocksInput = Array.isArray(input.blocks) && input.blocks.length > 0;
+    const inlineImageInput = Array.isArray(attachments.inlineImages) ? attachments.inlineImages : [];
+    const preparedBlocks = hasBlocksInput ? this.validateBlockDrafts(input.blocks, inlineImageInput) : null;
+    const text = preparedBlocks
+      ? preparedBlocks.derivedText
+      : this.optionalText(input.text, MAX_TEXT_LENGTH, `星语文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
     const location = this.normalizeLocation(input.location);
     const mediaInput = Array.isArray(attachments.media) ? attachments.media : [];
     const fileInput = Array.isArray(attachments.files) ? attachments.files : [];
     const voiceInput = attachments.voice || null;
     if (mediaInput.length + fileInput.length > MAX_MEDIA_ITEMS) throw new MomentRepositoryError(`每条星语最多上传 ${MAX_MEDIA_ITEMS} 个图片、视频或附件`, 'MOMENT_MEDIA_INVALID');
-    if (!text && mediaInput.length === 0 && fileInput.length === 0 && !voiceInput) throw new MomentRepositoryError('写点文字，或添加图片、视频、附件、语音后再发布', 'MOMENT_CONTENT_EMPTY');
+    if (!text && (!preparedBlocks || preparedBlocks.imageCount === 0) && mediaInput.length === 0 && fileInput.length === 0 && !voiceInput) {
+      throw new MomentRepositoryError('写点文字，或添加图片、视频、附件、语音后再发布', 'MOMENT_CONTENT_EMPTY');
+    }
 
     return this.runMutation(async () => {
       const id = this.createId(this.moments);
       const stored = [];
       try {
+        const blocks = [];
+        if (preparedBlocks && preparedBlocks.imageCount > 0) {
+          for (const entry of preparedBlocks.entries) {
+            if (entry.type === 'text') {
+              blocks.push({ type: 'text', text: entry.text });
+            } else {
+              const attachment = await this.writeAttachment(id, inlineImageInput[entry.inlineIndex], ['image']);
+              stored.push(attachment.url);
+              blocks.push({
+                type: 'image',
+                id: attachment.id,
+                mimeType: attachment.mimeType,
+                url: attachment.url,
+                size: attachment.size,
+                name: attachment.name,
+                alt: entry.alt
+              });
+            }
+          }
+        }
         const media = [];
         for (const item of mediaInput) {
           const attachment = await this.writeAttachment(id, item, ['image', 'video']);
@@ -166,7 +194,20 @@ class MomentRepository {
           stored.push(voice.url);
         }
         const now = new Date(this.now()).toISOString();
-        const moment = { id, ownerUuid, text, media, attachments: files, voice, location, comments: [], likedBy: [], createdAt: now, updatedAt: now };
+        const moment = {
+          id,
+          ownerUuid,
+          text,
+          ...(blocks.length > 0 ? { blocks } : {}),
+          media,
+          attachments: files,
+          voice,
+          location,
+          comments: [],
+          likedBy: [],
+          createdAt: now,
+          updatedAt: now
+        };
         this.moments.set(id, moment);
         try {
           await this.persistUnlocked();
@@ -177,6 +218,169 @@ class MomentRepository {
         return clone(moment);
       } catch (error) {
         await Promise.all(stored.map((url) => this.deleteStoredAttachment(url)));
+        throw error;
+      }
+    });
+  }
+
+  async updateMoment(idValue, actorUuidValue = '', input = {}, attachments = {}, options = {}) {
+    const id = this.requireId(idValue, '星语地址无效', 'MOMENT_ID_INVALID');
+    const actorUuid = actorUuidValue ? this.requireUuid(actorUuidValue) : '';
+    const hasBlocksInput = Array.isArray(input.blocks) && input.blocks.length > 0;
+    const inlineImageInput = Array.isArray(attachments.inlineImages) ? attachments.inlineImages : [];
+    const mediaInput = Array.isArray(attachments.media) ? attachments.media : [];
+    const voiceInput = attachments.voice || null;
+
+    return this.runMutation(async () => {
+      const existing = this.moments.get(id);
+      if (!existing) throw new MomentRepositoryError('这条星语不存在或已被删除', 'MOMENT_NOT_FOUND');
+      if (options.isAdmin !== true && existing.ownerUuid !== actorUuid) {
+        throw new MomentRepositoryError('只能编辑自己发布的星语', 'MOMENT_FORBIDDEN');
+      }
+
+      // Collect existing image assets owned by this moment (both block images and legacy gallery images).
+      const existingImageById = new Map();
+      for (const block of existing.blocks || []) {
+        if (block.type === 'image') existingImageById.set(block.id, block);
+      }
+      for (const item of existing.media || []) {
+        if (item.type === 'image' && !existingImageById.has(item.id)) {
+          existingImageById.set(item.id, { ...item, alt: '' });
+        }
+      }
+
+      const existingMediaById = new Map();
+      for (const item of existing.media || []) existingMediaById.set(item.id, item);
+
+      const preparedBlocks = hasBlocksInput
+        ? this.validateBlockDrafts(input.blocks, inlineImageInput, existingImageById)
+        : null;
+      const text = preparedBlocks
+        ? preparedBlocks.derivedText
+        : this.optionalText(input.text, MAX_TEXT_LENGTH, `星语文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
+
+      const keptMediaIds = Array.isArray(input.keepMediaIds) ? input.keepMediaIds : null;
+      const keptMedia = [];
+      const seenKeptMedia = new Set();
+      if (keptMediaIds) {
+        for (const rawMediaId of keptMediaIds) {
+          const mediaId = String(rawMediaId || '').trim();
+          if (!mediaId || seenKeptMedia.has(mediaId)) continue;
+          const found = existingMediaById.get(mediaId);
+          if (!found) throw new MomentRepositoryError('保留的媒体文件不存在', 'MOMENT_MEDIA_INVALID');
+          seenKeptMedia.add(mediaId);
+          keptMedia.push({ ...found });
+        }
+      } else if (!hasBlocksInput) {
+        for (const item of existing.media || []) keptMedia.push({ ...item });
+      }
+
+      const existingFiles = (existing.attachments || []).map((item) => ({ ...item }));
+      if (keptMedia.length + mediaInput.length + existingFiles.length > MAX_MEDIA_ITEMS) {
+        throw new MomentRepositoryError(`每条星语最多上传 ${MAX_MEDIA_ITEMS} 个图片、视频或附件`, 'MOMENT_MEDIA_INVALID');
+      }
+
+      const location = input.location !== undefined
+        ? this.normalizeLocation(input.location)
+        : existing.location ? { ...existing.location } : null;
+
+      const willHaveVoice = Boolean(voiceInput || (!input.removeVoice && existing.voice));
+      const willHaveInlineImages = Boolean(preparedBlocks && preparedBlocks.imageCount > 0);
+      if (!text && !willHaveInlineImages && keptMedia.length + mediaInput.length === 0 && existingFiles.length === 0 && !willHaveVoice) {
+        throw new MomentRepositoryError('写点文字，或添加图片、视频、附件、语音后再保存', 'MOMENT_CONTENT_EMPTY');
+      }
+
+      const newlyStoredUrls = [];
+      try {
+        const blocks = [];
+        if (preparedBlocks && preparedBlocks.imageCount > 0) {
+          for (const entry of preparedBlocks.entries) {
+            if (entry.type === 'text') {
+              blocks.push({ type: 'text', text: entry.text });
+            } else if (entry.existingId) {
+              const prev = existingImageById.get(entry.existingId);
+              blocks.push({
+                type: 'image',
+                id: prev.id,
+                mimeType: prev.mimeType,
+                url: prev.url,
+                size: prev.size,
+                name: prev.name,
+                alt: entry.alt || prev.alt || ''
+              });
+            } else {
+              const attachment = await this.writeAttachment(id, inlineImageInput[entry.inlineIndex], ['image']);
+              newlyStoredUrls.push(attachment.url);
+              blocks.push({
+                type: 'image',
+                id: attachment.id,
+                mimeType: attachment.mimeType,
+                url: attachment.url,
+                size: attachment.size,
+                name: attachment.name,
+                alt: entry.alt
+              });
+            }
+          }
+        }
+
+        const media = [...keptMedia];
+        for (const item of mediaInput) {
+          const attachment = await this.writeAttachment(id, item, ['image', 'video']);
+          media.push(attachment);
+          newlyStoredUrls.push(attachment.url);
+        }
+
+        let voice = null;
+        if (voiceInput) {
+          voice = await this.writeAttachment(id, voiceInput, ['audio']);
+          voice.durationMs = this.normalizeDuration(input.voiceDurationMs);
+          newlyStoredUrls.push(voice.url);
+        } else if (!input.removeVoice && existing.voice) {
+          voice = { ...existing.voice };
+        }
+
+        const now = new Date(this.now()).toISOString();
+        const updated = {
+          ...existing,
+          text,
+          media,
+          attachments: existingFiles,
+          voice,
+          location,
+          updatedAt: now
+        };
+        if (blocks.length > 0) updated.blocks = blocks;
+        else delete updated.blocks;
+
+        this.moments.set(id, updated);
+        try {
+          await this.persistUnlocked();
+        } catch (error) {
+          this.moments.set(id, existing);
+          throw error;
+        }
+
+        // Clean up any old files that are no longer referenced by the updated moment.
+        const retainedUrls = new Set([
+          ...(updated.blocks || []).filter((block) => block.type === 'image').map((block) => block.url),
+          ...updated.media.map((item) => item.url),
+          ...(updated.attachments || []).map((item) => item.url),
+          updated.voice?.url
+        ].filter(Boolean));
+        const previousUrls = [
+          ...(existing.blocks || []).filter((block) => block.type === 'image').map((block) => block.url),
+          ...(existing.media || []).map((item) => item.url),
+          existing.voice?.url
+        ].filter((url) => url && !retainedUrls.has(url));
+        if (previousUrls.length > 0) {
+          this.cleanupQueue = Promise.all(previousUrls.map((url) => this.deleteStoredAttachment(url))).then(() => undefined);
+          await this.cleanupQueue;
+        }
+
+        return clone(updated);
+      } catch (error) {
+        await Promise.all(newlyStoredUrls.map((url) => this.deleteStoredAttachment(url)));
         throw error;
       }
     });
@@ -362,15 +566,17 @@ class MomentRepository {
     const media = Array.isArray(raw?.media) ? raw.media.map((item) => this.normalizeStoredAttachment(item, ['image', 'video'])) : [];
     const attachments = Array.isArray(raw?.attachments) ? raw.attachments.map((item) => this.normalizeStoredFileAttachment(item, raw.id)) : [];
     if (media.length + attachments.length > MAX_MEDIA_ITEMS) throw new Error('too many media items');
+    const blocks = this.normalizeStoredBlocks(raw?.blocks);
     const voice = raw?.voice ? { ...this.normalizeStoredAttachment(raw.voice, ['audio']), durationMs: this.normalizeDuration(raw.voice.durationMs) } : null;
     const text = this.optionalText(raw?.text, MAX_TEXT_LENGTH, 'invalid stored text', 'MOMENT_TEXT_INVALID');
-    if (!text && media.length === 0 && attachments.length === 0 && !voice) throw new Error('empty moment');
+    if (!text && blocks.length === 0 && media.length === 0 && attachments.length === 0 && !voice) throw new Error('empty moment');
     const likedBy = raw?.likedBy == null ? [] : raw.likedBy;
     if (!Array.isArray(likedBy)) throw new Error('invalid stored likes');
     return {
       id: this.requireId(raw?.id, 'invalid stored moment id', 'MOMENT_ID_INVALID'),
       ownerUuid: this.requireUuid(raw?.ownerUuid),
       text,
+      ...(blocks.length > 0 ? { blocks } : {}),
       media,
       attachments,
       voice,
@@ -380,6 +586,84 @@ class MomentRepository {
       createdAt: this.requireDate(raw?.createdAt),
       updatedAt: this.requireDate(raw?.updatedAt || raw?.createdAt)
     };
+  }
+
+  validateBlockDrafts(rawBlocks, inlineImages, existingImageById = null) {
+    if (!Array.isArray(rawBlocks) || rawBlocks.length > MAX_INLINE_IMAGES * 2 + 5) {
+      throw new MomentRepositoryError('正文排版数据无效', 'MOMENT_BLOCKS_INVALID');
+    }
+    const entries = [];
+    const usedIndices = new Set();
+    const usedExistingIds = new Set();
+    let imageCount = 0;
+    for (const raw of rawBlocks) {
+      if (!raw || typeof raw !== 'object') throw new MomentRepositoryError('正文排版数据无效', 'MOMENT_BLOCKS_INVALID');
+      if (raw.type === 'text') {
+        const text = typeof raw.text === 'string' ? raw.text.replace(/\r\n?/g, '\n').trim() : '';
+        if (!text) continue;
+        const previous = entries[entries.length - 1];
+        if (previous && previous.type === 'text') previous.text = `${previous.text}\n\n${text}`;
+        else entries.push({ type: 'text', text });
+      } else if (raw.type === 'image') {
+        const existingId = typeof raw.existingId === 'string' ? raw.existingId.trim() : '';
+        const alt = this.optionalText(raw.alt, 200, '图片说明无效', 'MOMENT_BLOCKS_INVALID');
+        if (existingId) {
+          if (!existingImageById || !existingImageById.has(existingId) || usedExistingIds.has(existingId)) {
+            throw new MomentRepositoryError('引用的已有图片无效', 'MOMENT_BLOCKS_INVALID');
+          }
+          usedExistingIds.add(existingId);
+          imageCount += 1;
+          if (imageCount > MAX_INLINE_IMAGES) {
+            throw new MomentRepositoryError(`每条星语正文最多内嵌 ${MAX_INLINE_IMAGES} 张图片`, 'MOMENT_MEDIA_INVALID');
+          }
+          entries.push({ type: 'image', existingId, alt });
+        } else {
+          const inlineIndex = Number(raw.inlineIndex);
+          if (!Number.isInteger(inlineIndex) || inlineIndex < 0 || inlineIndex >= inlineImages.length || usedIndices.has(inlineIndex)) {
+            throw new MomentRepositoryError('内嵌图片索引无效', 'MOMENT_BLOCKS_INVALID');
+          }
+          usedIndices.add(inlineIndex);
+          imageCount += 1;
+          if (imageCount > MAX_INLINE_IMAGES) {
+            throw new MomentRepositoryError(`每条星语正文最多内嵌 ${MAX_INLINE_IMAGES} 张图片`, 'MOMENT_MEDIA_INVALID');
+          }
+          entries.push({ type: 'image', inlineIndex, alt });
+        }
+      } else {
+        throw new MomentRepositoryError('正文排版数据无效', 'MOMENT_BLOCKS_INVALID');
+      }
+    }
+    const derivedText = entries
+      .filter((entry) => entry.type === 'text')
+      .map((entry) => entry.text)
+      .join('\n\n')
+      .trim();
+    if (derivedText.length > MAX_TEXT_LENGTH) {
+      throw new MomentRepositoryError(`星语文字不能超过 ${MAX_TEXT_LENGTH} 个字符`, 'MOMENT_TEXT_INVALID');
+    }
+    return { entries, imageCount, derivedText };
+  }
+
+  normalizeStoredBlocks(rawBlocks) {
+    if (!Array.isArray(rawBlocks) || rawBlocks.length === 0) return [];
+    const blocks = [];
+    let imageCount = 0;
+    for (const raw of rawBlocks) {
+      if (!raw || typeof raw !== 'object') throw new Error('invalid stored block');
+      if (raw.type === 'text') {
+        const text = this.optionalText(raw.text, MAX_TEXT_LENGTH, 'invalid stored block text', 'MOMENT_TEXT_INVALID');
+        if (text) blocks.push({ type: 'text', text });
+      } else if (raw.type === 'image') {
+        imageCount += 1;
+        if (imageCount > MAX_INLINE_IMAGES) throw new Error('too many inline images');
+        const attachment = this.normalizeStoredAttachment(raw, ['image']);
+        const alt = this.optionalText(raw.alt, 200, 'invalid stored block alt', 'MOMENT_BLOCKS_INVALID');
+        blocks.push({ ...attachment, alt });
+      } else {
+        throw new Error('invalid stored block type');
+      }
+    }
+    return blocks;
   }
 
   normalizeStoredComment(raw) {
@@ -465,7 +749,8 @@ class MomentRepository {
   }
 
   async deleteMomentAttachments(moment) {
-    const urls = [...moment.media.map((item) => item.url), ...(moment.attachments || []).map((item) => item.url), moment.voice?.url].filter(Boolean);
+    const blockUrls = (moment.blocks || []).filter((block) => block.type === 'image').map((block) => block.url);
+    const urls = [...blockUrls, ...moment.media.map((item) => item.url), ...(moment.attachments || []).map((item) => item.url), moment.voice?.url].filter(Boolean);
     this.cleanupQueue = Promise.all(urls.map((url) => this.deleteStoredAttachment(url))).then(() => undefined);
     await this.cleanupQueue;
   }
@@ -538,6 +823,7 @@ const momentRepository = new MomentRepository();
 
 module.exports = {
   MAX_COMMENT_LENGTH,
+  MAX_INLINE_IMAGES,
   MAX_MEDIA_ITEMS,
   MAX_ATTACHMENT_BYTES,
   MAX_TEXT_LENGTH,

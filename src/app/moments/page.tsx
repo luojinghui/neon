@@ -77,7 +77,14 @@ export default function MomentsPage() {
               </div>
             ) : (
               <MomentFeed>
-                {items.map((moment) => <MomentCard key={moment.id} moment={moment} onDeleted={() => { void refreshMomentFeed(false, true); }} />)}
+                {items.map((moment) => (
+                  <MomentCard
+                    key={moment.id}
+                    moment={moment}
+                    onDeleted={() => { void refreshMomentFeed(false, true); }}
+                    onUpdated={() => { void refreshMomentFeed(false, true); }}
+                  />
+                ))}
               </MomentFeed>
             )}
 

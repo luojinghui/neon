@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
-const { MomentRepository } = require('./momentRepository');
+const { MomentRepository, MAX_INLINE_IMAGES, MAX_TEXT_LENGTH } = require('./momentRepository');
+const { fetchRemoteImage, isPrivateIp, sniffImageMime } = require('./remoteImage');
 const { presentMoment } = require('./presenter');
 
 const OWNER_UUID = 'd9428888-122b-4a8b-8a4b-0d2b0f4f3552';
@@ -196,20 +197,198 @@ test('rejects empty moments and unsupported attachments', async () => {
   }
 });
 
-test('persists 2000-character moments and rejects text beyond the limit', async () => {
+test('persists 10000-character moments and rejects text beyond the limit', async () => {
   const fixture = createFixture();
   try {
-    const text = '心'.repeat(2000);
+    const text = '心'.repeat(MAX_TEXT_LENGTH);
     const moment = await fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text });
     const reloaded = new MomentRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.repository.uploadDirectory });
     assert.equal(reloaded.getMoment(moment.id).text, text);
     await assert.rejects(
       () => fixture.repository.createMoment({ ownerUuid: OWNER_UUID, text: `${text}迹` }),
-      { code: 'MOMENT_TEXT_INVALID', message: '星语文字不能超过 2000 个字符' }
+      { code: 'MOMENT_TEXT_INVALID', message: `星语文字不能超过 ${MAX_TEXT_LENGTH} 个字符` }
     );
   } finally {
     await cleanupFixture(fixture);
   }
+});
+
+test('persists interleaved text and inline image blocks, supports search, enforces 30-image cap, and cleans up files on delete', async () => {
+  const fixture = createFixture();
+  try {
+    const moment = await fixture.repository.createMoment(
+      {
+        ownerUuid: OWNER_UUID,
+        blocks: [
+          { type: 'text', text: '第一段说明' },
+          { type: 'image', inlineIndex: 0, alt: '步骤图一' },
+          { type: 'text', text: '第二段补充' },
+          { type: 'image', inlineIndex: 1, alt: '步骤图二' }
+        ]
+      },
+      {
+        inlineImages: [
+          { buffer: Buffer.from('inline-one'), mimeType: 'image/png', name: 'step1.png' },
+          { buffer: Buffer.from('inline-two'), mimeType: 'image/jpeg', name: 'step2.jpg' }
+        ]
+      }
+    );
+
+    assert.equal(moment.text, '第一段说明\n\n第二段补充');
+    assert.equal(moment.blocks.length, 4);
+    assert.equal(moment.blocks[1].type, 'image');
+    assert.equal(moment.blocks[1].alt, '步骤图一');
+
+    const img1Path = path.join(fixture.directory, moment.blocks[1].url.replace('/uploads/moments/', 'uploads/'));
+    const img2Path = path.join(fixture.directory, moment.blocks[3].url.replace('/uploads/moments/', 'uploads/'));
+    assert.equal(fs.existsSync(img1Path), true);
+    assert.equal(fs.existsSync(img2Path), true);
+
+    const searchResult = fixture.repository.listMoments({ search: '第二段补充' });
+    assert.deepEqual(searchResult.items.map((item) => item.id), [moment.id]);
+
+    const reloaded = new MomentRepository({ dataFile: fixture.repository.dataFile, uploadDirectory: fixture.repository.uploadDirectory });
+    const presented = presentMoment(reloaded.getMoment(moment.id), { uuid: OWNER_UUID });
+    assert.equal(presented.blocks.length, 4);
+    assert.equal(presented.blocks[3].url, moment.blocks[3].url);
+
+    // Reject more than 30 inline images.
+    const tooManyBlocks = Array.from({ length: MAX_INLINE_IMAGES + 1 }, (_, i) => ({ type: 'image', inlineIndex: i }));
+    const tooManyFiles = Array.from({ length: MAX_INLINE_IMAGES + 1 }, (_, i) => ({ buffer: Buffer.from(`img-${i}`), mimeType: 'image/png', name: `p-${i}.png` }));
+    await assert.rejects(
+      () => fixture.repository.createMoment({ ownerUuid: OWNER_UUID, blocks: tooManyBlocks }, { inlineImages: tooManyFiles }),
+      { code: 'MOMENT_MEDIA_INVALID' }
+    );
+
+    // Delete cleans up all inline image files.
+    await fixture.repository.deleteMoment(moment.id, OWNER_UUID);
+    assert.equal(fs.existsSync(img1Path), false);
+    assert.equal(fs.existsSync(img2Path), false);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
+test('owner and super admin can edit a moment, keeping or replacing inline images while cleaning removed files', async () => {
+  const fixture = createFixture();
+  try {
+    const original = await fixture.repository.createMoment(
+      {
+        ownerUuid: OWNER_UUID,
+        blocks: [
+          { type: 'text', text: '原始段落' },
+          { type: 'image', inlineIndex: 0, alt: '旧图1' },
+          { type: 'image', inlineIndex: 1, alt: '旧图2' }
+        ]
+      },
+      {
+        inlineImages: [
+          { buffer: Buffer.from('old-1'), mimeType: 'image/png', name: 'old1.png' },
+          { buffer: Buffer.from('old-2'), mimeType: 'image/png', name: 'old2.png' }
+        ]
+      }
+    );
+
+    const img1 = original.blocks[1];
+    const img2 = original.blocks[2];
+    const img1Path = path.join(fixture.directory, img1.url.replace('/uploads/moments/', 'uploads/'));
+    const img2Path = path.join(fixture.directory, img2.url.replace('/uploads/moments/', 'uploads/'));
+
+    // Non-owner non-admin cannot edit.
+    await assert.rejects(
+      () => fixture.repository.updateMoment(original.id, OTHER_UUID, { text: '越权编辑' }),
+      { code: 'MOMENT_FORBIDDEN' }
+    );
+    assert.equal(presentMoment(original, { uuid: OWNER_UUID, isAdmin: false }).canEdit, true);
+    assert.equal(presentMoment(original, { uuid: OTHER_UUID, isAdmin: false }).canEdit, false);
+    assert.equal(presentMoment(original, { uuid: OTHER_UUID, isAdmin: true }).canEdit, true);
+
+    // Owner edits: keeps img1, removes img2, adds a new img3 and new text.
+    fixture.setNow('2026-09-14T10:00:00.000Z');
+    const edited = await fixture.repository.updateMoment(
+      original.id,
+      OWNER_UUID,
+      {
+        blocks: [
+          { type: 'text', text: '修改后的段落' },
+          { type: 'image', existingId: img1.id, alt: '保留图1' },
+          { type: 'text', text: '新增后文' },
+          { type: 'image', inlineIndex: 0, alt: '新图3' }
+        ],
+        keepMediaIds: []
+      },
+      {
+        inlineImages: [{ buffer: Buffer.from('new-3'), mimeType: 'image/jpeg', name: 'new3.jpg' }]
+      }
+    );
+
+    assert.equal(edited.text, '修改后的段落\n\n新增后文');
+    assert.equal(edited.blocks.length, 4);
+    assert.equal(edited.blocks[1].id, img1.id);
+    assert.equal(edited.blocks[1].url, img1.url);
+    const img3Path = path.join(fixture.directory, edited.blocks[3].url.replace('/uploads/moments/', 'uploads/'));
+    assert.equal(fs.existsSync(img1Path), true);
+    assert.equal(fs.existsSync(img2Path), false);
+    assert.equal(fs.existsSync(img3Path), true);
+    assert.equal(presentMoment(edited, { uuid: OWNER_UUID }).isEdited, true);
+
+    // Super admin can edit another user's moment without being owner.
+    fixture.setNow('2026-09-14T11:00:00.000Z');
+    const adminEdited = await fixture.repository.updateMoment(
+      original.id,
+      OTHER_UUID,
+      { text: '管理员修订正文', blocks: [], keepMediaIds: [] },
+      {},
+      { isAdmin: true }
+    );
+    assert.equal(adminEdited.text, '管理员修订正文');
+    assert.equal(adminEdited.blocks, undefined);
+    assert.equal(fs.existsSync(img1Path), false);
+    assert.equal(fs.existsSync(img3Path), false);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
+
+test('remoteImage blocks private IPs/SSRF, validates redirect targets, and sniffs real image bytes', async () => {
+  for (const ip of ['127.0.0.1', '10.0.0.5', '172.16.0.1', '192.168.1.1', '169.254.169.254', '::1', 'fc00::1', 'fe80::1', '::ffff:127.0.0.1']) {
+    assert.equal(isPrivateIp(ip), true, `${ip} must be blocked`);
+  }
+  assert.equal(isPrivateIp('93.184.216.34'), false);
+
+  await assert.rejects(() => fetchRemoteImage('http://127.0.0.1/secret.png'), { code: 'MOMENT_IMAGE_URL_BLOCKED' });
+  await assert.rejects(() => fetchRemoteImage('http://localhost:3000/a.png'), { code: 'MOMENT_IMAGE_URL_BLOCKED' });
+  await assert.rejects(() => fetchRemoteImage('file:///etc/passwd'), { code: 'MOMENT_IMAGE_URL_INVALID' });
+
+  const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+  assert.equal(sniffImageMime(pngBytes), 'image/png');
+  assert.equal(sniffImageMime(Buffer.from('<html><body>login required</body></html>')), '');
+
+  const publicLookup = async () => [{ address: '93.184.216.34', family: 4 }];
+  // Reject HTML disguised as 200 OK.
+  await assert.rejects(
+    () => fetchRemoteImage('https://example.com/pic.png', {
+      lookup: publicLookup,
+      fetchImpl: async () => new Response('<html>not an image</html>', { status: 200, headers: { 'content-type': 'image/png' } })
+    }),
+    { code: 'MOMENT_MEDIA_INVALID' }
+  );
+  // Block redirect to private IP.
+  await assert.rejects(
+    () => fetchRemoteImage('https://example.com/redirect', {
+      lookup: publicLookup,
+      fetchImpl: async () => new Response(null, { status: 302, headers: { location: 'http://169.254.169.254/latest/meta-data/' } })
+    }),
+    { code: 'MOMENT_IMAGE_URL_BLOCKED' }
+  );
+  // Succeed on valid PNG from public IP.
+  const fetched = await fetchRemoteImage('https://example.com/photo.png', {
+    lookup: publicLookup,
+    fetchImpl: async () => new Response(pngBytes, { status: 200, headers: { 'content-type': 'image/png' } })
+  });
+  assert.equal(fetched.mimeType, 'image/png');
+  assert.equal(fetched.name, 'photo.png');
+  assert.equal(fetched.buffer.equals(pngBytes), true);
 });
 
 test('likes are idempotent, independent per viewer, private, and persistent', async () => {

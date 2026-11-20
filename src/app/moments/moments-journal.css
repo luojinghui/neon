@@ -49,9 +49,13 @@
   white-space: normal;
 }
 .moments-screen .moment-card-text p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.moments-screen .moment-card-text .moment-inline-image { max-height: 18rem; }
 .moments-screen .moment-card-text.is-collapsed {
   max-height: calc(var(--moment-preview-lines) * 1em * var(--line-height-body-lg));
   overflow: hidden;
+}
+.moments-screen .moment-card-text.is-collapsed.has-inline-images {
+  max-height: 28rem;
 }
 .moments-screen .moment-card-text.is-collapsed.has-overflow {
   -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
@@ -87,7 +91,7 @@
 .moment-journal-composer .moment-composer-body { padding-top: 1rem; }
 
 
-.moment-journal-composer .moment-composer-tools { gap: 0.5rem; border: 0; padding-top: 0; }
+.moment-journal-composer .moment-composer-tools { gap: 0.25rem; border: 0; padding-top: 0; }
 .moment-journal-composer .moment-voice-player { border: 0; }
 
 .moment-journal-comments .moment-comment { border: 0; }

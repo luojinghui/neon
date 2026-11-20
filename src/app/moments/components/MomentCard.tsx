@@ -9,29 +9,33 @@ import { Dropdown, type DropdownItem } from '@/components/ui/dropdown';
 import Link from 'next/link';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createProfileHref } from '@/app/profile/navigation';
-import { LinkifiedText } from '@/components/LinkifiedText';
 import { deleteMoment } from '../client';
-import { formatMomentTime, splitMomentParagraphs } from '../format';
+import { formatMomentTime, splitMomentParagraphs, splitTrailingImages } from '../format';
 import type { Moment } from '../types';
 import { MomentAvatar } from './MomentAvatar';
 import { MomentActions, type MomentReactionPatch } from './MomentActions';
+import { MomentBody } from './MomentBody';
 import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
 import { MomentAttachments } from './MomentAttachments';
+import { MomentComposer } from './MomentComposer';
 import { MomentViewer } from './MomentViewer';
 
 type Props = {
   moment: Moment;
   onDeleted: (id: string) => void;
+  onUpdated?: (moment: Moment) => void;
 };
 
-export function MomentCard({ moment, onDeleted }: Props) {
+export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
   const modal = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [localMoment, setLocalMoment] = useState<Moment>(moment);
   const [liveState, setLiveState] = useState({
     liked: moment.liked ?? false,
     likeCount: moment.likeCount ?? 0,
@@ -39,19 +43,34 @@ export function MomentCard({ moment, onDeleted }: Props) {
   });
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
-  const paragraphs = moment.text ? splitMomentParagraphs(moment.text) : [];
-  const currentMoment: Moment = { ...moment, ...liveState };
+  const activeMoment = localMoment.id === moment.id && Date.parse(localMoment.updatedAt) >= Date.parse(moment.updatedAt) ? localMoment : moment;
+  const { interleavedBlocks, trailingImages, hasInterleavedImages } = splitTrailingImages(activeMoment.blocks);
+  const displayMedia = trailingImages.length > 0 ? [...trailingImages, ...activeMoment.media] : activeMoment.media;
+  const hasBodyContent = interleavedBlocks.length > 0 || (activeMoment.text ? splitMomentParagraphs(activeMoment.text).length > 0 : false);
+  const currentMoment: Moment = { ...activeMoment, ...liveState };
+  const canEdit = activeMoment.canEdit ?? activeMoment.canDelete;
 
   useEffect(() => {
+    setLocalMoment(moment);
     setLiveState({
       liked: moment.liked ?? false,
       likeCount: moment.likeCount ?? 0,
       commentCount: moment.commentCount
     });
-  }, [moment.liked, moment.likeCount, moment.commentCount]);
+  }, [moment]);
 
   const applyReactionPatch = (patch: MomentReactionPatch) => {
     setLiveState((current) => ({ ...current, ...patch }));
+  };
+
+  const handleUpdated = (updated: Moment) => {
+    setLocalMoment(updated);
+    setLiveState({
+      liked: updated.liked ?? false,
+      likeCount: updated.likeCount ?? 0,
+      commentCount: updated.commentCount
+    });
+    onUpdated?.(updated);
   };
 
   useLayoutEffect(() => {
@@ -62,13 +81,14 @@ export function MomentCard({ moment, onDeleted }: Props) {
       const style = getComputedStyle(element);
       const lineHeight = parseFloat(style.lineHeight);
       const previewLines = parseInt(style.getPropertyValue('--moment-preview-lines'), 10) || 10;
-      setCanExpand(element.scrollHeight > lineHeight * previewLines + 2);
+      const previewCap = hasInterleavedImages ? Math.max(lineHeight * previewLines, 448) : lineHeight * previewLines;
+      setCanExpand(element.scrollHeight > previewCap + 2);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [moment.text]);
+  }, [activeMoment.text, activeMoment.blocks, hasInterleavedImages]);
 
   const remove = () => {
     if (deleting) return;
@@ -92,29 +112,43 @@ export function MomentCard({ moment, onDeleted }: Props) {
   };
 
   const menuItems: DropdownItem[] = [
-    {
-      key: 'delete',
-      danger: true,
-      icon: deleting ? <LoadingOutlined /> : <DeleteOutlined />,
-      label: '删除',
-      disabled: deleting,
-      onClick: () => void remove()
-    }
+    ...(canEdit
+      ? [{
+          key: 'edit',
+          icon: <Icon name="edit" size="sm" />,
+          label: '编辑',
+          disabled: deleting,
+          onClick: () => setEditing(true)
+        }]
+      : []),
+    ...(activeMoment.canDelete
+      ? [{
+          key: 'delete',
+          danger: true,
+          icon: deleting ? <LoadingOutlined /> : <DeleteOutlined />,
+          label: '删除',
+          disabled: deleting,
+          onClick: () => void remove()
+        }]
+      : [])
   ];
 
   return (
-    <Card padding="none" bodyWrap={false} id={`moment-${moment.id}`} className={`moment-card${moment.media.length > 0 ? ' has-media' : ''}`}>
+    <Card padding="none" bodyWrap={false} id={`moment-${activeMoment.id}`} className={`moment-card${displayMedia.length > 0 ? ' has-media' : ''}`}>
       <header className="moment-card-head">
         <div className="flex min-w-0 items-center gap-2.5">
-          <MomentAvatar author={moment.author} size={36} />
+          <MomentAvatar author={activeMoment.author} size={36} />
           <div className="min-w-0">
-            <Link href={createProfileHref(moment.author.userId, { returnTo: '/moments' })} title={`@${moment.author.userId}`} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">
-              {moment.author.name}
+            <Link href={createProfileHref(activeMoment.author.userId, { returnTo: '/moments' })} title={`@${activeMoment.author.userId}`} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">
+              {activeMoment.author.name}
             </Link>
-            <div className="moment-card-byline"><time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
+            <div className="moment-card-byline">
+              <time dateTime={activeMoment.createdAt}>{formatMomentTime(activeMoment.createdAt)}</time>
+              {activeMoment.isEdited ? ' · 已编辑' : null}
+            </div>
           </div>
         </div>
-        {moment.canDelete && (
+        {menuItems.length > 0 && (
           <Dropdown items={menuItems} trigger={['click']} placement="bottomRight">
             <Button variant="ghost" iconOnly type="button" aria-label="管理这条星语"><MoreOutlined /></Button>
           </Dropdown>
@@ -122,10 +156,10 @@ export function MomentCard({ moment, onDeleted }: Props) {
       </header>
 
       <div className="moment-entry-content">
-        {paragraphs.length > 0 && (
+        {hasBodyContent && (
           <div className="moment-post-copy">
-            <div ref={textRef} id={textId} className={`moment-card-text${!expanded ? ' is-collapsed' : ''}${canExpand && !expanded ? ' has-overflow' : ''}`}>
-              {paragraphs.map((paragraph, index) => <p key={index}><LinkifiedText content={paragraph} /></p>)}
+            <div ref={textRef} id={textId} className={`moment-card-text${!expanded ? ' is-collapsed' : ''}${hasInterleavedImages ? ' has-inline-images' : ''}${canExpand && !expanded ? ' has-overflow' : ''}`}>
+              <MomentBody text={activeMoment.text} blocks={interleavedBlocks} />
             </div>
             {canExpand && (
               <div className="moment-post-actions">
@@ -139,13 +173,13 @@ export function MomentCard({ moment, onDeleted }: Props) {
             )}
           </div>
         )}
-        <MomentMediaView media={moment.media} />
-        <MomentAttachments attachments={moment.attachments} />
-        {moment.voice && <div className="moment-card-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
+        <MomentMediaView media={displayMedia} />
+        <MomentAttachments attachments={activeMoment.attachments} />
+        {activeMoment.voice && <div className="moment-card-voice"><MomentVoicePlayer voice={activeMoment.voice} /></div>}
 
-        {moment.location && <div className="moment-card-meta"><span><EnvironmentOutlined /> {moment.location.label}</span></div>}
+        {activeMoment.location && <div className="moment-card-meta"><span><EnvironmentOutlined /> {activeMoment.location.label}</span></div>}
 
-        <MomentActions key={moment.id} moment={currentMoment} appearance="journal" onChange={applyReactionPatch} />
+        <MomentActions key={activeMoment.id} moment={currentMoment} appearance="journal" onChange={applyReactionPatch} />
         {error && <p className="moment-inline-error" role="alert">{error}</p>}
       </div>
       {viewerOpen && (
@@ -153,7 +187,17 @@ export function MomentCard({ moment, onDeleted }: Props) {
           moment={currentMoment}
           onClose={() => setViewerOpen(false)}
           onDeleted={(id) => { setViewerOpen(false); onDeleted(id); }}
+          onUpdated={handleUpdated}
           onReactionChange={applyReactionPatch}
+        />
+      )}
+      {canEdit && (
+        <MomentComposer
+          appearance="journal"
+          open={editing}
+          moment={currentMoment}
+          onClose={() => setEditing(false)}
+          onPublished={handleUpdated}
         />
       )}
     </Card>

@@ -45,6 +45,7 @@ function presentMoment(moment, viewer = {}, options = {}) {
   return {
     id: moment.id,
     text: moment.text,
+    blocks: (moment.blocks || []).map((block) => ({ ...block })),
     media: moment.media.map((item) => ({ ...item })),
     attachments: (moment.attachments || []).map((item) => ({ ...item })),
     voice: moment.voice ? { ...moment.voice } : null,
@@ -56,7 +57,9 @@ function presentMoment(moment, viewer = {}, options = {}) {
     liked: Boolean(viewer.uuid && likedBy.includes(viewer.uuid)),
     createdAt: moment.createdAt,
     updatedAt: moment.updatedAt,
+    isEdited: moment.updatedAt !== moment.createdAt,
     isOwner,
+    canEdit: isOwner || viewer.isAdmin === true,
     canDelete: isOwner || viewer.isAdmin === true
   };
 }

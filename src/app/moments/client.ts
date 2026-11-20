@@ -1,7 +1,7 @@
 'use client';
 
 import { ensureCurrentProfile } from '@/app/profile/client';
-import type { CreateMomentInput, Moment, MomentComment, MomentListResponse } from './types';
+import type { CreateMomentInput, Moment, MomentComment, MomentListResponse, UpdateMomentInput } from './types';
 import { MOMENT_PAGE_SIZE, patchCachedMoment, updateMomentFeed } from './feedCache';
 
 type ErrorPayload = { error?: string; code?: string };
@@ -55,6 +55,8 @@ export async function createMoment(input: CreateMomentInput): Promise<Moment> {
   const headers = await identityHeaders();
   const form = new FormData();
   form.set('text', input.text);
+  if (input.blocks && input.blocks.length > 0) form.set('blocks', JSON.stringify(input.blocks));
+  for (const file of input.inlineImages || []) form.append('inlineImages', file, file.name);
   for (const file of input.media) form.append('media', file, file.name);
   if (input.voice) form.set('voice', input.voice, input.voice.name);
   form.set('voiceDurationMs', String(input.voiceDurationMs || 0));
@@ -70,6 +72,59 @@ export async function createMoment(input: CreateMomentInput): Promise<Moment> {
     const total = data.total + (data.items.some(item => item.id === result.item.id) ? 0 : 1);
     return { ...data, items: [result.item, ...data.items.filter(item => item.id !== result.item.id)].slice(0, MOMENT_PAGE_SIZE), total, page: 1, hasMore: total > MOMENT_PAGE_SIZE };
   });
+  return result.item;
+}
+
+export async function importMomentImage(url: string, signal?: AbortSignal): Promise<File> {
+  const headers = await identityHeaders();
+  const response = await fetch('/api/moments/import-image', {
+    method: 'POST',
+    headers: { ...headers, 'content-type': 'application/json' },
+    body: JSON.stringify({ url }),
+    signal
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as ErrorPayload;
+    throw new Error(payload.error || '图片拉取失败，请手动替换');
+  }
+  const blob = await response.blob();
+  const mimeType = (response.headers.get('content-type') || blob.type || 'image/png').split(';')[0].trim().toLowerCase();
+  const rawName = response.headers.get('x-image-filename');
+  let filename = '';
+  if (rawName) {
+    try {
+      filename = decodeURIComponent(rawName);
+    } catch {
+      filename = '';
+    }
+  }
+  if (!filename) {
+    const ext = mimeType === 'image/jpeg' ? 'jpg' : mimeType.split('/')[1] || 'png';
+    filename = `pasted-image-${Date.now()}.${ext}`;
+  }
+  return new File([blob], filename, { type: mimeType });
+}
+
+export async function updateMoment(moment: Pick<Moment, 'id' | 'isOwner'>, input: UpdateMomentInput): Promise<Moment> {
+  const headers = await identityHeaders(!moment.isOwner);
+  const form = new FormData();
+  form.set('text', input.text);
+  form.set('blocks', JSON.stringify(input.blocks || []));
+  form.set('keepMediaIds', JSON.stringify(input.keepMediaIds));
+  form.set('removeVoice', input.removeVoice ? '1' : '0');
+  for (const file of input.inlineImages || []) form.append('inlineImages', file, file.name);
+  for (const file of input.media) form.append('media', file, file.name);
+  if (input.voice) form.set('voice', input.voice, input.voice.name);
+  form.set('voiceDurationMs', String(input.voiceDurationMs || 0));
+  form.set('location', input.location ? JSON.stringify(input.location) : '');
+  const result = await parseJson<{ item: Moment }>(
+    await fetch(`/api/moments/${encodeURIComponent(moment.id)}`, {
+      method: 'PATCH',
+      headers,
+      body: form
+    })
+  );
+  patchCachedMoment(headers['x-neon-user-uuid'], result.item.id, () => result.item);
   return result.item;
 }
 

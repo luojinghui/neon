@@ -6,7 +6,7 @@ import { getViewer, momentErrorResponse, publicMoment, requireCurrentProfile } f
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MAX_REQUEST_BYTES = 140 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 240 * 1024 * 1024;
 
 function parseLocation(value: FormDataEntryValue | null) {
   if (typeof value !== 'string' || !value.trim()) return null;
@@ -14,6 +14,17 @@ function parseLocation(value: FormDataEntryValue | null) {
     return JSON.parse(value);
   } catch {
     throw Object.assign(new Error('位置信息无效'), { code: 'MOMENT_LOCATION_INVALID' });
+  }
+}
+
+function parseBlocks(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) throw new Error('invalid');
+    return parsed;
+  } catch {
+    throw Object.assign(new Error('正文排版数据无效'), { code: 'MOMENT_BLOCKS_INVALID' });
   }
 }
 
@@ -50,14 +61,16 @@ export async function POST(request: Request) {
     const profile = requireCurrentProfile(request);
     const form = await request.formData();
     const mediaFiles = getFiles(form, 'media');
+    const inlineImageFiles = getFiles(form, 'inlineImages');
     const attachmentFiles = getFiles(form, 'attachments');
     const voiceFiles = getFiles(form, 'voice');
-    const totalBytes = [...mediaFiles, ...attachmentFiles, ...voiceFiles].reduce((sum, file) => sum + file.size, 0);
+    const totalBytes = [...mediaFiles, ...inlineImageFiles, ...attachmentFiles, ...voiceFiles].reduce((sum, file) => sum + file.size, 0);
     if (totalBytes > MAX_REQUEST_BYTES) throw Object.assign(new Error('本次上传内容过大'), { code: 'REQUEST_TOO_LARGE' });
     if (voiceFiles.length > 1) throw Object.assign(new Error('每条星语只能包含一段语音'), { code: 'MOMENT_MEDIA_INVALID' });
 
-    const [media, files, voice] = await Promise.all([
+    const [media, inlineImages, files, voice] = await Promise.all([
       Promise.all(mediaFiles.map(readFile)),
+      Promise.all(inlineImageFiles.map(readFile)),
       Promise.all(attachmentFiles.map(readFile)),
       voiceFiles[0] ? readFile(voiceFiles[0]) : Promise.resolve(null)
     ]);
@@ -65,10 +78,11 @@ export async function POST(request: Request) {
       {
         ownerUuid: profile.uuid,
         text: form.get('text'),
+        blocks: parseBlocks(form.get('blocks')),
         location: parseLocation(form.get('location')),
         voiceDurationMs: form.get('voiceDurationMs')
       },
-      { media, files, voice }
+      { media, inlineImages, files, voice }
     );
     const viewer = await getViewer(request);
     return NextResponse.json({ item: publicMoment(moment, viewer, 2) }, { status: 201 });
