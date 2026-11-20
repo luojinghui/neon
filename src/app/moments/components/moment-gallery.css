@@ -87,7 +87,8 @@
 .moment-viewer-author { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
 .moment-viewer-text,
 .moment-viewer-text * { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
-.moment-viewer-text { margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); color: hsl(var(--foreground-secondary)); }
+.moment-viewer-text { display: flex; flex-direction: column; gap: 0.625rem; margin: 0 0 1rem; font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); color: hsl(var(--foreground)); }
+.moment-viewer-text p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .moment-viewer-voice { margin-top: 1rem; }
 .moment-viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; border-top: 0; padding-top: 0.6rem; }
 .moment-viewer-location { display: inline-flex; min-width: 0; align-items: center; gap: 0.35rem; overflow-wrap: anywhere; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }

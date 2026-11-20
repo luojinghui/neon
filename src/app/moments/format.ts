@@ -17,3 +17,11 @@ export function formatVoiceDuration(durationMs: number): string {
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
+
+export function splitMomentParagraphs(text: string): string[] {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .replace(/^(?:[ \t]*\n)+|(?:\n[ \t]*)+$/g, '')
+    .split(/\n(?:[ \t]*\n)+/)
+    .filter((block) => block.trim().length > 0);
+}

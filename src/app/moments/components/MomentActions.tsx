@@ -7,7 +7,9 @@ import type { Moment } from '../types';
 import { MomentCommentSheet } from './MomentCommentSheet';
 import './moment-actions.css';
 
-export function MomentActions({ moment, appearance }: { moment: Moment; appearance?: 'journal' }) {
+export type MomentReactionPatch = { liked?: boolean; likeCount?: number; commentCount?: number };
+
+export function MomentActions({ moment, appearance, onChange }: { moment: Moment; appearance?: 'journal'; onChange?: (patch: MomentReactionPatch) => void }) {
   const [reaction, setReaction] = useState({ liked: moment.liked ?? false, likeCount: moment.likeCount ?? 0 });
   const [commentCount, setCommentCount] = useState(moment.commentCount);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -31,16 +33,22 @@ export function MomentActions({ moment, appearance }: { moment: Moment; appearan
     if (pendingRef.current) return;
     const previous = reaction;
     const liked = !previous.liked;
+    const optimistic = { liked, likeCount: Math.max(0, previous.likeCount + (liked ? 1 : -1)) };
     pendingRef.current = true;
     setLiking(true);
     setError('');
-    setReaction({ liked, likeCount: Math.max(0, previous.likeCount + (liked ? 1 : -1)) });
+    setReaction(optimistic);
+    onChange?.(optimistic);
     try {
       const result = await setMomentLiked(moment.id, liked);
-      if (mountedRef.current) setReaction(result);
+      if (mountedRef.current) {
+        setReaction(result);
+        onChange?.(result);
+      }
     } catch (likeError) {
       if (mountedRef.current) {
         setReaction(previous);
+        onChange?.(previous);
         setError(likeError instanceof Error ? likeError.message : '点赞失败，请重试');
       }
     } finally {
@@ -62,7 +70,7 @@ export function MomentActions({ moment, appearance }: { moment: Moment; appearan
         </button>
       </footer>
       {error && <p className="moment-action-error" role="alert">{error}，点击爱心重试。</p>}
-      <MomentCommentSheet appearance={appearance} open={commentsOpen} moment={moment} onClose={() => setCommentsOpen(false)} onCountChange={setCommentCount} />
+      <MomentCommentSheet appearance={appearance} open={commentsOpen} moment={moment} onClose={() => setCommentsOpen(false)} onCountChange={(nextCount) => { setCommentCount(nextCount); onChange?.({ commentCount: nextCount }); }} />
     </>
   );
 }

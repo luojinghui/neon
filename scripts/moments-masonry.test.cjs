@@ -119,3 +119,16 @@ test('cleanup cancels pending layout and pagination remounts only the current ca
   assert.deepEqual(f.observers[1].items, [f.feed, ...f.feed.children]);
   stopAgain();
 });
+
+test('splitMomentParagraphs collapses blank-line runs while preserving inline breaks and indentation', () => {
+  const formatOutput = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src/app/moments/format.ts'), 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+  }).outputText;
+  const formatExports = {};
+  vm.runInNewContext(formatOutput, { exports: formatExports });
+  const { splitMomentParagraphs } = formatExports;
+
+  assert.deepEqual(Array.from(splitMomentParagraphs('第一段第一行\n第一段第二行\n\n\n  第二段\n\n')), ['第一段第一行\n第一段第二行', '  第二段']);
+  assert.deepEqual(Array.from(splitMomentParagraphs('单行内容')), ['单行内容']);
+  assert.deepEqual(Array.from(splitMomentParagraphs('  \n\n\t\n ')), []);
+});

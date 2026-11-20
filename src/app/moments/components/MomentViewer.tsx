@@ -7,12 +7,12 @@ import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined } from '@ant-desig
 import { useState } from 'react';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import { deleteMoment } from '../client';
-import { formatMomentTime } from '../format';
+import { formatMomentTime, splitMomentParagraphs } from '../format';
 import type { Moment } from '../types';
 import { MomentAvatar } from './MomentAvatar';
 import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
-import { MomentActions } from './MomentActions';
+import { MomentActions, type MomentReactionPatch } from './MomentActions';
 import { MomentAttachments } from './MomentAttachments';
 import './moment-gallery.css';
 
@@ -20,12 +20,14 @@ type Props = {
   moment: Moment;
   onClose: () => void;
   onDeleted: (id: string) => void;
+  onReactionChange?: (patch: MomentReactionPatch) => void;
 };
 
-export function MomentViewer({ moment, onClose, onDeleted }: Props) {
+export function MomentViewer({ moment, onClose, onDeleted, onReactionChange }: Props) {
   const modal = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const paragraphs = moment.text ? splitMomentParagraphs(moment.text) : [];
 
   const remove = () => {
     if (deleting) return;
@@ -55,7 +57,11 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
           <MomentAvatar author={moment.author} size={38} />
           <div className="min-w-0"><div className="truncate text-body font-medium text-foreground">{moment.author.name}</div><time className="text-caption text-foreground-muted" dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
         </header>
-        {moment.text && <p className="moment-viewer-text"><LinkifiedText content={moment.text} /></p>}
+        {paragraphs.length > 0 && (
+          <div className="moment-viewer-text">
+            {paragraphs.map((paragraph, index) => <p key={index}><LinkifiedText content={paragraph} /></p>)}
+          </div>
+        )}
         {moment.media.length > 0 && <MomentMediaView media={moment.media} immersive />}
         <MomentAttachments attachments={moment.attachments} />
         {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
@@ -63,7 +69,7 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
           <span className="moment-viewer-location">{moment.location && <><EnvironmentOutlined />{moment.location.label}</>}</span>
           {moment.canDelete && <Button variant="ghost" type="button" className="moment-viewer-delete" onClick={() => void remove()} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}删除</Button>}
         </footer>}
-        <MomentActions moment={moment} />
+        <MomentActions moment={moment} onChange={onReactionChange} />
         {error && <p className="moment-inline-error" role="alert">{error}</p>}
       </article>
     </Modal>

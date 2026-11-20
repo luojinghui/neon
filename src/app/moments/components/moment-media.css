@@ -19,7 +19,9 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 5px;
   overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.6);
   border-radius: var(--radius-lg);
+  background: hsl(var(--surface-inset));
 }
 
 .moment-media-grid .moment-media-tile {
