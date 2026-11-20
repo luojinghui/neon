@@ -20,7 +20,7 @@
 }
 .moment-voice-track input:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 .moment-voice-track { min-width: 0; flex: 1; }
-.moment-voice-details { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.5rem; color: hsl(var(--foreground-secondary)); font-size: 0.72rem; }
+.moment-voice-details { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.5rem; color: hsl(var(--foreground-secondary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .moment-voice-time { flex-shrink: 0; color: hsl(var(--foreground-muted)); font-variant-numeric: tabular-nums; }
 .moment-voice-player.has-error .moment-voice-details > span:first-child { color: hsl(var(--danger)); }
 .moment-voice-track input {

@@ -15,8 +15,9 @@
 }
 
 .moment-page-heading h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+  font-weight: var(--font-weight-semibold);
   color: hsl(var(--foreground));
 }
 
@@ -68,8 +69,8 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   padding: 0.2rem 1rem 0.9rem;
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body-lg);
   color: hsl(var(--foreground-secondary));
 }
 
@@ -79,7 +80,8 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  font-size: 0.7rem;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
   color: hsl(var(--foreground-muted));
 }
 
@@ -107,7 +109,8 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.4rem 1rem 0.2rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
   color: hsl(var(--foreground-muted));
 }
 
@@ -171,7 +174,8 @@
   padding: 0.45rem 0.7rem;
   background: hsl(var(--primary-soft));
   color: hsl(var(--primary));
-  font-size: 0.75rem;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
 }
 
 .moment-reply-target button { display: inline-flex; align-items: center; justify-content: center; }
@@ -201,7 +205,8 @@
   padding: 0.55rem 0.7rem;
   background: hsl(var(--danger-soft));
   color: hsl(var(--danger));
-  font-size: 0.8rem;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 .moment-load-more {
@@ -225,8 +230,8 @@
   text-align: center;
 }
 
-.moment-empty-state > span { font-size: 1rem; font-weight: 500; color: hsl(var(--foreground)); }
-.moment-empty-state p { margin: 0.5rem 0 1.25rem; font-size: 0.8rem; color: hsl(var(--foreground-muted)); }
+.moment-empty-state > span { font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); font-weight: var(--font-weight-medium); color: hsl(var(--foreground)); }
+.moment-empty-state p { margin: 0.5rem 0 1.25rem; font-size: var(--font-size-body); line-height: var(--line-height-body); color: hsl(var(--foreground-muted)); }
 
 .moment-card-skeleton {
   overflow: hidden;
@@ -253,7 +258,7 @@
   padding: 0 1rem;
 }
 
-.moment-composer-head h2 { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
+.moment-composer-head h2 { font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); color: hsl(var(--foreground)); }
 .moment-composer-head button { width: fit-content; }
 .moment-composer-head button:last-child { justify-self: end; display: inline-flex; align-items: center; }
 .moment-composer-body { padding: 1rem 1.1rem 1.15rem; }
@@ -269,7 +274,7 @@
 .moment-file-preview > img,
 .moment-file-preview > video { width: 100%; height: 100%; object-fit: cover; }
 .moment-file-preview > button { position: absolute; top: 0.4rem; right: 0.4rem; display: inline-flex; align-items: center; justify-content: center; }
-.moment-file-preview > span { position: absolute; bottom: 0.4rem; left: 0.4rem; display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 9999px; padding: 0.25rem 0.5rem; background: rgb(24 18 14 / 0.58); color: white; font-size: 0.68rem; }
+.moment-file-preview > span { position: absolute; bottom: 0.4rem; left: 0.4rem; display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 9999px; padding: 0.25rem 0.5rem; background: rgb(24 18 14 / 0.58); color: white; font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .moment-file-preview-loading { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; color: hsl(var(--foreground-muted)); }
 .moment-add-file { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
@@ -283,7 +288,8 @@
   padding: 0.6rem 0.75rem;
   background: hsl(var(--danger-soft));
   color: hsl(var(--danger));
-  font-size: 0.82rem;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 .moment-recording-dot { width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: hsl(var(--danger)); animation: moment-recording 1s ease-in-out infinite; }
@@ -296,7 +302,7 @@
 
 .moment-composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.85rem; border-top: 0; padding-top: 0; }
 .moment-composer-tools button { display: inline-flex; align-items: center; }
-.moment-composer-hint { margin-top: 0.55rem; font-size: 0.7rem; color: hsl(var(--foreground-muted)); }
+.moment-composer-hint { margin-top: 0.55rem; font-size: var(--font-size-caption); line-height: var(--line-height-caption); color: hsl(var(--foreground-muted)); }
 .moment-composer-body > .moment-inline-error { margin-top: 0.65rem; }
 
 @media (max-width: 800px) {

@@ -21,7 +21,7 @@
   background: hsl(var(--surface));
 }
 
-.moment-comment-sheet header > div:first-child { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
+.moment-comment-sheet header > div:first-child { font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); color: hsl(var(--foreground)); }
 .moment-comment-sheet .moment-comment-sheet-body { display: flex; min-height: 0; overflow: hidden; padding: 0; }
 
 .moment-comment-sheet .moment-comments-in-sheet {
@@ -61,10 +61,10 @@
 
 .moment-comment-sheet .moment-inline-error { margin-top: 0.65rem; }
 
-.moment-sheet-status { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; color: hsl(var(--foreground-muted)); font-size: 0.8rem; }
-.moment-sheet-empty { display: flex; min-height: 10rem; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: hsl(var(--foreground-muted)); font-size: 0.9rem; text-align: center; }
+.moment-sheet-status { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.moment-sheet-empty { display: flex; min-height: 10rem; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); text-align: center; }
 .moment-sheet-empty > .anticon { margin-bottom: 0.2rem; font-size: 1.6rem; color: hsl(var(--foreground-muted) / 0.65); }
-.moment-sheet-empty p { font-size: 0.8rem; }
+.moment-sheet-empty p { font-size: var(--font-size-body); line-height: var(--line-height-body); }
 
 @media (max-width: 640px) {
   .moment-comment-sheet header { padding: 1rem; }
@@ -78,7 +78,7 @@
 .moment-comment .moment-comment-main strong { font-weight: var(--font-weight-medium); }
 .moment-comment { padding: 0.25rem 0; }
 .moment-comment .moment-comment-actions { display: flex; gap: 1rem; margin: 0.25rem 0 0 2.65rem; }
-.moment-comment .moment-comment-actions button[data-ui-button] { height: auto; min-height: 0; gap: 0.25rem; padding: 0; border-radius: 0; background: transparent !important; box-shadow: none; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); }
+.moment-comment .moment-comment-actions button[data-ui-button] { height: auto; min-height: 0; gap: 0.25rem; padding: 0; border-radius: 0; background: transparent !important; box-shadow: none; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 @media (hover: hover) and (pointer: fine) { .moment-comment .moment-comment-actions button[data-ui-button]:hover { color: hsl(var(--foreground)); } .moment-comment .moment-comment-actions button[data-ui-button]:last-child:not(:first-child):hover { color: hsl(var(--danger)); } }
 .moment-comment-edit { margin-left: 2.65rem; }
 

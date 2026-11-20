@@ -71,4 +71,4 @@
 .moment-media-grid[data-compact][data-count='2'] { grid-template-rows: minmax(0, 1fr); }
 .moment-media-grid[data-compact][data-count='3'] { aspect-ratio: 16 / 9; }
 .moment-media-grid[data-compact]:not([data-count='1']) .moment-media-tile { aspect-ratio: auto; }
-.moment-media-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / 0.5); color: #fff; font-size: 1.25rem; font-weight: 600; }
+.moment-media-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / 0.5); color: #fff; font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); }

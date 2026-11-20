@@ -308,7 +308,7 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
                     <span className="text-caption text-foreground-muted">{formatMomentTime(comment.createdAt)}{comment.isEdited ? ' · 已编辑' : ''}</span>
                   </span>
                   {!editing && (
-                    <span className="mt-0.5 block break-words text-sm leading-6 text-foreground">
+                    <span className="mt-0.5 block break-words text-body text-foreground">
                       {comment.replyTo && <span className="mr-1 text-primary">回复 @{comment.replyTo.userId}</span>}
                       {comment.text}
                     </span>
@@ -366,7 +366,7 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
           {sending ? <LoadingOutlined /> : <SendOutlined />}
         </Button>
       </div>
-      {notice && <p className="mt-2 text-xs text-foreground-muted" role="status">{notice}</p>}
+      {notice && <p className="mt-2 text-caption text-foreground-muted" role="status">{notice}</p>}
       {error && <p className="moment-inline-error" role="alert">{error}</p>}
       {needsRefresh && <Button variant="ghost" type="button" className="mt-2" disabled={busy} onClick={() => void loadComments(false)}>重新加载评论</Button>}
       </div>

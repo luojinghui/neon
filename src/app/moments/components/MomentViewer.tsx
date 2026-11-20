@@ -53,7 +53,7 @@ export function MomentViewer({ moment, onClose, onDeleted }: Props) {
       <article className="moment-viewer">
         <header className="moment-viewer-author">
           <MomentAvatar author={moment.author} size={38} />
-          <div className="min-w-0"><div className="truncate text-sm font-medium text-foreground">{moment.author.name}</div><time className="text-xs text-foreground-muted" dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
+          <div className="min-w-0"><div className="truncate text-body font-medium text-foreground">{moment.author.name}</div><time className="text-caption text-foreground-muted" dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time></div>
         </header>
         {moment.text && <p className="moment-viewer-text"><LinkifiedText content={moment.text} /></p>}
         {moment.media.length > 0 && <MomentMediaView media={moment.media} immersive />}

@@ -11,7 +11,7 @@ export function MomentAttachments({ attachments = [] }: { attachments?: MomentAt
           <a href={file.url} download={file.name} className={buttonClassName({ block: true, className: 'min-w-0 justify-start' })}>
             <PaperClipOutlined aria-hidden="true" />
             <span className="min-w-0 flex-1 break-all">{file.name}</span>
-            <span className="shrink-0 text-xs text-foreground-muted">{file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.ceil(file.size / 1024))} KB`}</span>
+            <span className="shrink-0 text-caption text-foreground-muted">{file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.ceil(file.size / 1024))} KB`}</span>
             <DownloadOutlined aria-hidden="true" />
           </a>
         </li>

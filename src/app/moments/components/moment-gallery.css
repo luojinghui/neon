@@ -1,8 +1,8 @@
 .moment-profile-gallery { padding-top: 1.25rem; }
 .moment-profile-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
-.moment-profile-heading h2 { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
-.moment-profile-heading p { margin-top: 0.25rem; color: hsl(var(--foreground-muted)); font-size: 0.7rem; }
-.moment-profile-note-label { display: flex; align-items: center; gap: 0.4rem; margin: 1rem 0.85rem 0; color: hsl(var(--primary)); font-size: 0.7rem; }
+.moment-profile-heading h2 { font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); color: hsl(var(--foreground)); }
+.moment-profile-heading p { margin-top: 0.25rem; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
+.moment-profile-note-label { display: flex; align-items: center; gap: 0.4rem; margin: 1rem 0.85rem 0; color: hsl(var(--primary)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .moment-profile-reactions { display: inline-flex; gap: 0.65rem; }
 .moment-profile-reactions > span { display: inline-flex; align-items: center; gap: 0.2rem; }
 
@@ -15,7 +15,8 @@
   gap: 0.65rem;
   padding: 1.5rem;
   color: hsl(var(--foreground-muted));
-  font-size: 0.85rem;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
   text-align: center;
 }
 
@@ -57,7 +58,8 @@
   padding: 0.25rem 0.45rem;
   background: rgb(0 0 0 / 0.62);
   color: white;
-  font-size: 0.7rem;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
 }
 
 .moment-profile-entry-body { display: flex; width: 100%; min-width: 0; flex: 1; flex-direction: column; gap: 0.6rem; padding: 0.85rem; }
@@ -68,12 +70,12 @@
   -webkit-line-clamp: 6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 0.8125rem;
-  line-height: 1.7;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 .moment-profile-entry.has-media .moment-profile-entry-text { -webkit-line-clamp: 2; }
-.moment-profile-voice { display: inline-flex; align-items: center; gap: 0.45rem; color: hsl(var(--primary)); font-size: 0.8rem; }
-.moment-profile-entry-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; color: hsl(var(--foreground-muted)); font-size: 0.7rem; }
+.moment-profile-voice { display: inline-flex; align-items: center; gap: 0.45rem; color: hsl(var(--primary)); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.moment-profile-entry-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .moment-profile-entry-footer > span { color: hsl(var(--foreground-muted)); }
 
 .moment-viewer-modal .ui-modal-content,
@@ -85,10 +87,10 @@
 .moment-viewer-author { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
 .moment-viewer-text,
 .moment-viewer-text * { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
-.moment-viewer-text { margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.95rem; line-height: 1.85; color: hsl(var(--foreground-secondary)); }
+.moment-viewer-text { margin: 0 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--font-size-body-lg); line-height: var(--line-height-body-lg); color: hsl(var(--foreground-secondary)); }
 .moment-viewer-voice { margin-top: 1rem; }
 .moment-viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; border-top: 0; padding-top: 0.6rem; }
-.moment-viewer-location { display: inline-flex; min-width: 0; align-items: center; gap: 0.35rem; overflow-wrap: anywhere; color: hsl(var(--foreground-muted)); font-size: 0.75rem; }
+.moment-viewer-location { display: inline-flex; min-width: 0; align-items: center; gap: 0.35rem; overflow-wrap: anywhere; color: hsl(var(--foreground-muted)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
 .moment-viewer-delete { display: inline-flex; flex-shrink: 0; align-items: center; }
 .moment-viewer > .moment-inline-error { margin-top: 0.5rem; }
 
@@ -99,7 +101,6 @@
 @media (max-width: 540px) {
   .moment-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
   .moment-profile-entry-body { padding: 0.65rem; }
-  .moment-profile-entry-footer { font-size: 0.65rem; }
   .moment-profile-status { flex-wrap: wrap; }
   .moment-viewer-modal .ui-modal-content,
   .ui-modal-container.moment-viewer-modal { max-height: calc(var(--dialog-viewport-height, 100dvh) - max(0.75rem, env(safe-area-inset-top))); padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom)); border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
