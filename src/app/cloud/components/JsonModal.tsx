@@ -40,24 +40,21 @@ export function JsonViewerModal({ open, value, onClose, onCopy }: { open: boolea
           </Button>
         </Space>
       ]}
-      width={900}
+      width="min(1280px, 90vw)"
+      className="cloud-json-dialog"
       centered
     >
-      <div className="min-w-0 max-h-[70vh] overflow-y-auto">
-          <div className="min-w-0 space-y-4">
-            <div className="cloud-json-view select-text rounded-lg p-4 [&_*]:select-text">
-              {typeof value === 'object' && value !== null ? <JsonView
-                value={value}
-                displayDataTypes={false}
-                enableClipboard={true}
-                beforeCopy={(copyText, _keyName, value) => (typeof value === 'string' ? value : copyText)}
-                collapsed={false}
-                shortenTextAfterLength={99999}
-                displayObjectSize={true}
-                style={{ fontSize: '13px', backgroundColor: 'transparent' }}
-              /> : <pre className="whitespace-pre-wrap break-all text-sm">{JSON.stringify(value, null, 2)}</pre>}
-            </div>
-          </div>
+      <div className="cloud-json-view select-text rounded-lg p-4 [&_*]:select-text">
+        {typeof value === 'object' && value !== null ? <JsonView
+          value={value}
+          displayDataTypes={false}
+          enableClipboard={true}
+          beforeCopy={(copyText, _keyName, value) => (typeof value === 'string' ? value : copyText)}
+          collapsed={false}
+          shortenTextAfterLength={99999}
+          displayObjectSize={true}
+          style={{ fontSize: 'var(--font-size-body)', backgroundColor: 'transparent' }}
+        /> : <pre className="whitespace-pre-wrap break-all text-body">{JSON.stringify(value, null, 2)}</pre>}
       </div>
     </Modal>
   );

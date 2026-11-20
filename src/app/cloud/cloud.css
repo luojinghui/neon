@@ -140,7 +140,7 @@
 .plaza-share-dialog > small { display: block; margin-top: 1rem; font-size: 0.6875rem; line-height: 1.7; color: hsl(var(--foreground-muted)); }
 .plaza-history { display: flex; max-height: 65dvh; flex-direction: column; gap: 0.75rem; overflow-y: auto; }
 .plaza-history-item { border: 1px solid hsl(var(--border)); border-radius: var(--radius-lg); padding: 0.875rem; }
-.cloud-json-view { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; background: hsl(var(--surface-inset)); color: hsl(var(--foreground)); --w-rjv-color: hsl(var(--foreground)); --w-rjv-background-color: transparent; --w-rjv-key-string: hsl(var(--foreground-secondary)); --w-rjv-type-string-color: hsl(var(--primary)); }
+.cloud-json-view { min-width: 0; max-width: 100%; overflow: auto; overscroll-behavior: contain; overflow-wrap: anywhere; word-break: break-word; background: hsl(var(--surface-inset)); color: hsl(var(--foreground)); --w-rjv-color: hsl(var(--foreground)); --w-rjv-background-color: transparent; --w-rjv-key-string: hsl(var(--foreground-secondary)); --w-rjv-type-string-color: hsl(var(--primary)); }
 .cloud-json-view .w-rjv,
 .cloud-json-view .w-rjv-inner,
 .cloud-json-view .w-rjv-wrap,
@@ -148,6 +148,11 @@
 .cloud-json-view .w-rjv-inner > span { max-width: 100%; flex-wrap: wrap; }
 .cloud-json-view .w-rjv-inner > span > span { min-width: 0; max-width: 100%; }
 .cloud-json-view .w-rjv-value[data-type='string'] { white-space: pre-wrap; }
+@media (min-width: 641px) {
+  .cloud-json-dialog { height: min(calc(var(--dialog-viewport-height, 100dvh) * 0.84), calc(var(--dialog-viewport-height, 100dvh) - 3rem)); }
+  .cloud-json-dialog .ui-modal-body { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+  .cloud-json-dialog .cloud-json-view { flex: 1; width: 100%; min-height: 0; }
+}
 @media (max-width: 640px) {
   .cloud-page .app-topbar-controls { gap: 0.375rem; }
 
@@ -158,5 +163,6 @@
   .plaza-image .plaza-file { gap: 0.25rem; padding-inline: 0.375rem; }
   .plaza-image .plaza-file-icon { display: none; }
   .plaza-card-actions { gap: 0.125rem; }
+  .cloud-json-dialog .cloud-json-view { max-height: 70vh; max-height: 70dvh; }
 
 }
