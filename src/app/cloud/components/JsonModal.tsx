@@ -43,8 +43,8 @@ export function JsonViewerModal({ open, value, onClose, onCopy }: { open: boolea
       width={900}
       centered
     >
-      <div className="max-h-[70vh] overflow-y-auto">
-          <div className="space-y-4">
+      <div className="min-w-0 max-h-[70vh] overflow-y-auto">
+          <div className="min-w-0 space-y-4">
             <div className="cloud-json-view select-text rounded-lg p-4 [&_*]:select-text">
               {typeof value === 'object' && value !== null ? <JsonView
                 value={value}
