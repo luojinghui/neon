@@ -12,7 +12,7 @@
   align-items: center;
   margin: 0;
   color: hsl(var(--foreground-secondary));
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 28px;
   animation: arrive 240ms ease-out both;
 }
@@ -26,7 +26,7 @@
   max-width: 16em;
   overflow: hidden;
   color: hsl(var(--foreground));
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

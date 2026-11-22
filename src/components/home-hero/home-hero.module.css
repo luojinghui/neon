@@ -1,4 +1,6 @@
 .hero { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; text-align: center; isolation: isolate; }
+@media (min-width: 640px) { .hero { margin-bottom: 3.25rem; } }
+@media (min-width: 1024px) { .hero { margin-bottom: 4.5rem; } }
 .glow { position: absolute; inset: -4rem -2rem -1rem; z-index: -1; overflow: hidden; pointer-events: none; -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%); }
 .glow i { position: absolute; width: 22rem; height: 22rem; border-radius: 50%; filter: blur(48px); opacity: .5; animation: drift 14s ease-in-out infinite alternate; }
 .glow i:first-child { left: 50%; top: -2rem; margin-left: -17rem; background: hsl(var(--primary-soft)); }
