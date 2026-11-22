@@ -3,6 +3,7 @@ const { profileRepository } = require('../user/profileRepository');
 
 const ONLINE_COUNT_KEY = Symbol.for('neon.island.onlineCount.v1');
 const EVICT_MEMBER_KEY = Symbol.for('neon.island.evictMember.v1');
+const BROADCAST_UPDATED_KEY = Symbol.for('neon.island.broadcastUpdated.v1');
 
 const CURSOR_PALETTE = [
   '#FF6B6B',
@@ -156,6 +157,12 @@ function broadcastItemDeleted(io, islandId, itemId) {
   serverIo.to(roomChannel(islandId)).emit('island:item:deleted', { islandId, itemId });
 }
 
+function broadcastIslandUpdated(io, islandId, patch) {
+  const serverIo = io || activeIo;
+  if (!serverIo || !islandId || !patch || typeof patch !== 'object') return;
+  serverIo.to(roomChannel(islandId)).emit('island:updated', { islandId, island: patch });
+}
+
 async function respondAsync(ack, action) {
   try {
     const data = await action();
@@ -188,6 +195,7 @@ function onSocket(socket, io) {
   activeIo = io;
   globalThis[ONLINE_COUNT_KEY] = getOnlineCount;
   globalThis[EVICT_MEMBER_KEY] = (islandId, publicKey) => evictMember(io, islandId, publicKey);
+  globalThis[BROADCAST_UPDATED_KEY] = (islandId, patch) => broadcastIslandUpdated(io, islandId, patch);
 
   socket.on('island:join', (payload, ack) => {
     void respondAsync(ack, async () => {
@@ -241,6 +249,7 @@ function onSocket(socket, io) {
       return {
         island: detail,
         items: detail.items,
+        strokes: detail.strokes,
         onlineUsers
       };
     });
@@ -370,6 +379,20 @@ function onSocket(socket, io) {
     });
   });
 
+  socket.on('island:checklist:toggle', (payload, ack) => {
+    void respondAsync(ack, async () => {
+      const { profile, island } = requireJoinedIsland(socket, payload?.islandId);
+      const item = await islandRepository.toggleChecklistEntry(island.id, profile, payload, {
+        isAdmin: isSuperAdmin(socket)
+      });
+      io.to(roomChannel(island.id)).emit('island:item:upserted', {
+        islandId: island.id,
+        item
+      });
+      return { item };
+    });
+  });
+
   socket.on('island:item:delete', (payload, ack) => {
     void respondAsync(ack, async () => {
       const { profile, island } = requireJoinedIsland(socket, payload?.islandId);
@@ -399,12 +422,115 @@ function onSocket(socket, io) {
     });
   });
 
+  socket.on('island:stroke:progress', (payload) => {
+    try {
+      const islandId = String(payload?.islandId || socket.data.islandId || '').trim();
+      if (!islandId || socket.data.islandId !== islandId) return;
+      const room = islandRooms.get(islandId);
+      const entry = room?.get(socket.id);
+      if (!entry) return;
+      const strokeId = String(payload?.strokeId || '').trim().slice(0, 64);
+      if (!strokeId || !Array.isArray(payload?.points) || payload.points.length < 2) return;
+      const points = payload.points.slice(0, 600).map((n) => Math.round(Number(n) * 10) / 10);
+      if (points.some((n) => !Number.isFinite(n))) return;
+
+      socket.to(roomChannel(islandId)).emit('island:stroke:progress', {
+        islandId,
+        socketId: socket.id,
+        strokeId,
+        tool: payload.tool === 'highlighter' ? 'highlighter' : 'pen',
+        color: typeof payload.color === 'string' ? payload.color.slice(0, 16) : '#2C2520',
+        size: Number.isFinite(Number(payload.size)) ? Number(payload.size) : 6,
+        opacity: Number.isFinite(Number(payload.opacity)) ? Number(payload.opacity) : 1,
+        points
+      });
+    } catch {
+      // Ignore malformed stroke progress packets.
+    }
+  });
+
+  socket.on('island:stroke:commit', (payload, ack) => {
+    void respondAsync(ack, async () => {
+      const { profile, island } = requireJoinedIsland(socket, payload?.islandId);
+      const stroke = await islandRepository.addStroke(island.id, profile, payload?.stroke);
+      const tempStrokeId = typeof payload?.tempStrokeId === 'string' ? payload.tempStrokeId.trim().slice(0, 64) : '';
+      io.to(roomChannel(island.id)).emit('island:stroke:committed', {
+        islandId: island.id,
+        stroke,
+        ...(tempStrokeId ? { tempStrokeId } : {}),
+        socketId: socket.id
+      });
+      return { stroke };
+    });
+  });
+
+  socket.on('island:stroke:transform', (payload, ack) => {
+    void respondAsync(ack, async () => {
+      const { profile, island } = requireJoinedIsland(socket, payload?.islandId);
+      const admin = isSuperAdmin(socket);
+      if (!islandRepository.canArrangeItem(island, profile, { isAdmin: admin })) {
+        throw new IslandRepositoryError('没有操作该浮岛涂鸦的权限', 'ISLAND_STROKE_FORBIDDEN');
+      }
+      const rawStrokes = Array.isArray(payload?.strokes) ? payload.strokes.slice(0, 500) : [];
+      if (rawStrokes.length === 0) {
+        throw new IslandRepositoryError('笔迹变换数据无效', 'ISLAND_STROKE_INVALID');
+      }
+
+      const normalizedPatches = [];
+      for (const patch of rawStrokes) {
+        const strokeId = String(patch?.strokeId || patch?.id || '').trim();
+        if (!strokeId || !Array.isArray(patch?.points) || patch.points.length < 4) continue;
+        const { points, bbox } = islandRepository.normalizeStrokePoints(patch.points);
+        normalizedPatches.push({
+          strokeId,
+          points,
+          bbox,
+          ...(patch?.size !== undefined && Number.isFinite(Number(patch.size))
+            ? { size: Math.max(1, Math.min(48, Math.round(Number(patch.size) * 10) / 10)) }
+            : {})
+        });
+      }
+      if (normalizedPatches.length === 0) {
+        throw new IslandRepositoryError('笔迹变换数据无效', 'ISLAND_STROKE_INVALID');
+      }
+
+      socket.to(roomChannel(island.id)).emit('island:stroke:transformed', {
+        islandId: island.id,
+        strokes: normalizedPatches,
+        socketId: socket.id
+      });
+
+      if (payload?.persist === true) {
+        const updated = await islandRepository.transformStrokes(island.id, profile, normalizedPatches, {
+          isAdmin: admin
+        });
+        return { strokes: updated };
+      }
+      return { strokes: null };
+    });
+  });
+
+  socket.on('island:stroke:delete', (payload, ack) => {
+    void respondAsync(ack, async () => {
+      const { profile, island } = requireJoinedIsland(socket, payload?.islandId);
+      const deleted = await islandRepository.deleteStroke(island.id, profile, payload?.strokeId, {
+        isAdmin: isSuperAdmin(socket)
+      });
+      io.to(roomChannel(island.id)).emit('island:stroke:deleted', {
+        islandId: island.id,
+        strokeId: deleted.id
+      });
+      return { strokeId: deleted.id };
+    });
+  });
+
   socket.on('disconnect', () => {
     leaveIslandRoom(socket, io);
   });
 }
 
 module.exports = {
+  broadcastIslandUpdated,
   broadcastItemDeleted,
   evictMember,
   getOnlineCount,

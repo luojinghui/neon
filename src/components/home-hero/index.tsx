@@ -12,7 +12,7 @@ const stars = [
   { x: '68%', y: '16%', d: '.6s', s: 4 }, { x: '82%', y: '58%', d: '1.7s', s: 3 }, { x: '92%', y: '26%', d: '2.6s', s: 4 }
 ];
 
-/** Title + greeting stay as-is; the planet leans toward the pointer and answers taps with a bubble. */
+/** The planet leans toward the pointer and answers taps with a bubble, followed by the greeting. */
 export function HomeHero() {
   const stage = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
@@ -49,7 +49,6 @@ export function HomeHero() {
       </Button>
       <span className={styles.bubble} data-show={bubble || undefined} role="status" aria-live="polite">{bubble ? whispers[index] : ''}</span>
     </div>
-    <h1 className={styles.title}>Soul 星球</h1>
     <HomeGreeting />
   </div>;
 }

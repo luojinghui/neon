@@ -4,6 +4,8 @@ import { ensureCurrentProfile, getOrCreateIdentity } from '@/app/profile/client'
 import type {
   IslandDetail,
   IslandInvitePreview,
+  IslandPaperKey,
+  IslandSkinKey,
   IslandSkyResponse,
   IslandSummary,
   ProfileIslandStatus
@@ -79,6 +81,8 @@ export async function getIslandDetail(islandId: string): Promise<{ island: Islan
 
 export interface IslandSettingsPatch {
   name?: string;
+  skin?: IslandSkinKey;
+  paper?: IslandPaperKey;
   regenerateInvite?: boolean;
   removeMemberPublicKey?: string;
 }

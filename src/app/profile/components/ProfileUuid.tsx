@@ -1,7 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { CheckOutlined, CopyOutlined, IdcardOutlined } from '@ant-design/icons';
+import { Icon } from '@/components/ui/icon';
+import { Tooltip } from '@/components/ui/tooltip';
 import { useEffect, useRef, useState } from 'react';
 
 export function ProfileUuid({ uuid }: { uuid: string }) {
@@ -40,20 +41,42 @@ export function ProfileUuid({ uuid }: { uuid: string }) {
     }
   };
 
-  return <div className="profile-detail min-w-0">
-    <span className="profile-detail-icon"><IdcardOutlined /></span>
-    <div className="min-w-0 flex-1">
-      <dt>UUID</dt>
-      <dd>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <code ref={valueRef} className="select-all break-all">{uuid}</code>
-          <Button variant="ghost" type="button" onClick={() => void copy()} className="inline-flex shrink-0 items-center gap-1" aria-label={status === 'copied' ? 'UUID 已复制' : '复制 UUID'}>
-            {status === 'copied' ? <CheckOutlined /> : <CopyOutlined />}{status === 'copied' ? '已复制' : '复制'}
-          </Button>
+  return (
+    <div className="profile-detail">
+      <span className="profile-detail-icon">
+        <Icon name="idcard" />
+      </span>
+      <div className="profile-detail-body">
+        <div className="profile-detail-head">
+          <dt>UUID</dt>
+          <div className="profile-detail-actions">
+            <Tooltip title={status === 'copied' ? '已复制' : '复制 UUID'}>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconOnly
+                type="button"
+                icon={<Icon name={status === 'copied' ? 'check' : 'copy'} size="sm" tone={status === 'copied' ? 'success' : 'inherit'} />}
+                onClick={() => void copy()}
+                aria-label={status === 'copied' ? 'UUID 已复制' : '复制 UUID'}
+              />
+            </Tooltip>
+          </div>
         </div>
-        {status === 'error' && <p className="mt-1 text-danger" role="alert">复制失败，请选中 UUID 手动复制</p>}
-        <span className="sr-only" role="status">{status === 'copied' ? 'UUID 已复制' : ''}</span>
-      </dd>
+        <dd>
+          <code ref={valueRef} data-selectable className="profile-detail-code select-all">
+            {uuid}
+          </code>
+          {status === 'error' && (
+            <p className="mt-1 text-caption text-danger" role="alert">
+              复制失败，请选中 UUID 手动复制
+            </p>
+          )}
+          <span className="sr-only" role="status">
+            {status === 'copied' ? 'UUID 已复制' : ''}
+          </span>
+        </dd>
+      </div>
     </div>
-  </div>;
+  );
 }

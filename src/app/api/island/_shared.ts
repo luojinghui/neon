@@ -4,6 +4,7 @@ import { profileRepository } from '@/server/user/profileRepository';
 
 const ONLINE_COUNT_KEY = Symbol.for('neon.island.onlineCount.v1');
 const EVICT_MEMBER_KEY = Symbol.for('neon.island.evictMember.v1');
+const BROADCAST_UPDATED_KEY = Symbol.for('neon.island.broadcastUpdated.v1');
 
 export type IslandViewer = {
   uuid: string;
@@ -60,6 +61,13 @@ export function evictIslandMemberSocket(islandId: string, publicKey: string): vo
   const evict = (globalThis as Record<symbol, unknown>)[EVICT_MEMBER_KEY];
   if (typeof evict === 'function') {
     (evict as (id: string, key: string) => void)(islandId, publicKey);
+  }
+}
+
+export function broadcastIslandUpdatedSocket(islandId: string, patch: Record<string, unknown>): void {
+  const broadcast = (globalThis as Record<symbol, unknown>)[BROADCAST_UPDATED_KEY];
+  if (typeof broadcast === 'function') {
+    (broadcast as (id: string, data: Record<string, unknown>) => void)(islandId, patch);
   }
 }
 

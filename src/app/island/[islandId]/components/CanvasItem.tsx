@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { IslandItem, IslandItemData, IslandOnlineUser, StickerItemData, TapeItemData } from '../../core/types';
+import { ChecklistCard } from './ChecklistCard';
+import { CountdownCard } from './CountdownCard';
 import { NoteCard } from './NoteCard';
 import { PolaroidCard } from './PolaroidCard';
 import { StickerItem } from './StickerItem';
@@ -27,6 +29,7 @@ interface CanvasItemProps {
     patch: { x: number; y: number; w?: number; h?: number; rotation?: number; zIndex?: number; persist: boolean }
   ) => void;
   onUpdateData: (item: IslandItem, data: IslandItemData) => void;
+  onToggleChecklistEntry: (item: IslandItem, entryId: string, done: boolean) => void;
   onBringToFront: (itemId: string) => void;
   onSendToBack: (itemId: string) => void;
   onDelete: (itemId: string) => void;
@@ -36,6 +39,10 @@ function getMinBounds(type: IslandItem['type']): { minW: number; minH: number; m
   switch (type) {
     case 'note':
       return { minW: 160, minH: 140, maxW: 520, maxH: 520 };
+    case 'countdown':
+      return { minW: 180, minH: 150, maxW: 420, maxH: 320 };
+    case 'checklist':
+      return { minW: 200, minH: 180, maxW: 480, maxH: 640 };
     case 'polaroid':
       return { minW: 180, minH: 220, maxW: 560, maxH: 680 };
     case 'tape':
@@ -60,6 +67,7 @@ export function CanvasItem({
   onLock,
   onMove,
   onUpdateData,
+  onToggleChecklistEntry,
   onBringToFront,
   onSendToBack,
   onDelete
@@ -245,6 +253,46 @@ export function CanvasItem({
             onChangeData={(data) => onUpdateData(item, data)}
           />
         );
+      case 'countdown':
+        return (
+          <CountdownCard
+            item={item}
+            canEdit={canEditContent}
+            isSelected={isSelected}
+            isEditing={isEditingNote}
+            onStartEdit={() => {
+              if (!canEditContent) return;
+              setIsEditingNote(true);
+              onLock(item.id);
+            }}
+            onStopEdit={() => {
+              setIsEditingNote(false);
+              onLock(null);
+            }}
+            onChangeData={(data) => onUpdateData(item, data)}
+          />
+        );
+      case 'checklist':
+        return (
+          <ChecklistCard
+            item={item}
+            canEdit={canEditContent}
+            canToggle={canTransform}
+            isSelected={isSelected}
+            isEditing={isEditingNote}
+            onStartEdit={() => {
+              if (!canEditContent) return;
+              setIsEditingNote(true);
+              onLock(item.id);
+            }}
+            onStopEdit={() => {
+              setIsEditingNote(false);
+              onLock(null);
+            }}
+            onChangeData={(data) => onUpdateData(item, data)}
+            onToggleEntry={(entryId, done) => onToggleChecklistEntry(item, entryId, done)}
+          />
+        );
       case 'polaroid':
         return (
           <PolaroidCard
@@ -358,12 +406,12 @@ export function CanvasItem({
               className={styles.itemActionBar}
               onPointerDown={(event) => event.stopPropagation()}
             >
-              {item.type === 'note' && canEditContent ? (
-                <Tooltip title="编辑文字">
+              {(item.type === 'note' || item.type === 'countdown' || item.type === 'checklist') && canEditContent ? (
+                <Tooltip title="编辑内容">
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label="编辑便利贴文字"
+                    aria-label="编辑卡片内容"
                     icon={<Icon name="edit" size="sm" />}
                     onClick={() => {
                       setIsEditingNote(true);

@@ -62,69 +62,33 @@ function buildOrganicContour(spec: ContourSpec, samples = 64): string {
   return `${d} Z`;
 }
 
-// 主岛海域 7 圈嵌套有机等高线（西北侧略紧、东南侧舒展）
+// 主岛周围 3 圈轻柔舒展的同心有机环（去掉四角远海环圈与内圈浅底填充）
 const CENTER_HARMONICS: Array<[number, number, number]> = [
-  [0.075, 2, 0.55],
-  [0.048, 3, -0.85],
-  [0.022, 5, 1.35]
+  [0.045, 2, 0.55],
+  [0.024, 3, -0.85]
 ];
 
-const CENTER_CONTOURS = Array.from({ length: 7 }, (_, idx) => {
-  const rx = 148 + idx * 78;
-  const ry = 104 + idx * 54;
-  return {
-    d: buildOrganicContour({
-      cx: 720 + idx * 14,
-      cy: 424 + idx * 6,
-      rx,
-      ry,
-      harmonics: CENTER_HARMONICS
-    }),
-    isIndex: idx === 1 || idx === 4,
-    isShallowFill: idx === 0 || idx === 1
-  };
-});
-
-// 左上角远海隆起等高线（4 圈）
-const TOP_LEFT_HARMONICS: Array<[number, number, number]> = [
-  [0.085, 2, 1.2],
-  [0.052, 3, 0.4],
-  [0.024, 4, -0.6]
+const CENTER_RING_SPECS: Array<{ rx: number; ry: number; primary?: boolean }> = [
+  { rx: 210, ry: 148 },
+  { rx: 380, ry: 266, primary: true },
+  { rx: 560, ry: 392 }
 ];
 
-const TOP_LEFT_CONTOURS = Array.from({ length: 4 }, (_, idx) => ({
+const CENTER_CONTOURS = CENTER_RING_SPECS.map((ring) => ({
   d: buildOrganicContour({
-    cx: 48 - idx * 8,
-    cy: 76 - idx * 6,
-    rx: 120 + idx * 68,
-    ry: 84 + idx * 50,
-    harmonics: TOP_LEFT_HARMONICS
+    cx: 720,
+    cy: 422,
+    rx: ring.rx,
+    ry: ring.ry,
+    harmonics: CENTER_HARMONICS
   }),
-  isIndex: idx === 1
-}));
-
-// 右下角远海隆起等高线（5 圈）
-const BOTTOM_RIGHT_HARMONICS: Array<[number, number, number]> = [
-  [0.08, 2, -0.4],
-  [0.05, 3, 1.1],
-  [0.02, 5, 0.2]
-];
-
-const BOTTOM_RIGHT_CONTOURS = Array.from({ length: 5 }, (_, idx) => ({
-  d: buildOrganicContour({
-    cx: 1396 + idx * 10,
-    cy: 836 + idx * 6,
-    rx: 112 + idx * 72,
-    ry: 82 + idx * 52,
-    harmonics: BOTTOM_RIGHT_HARMONICS
-  }),
-  isIndex: idx === 2
+  isPrimary: Boolean(ring.primary)
 }));
 
 /**
- * 极简等高线海图背景（Topo / Apple Maps 质感）：
- * - 呼应岛内无限画布的细腻点阵底纹，做减法去掉直线网格与硬边框；
- * - 使用数学样条生成的有机疏密等高线（主/副两级线宽与透明度）+ 边缘径向羽化遮罩；
+ * 极简同心环背景：
+ * - 呼应岛内无限画布的细腻点阵底纹；
+ * - 仅保留主岛周围 3 圈轻柔舒展的同心有机环（无内圈填充、无四角冗余环圈）+ 边缘径向羽化遮罩；
  * - 主岛至好友岛采用两端渐隐的柔和曲线航路，在线岛屿呈现轻缓流动虚线；
  * - 全部颜色基于全站语义变量，自动联动深浅模式、5 套皮肤与 prefers-reduced-motion。
  */
@@ -237,53 +201,16 @@ export function SkyOceanScene({ routes = [] }: SkyOceanSceneProps) {
             })}
           </defs>
 
-          {/* 等高线主体（受羽化遮罩控制） */}
+          {/* 主岛周围 3 圈轻柔同心环（受羽化遮罩控制） */}
           <g mask="url(#topoMask)">
-            {/* 左上远海等高线 */}
-            <g>
-              {TOP_LEFT_CONTOURS.map((item, idx) => (
-                <path
-                  key={`tl-${idx}`}
-                  d={item.d}
-                  className={item.isIndex ? styles.contourIndexMuted : styles.contourMinor}
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </g>
-
-            {/* 右下远海等高线 */}
-            <g>
-              {BOTTOM_RIGHT_CONTOURS.map((item, idx) => (
-                <path
-                  key={`br-${idx}`}
-                  d={item.d}
-                  className={item.isIndex ? styles.contourIndexMuted : styles.contourMinor}
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </g>
-
-            {/* 主岛海域 7 圈嵌套有机等高线（从外到内绘制） */}
-            <g>
-              {[...CENTER_CONTOURS].reverse().map((item, revIdx) => {
-                const idx = CENTER_CONTOURS.length - 1 - revIdx;
-                const cls = item.isShallowFill
-                  ? item.isIndex
-                    ? styles.contourIndexFill
-                    : styles.contourInnerFill
-                  : item.isIndex
-                    ? styles.contourIndex
-                    : styles.contourMinor;
-                return (
-                  <path
-                    key={`c-${idx}`}
-                    d={item.d}
-                    className={cls}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                );
-              })}
-            </g>
+            {CENTER_CONTOURS.map((item, idx) => (
+              <path
+                key={`c-${idx}`}
+                d={item.d}
+                className={item.isPrimary ? styles.contourRingPrimary : styles.contourRing}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
           </g>
 
           {/* 主岛到好友岛的渐隐曲线航路（仅桌面端显示） */}

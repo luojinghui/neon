@@ -9,7 +9,24 @@ import { message } from '@/components/ui/message';
 import { Modal } from '@/components/ui/modal';
 import { Popconfirm } from '@/components/ui/popconfirm';
 import { buildInviteLink, updateIslandSettings } from '../core/client';
-import type { IslandMember, IslandSummary } from '../core/types';
+import type { IslandMember, IslandPaperKey, IslandSkinKey, IslandSummary } from '../core/types';
+
+const SKIN_OPTIONS: { key: IslandSkinKey; label: string; dataSkin?: Exclude<IslandSkinKey, 'inherit'> }[] = [
+  { key: 'inherit', label: '跟随全局' },
+  { key: 'orange', label: '暖橘', dataSkin: 'orange' },
+  { key: 'blue', label: '晴蓝', dataSkin: 'blue' },
+  { key: 'violet', label: '鸢紫', dataSkin: 'violet' },
+  { key: 'green', label: '松青', dataSkin: 'green' },
+  { key: 'rose', label: '蔷薇', dataSkin: 'rose' }
+];
+
+const PAPER_OPTIONS: { key: IslandPaperKey; label: string }[] = [
+  { key: 'dot', label: '点阵' },
+  { key: 'grid', label: '方格' },
+  { key: 'lined', label: '横线' },
+  { key: 'craft', label: '纸纹' },
+  { key: 'blank', label: '留白' }
+];
 
 interface IslandSettingsModalProps {
   open: boolean;
@@ -21,6 +38,7 @@ interface IslandSettingsModalProps {
 export function IslandSettingsModal({ open, island, onClose, onUpdated }: IslandSettingsModalProps) {
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
+  const [savingAppearance, setSavingAppearance] = useState(false);
   const [refreshingInvite, setRefreshingInvite] = useState(false);
   const [removingKey, setRemovingKey] = useState('');
   const [errorText, setErrorText] = useState('');
@@ -51,6 +69,22 @@ export function IslandSettingsModal({ open, island, onClose, onUpdated }: Island
       setErrorText(error instanceof Error ? error.message : '保存失败');
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const currentSkin: IslandSkinKey = island.skin || 'inherit';
+  const currentPaper: IslandPaperKey = island.paper || 'dot';
+
+  const handleUpdateAppearance = async (patch: { skin?: IslandSkinKey; paper?: IslandPaperKey }) => {
+    setSavingAppearance(true);
+    setErrorText('');
+    try {
+      const result = await updateIslandSettings(island.id, patch);
+      onUpdated(result.island);
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : '更新外观失败');
+    } finally {
+      setSavingAppearance(false);
     }
   };
 
@@ -124,6 +158,65 @@ export function IslandSettingsModal({ open, island, onClose, onUpdated }: Island
             >
               保存
             </Button>
+          </div>
+        </section>
+
+        {/* 画布外观 */}
+        <section>
+          <div className="mb-2 text-body font-medium text-foreground">画布外观</div>
+          <div className="flex flex-col gap-3 rounded-lg bg-surface-inset p-3">
+            <div>
+              <div className="mb-1.5 text-caption text-foreground-secondary">局部皮肤</div>
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label="选择浮岛局部皮肤">
+                {SKIN_OPTIONS.map((option) => {
+                  const active = currentSkin === option.key;
+                  return (
+                    <Button
+                      key={option.key}
+                      variant="outline"
+                      size="sm"
+                      disabled={savingAppearance}
+                      aria-pressed={active}
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        if (!active) void handleUpdateAppearance({ skin: option.key });
+                      }}
+                    >
+                      <span
+                        data-skin={option.dataSkin}
+                        className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-primary"
+                        aria-hidden="true"
+                      />
+                      <span className="truncate">{option.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1.5 text-caption text-foreground-secondary">纸张底纹</div>
+              <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="选择画布纸张底纹">
+                {PAPER_OPTIONS.map((option) => {
+                  const active = currentPaper === option.key;
+                  return (
+                    <Button
+                      key={option.key}
+                      variant="outline"
+                      size="sm"
+                      disabled={savingAppearance}
+                      aria-pressed={active}
+                      className="px-1"
+                      onClick={() => {
+                        if (!active) void handleUpdateAppearance({ paper: option.key });
+                      }}
+                    >
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 

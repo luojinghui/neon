@@ -132,15 +132,140 @@
   touch-action: none;
   cursor: grab;
   background-color: hsl(var(--background));
+}
+
+/* Match /island page (.mapDotGrid) dot size, light/dark color & soft edge feathering */
+.canvasDotGrid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background-image: radial-gradient(
     circle,
-    hsl(var(--border-hover) / 0.55) 1.25px,
-    transparent 1.25px
+    hsl(var(--border-hover) / 0.42) 1px,
+    transparent 1px
   );
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 84% 80% at 50% 48%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 84% 80% at 50% 48%, #000 55%, transparent 100%);
+}
+
+:global(.dark) .canvasDotGrid {
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--border-hover) / 0.28) 1px,
+    transparent 1px
+  );
+}
+
+.canvasViewport[data-paper='grid'] {
+  background-image:
+    linear-gradient(to right, hsl(var(--border-hover) / 0.28) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border-hover) / 0.28) 1px, transparent 1px),
+    linear-gradient(to right, hsl(var(--border-hover) / 0.52) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border-hover) / 0.52) 1px, transparent 1px);
+}
+
+.canvasViewport[data-paper='lined'] {
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(100% - 1px),
+    hsl(var(--border-hover) / 0.45) 100%
+  );
+}
+
+.canvasViewport[data-paper='craft'] {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.065'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 20% 20%, hsl(var(--primary) / 0.045), transparent 55%),
+    radial-gradient(circle at 80% 80%, hsl(var(--accent) / 0.04), transparent 55%);
+  background-size: 180px 180px, 100% 100%, 100% 100%;
+}
+
+:global(.dark) .canvasViewport[data-paper='craft'] {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 20% 20%, hsl(var(--primary) / 0.06), transparent 55%),
+    radial-gradient(circle at 80% 80%, hsl(var(--accent) / 0.05), transparent 55%);
+}
+
+.canvasViewport[data-paper='blank'] {
+  background-image: none;
 }
 
 .canvasViewportPanning {
   cursor: grabbing;
+}
+
+.canvasViewportDoodle {
+  cursor: crosshair;
+}
+
+.canvasViewportDoodle .canvasItem {
+  pointer-events: none;
+}
+
+.canvasViewportSelect {
+  cursor: default;
+}
+
+.canvasViewportEraser {
+  cursor: cell;
+}
+
+/* Freehand doodle SVG layer (rendered above cards, below presence cursors) */
+.doodleLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 9000;
+}
+
+.doodleMarquee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9001;
+  pointer-events: none;
+  border: 1.5px dashed hsl(var(--primary));
+  background-color: hsl(var(--primary-soft) / 0.35);
+  border-radius: var(--radius-sm);
+}
+
+.doodleSelectionBox {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9002;
+  pointer-events: auto;
+  cursor: grab;
+  border: 2px dashed hsl(var(--primary));
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--primary-soft) / 0.14);
+  touch-action: none;
+}
+
+.doodleSelectionBox:active {
+  cursor: grabbing;
+}
+
+.doodleSelectionCount {
+  padding-inline: 6px;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--foreground-secondary));
+}
+
+.highlighterStroke {
+  mix-blend-mode: multiply;
+}
+
+:global(.dark) .highlighterStroke {
+  mix-blend-mode: screen;
 }
 
 .worldLayer {
@@ -451,47 +576,69 @@
   overflow: hidden;
 }
 
-.noteCard[data-color='sun'] {
+.noteCard[data-color='sun'],
+.countdownCard[data-color='sun'],
+.checklistCard[data-color='sun'] {
   background-color: #fff4c2;
   color: #3d3112;
 }
-.noteCard[data-color='sky'] {
+.noteCard[data-color='sky'],
+.countdownCard[data-color='sky'],
+.checklistCard[data-color='sky'] {
   background-color: #dff1ff;
   color: #17344a;
 }
-.noteCard[data-color='blush'] {
+.noteCard[data-color='blush'],
+.countdownCard[data-color='blush'],
+.checklistCard[data-color='blush'] {
   background-color: #ffe3ea;
   color: #4a1e2a;
 }
-.noteCard[data-color='mint'] {
+.noteCard[data-color='mint'],
+.countdownCard[data-color='mint'],
+.checklistCard[data-color='mint'] {
   background-color: #ddf7ea;
   color: #163d2d;
 }
-.noteCard[data-color='lavender'] {
+.noteCard[data-color='lavender'],
+.countdownCard[data-color='lavender'],
+.checklistCard[data-color='lavender'] {
   background-color: #ece3ff;
   color: #2e1f4d;
 }
 
-:global(.dark) .noteCard {
+:global(.dark) .noteCard,
+:global(.dark) .countdownCard,
+:global(.dark) .checklistCard {
   border-color: rgba(255, 255, 255, 0.1);
 }
-:global(.dark) .noteCard[data-color='sun'] {
+:global(.dark) .noteCard[data-color='sun'],
+:global(.dark) .countdownCard[data-color='sun'],
+:global(.dark) .checklistCard[data-color='sun'] {
   background-color: #4a3f1d;
   color: #fff3c4;
 }
-:global(.dark) .noteCard[data-color='sky'] {
+:global(.dark) .noteCard[data-color='sky'],
+:global(.dark) .countdownCard[data-color='sky'],
+:global(.dark) .checklistCard[data-color='sky'] {
   background-color: #1d384c;
   color: #dff1ff;
 }
-:global(.dark) .noteCard[data-color='blush'] {
+:global(.dark) .noteCard[data-color='blush'],
+:global(.dark) .countdownCard[data-color='blush'],
+:global(.dark) .checklistCard[data-color='blush'] {
   background-color: #4b2430;
   color: #ffe4ec;
 }
-:global(.dark) .noteCard[data-color='mint'] {
+:global(.dark) .noteCard[data-color='mint'],
+:global(.dark) .countdownCard[data-color='mint'],
+:global(.dark) .checklistCard[data-color='mint'] {
   background-color: #1c3f31;
   color: #dcf7ea;
 }
-:global(.dark) .noteCard[data-color='lavender'] {
+:global(.dark) .noteCard[data-color='lavender'],
+:global(.dark) .countdownCard[data-color='lavender'],
+:global(.dark) .checklistCard[data-color='lavender'] {
   background-color: #332452;
   color: #eee5ff;
 }
@@ -569,6 +716,284 @@
 
 .noteSwatchBtn[data-active='true'] {
   box-shadow: 0 0 0 2px currentColor;
+}
+
+/* Countdown & Checklist Stationery Cards */
+.countdownCard,
+.checklistCard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 10px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.countdownTopBand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed color-mix(in srgb, currentColor 18%, transparent);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+
+.countdownKind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: var(--font-weight-semibold);
+  opacity: 0.82;
+}
+
+.countdownDateText {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.countdownDisplayBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 0;
+  text-align: center;
+}
+
+.countdownTitle {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-medium);
+}
+
+.countdownNumberRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.countdownPrefix,
+.countdownSuffix {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  opacity: 0.78;
+}
+
+.countdownNumber {
+  font-size: var(--font-size-display);
+  line-height: var(--line-height-display);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.countdownToday {
+  font-size: var(--font-size-heading);
+  line-height: var(--line-height-heading);
+  font-weight: var(--font-weight-semibold);
+}
+
+.countdownEditBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.countdownEditRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.countdownDateInput {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font-size: var(--font-size-body);
+}
+
+.countdownDateInput:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+
+/* Checklist Card */
+.checklistHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.checklistTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.checklistTitleEdit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checklistTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.checklistCount {
+  flex: none;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+
+.checklistProgressTrack {
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, currentColor 14%, transparent);
+  overflow: hidden;
+}
+
+.checklistProgressFill {
+  height: 100%;
+  border-radius: 9999px;
+  background-color: currentColor;
+  opacity: 0.65;
+  transition: width 180ms ease;
+}
+
+.checklistBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.checklistEmpty {
+  margin: 12px 0;
+  text-align: center;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  opacity: 0.62;
+}
+
+.checklistList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checklistRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 32px;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.checklistCheckbox {
+  flex: none;
+  min-height: 32px;
+}
+
+.checklistRowDone .checklistEntryText {
+  text-decoration: line-through;
+  opacity: 0.52;
+}
+
+.checklistEntryText {
+  flex: 1;
+  min-width: 0;
+  padding-block: 5.5px;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.checklistEntryInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  padding: 0 2px;
+  outline: 0;
+}
+
+.checklistRemoveBtn {
+  flex: none;
+  opacity: 0.65;
+}
+
+.checklistAddRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.checklistAddInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  padding: 4px 2px;
+}
+
+.checklistAddInput::placeholder {
+  color: currentColor;
+  opacity: 0.55;
+}
+
+.widgetMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 /* ============================================================================
@@ -725,17 +1150,93 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Bottom floating toolbar */
-.toolbarDock {
+/* Bottom floating toolbar stack (doodle sub-bar + main dock) */
+.toolbarStack {
   position: fixed;
   left: 50%;
   bottom: calc(var(--app-safe-bottom) + 16px);
   transform: translateX(-50%);
   z-index: 25;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+}
+
+.doodleSubBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-xl);
+  background-color: hsl(var(--surface) / 0.94);
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.doodleGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.doodleColorGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 4px;
+}
+
+.doodleColorBtn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1.5px solid hsl(var(--border-hover));
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.doodleColorBtn:hover {
+  transform: scale(1.14);
+}
+
+.doodleColorBtn[data-active='true'] {
+  box-shadow: 0 0 0 2px hsl(var(--surface)), 0 0 0 4px hsl(var(--primary));
+}
+
+.brushSizeDot {
+  display: inline-block;
+  border-radius: 9999px;
+  background-color: currentColor;
+}
+
+.brushSizeDot[data-size='sm'] {
+  width: 5px;
+  height: 5px;
+}
+
+.brushSizeDot[data-size='md'] {
+  width: 8px;
+  height: 8px;
+}
+
+.brushSizeDot[data-size='lg'] {
+  width: 12px;
+  height: 12px;
+}
+
+.toolbarDock {
+  display: flex;
   align-items: center;
   gap: 4px;
-  max-width: calc(100vw - 24px);
+  max-width: 100%;
   padding: 6px 8px;
   border-radius: var(--radius-xl);
   background-color: hsl(var(--surface) / 0.92);
@@ -918,10 +1419,19 @@
 }
 
 @media (max-width: 640px) {
-  .toolbarDock {
+  .toolbarStack {
     bottom: calc(var(--app-safe-bottom) + 10px);
+    gap: 6px;
+  }
+
+  .toolbarDock,
+  .doodleSubBar {
     padding: 5px 6px;
     gap: 2px;
+  }
+
+  .desktopOnlyBtn {
+    display: none;
   }
 
   .zoomLabel {

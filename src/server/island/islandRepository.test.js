@@ -327,3 +327,137 @@ test('leaveIsland allows visitor to leave and prevents owner from leaving own is
   assert.equal(res.removed, true);
   assert.equal(repo.listJoinedIslands(guestA.publicKey).length, 0);
 });
+
+test('skin and paper appearance settings default, validate, and persist across reload', async (t) => {
+  const { repo, owner, guestA, reloadRepo } = createFixture(t);
+  const island = await repo.ensurePersonalIsland(owner);
+  assert.equal(island.skin, 'inherit');
+  assert.equal(island.paper, 'dot');
+
+  const updated = await repo.updateSettings(island.id, owner, { skin: 'violet', paper: 'grid' });
+  assert.equal(updated.skin, 'violet');
+  assert.equal(updated.paper, 'grid');
+
+  await assert.rejects(
+    () => repo.updateSettings(island.id, owner, { skin: 'neon-invalid' }),
+    (err) => err.code === 'ISLAND_SKIN_INVALID'
+  );
+  await assert.rejects(
+    () => repo.updateSettings(island.id, owner, { paper: 'marble' }),
+    (err) => err.code === 'ISLAND_PAPER_INVALID'
+  );
+  await assert.rejects(
+    () => repo.updateSettings(island.id, guestA, { skin: 'blue' }),
+    (err) => err.code === 'ISLAND_FORBIDDEN'
+  );
+
+  const reloaded = reloadRepo().getIslandById(island.id);
+  assert.equal(reloaded.skin, 'violet');
+  assert.equal(reloaded.paper, 'grid');
+});
+
+test('countdown and checklist items support guest toggle without allowing guest edits', async (t) => {
+  const { repo, owner, guestA } = createFixture(t);
+  const island = await repo.ensurePersonalIsland(owner);
+  await repo.joinByInvite(island.inviteToken, guestA);
+
+  const countdown = await repo.upsertItem(island.id, owner, {
+    type: 'countdown',
+    x: 0,
+    y: 0,
+    w: 220,
+    h: 176,
+    data: { title: '去看海', targetDate: '2026-08-15', color: 'sky' }
+  });
+  assert.equal(countdown.type, 'countdown');
+  assert.equal(countdown.data.targetDate, '2026-08-15');
+
+  const checklist = await repo.upsertItem(island.id, owner, {
+    type: 'checklist',
+    x: 240,
+    y: 0,
+    w: 248,
+    h: 268,
+    data: {
+      title: '露营清单',
+      color: 'mint',
+      entries: [
+        { id: 'item1', text: '带帐篷', done: false },
+        { id: 'item2', text: '带咖啡', done: false }
+      ]
+    }
+  });
+  assert.equal(checklist.data.entries.length, 2);
+
+  // Guest can toggle done on owner's checklist
+  const toggled = await repo.toggleChecklistEntry(island.id, guestA, {
+    itemId: checklist.id,
+    entryId: 'item1',
+    done: true
+  });
+  assert.equal(toggled.data.entries[0].done, true);
+  assert.equal(toggled.data.entries[1].done, false);
+
+  // Guest still cannot rename/add/delete entries on owner's checklist
+  await assert.rejects(
+    () =>
+      repo.upsertItem(island.id, guestA, {
+        id: checklist.id,
+        type: 'checklist',
+        x: 240,
+        y: 0,
+        w: 248,
+        h: 268,
+        data: { title: '篡改标题', color: 'mint', entries: [] }
+      }),
+    (err) => err.code === 'ISLAND_ITEM_FORBIDDEN'
+  );
+});
+
+test('doodle strokes validate, compute bbox, allow all island members to edit/delete, and persist', async (t) => {
+  const { repo, owner, guestA, guestB, reloadRepo } = createFixture(t);
+  const island = await repo.ensurePersonalIsland(owner);
+  await repo.joinByInvite(island.inviteToken, guestA);
+
+  const ownerStroke = await repo.addStroke(island.id, owner, {
+    tool: 'pen',
+    color: '#E05A47',
+    size: 6,
+    opacity: 1,
+    points: [10, 20, 40, 50, 80, 15]
+  });
+  assert.deepEqual(ownerStroke.bbox, { minX: 10, minY: 15, maxX: 80, maxY: 50 });
+
+  const guestStroke = await repo.addStroke(island.id, guestA, {
+    tool: 'highlighter',
+    color: '#2B7DE9',
+    size: 18,
+    opacity: 0.35,
+    points: [-10, -20, 30, 40]
+  });
+
+  // Non-member cannot erase strokes
+  await assert.rejects(
+    () => repo.deleteStroke(island.id, guestB, ownerStroke.id),
+    (err) => err.code === 'ISLAND_STROKE_FORBIDDEN'
+  );
+
+  // Reload preserves both strokes
+  const reloaded = reloadRepo().getIslandById(island.id);
+  assert.equal(reloaded.strokes.length, 2);
+
+  // Member can move/scale strokes via transformStrokes
+  const transformed = await repo.transformStrokes(island.id, guestA, [
+    { strokeId: ownerStroke.id, points: [20, 30, 80, 90], size: 9 }
+  ]);
+  assert.equal(transformed.length, 1);
+  assert.equal(transformed[0].size, 9);
+  assert.deepEqual(transformed[0].bbox, { minX: 20, minY: 30, maxX: 80, maxY: 90 });
+
+  // Member can delete owner's stroke, and owner can delete member's stroke
+  const deletedOwnerByGuest = await repo.deleteStroke(island.id, guestA, ownerStroke.id);
+  assert.equal(deletedOwnerByGuest.id, ownerStroke.id);
+  const deletedGuestByOwner = await repo.deleteStroke(island.id, owner, guestStroke.id);
+  assert.equal(deletedGuestByOwner.id, guestStroke.id);
+  assert.equal(repo.getIslandById(island.id).strokes.length, 0);
+});

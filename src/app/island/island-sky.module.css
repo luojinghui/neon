@@ -100,57 +100,25 @@
   height: 100%;
 }
 
-/* 等高线两级层次：副等高线（极淡 0.85px）与主等高线（略清晰 1.15px） */
-.contourMinor {
+/* 主岛周围 3 圈轻柔同心环（无填充，仅极简描边） */
+.contourRing {
   fill: none;
-  stroke: hsl(var(--foreground) / 0.075);
-  stroke-width: 0.85;
+  stroke: hsl(var(--foreground) / 0.08);
+  stroke-width: 1;
 }
 
-.contourIndex {
+.contourRingPrimary {
   fill: none;
-  stroke: hsl(var(--primary) / 0.2);
-  stroke-width: 1.15;
-}
-
-.contourIndexMuted {
-  fill: none;
-  stroke: hsl(var(--foreground) / 0.115);
-  stroke-width: 1.05;
-}
-
-.contourInnerFill {
-  fill: hsl(var(--primary) / 0.032);
-  stroke: hsl(var(--primary) / 0.16);
-  stroke-width: 0.9;
-}
-
-.contourIndexFill {
-  fill: hsl(var(--primary) / 0.022);
-  stroke: hsl(var(--primary) / 0.24);
-  stroke-width: 1.15;
-}
-
-:global(.dark) .contourMinor {
-  stroke: hsl(var(--foreground) / 0.095);
-}
-
-:global(.dark) .contourIndex {
-  stroke: hsl(var(--primary) / 0.26);
-}
-
-:global(.dark) .contourIndexMuted {
-  stroke: hsl(var(--foreground) / 0.145);
-}
-
-:global(.dark) .contourInnerFill {
-  fill: hsl(var(--primary) / 0.055);
   stroke: hsl(var(--primary) / 0.22);
+  stroke-width: 1.1;
 }
 
-:global(.dark) .contourIndexFill {
-  fill: hsl(var(--primary) / 0.035);
-  stroke: hsl(var(--primary) / 0.32);
+:global(.dark) .contourRing {
+  stroke: hsl(var(--foreground) / 0.11);
+}
+
+:global(.dark) .contourRingPrimary {
+  stroke: hsl(var(--primary) / 0.28);
 }
 
 /* 主岛到好友岛的两端渐隐曲线航路 */
@@ -208,7 +176,7 @@
   flex-direction: column;
   width: 100%;
   min-height: 0;
-  padding: calc(var(--app-topbar-height) + 8px) var(--app-page-gutter) 88px;
+  padding: calc(var(--app-topbar-height) + 8px) var(--app-page-gutter) calc(var(--app-topbar-height) + 8px);
 }
 
 .stage {
@@ -237,7 +205,7 @@
 .centerSlot {
   position: relative;
   z-index: 3;
-  transform: translateY(-7%);
+  transform: translateY(-4%);
 }
 
 .orbitSlot {
@@ -318,10 +286,10 @@
   position: relative;
   z-index: 1;
   display: block;
-  width: clamp(232px, 26vw, 316px);
+  width: clamp(180px, min(18vw, 28vh), 240px);
   height: auto;
   user-select: none;
-  filter: drop-shadow(0 18px 24px rgba(34, 58, 82, 0.24));
+  filter: drop-shadow(0 16px 22px rgba(34, 58, 82, 0.22));
   transition: filter 520ms ease;
 }
 
@@ -329,10 +297,10 @@
   position: relative;
   z-index: 1;
   display: block;
-  width: clamp(128px, 13.5vw, 168px);
+  width: clamp(104px, min(10.5vw, 16.5vh), 136px);
   height: auto;
   user-select: none;
-  filter: drop-shadow(0 12px 18px rgba(34, 58, 82, 0.2));
+  filter: drop-shadow(0 12px 16px rgba(34, 58, 82, 0.18));
   transition: filter 520ms ease;
 }
 
@@ -368,15 +336,15 @@
 .lanternGlowOwn {
   left: 41.5%;
   top: 31%;
-  width: 34px;
-  height: 34px;
+  width: 11%;
+  aspect-ratio: 1;
 }
 
 .lanternGlowFriend {
   left: 59%;
   top: 29.5%;
-  width: 24px;
-  height: 24px;
+  width: 14%;
+  aspect-ratio: 1;
 }
 
 :global(.dark) .lanternGlowOwn,
@@ -515,20 +483,23 @@
 
   .main {
     overflow-y: auto;
-    padding-bottom: 96px;
+    padding: calc(var(--app-topbar-height) + 16px) var(--app-page-gutter)
+      calc(var(--app-topbar-height) + 16px + var(--app-safe-bottom));
   }
 
   .stage {
-    justify-content: flex-start;
+    flex: 0 0 auto;
+    margin-block: auto;
+    justify-content: center;
   }
 
   .orbitCanvas {
     flex-direction: column;
-    justify-content: flex-start;
-    gap: 14px;
+    justify-content: center;
+    gap: 18px;
     min-height: 0;
     height: auto;
-    padding-top: 10px;
+    padding-top: 0;
   }
 
   .centerSlot {
@@ -540,7 +511,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     width: 100%;
-    max-width: 380px;
+    max-width: 360px;
   }
 
   .orbitSlot {
@@ -551,11 +522,11 @@
   }
 
   .islandImgOwn {
-    width: 220px;
+    width: clamp(148px, 42vw, 176px);
   }
 
   .islandImgFriend {
-    width: 124px;
+    width: clamp(92px, 26vw, 108px);
   }
 }
 

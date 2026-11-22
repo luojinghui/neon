@@ -1,4 +1,7 @@
-export type IslandItemType = 'note' | 'polaroid' | 'sticker' | 'tape';
+export type IslandItemType = 'note' | 'polaroid' | 'sticker' | 'tape' | 'countdown' | 'checklist';
+
+export type IslandSkinKey = 'inherit' | 'orange' | 'blue' | 'violet' | 'green' | 'rose';
+export type IslandPaperKey = 'dot' | 'grid' | 'lined' | 'craft' | 'blank';
 
 export type NoteColorKey = 'sun' | 'sky' | 'blush' | 'mint' | 'lavender';
 
@@ -21,7 +24,53 @@ export interface TapeItemData {
   presetId: string;
 }
 
-export type IslandItemData = NoteItemData | PolaroidItemData | StickerItemData | TapeItemData;
+export interface CountdownItemData {
+  title: string;
+  targetDate: string;
+  color: NoteColorKey;
+}
+
+export interface ChecklistEntry {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface ChecklistItemData {
+  title: string;
+  entries: ChecklistEntry[];
+  color: NoteColorKey;
+}
+
+export type IslandStrokeTool = 'pen' | 'highlighter';
+
+export interface IslandStrokeBBox {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export interface IslandStroke {
+  id: string;
+  tool: IslandStrokeTool;
+  color: string;
+  size: number;
+  opacity: number;
+  points: number[];
+  bbox: IslandStrokeBBox;
+  authorPublicKey: string;
+  authorName: string;
+  createdAt: string;
+}
+
+export type IslandItemData =
+  | NoteItemData
+  | PolaroidItemData
+  | StickerItemData
+  | TapeItemData
+  | CountdownItemData
+  | ChecklistItemData;
 
 export interface IslandItem {
   id: string;
@@ -54,6 +103,8 @@ export interface IslandMember extends IslandPerson {
 export interface IslandSummary {
   id: string;
   name: string;
+  skin?: IslandSkinKey;
+  paper?: IslandPaperKey;
   owner: IslandPerson;
   isOwner: boolean;
   memberCount: number;
@@ -75,6 +126,7 @@ export interface IslandSkyResponse {
 
 export interface IslandDetail extends IslandSummary {
   items: IslandItem[];
+  strokes?: IslandStroke[];
   members: IslandMember[];
   canEdit: boolean;
   isAdmin?: boolean;
@@ -144,4 +196,5 @@ export interface AdminIslandSummary extends IslandSummary {
 
 export interface AdminIslandDetail extends AdminIslandSummary {
   items: IslandItem[];
+  strokes?: IslandStroke[];
 }

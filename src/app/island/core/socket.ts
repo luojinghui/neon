@@ -3,7 +3,15 @@
 import { io, type Socket } from 'socket.io-client';
 import { subscribeAdminSessionChanges } from '@/app/admin/sessionEvents';
 import { ensureCurrentProfile, getOrCreateIdentity } from '@/app/profile/client';
-import type { IslandItem, IslandItemData, IslandItemType, IslandOnlineUser, IslandSummary } from './types';
+import type {
+  IslandItem,
+  IslandItemData,
+  IslandItemType,
+  IslandOnlineUser,
+  IslandStroke,
+  IslandStrokeTool,
+  IslandSummary
+} from './types';
 
 type Ack<T> = { ok: true; data: T } | { ok: false; error: string; code?: string; data?: unknown };
 type Unsubscribe = () => void;
@@ -16,7 +24,48 @@ export interface IslandPoint {
 export interface IslandJoinResult {
   onlineUsers: IslandOnlineUser[];
   items?: IslandItem[];
+  strokes?: IslandStroke[];
   canEdit?: boolean;
+}
+
+export interface IslandStrokeInput {
+  id?: string;
+  tool: IslandStrokeTool;
+  color: string;
+  size: number;
+  opacity: number;
+  points: number[];
+}
+
+export interface IslandStrokeProgressEvent {
+  islandId?: string;
+  socketId: string;
+  strokeId: string;
+  tool: IslandStrokeTool;
+  color: string;
+  size: number;
+  opacity: number;
+  points: number[];
+}
+
+export interface IslandStrokeCommittedEvent {
+  islandId?: string;
+  stroke: IslandStroke;
+  tempStrokeId?: string;
+  socketId?: string;
+}
+
+export interface IslandStrokeTransformPatch {
+  strokeId: string;
+  points: number[];
+  size?: number;
+  bbox?: IslandStroke['bbox'];
+}
+
+export interface IslandStrokesTransformedEvent {
+  islandId?: string;
+  strokes: IslandStrokeTransformPatch[];
+  socketId?: string;
 }
 
 export interface IslandItemUpsertInput {
@@ -113,6 +162,25 @@ export class IslandSocketClient {
   private moveTimers = new Map<string, number>();
   private pendingMovePayloads = new Map<string, { islandId: string; patch: IslandItemMovePatch }>();
 
+  private lastStrokeSentAt = 0;
+  private strokeTimer: number | null = null;
+  private pendingStrokePayload: {
+    islandId: string;
+    strokeId: string;
+    tool: IslandStrokeTool;
+    color: string;
+    size: number;
+    opacity: number;
+    points: number[];
+  } | null = null;
+
+  private lastStrokeTransformSentAt = 0;
+  private strokeTransformTimer: number | null = null;
+  private pendingStrokeTransform: {
+    islandId: string;
+    strokes: IslandStrokeTransformPatch[];
+  } | null = null;
+
   public connect(uuid: string): Promise<void> {
     if (this.socket?.connected) return Promise.resolve();
     if (!this.socket) {
@@ -172,7 +240,9 @@ export class IslandSocketClient {
   }
 
   public joinIsland(islandId: string): Promise<IslandJoinResult> {
-    return this.emitWithAck<IslandJoinResult | { users?: IslandOnlineUser[]; items?: IslandItem[]; canEdit?: boolean }>(
+    return this.emitWithAck<
+      IslandJoinResult | { users?: IslandOnlineUser[]; items?: IslandItem[]; strokes?: IslandStroke[]; canEdit?: boolean }
+    >(
       'island:join',
       { islandId }
     ).then((raw) => {
@@ -184,6 +254,7 @@ export class IslandSocketClient {
       return {
         onlineUsers,
         items: Array.isArray(raw?.items) ? raw.items : undefined,
+        strokes: Array.isArray(raw?.strokes) ? raw.strokes : undefined,
         canEdit: typeof raw?.canEdit === 'boolean' ? raw.canEdit : undefined
       };
     });
@@ -333,11 +404,153 @@ export class IslandSocketClient {
     return Promise.resolve(null);
   }
 
+  public toggleChecklistEntry(
+    islandId: string,
+    itemId: string,
+    entryId: string,
+    done: boolean
+  ): Promise<IslandItem> {
+    return this.emitWithAck<{ item?: IslandItem } | IslandItem>('island:checklist:toggle', {
+      islandId,
+      itemId,
+      entryId,
+      done
+    }).then((res) => {
+      if (res && typeof res === 'object' && 'item' in res && res.item) {
+        return res.item;
+      }
+      return res as IslandItem;
+    });
+  }
+
   public deleteItem(islandId: string, itemId: string): Promise<{ itemId: string }> {
     return this.emitWithAck<{ itemId?: string } | null>('island:item:delete', {
       islandId,
       itemId
     }).then((res) => ({ itemId: res?.itemId || itemId }));
+  }
+
+  public sendStrokeProgress(
+    islandId: string,
+    payload: {
+      strokeId: string;
+      tool: IslandStrokeTool;
+      color: string;
+      size: number;
+      opacity: number;
+      points: number[];
+    }
+  ): void {
+    if (!this.socket?.connected) return;
+    const packet = { islandId, ...payload };
+    const now = Date.now();
+    const elapsed = now - this.lastStrokeSentAt;
+
+    if (elapsed >= THROTTLE_MS) {
+      if (this.strokeTimer !== null) {
+        window.clearTimeout(this.strokeTimer);
+        this.strokeTimer = null;
+      }
+      this.pendingStrokePayload = null;
+      this.lastStrokeSentAt = now;
+      this.socket.emit('island:stroke:progress', packet);
+      return;
+    }
+
+    this.pendingStrokePayload = packet;
+    if (this.strokeTimer === null) {
+      this.strokeTimer = window.setTimeout(() => {
+        this.strokeTimer = null;
+        if (this.pendingStrokePayload && this.socket?.connected) {
+          this.lastStrokeSentAt = Date.now();
+          this.socket.emit('island:stroke:progress', this.pendingStrokePayload);
+        }
+        this.pendingStrokePayload = null;
+      }, THROTTLE_MS - elapsed);
+    }
+  }
+
+  public commitStroke(
+    islandId: string,
+    stroke: IslandStrokeInput,
+    tempStrokeId?: string
+  ): Promise<IslandStroke> {
+    if (this.strokeTimer !== null) {
+      window.clearTimeout(this.strokeTimer);
+      this.strokeTimer = null;
+    }
+    this.pendingStrokePayload = null;
+    return this.emitWithAck<{ stroke?: IslandStroke } | IslandStroke>('island:stroke:commit', {
+      islandId,
+      stroke,
+      ...(tempStrokeId ? { tempStrokeId } : {})
+    }).then((res) => {
+      if (res && typeof res === 'object' && 'stroke' in res && res.stroke) {
+        return res.stroke;
+      }
+      return res as IslandStroke;
+    });
+  }
+
+  public transformStrokes(
+    islandId: string,
+    strokes: IslandStrokeTransformPatch[],
+    persist: boolean
+  ): Promise<IslandStroke[] | null> {
+    if (!this.socket?.connected) {
+      return persist ? Promise.reject(new IslandSocketError('协同服务未连接')) : Promise.resolve(null);
+    }
+
+    if (persist) {
+      if (this.strokeTransformTimer !== null) {
+        window.clearTimeout(this.strokeTransformTimer);
+        this.strokeTransformTimer = null;
+      }
+      this.pendingStrokeTransform = null;
+      this.lastStrokeTransformSentAt = Date.now();
+      return this.emitWithAck<{ strokes?: IslandStroke[] | null }>('island:stroke:transform', {
+        islandId,
+        strokes,
+        persist: true
+      }).then((res) => (Array.isArray(res?.strokes) ? res.strokes : null));
+    }
+
+    const now = Date.now();
+    const elapsed = now - this.lastStrokeTransformSentAt;
+    if (elapsed >= THROTTLE_MS) {
+      if (this.strokeTransformTimer !== null) {
+        window.clearTimeout(this.strokeTransformTimer);
+        this.strokeTransformTimer = null;
+      }
+      this.pendingStrokeTransform = null;
+      this.lastStrokeTransformSentAt = now;
+      this.socket.emit('island:stroke:transform', { islandId, strokes, persist: false });
+      return Promise.resolve(null);
+    }
+
+    this.pendingStrokeTransform = { islandId, strokes };
+    if (this.strokeTransformTimer === null) {
+      this.strokeTransformTimer = window.setTimeout(() => {
+        this.strokeTransformTimer = null;
+        if (this.pendingStrokeTransform && this.socket?.connected) {
+          this.lastStrokeTransformSentAt = Date.now();
+          this.socket.emit('island:stroke:transform', {
+            islandId: this.pendingStrokeTransform.islandId,
+            strokes: this.pendingStrokeTransform.strokes,
+            persist: false
+          });
+        }
+        this.pendingStrokeTransform = null;
+      }, THROTTLE_MS - elapsed);
+    }
+    return Promise.resolve(null);
+  }
+
+  public deleteStroke(islandId: string, strokeId: string): Promise<{ strokeId: string }> {
+    return this.emitWithAck<{ strokeId?: string } | null>('island:stroke:delete', {
+      islandId,
+      strokeId
+    }).then((res) => ({ strokeId: res?.strokeId || strokeId }));
   }
 
   public onPresence(listener: (users: IslandOnlineUser[]) => void): Unsubscribe {
@@ -430,6 +643,41 @@ export class IslandSocketClient {
     return () => socket.off('island:item:deleted', handler);
   }
 
+  public onStrokeProgress(listener: (event: IslandStrokeProgressEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('island:stroke:progress', listener);
+    return () => socket.off('island:stroke:progress', listener);
+  }
+
+  public onStrokeCommitted(listener: (event: IslandStrokeCommittedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    const handler = (payload: IslandStrokeCommittedEvent) => {
+      if (payload?.stroke?.id) listener(payload);
+    };
+    socket.on('island:stroke:committed', handler);
+    return () => socket.off('island:stroke:committed', handler);
+  }
+
+  public onStrokesTransformed(listener: (event: IslandStrokesTransformedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    const handler = (payload: IslandStrokesTransformedEvent) => {
+      if (Array.isArray(payload?.strokes) && payload.strokes.length > 0) {
+        listener(payload);
+      }
+    };
+    socket.on('island:stroke:transformed', handler);
+    return () => socket.off('island:stroke:transformed', handler);
+  }
+
+  public onStrokeDeleted(listener: (event: { islandId?: string; strokeId: string }) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    const handler = (payload: { islandId?: string; strokeId?: string }) => {
+      if (payload?.strokeId) listener({ islandId: payload.islandId, strokeId: payload.strokeId });
+    };
+    socket.on('island:stroke:deleted', handler);
+    return () => socket.off('island:stroke:deleted', handler);
+  }
+
   public onIslandUpdated(listener: (patch: Partial<IslandSummary>) => void): Unsubscribe {
     const socket = this.requireSocket();
     const handler = (payload: { island?: Partial<IslandSummary> } | Partial<IslandSummary>) => {
@@ -487,6 +735,16 @@ export class IslandSocketClient {
     this.moveTimers.forEach((timer) => window.clearTimeout(timer));
     this.moveTimers.clear();
     this.pendingMovePayloads.clear();
+    if (this.strokeTimer !== null) {
+      window.clearTimeout(this.strokeTimer);
+      this.strokeTimer = null;
+    }
+    this.pendingStrokePayload = null;
+    if (this.strokeTransformTimer !== null) {
+      window.clearTimeout(this.strokeTransformTimer);
+      this.strokeTransformTimer = null;
+    }
+    this.pendingStrokeTransform = null;
   }
 
   private requireSocket(): Socket {

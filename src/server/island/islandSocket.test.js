@@ -396,3 +396,141 @@ test('island realtime join, presence, cursor, lock, item upsert/move/delete, and
   await presenceOnLeave;
   assert.equal(controller.getOnlineCount(island.id), 1);
 });
+
+test('socket supports checklist toggle, live doodle strokes, and island appearance broadcast', async (t) => {
+  const { io, controller, repository, connect, owner, guest } = await createSocketFixture(t);
+  const island = await repository.ensurePersonalIsland(owner);
+  await repository.joinByInvite(island.inviteToken, guest);
+
+  const ownerSocket = await connect(owner);
+  const guestSocket = await connect(guest);
+  await emitAck(ownerSocket, 'island:join', { islandId: island.id });
+  await emitAck(guestSocket, 'island:join', { islandId: island.id });
+
+  // Owner creates checklist, guest toggles an entry -> owner receives island:item:upserted
+  const checklistAck = await emitAck(ownerSocket, 'island:item:upsert', {
+    islandId: island.id,
+    item: {
+      type: 'checklist',
+      x: 0,
+      y: 0,
+      w: 248,
+      h: 268,
+      data: {
+        title: '周末计划',
+        color: 'mint',
+        entries: [{ id: 'e1', text: '买咖啡豆', done: false }]
+      }
+    }
+  });
+  assert.equal(checklistAck.ok, true);
+  const checklistId = checklistAck.data.item.id;
+
+  const ownerToggleEvent = waitForEvent(
+    ownerSocket,
+    'island:item:upserted',
+    (p) => p.item?.id === checklistId && p.item.data?.entries?.[0]?.done === true
+  );
+  const toggleAck = await emitAck(guestSocket, 'island:checklist:toggle', {
+    islandId: island.id,
+    itemId: checklistId,
+    entryId: 'e1',
+    done: true
+  });
+  assert.equal(toggleAck.ok, true);
+  await ownerToggleEvent;
+
+  // Live stroke progress + commit + delete permissions
+  const progressEvent = waitForEvent(
+    ownerSocket,
+    'island:stroke:progress',
+    (p) => p.strokeId === 'tmp-1' && p.points.length === 4
+  );
+  guestSocket.emit('island:stroke:progress', {
+    islandId: island.id,
+    strokeId: 'tmp-1',
+    tool: 'pen',
+    color: '#E05A47',
+    size: 6,
+    opacity: 1,
+    points: [0, 0, 20, 20]
+  });
+  await progressEvent;
+
+  const commitEvent = waitForEvent(
+    ownerSocket,
+    'island:stroke:committed',
+    (p) => p.tempStrokeId === 'tmp-1' && Boolean(p.stroke?.id)
+  );
+  const commitAck = await emitAck(guestSocket, 'island:stroke:commit', {
+    islandId: island.id,
+    tempStrokeId: 'tmp-1',
+    stroke: {
+      tool: 'pen',
+      color: '#E05A47',
+      size: 6,
+      opacity: 1,
+      points: [0, 0, 20, 20, 40, 10]
+    }
+  });
+  assert.equal(commitAck.ok, true);
+  const committed = await commitEvent;
+
+  // Owner commits a stroke, guest member CAN delete it -> owner receives island:stroke:deleted
+  const ownerStrokeAck = await emitAck(ownerSocket, 'island:stroke:commit', {
+    islandId: island.id,
+    stroke: {
+      tool: 'highlighter',
+      color: '#2B7DE9',
+      size: 18,
+      opacity: 0.35,
+      points: [10, 10, 50, 50]
+    }
+  });
+  const guestDeleteOwnerStrokeEvent = waitForEvent(
+    ownerSocket,
+    'island:stroke:deleted',
+    (p) => p.strokeId === ownerStrokeAck.data.stroke.id
+  );
+  const guestDeleteOwnerStrokeAck = await emitAck(guestSocket, 'island:stroke:delete', {
+    islandId: island.id,
+    strokeId: ownerStrokeAck.data.stroke.id
+  });
+  assert.equal(guestDeleteOwnerStrokeAck.ok, true);
+  await guestDeleteOwnerStrokeEvent;
+
+  // Guest deletes own stroke -> owner receives island:stroke:deleted
+  const transformEvent = waitForEvent(
+    ownerSocket,
+    'island:stroke:transformed',
+    (p) => p.strokes?.[0]?.strokeId === committed.stroke.id && p.strokes[0].size === 9
+  );
+  const transformAck = await emitAck(guestSocket, 'island:stroke:transform', {
+    islandId: island.id,
+    persist: true,
+    strokes: [{ strokeId: committed.stroke.id, points: [10, 10, 50, 50], size: 9 }]
+  });
+  assert.equal(transformAck.ok, true);
+  await transformEvent;
+
+  const deleteStrokeEvent = waitForEvent(
+    ownerSocket,
+    'island:stroke:deleted',
+    (p) => p.strokeId === committed.stroke.id
+  );
+  const deleteStrokeAck = await emitAck(guestSocket, 'island:stroke:delete', {
+    islandId: island.id,
+    strokeId: committed.stroke.id
+  });
+  assert.equal(deleteStrokeAck.ok, true);
+  await deleteStrokeEvent;
+
+  // Appearance broadcast
+  const updatedEvent = waitForEvent(
+    guestSocket,
+    'island:updated',
+    (p) => p.island?.skin === 'blue' && p.island?.paper === 'craft'
+  );
+  controller.broadcastIslandUpdated(io, island.id, { skin: 'blue', paper: 'craft' });
+  await updatedEvent;
+});

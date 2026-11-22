@@ -1,9 +1,11 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Tabs } from '@/components/ui/tabs';
+import { Tooltip } from '@/components/ui/tooltip';
 import { buttonClassName } from '@/components/ui/button-styles';
-import { CheckOutlined, CopyOutlined, ReloadOutlined, CalendarOutlined, CompassOutlined } from '@ant-design/icons';
+import { CheckOutlined, CopyOutlined, ReloadOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -228,12 +230,37 @@ export default function ProfilePage() {
                       <ProfileIslandEntry userId={profile.userId} isOwner={isOwner} />
                     )}
                     <div className="profile-detail">
-                      <span className="profile-detail-icon"><CalendarOutlined /></span>
-                      <div><dt>星球旅程</dt><dd>{formatJoinedDate(profile.createdAt)}</dd></div>
+                      <span className="profile-detail-icon">
+                        <Icon name="calendar" />
+                      </span>
+                      <div className="profile-detail-body">
+                        <div className="profile-detail-head">
+                          <dt>星球旅程</dt>
+                        </div>
+                        <dd>{formatJoinedDate(profile.createdAt)}</dd>
+                      </div>
                     </div>
                     <div className="profile-detail">
-                      <span className="profile-detail-icon"><CompassOutlined /></span>
-                      <div><dt>在这里，相遇</dt><dd>分享日常，也发现同频的人。<br /><Link href="/soul" className="text-foreground-secondary hover:text-primary">去星球逛逛 →</Link></dd></div>
+                      <span className="profile-detail-icon">
+                        <Icon name="compass" />
+                      </span>
+                      <div className="profile-detail-body">
+                        <div className="profile-detail-head">
+                          <dt>在这里，相遇</dt>
+                          <div className="profile-detail-actions">
+                            <Tooltip title="去星球逛逛">
+                              <Link
+                                href="/soul"
+                                className={buttonClassName({ variant: 'ghost', size: 'sm', iconOnly: true })}
+                                aria-label="去星球逛逛"
+                              >
+                                <Icon name="arrow-right" size="sm" />
+                              </Link>
+                            </Tooltip>
+                          </div>
+                        </div>
+                        <dd>分享日常，也发现同频的人。</dd>
+                      </div>
                     </div>
                   </dl>
                 ) : (

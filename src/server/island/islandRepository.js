@@ -12,9 +12,17 @@ const PASSCODE_PATTERN = /^[A-Z0-9]{4,6}$/;
 const INVITE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_ISLAND_NAME_LENGTH = 32;
 const MAX_ITEMS_PER_ISLAND = 300;
+const MAX_STROKES_PER_ISLAND = 500;
+const MAX_STROKE_POINTS = 300;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const NOTE_COLORS = new Set(['sun', 'sky', 'blush', 'mint', 'lavender']);
-const ITEM_TYPES = new Set(['note', 'polaroid', 'sticker', 'tape']);
+const ITEM_TYPES = new Set(['note', 'polaroid', 'sticker', 'tape', 'countdown', 'checklist']);
+const ISLAND_SKINS = new Set(['inherit', 'orange', 'blue', 'violet', 'green', 'rose']);
+const ISLAND_PAPERS = new Set(['dot', 'grid', 'lined', 'craft', 'blank']);
+const STROKE_TOOLS = new Set(['pen', 'highlighter']);
+const STROKE_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_CHECKLIST_ENTRIES = 30;
 
 const IMAGE_MIME_TYPES = new Map([
   ['image/png', 'png'],
@@ -207,12 +215,15 @@ class IslandRepository {
         ownerName: profile.name,
         ownerAvatarUrl: profile.avatarUrl,
         name: defaultName,
+        skin: 'inherit',
+        paper: 'dot',
         passcode: this.generatePasscode(),
         inviteToken: this.generateInviteToken(),
         inviteExpiresAt: new Date(nowMs + INVITE_TTL_MS).toISOString(),
         allowVisitorEdit: true,
         members: {},
         items: [],
+        strokes: [],
         createdAt: nowIso,
         updatedAt: nowIso
       };
@@ -436,6 +447,22 @@ class IslandRepository {
         island.name = name;
       }
 
+      if (typeof patch.skin === 'string') {
+        const skin = patch.skin.trim();
+        if (!ISLAND_SKINS.has(skin)) {
+          throw new IslandRepositoryError('不支持的浮岛皮肤', 'ISLAND_SKIN_INVALID');
+        }
+        island.skin = skin;
+      }
+
+      if (typeof patch.paper === 'string') {
+        const paper = patch.paper.trim();
+        if (!ISLAND_PAPERS.has(paper)) {
+          throw new IslandRepositoryError('不支持的纸张底纹', 'ISLAND_PAPER_INVALID');
+        }
+        island.paper = paper;
+      }
+
       if (patch.regenerateInvite === true) {
         island.inviteToken = this.generateInviteToken();
         island.inviteExpiresAt = new Date(nowMs + INVITE_TTL_MS).toISOString();
@@ -525,6 +552,41 @@ class IslandRepository {
       const presetId = sanitizeText(data.presetId, 64).trim();
       if (!presetId) throw new IslandRepositoryError('装饰素材标识无效', 'ISLAND_ITEM_INVALID');
       return { presetId };
+    }
+    if (type === 'countdown') {
+      const color = NOTE_COLORS.has(data.color) ? data.color : 'sun';
+      const rawDate = String(data.targetDate || '').trim();
+      const todayIso = new Date(this.now()).toISOString().slice(0, 10);
+      const targetDate = DATE_PATTERN.test(rawDate) ? rawDate : todayIso;
+      return {
+        title: sanitizeText(data.title, 60),
+        targetDate,
+        color
+      };
+    }
+    if (type === 'checklist') {
+      const color = NOTE_COLORS.has(data.color) ? data.color : 'mint';
+      const rawEntries = Array.isArray(data.entries) ? data.entries.slice(0, MAX_CHECKLIST_ENTRIES) : [];
+      const usedEntryIds = new Set();
+      const entries = [];
+      for (const rawEntry of rawEntries) {
+        if (!rawEntry || typeof rawEntry !== 'object') continue;
+        let entryId = sanitizeText(rawEntry.id, 32).trim();
+        if (!entryId || usedEntryIds.has(entryId)) {
+          entryId = randomBytes(6).toString('base64url');
+        }
+        usedEntryIds.add(entryId);
+        entries.push({
+          id: entryId,
+          text: sanitizeText(rawEntry.text, 120),
+          done: Boolean(rawEntry.done)
+        });
+      }
+      return {
+        title: sanitizeText(data.title, 60),
+        entries,
+        color
+      };
     }
     throw new IslandRepositoryError('不支持的物件类型', 'ISLAND_ITEM_INVALID');
   }
@@ -644,6 +706,56 @@ class IslandRepository {
     });
   }
 
+  async toggleChecklistEntry(islandId, rawProfile, payload = {}, options = {}) {
+    const profile = options.isAdmin === true ? null : this.requireProfile(rawProfile);
+    const id = String(islandId || '').trim();
+    const itemId = String(payload.itemId || '').trim();
+    const entryId = String(payload.entryId || '').trim();
+    if (!itemId || !entryId) {
+      throw new IslandRepositoryError('清单条目参数无效', 'ISLAND_ITEM_INVALID');
+    }
+
+    return this.runMutation(async () => {
+      const island = this.islands.get(id);
+      if (!island) throw new IslandRepositoryError('浮岛不存在', 'ISLAND_NOT_FOUND');
+      if (!this.canArrangeItem(island, profile, options)) {
+        throw new IslandRepositoryError('没有操作该清单的权限', 'ISLAND_ITEM_FORBIDDEN');
+      }
+      const index = island.items.findIndex((item) => item.id === itemId);
+      if (index < 0) throw new IslandRepositoryError('物件不存在或已被删除', 'ISLAND_ITEM_NOT_FOUND');
+      const item = island.items[index];
+      if (item.type !== 'checklist' || !Array.isArray(item.data?.entries)) {
+        throw new IslandRepositoryError('目标物件不是清单卡片', 'ISLAND_ITEM_INVALID');
+      }
+      const entryIndex = item.data.entries.findIndex((entry) => entry.id === entryId);
+      if (entryIndex < 0) {
+        throw new IslandRepositoryError('清单条目不存在', 'ISLAND_ITEM_NOT_FOUND');
+      }
+
+      const snapshot = clone(island);
+      const nowIso = new Date(this.now()).toISOString();
+      const nextEntries = item.data.entries.map((entry, idx) =>
+        idx === entryIndex
+          ? { ...entry, done: typeof payload.done === 'boolean' ? payload.done : !entry.done }
+          : entry
+      );
+      const updated = {
+        ...item,
+        data: { ...item.data, entries: nextEntries },
+        updatedAt: nowIso
+      };
+      island.items[index] = updated;
+      island.updatedAt = nowIso;
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.islands.set(id, snapshot);
+        throw error;
+      }
+      return this.presentItem(updated);
+    });
+  }
+
   async deleteItem(islandId, rawProfile, itemIdValue, options = {}) {
     const id = String(islandId || '').trim();
     const itemId = String(itemIdValue || '').trim();
@@ -670,6 +782,192 @@ class IslandRepository {
         throw error;
       }
       return clone(item);
+    });
+  }
+
+  normalizeStrokePoints(rawPoints) {
+    if (!Array.isArray(rawPoints) || rawPoints.length < 4) {
+      throw new IslandRepositoryError('涂鸦笔迹点数据无效', 'ISLAND_STROKE_INVALID');
+    }
+    const pairCount = Math.floor(rawPoints.length / 2);
+    const step = pairCount > MAX_STROKE_POINTS ? pairCount / MAX_STROKE_POINTS : 1;
+    const points = [];
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (let i = 0; i < Math.min(pairCount, MAX_STROKE_POINTS); i += 1) {
+      const idx = i === MAX_STROKE_POINTS - 1 && pairCount > MAX_STROKE_POINTS
+        ? (pairCount - 1) * 2
+        : Math.floor(i * step) * 2;
+      const x = Math.round(clampNumber(rawPoints[idx], -50000, 50000, 0) * 10) / 10;
+      const y = Math.round(clampNumber(rawPoints[idx + 1], -50000, 50000, 0) * 10) / 10;
+      points.push(x, y);
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+
+    if (points.length < 4) {
+      throw new IslandRepositoryError('涂鸦笔迹点数据无效', 'ISLAND_STROKE_INVALID');
+    }
+    return {
+      points,
+      bbox: { minX, minY, maxX, maxY }
+    };
+  }
+
+  canMutateStroke(island, stroke, profile, options = {}) {
+    if (!island || !stroke) return false;
+    if (options.isAdmin === true) return true;
+    const publicKey = String(profile?.publicKey || '').trim();
+    if (!publicKey) return false;
+    return island.ownerPublicKey === publicKey || Boolean(island.members?.[publicKey]);
+  }
+
+  async addStroke(islandId, rawProfile, rawStroke) {
+    const profile = this.requireProfile(rawProfile);
+    const id = String(islandId || '').trim();
+    if (!rawStroke || typeof rawStroke !== 'object') {
+      throw new IslandRepositoryError('涂鸦笔迹无效', 'ISLAND_STROKE_INVALID');
+    }
+
+    return this.runMutation(async () => {
+      const island = this.islands.get(id);
+      if (!island) throw new IslandRepositoryError('浮岛不存在', 'ISLAND_NOT_FOUND');
+      if (!this.canAccessIsland(island, profile)) {
+        throw new IslandRepositoryError('没有在该浮岛涂鸦的权限', 'ISLAND_FORBIDDEN');
+      }
+      if (!Array.isArray(island.strokes)) island.strokes = [];
+      if (island.strokes.length >= MAX_STROKES_PER_ISLAND) {
+        throw new IslandRepositoryError(`每座浮岛最多保留 ${MAX_STROKES_PER_ISLAND} 笔涂鸦`, 'ISLAND_STROKE_LIMIT');
+      }
+
+      const tool = STROKE_TOOLS.has(rawStroke.tool) ? rawStroke.tool : 'pen';
+      const color = typeof rawStroke.color === 'string' && STROKE_COLOR_PATTERN.test(rawStroke.color.trim())
+        ? rawStroke.color.trim()
+        : '#2C2520';
+      const size = Math.round(clampNumber(rawStroke.size, 1, 48, tool === 'highlighter' ? 18 : 6) * 10) / 10;
+      const opacity = Math.round(clampNumber(rawStroke.opacity, 0.1, 1, tool === 'highlighter' ? 0.35 : 1) * 100) / 100;
+      const { points, bbox } = this.normalizeStrokePoints(rawStroke.points);
+
+      const existingIds = new Set(island.strokes.map((entry) => entry.id));
+      const requestedId = typeof rawStroke.id === 'string' ? rawStroke.id.trim() : '';
+      const strokeId = requestedId && ID_PATTERN.test(requestedId) && !existingIds.has(requestedId)
+        ? requestedId
+        : this.createId(existingIds);
+      const nowIso = new Date(this.now()).toISOString();
+
+      const stroke = {
+        id: strokeId,
+        tool,
+        color,
+        size,
+        opacity,
+        points,
+        bbox,
+        authorPublicKey: profile.publicKey,
+        authorName: profile.name,
+        createdAt: nowIso
+      };
+
+      const snapshot = clone(island);
+      island.strokes.push(stroke);
+      island.updatedAt = nowIso;
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.islands.set(id, snapshot);
+        throw error;
+      }
+      return this.presentStroke(stroke);
+    });
+  }
+
+  async transformStrokes(islandId, rawProfile, updates = [], options = {}) {
+    const id = String(islandId || '').trim();
+    const profile = options.isAdmin === true ? null : this.requireProfile(rawProfile);
+    if (!Array.isArray(updates) || updates.length === 0) {
+      throw new IslandRepositoryError('笔迹变换数据无效', 'ISLAND_STROKE_INVALID');
+    }
+
+    return this.runMutation(async () => {
+      const island = this.islands.get(id);
+      if (!island) throw new IslandRepositoryError('浮岛不存在', 'ISLAND_NOT_FOUND');
+      if (!this.canArrangeItem(island, profile, options)) {
+        throw new IslandRepositoryError('没有操作该浮岛涂鸦的权限', 'ISLAND_STROKE_FORBIDDEN');
+      }
+      if (!Array.isArray(island.strokes)) island.strokes = [];
+
+      const snapshot = clone(island);
+      const byId = new Map(island.strokes.map((entry, idx) => [entry.id, idx]));
+      const updatedStrokes = [];
+      const nowIso = new Date(this.now()).toISOString();
+
+      for (const patch of updates.slice(0, MAX_STROKES_PER_ISLAND)) {
+        const strokeId = String(patch?.strokeId || patch?.id || '').trim();
+        const idx = byId.get(strokeId);
+        if (idx === undefined) continue;
+        const current = island.strokes[idx];
+        const { points, bbox } = this.normalizeStrokePoints(patch.points);
+        const nextSize =
+          patch.size !== undefined
+            ? Math.round(clampNumber(patch.size, 1, 48, current.size) * 10) / 10
+            : current.size;
+        const nextStroke = {
+          ...current,
+          points,
+          bbox,
+          size: nextSize
+        };
+        island.strokes[idx] = nextStroke;
+        updatedStrokes.push(this.presentStroke(nextStroke));
+      }
+
+      if (updatedStrokes.length === 0) {
+        throw new IslandRepositoryError('笔迹不存在或已被擦除', 'ISLAND_STROKE_NOT_FOUND');
+      }
+
+      island.updatedAt = nowIso;
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.islands.set(id, snapshot);
+        throw error;
+      }
+      return updatedStrokes;
+    });
+  }
+
+  async deleteStroke(islandId, rawProfile, strokeIdValue, options = {}) {
+    const id = String(islandId || '').trim();
+    const strokeId = String(strokeIdValue || '').trim();
+    const profile = options.isAdmin === true ? null : this.requireProfile(rawProfile);
+
+    return this.runMutation(async () => {
+      const island = this.islands.get(id);
+      if (!island) throw new IslandRepositoryError('浮岛不存在', 'ISLAND_NOT_FOUND');
+      if (!Array.isArray(island.strokes)) island.strokes = [];
+      const index = island.strokes.findIndex((entry) => entry.id === strokeId);
+      if (index < 0) throw new IslandRepositoryError('笔迹不存在或已被擦除', 'ISLAND_STROKE_NOT_FOUND');
+      const stroke = island.strokes[index];
+
+      if (options.isAdmin !== true && !this.canMutateStroke(island, stroke, profile)) {
+        throw new IslandRepositoryError('没有擦除该浮岛涂鸦的权限', 'ISLAND_STROKE_FORBIDDEN');
+      }
+
+      const snapshot = clone(island);
+      island.strokes.splice(index, 1);
+      island.updatedAt = new Date(this.now()).toISOString();
+      try {
+        await this.persistUnlocked();
+      } catch (error) {
+        this.islands.set(id, snapshot);
+        throw error;
+      }
+      return clone(stroke);
     });
   }
 
@@ -734,6 +1032,8 @@ class IslandRepository {
     return {
       id: island.id,
       name: island.name,
+      skin: ISLAND_SKINS.has(island.skin) ? island.skin : 'inherit',
+      paper: ISLAND_PAPERS.has(island.paper) ? island.paper : 'dot',
       owner: this.presentPerson(island.ownerPublicKey, {
         uuid: island.ownerUuid,
         userId: island.ownerUserId,
@@ -771,11 +1071,26 @@ class IslandRepository {
     return Array.isArray(items) ? items.map((item) => this.presentItem(item)) : [];
   }
 
+  presentStroke(stroke) {
+    const cloned = clone(stroke);
+    if (!cloned) return cloned;
+    const author = this.presentPerson(cloned.authorPublicKey, { name: cloned.authorName });
+    return {
+      ...cloned,
+      authorName: author.name
+    };
+  }
+
+  presentStrokes(strokes) {
+    return Array.isArray(strokes) ? strokes.map((stroke) => this.presentStroke(stroke)) : [];
+  }
+
   presentDetail(island, viewerProfile = null, options = {}) {
     const summary = this.presentSummary(island, viewerProfile, options);
     return {
       ...summary,
       items: this.presentItems(island.items),
+      strokes: this.presentStrokes(island.strokes),
       members: this.presentMembers(island),
       canEdit: this.canEditIsland(island, viewerProfile),
       ...(options.isAdmin === true ? { isAdmin: true } : {})
@@ -789,7 +1104,8 @@ class IslandRepository {
   presentAdminDetail(island, onlineCount = 0) {
     return {
       ...this.presentAdminSummary(island, onlineCount),
-      items: this.presentItems(island.items)
+      items: this.presentItems(island.items),
+      strokes: this.presentStrokes(island.strokes)
     };
   }
 
@@ -817,6 +1133,17 @@ class IslandRepository {
       }
     }
     const items = Array.isArray(raw.items) ? raw.items.map((item) => this.normalizeStoredItem(item, createdAt)) : [];
+    const strokes = Array.isArray(raw.strokes)
+      ? raw.strokes
+          .map((stroke) => {
+            try {
+              return this.normalizeStoredStroke(stroke, createdAt);
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean)
+      : [];
     return {
       id,
       ownerUuid: String(raw.ownerUuid || ''),
@@ -825,14 +1152,41 @@ class IslandRepository {
       ownerName: sanitizeText(raw.ownerName || '浮岛主人', 32),
       ownerAvatarUrl: String(raw.ownerAvatarUrl || ''),
       name: sanitizeText(raw.name || '我的浮岛', MAX_ISLAND_NAME_LENGTH).trim() || '我的浮岛',
+      skin: ISLAND_SKINS.has(raw.skin) ? raw.skin : 'inherit',
+      paper: ISLAND_PAPERS.has(raw.paper) ? raw.paper : 'dot',
       passcode: String(raw.passcode || this.generatePasscode()).trim().toUpperCase(),
       inviteToken: String(raw.inviteToken || randomBytes(12).toString('base64url')).trim(),
       inviteExpiresAt: this.requireDate(raw.inviteExpiresAt || new Date(Date.parse(createdAt) + INVITE_TTL_MS).toISOString()),
       allowVisitorEdit: raw.allowVisitorEdit !== false,
       members,
       items,
+      strokes,
       createdAt,
       updatedAt
+    };
+  }
+
+  normalizeStoredStroke(raw, fallbackDate) {
+    const id = String(raw?.id || '').trim();
+    if (!ID_PATTERN.test(id)) throw new Error('invalid stored stroke id');
+    const tool = STROKE_TOOLS.has(raw?.tool) ? raw.tool : 'pen';
+    const color = typeof raw?.color === 'string' && STROKE_COLOR_PATTERN.test(raw.color.trim())
+      ? raw.color.trim()
+      : '#2C2520';
+    const size = Math.round(clampNumber(raw?.size, 1, 48, tool === 'highlighter' ? 18 : 6) * 10) / 10;
+    const opacity = Math.round(clampNumber(raw?.opacity, 0.1, 1, tool === 'highlighter' ? 0.35 : 1) * 100) / 100;
+    const { points, bbox } = this.normalizeStrokePoints(raw?.points);
+    return {
+      id,
+      tool,
+      color,
+      size,
+      opacity,
+      points,
+      bbox,
+      authorPublicKey: String(raw?.authorPublicKey || ''),
+      authorName: sanitizeText(raw?.authorName || '浮岛旅人', 32),
+      createdAt: this.requireDate(raw?.createdAt || fallbackDate)
     };
   }
 

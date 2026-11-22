@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { islandRepository } from '@/server/island/islandRepository';
 import {
+  broadcastIslandUpdatedSocket,
   evictIslandMemberSocket,
   getCurrentProfile,
   getIslandOnlineCount,
@@ -51,12 +52,22 @@ export async function PATCH(request: Request, context: RouteContext) {
     const profile = requireCurrentProfile(request);
     const body = (await request.json().catch(() => ({}))) as {
       name?: string;
+      skin?: string;
+      paper?: string;
       regenerateInvite?: boolean;
       removeMemberPublicKey?: string;
     };
     const updated = await islandRepository.updateSettings(islandId, profile, body);
     if (typeof body?.removeMemberPublicKey === 'string' && body.removeMemberPublicKey.trim()) {
       evictIslandMemberSocket(updated.id, body.removeMemberPublicKey.trim());
+    }
+    if (typeof body?.name === 'string' || typeof body?.skin === 'string' || typeof body?.paper === 'string') {
+      broadcastIslandUpdatedSocket(updated.id, {
+        name: updated.name,
+        skin: updated.skin,
+        paper: updated.paper,
+        updatedAt: updated.updatedAt
+      });
     }
     return NextResponse.json({
       island: islandRepository.presentSummary(updated, profile, {

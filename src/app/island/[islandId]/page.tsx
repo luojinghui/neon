@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
 import { Button } from '@/components/ui/button';
 import { buttonClassName } from '@/components/ui/button-styles';
@@ -19,18 +20,33 @@ import {
   uploadIslandMedia
 } from '../core/client';
 import { readCachedIsland, writeCachedIsland } from '../core/islandCache';
-import { IslandSocketClient, resolveIslandSocketUuid, type IslandPoint } from '../core/socket';
+import {
+  IslandSocketClient,
+  resolveIslandSocketUuid,
+  type IslandPoint,
+  type IslandStrokeInput,
+  type IslandStrokeTransformPatch
+} from '../core/socket';
 import {
   pickIslandMemberColor,
+  type ChecklistItemData,
   type IslandDetail,
   type IslandItem,
   type IslandItemData,
   type IslandOnlineUser,
+  type IslandStroke,
   type NoteColorKey
 } from '../core/types';
+import { type LiveStroke } from './components/DoodleLayer';
 import { clampScale, InfiniteCanvas, type CanvasViewportState } from './components/InfiniteCanvas';
 import { IslandToolbar } from './components/IslandToolbar';
 import { STICKER_PRESETS, TAPE_PRESETS } from './components/StickerItem';
+import {
+  computeBBox,
+  DOODLE_COLORS,
+  hitTestStroke,
+  type DoodleBrushConfig
+} from './components/strokeUtils';
 import styles from './island-canvas.module.css';
 
 const NOTE_PALETTE: NoteColorKey[] = ['sun', 'sky', 'blush', 'mint', 'lavender'];
@@ -41,6 +57,15 @@ function formatTodayLabel(): string {
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}.${m}.${d}`;
+}
+
+function formatOffsetDateIso(offsetDays: number): string {
+  const target = new Date();
+  target.setDate(target.getDate() + offsetDays);
+  const y = target.getFullYear();
+  const m = String(target.getMonth() + 1).padStart(2, '0');
+  const d = String(target.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function getCenteredViewport(worldX = 0, worldY = 0, scale = 1): CanvasViewportState {
@@ -60,6 +85,17 @@ export default function IslandBoardPage() {
   const [errorState, setErrorState] = useState<{ title: string; desc: string } | null>(null);
   const [island, setIsland] = useState<IslandDetail | null>(null);
   const [items, setItems] = useState<IslandItem[]>([]);
+  const [strokes, setStrokes] = useState<IslandStroke[]>([]);
+  const [remoteLiveStrokes, setRemoteLiveStrokes] = useState<Map<string, LiveStroke>>(() => new Map());
+  const [doodleActive, setDoodleActive] = useState(false);
+  const [doodleVisible, setDoodleVisible] = useState(true);
+  const [doodleBrush, setDoodleBrush] = useState<DoodleBrushConfig>({
+    mode: 'pen',
+    color: DOODLE_COLORS[0].color,
+    sizeKey: 'md'
+  });
+  const [sessionStrokeStack, setSessionStrokeStack] = useState<string[]>([]);
+  const [selectedStrokeIds, setSelectedStrokeIds] = useState<string[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<IslandOnlineUser[]>([]);
   const [connected, setConnected] = useState(false);
   const [selfSocketId, setSelfSocketId] = useState<string | null>(null);
@@ -76,6 +112,9 @@ export default function IslandBoardPage() {
   const socketRef = useRef<IslandSocketClient | null>(null);
   const itemsRef = useRef<IslandItem[]>([]);
   itemsRef.current = items;
+  const strokesRef = useRef<IslandStroke[]>([]);
+  strokesRef.current = strokes;
+  const erasingIdsRef = useRef<Set<string>>(new Set());
   const selectedItemIdRef = useRef<string | null>(null);
   selectedItemIdRef.current = selectedItemId;
 
@@ -123,6 +162,7 @@ export default function IslandBoardPage() {
       if (cached) {
         setIsland(cached);
         setItems(cached.items || []);
+        setStrokes(cached.strokes || []);
         setLoading(false);
       } else {
         setLoading(true);
@@ -140,6 +180,7 @@ export default function IslandBoardPage() {
         setCurrentPublicKey(profile?.publicKey || '');
         setIsland(detail);
         setItems(detail.items || []);
+        setStrokes(detail.strokes || []);
         setLoading(false);
         writeCachedIsland(profile?.uuid || cacheUuid, detail);
 
@@ -163,6 +204,7 @@ export default function IslandBoardPage() {
                   if (!active) return;
                   setOnlineUsers(res.onlineUsers);
                   if (res.items) setItems(res.items);
+                  if (res.strokes) setStrokes(res.strokes);
                   if (selectedItemIdRef.current) {
                     client.focusItem(islandId, selectedItemIdRef.current);
                   }
@@ -224,6 +266,55 @@ export default function IslandBoardPage() {
             setItems((prev) => prev.filter((it) => it.id !== itemId));
             setSelectedItemId((curr) => (curr === itemId ? null : curr));
           }),
+          client.onStrokeProgress((evt) => {
+            setRemoteLiveStrokes((prev) => {
+              const next = new Map(prev);
+              next.set(evt.strokeId, {
+                strokeId: evt.strokeId,
+                tool: evt.tool,
+                color: evt.color,
+                size: evt.size,
+                opacity: evt.opacity,
+                points: evt.points
+              });
+              return next;
+            });
+          }),
+          client.onStrokeCommitted(({ stroke, tempStrokeId }) => {
+            if (tempStrokeId) {
+              setRemoteLiveStrokes((prev) => {
+                if (!prev.has(tempStrokeId)) return prev;
+                const next = new Map(prev);
+                next.delete(tempStrokeId);
+                return next;
+              });
+            }
+            setStrokes((prev) =>
+              prev.some((s) => s.id === stroke.id)
+                ? prev.map((s) => (s.id === stroke.id ? stroke : s))
+                : [...prev, stroke]
+            );
+          }),
+          client.onStrokesTransformed(({ strokes: patches }) => {
+            const byId = new Map(patches.map((p) => [p.strokeId, p]));
+            setStrokes((prev) =>
+              prev.map((s) => {
+                const patch = byId.get(s.id);
+                if (!patch) return s;
+                return {
+                  ...s,
+                  points: patch.points,
+                  bbox: patch.bbox || computeBBox(patch.points),
+                  ...(patch.size !== undefined ? { size: patch.size } : {})
+                };
+              })
+            );
+          }),
+          client.onStrokeDeleted(({ strokeId }) => {
+            setStrokes((prev) => prev.filter((s) => s.id !== strokeId));
+            setSessionStrokeStack((prev) => prev.filter((id) => id !== strokeId));
+            setSelectedStrokeIds((prev) => prev.filter((id) => id !== strokeId));
+          }),
           client.onIslandUpdated((patch) => {
             setIsland((prev) => (prev ? { ...prev, ...patch } : prev));
           }),
@@ -244,6 +335,7 @@ export default function IslandBoardPage() {
         }
         setOnlineUsers(joinRes.onlineUsers);
         if (joinRes.items) setItems(joinRes.items);
+        if (joinRes.strokes) setStrokes(joinRes.strokes);
         if (typeof joinRes.canEdit === 'boolean') {
           setIsland((prev) => (prev ? { ...prev, canEdit: joinRes.canEdit! } : prev));
         }
@@ -387,6 +479,33 @@ export default function IslandBoardPage() {
     [islandId]
   );
 
+  const handleToggleChecklistEntry = useCallback(
+    (item: IslandItem, entryId: string, done: boolean) => {
+      const prevData = item.data as ChecklistItemData;
+      const optimistic: IslandItem = {
+        ...item,
+        data: {
+          ...prevData,
+          entries: (prevData.entries || []).map((entry) =>
+            entry.id === entryId ? { ...entry, done } : entry
+          )
+        }
+      };
+      setItems((prev) => prev.map((it) => (it.id === item.id ? optimistic : it)));
+
+      void socketRef.current
+        ?.toggleChecklistEntry(islandId, item.id, entryId, done)
+        .then((saved) => {
+          setItems((prev) => prev.map((it) => (it.id === saved.id ? saved : it)));
+        })
+        .catch((err) => {
+          setItems((prev) => prev.map((it) => (it.id === item.id ? item : it)));
+          message.error(err instanceof Error ? err.message : '更新勾选状态失败');
+        });
+    },
+    [islandId]
+  );
+
   const handleDeleteItem = useCallback(
     (itemId: string) => {
       const backup = itemsRef.current;
@@ -480,6 +599,27 @@ export default function IslandBoardPage() {
     [createItem]
   );
 
+  const handleAddCountdown = useCallback(() => {
+    const color = NOTE_PALETTE[itemsRef.current.length % NOTE_PALETTE.length];
+    void createItem('countdown', 220, 176, {
+      title: '下一个期待的日子',
+      targetDate: formatOffsetDateIso(7),
+      color
+    });
+  }, [createItem]);
+
+  const handleAddChecklist = useCallback(() => {
+    const color = NOTE_PALETTE[(itemsRef.current.length + 3) % NOTE_PALETTE.length];
+    void createItem('checklist', 248, 268, {
+      title: '一起要做的小事',
+      entries: [
+        { id: `e1_${Date.now().toString(36)}`, text: '贴一张喜欢的照片', done: false },
+        { id: `e2_${Date.now().toString(36)}`, text: '留下一句悄悄话', done: false }
+      ],
+      color
+    });
+  }, [createItem]);
+
   const handleUploadFiles = useCallback(
     async (files: File[], center?: IslandPoint) => {
       if (!island?.canEdit) {
@@ -531,7 +671,130 @@ export default function IslandBoardPage() {
     [createItem]
   );
 
-  // Keyboard Delete/Backspace & Escape
+  const handleStrokeProgress = useCallback(
+    (payload: {
+      strokeId: string;
+      tool: IslandStroke['tool'];
+      color: string;
+      size: number;
+      opacity: number;
+      points: number[];
+    }) => {
+      socketRef.current?.sendStrokeProgress(islandId, payload);
+    },
+    [islandId]
+  );
+
+  const handleCommitStroke = useCallback(
+    (strokeInput: IslandStrokeInput, tempStrokeId: string) => {
+      if (!island?.canEdit) return;
+      void socketRef.current
+        ?.commitStroke(islandId, strokeInput, tempStrokeId)
+        .then((saved) => {
+          setStrokes((prev) =>
+            prev.some((s) => s.id === saved.id)
+              ? prev.map((s) => (s.id === saved.id ? saved : s))
+              : [...prev, saved]
+          );
+          setSessionStrokeStack((prev) => [...prev, saved.id]);
+        })
+        .catch((err) => {
+          message.error(err instanceof Error ? err.message : '保存涂鸦失败');
+        });
+    },
+    [island?.canEdit, islandId]
+  );
+
+  const handleDeleteStroke = useCallback(
+    (strokeId: string) => {
+      const target = strokesRef.current.find((s) => s.id === strokeId);
+      if (!target) return;
+      erasingIdsRef.current.add(strokeId);
+      setStrokes((prev) => prev.filter((s) => s.id !== strokeId));
+      setSessionStrokeStack((prev) => prev.filter((id) => id !== strokeId));
+
+      void socketRef.current
+        ?.deleteStroke(islandId, strokeId)
+        .catch((err) => {
+          setStrokes((prev) => (prev.some((s) => s.id === target.id) ? prev : [...prev, target]));
+          message.error(err instanceof Error ? err.message : '擦除失败');
+        })
+        .finally(() => {
+          erasingIdsRef.current.delete(strokeId);
+        });
+    },
+    [islandId]
+  );
+
+  const handleEraseAt = useCallback(
+    (worldPt: IslandPoint, radius: number) => {
+      if (!island?.canEdit) return;
+      for (let i = strokesRef.current.length - 1; i >= 0; i -= 1) {
+        const stroke = strokesRef.current[i];
+        if (erasingIdsRef.current.has(stroke.id)) continue;
+        if (!hitTestStroke(stroke, worldPt.x, worldPt.y, radius)) continue;
+        handleDeleteStroke(stroke.id);
+      }
+    },
+    [handleDeleteStroke, island?.canEdit]
+  );
+
+  const handleTransformStrokes = useCallback(
+    (patches: IslandStrokeTransformPatch[], persist: boolean) => {
+      if (!island?.canEdit || patches.length === 0) return;
+      const byId = new Map(patches.map((p) => [p.strokeId, p]));
+      setStrokes((prev) =>
+        prev.map((s) => {
+          const patch = byId.get(s.id);
+          if (!patch) return s;
+          return {
+            ...s,
+            points: patch.points,
+            bbox: patch.bbox || computeBBox(patch.points),
+            ...(patch.size !== undefined ? { size: patch.size } : {})
+          };
+        })
+      );
+
+      void socketRef.current
+        ?.transformStrokes(islandId, patches, persist)
+        .then((savedList) => {
+          if (!savedList || savedList.length === 0) return;
+          const savedMap = new Map(savedList.map((s) => [s.id, s]));
+          setStrokes((prev) => prev.map((s) => savedMap.get(s.id) || s));
+        })
+        .catch((err) => {
+          if (persist) {
+            message.error(err instanceof Error ? err.message : '同步涂鸦位置失败');
+          }
+        });
+    },
+    [island?.canEdit, islandId]
+  );
+
+  const handleDeleteStrokes = useCallback(
+    (strokeIds: string[]) => {
+      if (!island?.canEdit || strokeIds.length === 0) return;
+      for (const strokeId of strokeIds) {
+        if (strokesRef.current.some((s) => s.id === strokeId)) {
+          handleDeleteStroke(strokeId);
+        }
+      }
+      setSelectedStrokeIds([]);
+    },
+    [handleDeleteStroke, island?.canEdit]
+  );
+
+  const handleUndoStroke = useCallback(() => {
+    setSessionStrokeStack((prev) => {
+      if (prev.length === 0) return prev;
+      const lastId = prev[prev.length - 1];
+      handleDeleteStroke(lastId);
+      return prev.slice(0, -1);
+    });
+  }, [handleDeleteStroke]);
+
+  // Keyboard Delete/Backspace, Escape & Undo
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const active = document.activeElement as HTMLElement | null;
@@ -542,7 +805,21 @@ export default function IslandBoardPage() {
         return;
       }
       if (event.key === 'Escape') {
-        setSelectedItemId(null);
+        if (selectedStrokeIds.length > 0) {
+          setSelectedStrokeIds([]);
+        } else if (doodleActive) {
+          setDoodleActive(false);
+        } else {
+          setSelectedItemId(null);
+        }
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey && doodleActive) {
+        if (sessionStrokeStack.length > 0) {
+          event.preventDefault();
+          handleUndoStroke();
+        }
+      } else if ((event.key === 'Delete' || event.key === 'Backspace') && doodleActive && selectedStrokeIds.length > 0 && island?.canEdit) {
+        event.preventDefault();
+        handleDeleteStrokes(selectedStrokeIds);
       } else if ((event.key === 'Delete' || event.key === 'Backspace') && selectedItemId && island?.canEdit) {
         const target = itemsRef.current.find((it) => it.id === selectedItemId);
         if (
@@ -557,7 +834,7 @@ export default function IslandBoardPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPublicKey, handleDeleteItem, island, selectedItemId]);
+  }, [currentPublicKey, doodleActive, handleDeleteItem, handleDeleteStrokes, handleUndoStroke, island, selectedItemId, selectedStrokeIds, sessionStrokeStack.length]);
 
   // Zoom controls centered on screen center
   const zoomBy = useCallback(
@@ -618,11 +895,16 @@ export default function IslandBoardPage() {
     });
   }, [island?.members, island?.owner, items, onlineUsers]);
 
+  const remoteLiveStrokeList = useMemo(
+    () => Array.from(remoteLiveStrokes.values()),
+    [remoteLiveStrokes]
+  );
+
   // Keep local cache fresh for instant subsequent loads
   useEffect(() => {
     if (!island) return;
-    writeCachedIsland(getIslandCacheUuid(), { ...island, items });
-  }, [island, items]);
+    writeCachedIsland(getIslandCacheUuid(), { ...island, items, strokes });
+  }, [island, items, strokes]);
 
   const handleCopyInvite = useCallback(async () => {
     if (!island?.inviteToken) return;
@@ -665,9 +947,10 @@ export default function IslandBoardPage() {
   }
 
   const visibleOnlinePeers = onlineUsers.filter((u) => u.socketId !== selfSocketId);
+  const localSkinAttr = island.skin && island.skin !== 'inherit' ? island.skin : undefined;
 
   return (
-    <main className={styles.pageShell}>
+    <main className={styles.pageShell} data-skin={localSkinAttr}>
       <TopBar
         backHref="/island"
         backLabel="天空群岛"
@@ -728,12 +1011,21 @@ export default function IslandBoardPage() {
                 />
               </Tooltip>
             ) : null}
+
+            <ThemeToggle />
           </div>
         }
       />
 
       <InfiniteCanvas
         items={resolvedItems}
+        strokes={strokes}
+        remoteLiveStrokes={remoteLiveStrokeList}
+        doodleActive={doodleActive}
+        doodleVisible={doodleVisible}
+        doodleBrush={doodleBrush}
+        selectedStrokeIds={selectedStrokeIds}
+        paper={island.paper || 'dot'}
         onlineUsers={onlineUsers}
         selfSocketId={selfSocketId}
         selfColor={selfColor}
@@ -750,9 +1042,16 @@ export default function IslandBoardPage() {
         onLockItem={handleLockItem}
         onMoveItem={handleMoveItem}
         onUpdateItemData={handleUpdateItemData}
+        onToggleChecklistEntry={handleToggleChecklistEntry}
         onBringToFront={handleBringToFront}
         onSendToBack={handleSendToBack}
         onDeleteItem={handleDeleteItem}
+        onStrokeProgress={handleStrokeProgress}
+        onCommitStroke={handleCommitStroke}
+        onSelectStrokes={setSelectedStrokeIds}
+        onTransformStrokes={handleTransformStrokes}
+        onDeleteStrokes={handleDeleteStrokes}
+        onEraseAt={handleEraseAt}
         onPasteText={(text, pos) => handleAddNote(text, pos)}
         onUploadFiles={(files, pos) => void handleUploadFiles(files, pos)}
       />
@@ -761,7 +1060,33 @@ export default function IslandBoardPage() {
         canEdit={island.canEdit}
         uploading={uploading}
         scale={viewport.scale}
+        doodleActive={doodleActive}
+        doodleVisible={doodleVisible}
+        doodleBrush={doodleBrush}
+        canUndoStroke={sessionStrokeStack.length > 0}
+        onToggleDoodle={() => {
+          setDoodleActive((prev) => {
+            const next = !prev;
+            if (next) {
+              setSelectedItemId(null);
+              setDoodleVisible(true);
+            } else {
+              setSelectedStrokeIds([]);
+            }
+            return next;
+          });
+        }}
+        onToggleDoodleVisible={() => setDoodleVisible((prev) => !prev)}
+        onChangeDoodleBrush={(next) => {
+          setDoodleBrush(next);
+          if (next.mode !== 'select') {
+            setSelectedStrokeIds([]);
+          }
+        }}
+        onUndoStroke={handleUndoStroke}
         onAddNote={() => handleAddNote()}
+        onAddCountdown={handleAddCountdown}
+        onAddChecklist={handleAddChecklist}
         onUploadFiles={(files) => void handleUploadFiles(files)}
         onAddSticker={handleAddSticker}
         onAddTape={handleAddTape}

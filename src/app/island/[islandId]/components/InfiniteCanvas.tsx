@@ -11,10 +11,27 @@ import {
 } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { clipboardImages } from '@/lib/clipboardImages';
-import type { IslandItem, IslandItemData, IslandOnlineUser } from '../../core/types';
-import type { IslandPoint } from '../../core/socket';
+import type {
+  IslandItem,
+  IslandItemData,
+  IslandOnlineUser,
+  IslandPaperKey,
+  IslandStroke
+} from '../../core/types';
+import type { IslandPoint, IslandStrokeInput, IslandStrokeTransformPatch } from '../../core/socket';
 import { CanvasItem } from './CanvasItem';
+import { DoodleLayer, type LiveStroke } from './DoodleLayer';
 import { PresenceLayer } from './PresenceLayer';
+import {
+  hitTestStroke,
+  normalizeRect,
+  pointsToSvgPath,
+  resolveBrushStrokeSpec,
+  simplifyPoints,
+  strokeIntersectsRect,
+  type DoodleBrushConfig,
+  type WorldRect
+} from './strokeUtils';
 import styles from '../island-canvas.module.css';
 
 export const MIN_CANVAS_SCALE = 0.35;
@@ -28,6 +45,13 @@ export interface CanvasViewportState {
 
 interface InfiniteCanvasProps {
   items: IslandItem[];
+  strokes: IslandStroke[];
+  remoteLiveStrokes: LiveStroke[];
+  doodleActive: boolean;
+  doodleVisible: boolean;
+  doodleBrush: DoodleBrushConfig;
+  selectedStrokeIds: string[];
+  paper?: IslandPaperKey;
   onlineUsers: IslandOnlineUser[];
   selfSocketId: string | null;
   selfColor: string;
@@ -47,9 +71,23 @@ interface InfiniteCanvasProps {
     patch: { x: number; y: number; w?: number; h?: number; rotation?: number; zIndex?: number; persist: boolean }
   ) => void;
   onUpdateItemData: (item: IslandItem, data: IslandItemData) => void;
+  onToggleChecklistEntry: (item: IslandItem, entryId: string, done: boolean) => void;
   onBringToFront: (itemId: string) => void;
   onSendToBack: (itemId: string) => void;
   onDeleteItem: (itemId: string) => void;
+  onStrokeProgress: (payload: {
+    strokeId: string;
+    tool: IslandStroke['tool'];
+    color: string;
+    size: number;
+    opacity: number;
+    points: number[];
+  }) => void;
+  onCommitStroke: (stroke: IslandStrokeInput, tempStrokeId: string) => void;
+  onSelectStrokes: (strokeIds: string[]) => void;
+  onTransformStrokes: (patches: IslandStrokeTransformPatch[], persist: boolean) => void;
+  onDeleteStrokes: (strokeIds: string[]) => void;
+  onEraseAt: (worldPoint: IslandPoint, radius: number) => void;
   onPasteText: (text: string, worldPos: IslandPoint) => void;
   onUploadFiles: (files: File[], worldPos: IslandPoint) => void;
 }
@@ -62,6 +100,13 @@ export function clampScale(scale: number): number {
 
 export function InfiniteCanvas({
   items,
+  strokes,
+  remoteLiveStrokes,
+  doodleActive,
+  doodleVisible,
+  doodleBrush,
+  selectedStrokeIds,
+  paper = 'dot',
   onlineUsers,
   selfSocketId,
   selfColor,
@@ -78,19 +123,50 @@ export function InfiniteCanvas({
   onLockItem,
   onMoveItem,
   onUpdateItemData,
+  onToggleChecklistEntry,
   onBringToFront,
   onSendToBack,
   onDeleteItem,
+  onStrokeProgress,
+  onCommitStroke,
+  onSelectStrokes,
+  onTransformStrokes,
+  onDeleteStrokes,
+  onEraseAt,
   onPasteText,
   onUploadFiles
 }: InfiniteCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const activePathRef = useRef<SVGPathElement | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [spacePressed, setSpacePressed] = useState(false);
   const [dragOverFiles, setDragOverFiles] = useState(false);
 
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+
+  const drawingRef = useRef<{
+    pointerId: number;
+    tempStrokeId: string;
+    tool: IslandStroke['tool'];
+    color: string;
+    size: number;
+    opacity: number;
+    points: number[];
+  } | null>(null);
+  const erasingPointerIdRef = useRef<number | null>(null);
+  const marqueeRef = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
+  const [marqueeRect, setMarqueeRect] = useState<WorldRect | null>(null);
+
+  const clearActivePath = useCallback(() => {
+    if (activePathRef.current) {
+      activePathRef.current.setAttribute('d', '');
+    }
+    drawingRef.current = null;
+    erasingPointerIdRef.current = null;
+    marqueeRef.current = null;
+    setMarqueeRect(null);
+  }, []);
 
   // Multi-touch pointer tracking for pinch-to-zoom & 1-finger pan
   const activePointers = useRef(new Map<number, { x: number; y: number }>());
@@ -163,6 +239,12 @@ export function InfiniteCanvas({
     if (!node) return;
 
     const handleWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && event.target instanceof HTMLElement) {
+        const scrollable = event.target.closest<HTMLElement>('[data-canvas-scrollable="true"]');
+        if (scrollable && scrollable.scrollHeight > scrollable.clientHeight + 1) {
+          return;
+        }
+      }
       event.preventDefault();
       const rect = node.getBoundingClientRect();
       const sx = event.clientX - rect.left;
@@ -231,6 +313,70 @@ export function InfiniteCanvas({
 
     if (activePointers.current.size === 1) {
       onSelectItem(null);
+
+      if (doodleActive && canEditBoard && !spacePressed) {
+        const worldPt = screenToWorld(event.clientX, event.clientY);
+        const rx = Math.round(worldPt.x * 10) / 10;
+        const ry = Math.round(worldPt.y * 10) / 10;
+
+        if (doodleBrush.mode === 'select') {
+          const hitRadius = 10 / viewportRef.current.scale;
+          let hitStroke: IslandStroke | null = null;
+          for (let i = strokes.length - 1; i >= 0; i -= 1) {
+            if (hitTestStroke(strokes[i], rx, ry, hitRadius)) {
+              hitStroke = strokes[i];
+              break;
+            }
+          }
+          if (hitStroke) {
+            if (event.shiftKey) {
+              const exists = selectedStrokeIds.includes(hitStroke.id);
+              onSelectStrokes(
+                exists
+                  ? selectedStrokeIds.filter((id) => id !== hitStroke!.id)
+                  : [...selectedStrokeIds, hitStroke.id]
+              );
+            } else {
+              onSelectStrokes([hitStroke.id]);
+            }
+            return;
+          }
+          onSelectStrokes([]);
+          marqueeRef.current = { pointerId: event.pointerId, startX: rx, startY: ry };
+          setMarqueeRect({ minX: rx, minY: ry, maxX: rx, maxY: ry });
+          return;
+        }
+
+        if (doodleBrush.mode === 'eraser') {
+          erasingPointerIdRef.current = event.pointerId;
+          onEraseAt({ x: rx, y: ry }, 16 / viewportRef.current.scale);
+          return;
+        }
+
+        const spec = resolveBrushStrokeSpec(doodleBrush);
+        const tempStrokeId = `tmp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+        drawingRef.current = {
+          pointerId: event.pointerId,
+          tempStrokeId,
+          tool: spec.tool,
+          color: spec.color,
+          size: spec.size,
+          opacity: spec.opacity,
+          points: [rx, ry]
+        };
+        if (activePathRef.current) {
+          activePathRef.current.setAttribute('stroke', spec.color);
+          activePathRef.current.setAttribute('stroke-width', String(spec.size));
+          activePathRef.current.setAttribute('stroke-opacity', String(spec.opacity));
+          activePathRef.current.setAttribute(
+            'class',
+            spec.tool === 'highlighter' ? styles.highlighterStroke : ''
+          );
+          activePathRef.current.setAttribute('d', pointsToSvgPath([rx, ry]));
+        }
+        return;
+      }
+
       panAnchor.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -241,6 +387,9 @@ export function InfiniteCanvas({
       pinchAnchor.current = null;
       setIsPanning(true);
     } else if (activePointers.current.size === 2) {
+      // Two fingers always yield to pinch-to-zoom / pan
+      clearActivePath();
+
       const pts = Array.from(activePointers.current.values());
       const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y) || 1;
       const midX = (pts[0].x + pts[1].x) / 2;
@@ -286,6 +435,43 @@ export function InfiniteCanvas({
       return;
     }
 
+    if (marqueeRef.current && marqueeRef.current.pointerId === event.pointerId) {
+      const rx = Math.round(worldPt.x * 10) / 10;
+      const ry = Math.round(worldPt.y * 10) / 10;
+      setMarqueeRect(normalizeRect(marqueeRef.current.startX, marqueeRef.current.startY, rx, ry));
+      return;
+    }
+
+    if (erasingPointerIdRef.current === event.pointerId) {
+      onEraseAt(worldPt, 16 / viewportRef.current.scale);
+      return;
+    }
+
+    if (drawingRef.current && drawingRef.current.pointerId === event.pointerId) {
+      const current = drawingRef.current;
+      const rx = Math.round(worldPt.x * 10) / 10;
+      const ry = Math.round(worldPt.y * 10) / 10;
+      const len = current.points.length;
+      const prevX = current.points[len - 2];
+      const prevY = current.points[len - 1];
+      const minStep = Math.max(1.2, 2 / viewportRef.current.scale);
+      if (Math.hypot(rx - prevX, ry - prevY) < minStep) return;
+
+      current.points.push(rx, ry);
+      if (activePathRef.current) {
+        activePathRef.current.setAttribute('d', pointsToSvgPath(current.points));
+      }
+      onStrokeProgress({
+        strokeId: current.tempStrokeId,
+        tool: current.tool,
+        color: current.color,
+        size: current.size,
+        opacity: current.opacity,
+        points: current.points
+      });
+      return;
+    }
+
     if (panAnchor.current && panAnchor.current.pointerId === event.pointerId) {
       const dx = event.clientX - panAnchor.current.startX;
       const dy = event.clientY - panAnchor.current.startY;
@@ -303,7 +489,52 @@ export function InfiniteCanvas({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    if (activePointers.current.size === 1) {
+    if (marqueeRef.current && marqueeRef.current.pointerId === event.pointerId) {
+      const start = marqueeRef.current;
+      marqueeRef.current = null;
+      const worldPt = screenToWorld(event.clientX, event.clientY);
+      const rect = normalizeRect(start.startX, start.startY, worldPt.x, worldPt.y);
+      setMarqueeRect(null);
+      if (event.type === 'pointerup' && (rect.maxX - rect.minX > 4 || rect.maxY - rect.minY > 4)) {
+        const matched = strokes.filter((s) => strokeIntersectsRect(s, rect)).map((s) => s.id);
+        onSelectStrokes(matched);
+      }
+    }
+
+    if (erasingPointerIdRef.current === event.pointerId) {
+      erasingPointerIdRef.current = null;
+    }
+
+    if (drawingRef.current && drawingRef.current.pointerId === event.pointerId) {
+      const finished = drawingRef.current;
+      clearActivePath();
+      if (event.type === 'pointerup' && finished.points.length >= 2) {
+        const rawPoints =
+          finished.points.length === 2
+            ? [
+                finished.points[0],
+                finished.points[1],
+                Math.round((finished.points[0] + 0.2) * 10) / 10,
+                finished.points[1]
+              ]
+            : finished.points;
+        const simplified = simplifyPoints(rawPoints, 1.2, 300);
+        if (simplified.length >= 4) {
+          onCommitStroke(
+            {
+              tool: finished.tool,
+              color: finished.color,
+              size: finished.size,
+              opacity: finished.opacity,
+              points: simplified
+            },
+            finished.tempStrokeId
+          );
+        }
+      }
+    }
+
+    if (activePointers.current.size === 1 && !doodleActive) {
       const [remainingId, pt] = Array.from(activePointers.current.entries())[0];
       panAnchor.current = {
         pointerId: remainingId,
@@ -373,21 +604,57 @@ export function InfiniteCanvas({
     return map;
   }, [onlineUsers, selfSocketId]);
 
+  const dotGridSize = Math.max(12, Math.round(24 * viewport.scale));
   const gridSize = Math.max(14, Math.round(28 * viewport.scale));
+  const majorGridSize = gridSize * 5;
+  const lineSize = Math.max(18, Math.round(34 * viewport.scale));
+
+  const paperBgStyle =
+    paper === 'blank' || paper === 'dot'
+      ? {}
+      : paper === 'craft'
+        ? {
+            backgroundPosition: `${viewport.x}px ${viewport.y}px`
+          }
+        : paper === 'lined'
+          ? {
+              backgroundSize: `100% ${lineSize}px`,
+              backgroundPosition: `0px ${viewport.y}px`
+            }
+          : paper === 'grid'
+            ? {
+                backgroundSize: `${gridSize}px ${gridSize}px, ${gridSize}px ${gridSize}px, ${majorGridSize}px ${majorGridSize}px, ${majorGridSize}px ${majorGridSize}px`,
+                backgroundPosition: `${viewport.x}px ${viewport.y}px`
+              }
+            : {};
+
+  const viewBounds = useMemo(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    const h = typeof window !== 'undefined' ? window.innerHeight : 900;
+    return {
+      minX: -viewport.x / viewport.scale,
+      minY: -viewport.y / viewport.scale,
+      maxX: (w - viewport.x) / viewport.scale,
+      maxY: (h - viewport.y) / viewport.scale
+    };
+  }, [viewport.scale, viewport.x, viewport.y]);
+
+  const isDoodleInteracting = doodleActive && canEditBoard && !spacePressed;
 
   return (
     <div
       ref={containerRef}
+      data-paper={paper}
       className={[
         styles.canvasViewport,
-        isPanning || spacePressed ? styles.canvasViewportPanning : ''
+        isPanning || spacePressed ? styles.canvasViewportPanning : '',
+        isDoodleInteracting ? styles.canvasViewportDoodle : '',
+        isDoodleInteracting && doodleBrush.mode === 'select' ? styles.canvasViewportSelect : '',
+        isDoodleInteracting && doodleBrush.mode === 'eraser' ? styles.canvasViewportEraser : ''
       ]
         .filter(Boolean)
         .join(' ')}
-      style={{
-        backgroundSize: `${gridSize}px ${gridSize}px`,
-        backgroundPosition: `${viewport.x}px ${viewport.y}px`
-      }}
+      style={paperBgStyle}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUpOrCancel}
@@ -396,6 +663,17 @@ export function InfiniteCanvas({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      {paper === 'dot' ? (
+        <div
+          className={styles.canvasDotGrid}
+          style={{
+            backgroundSize: `${dotGridSize}px ${dotGridSize}px`,
+            backgroundPosition: `${viewport.x}px ${viewport.y}px`
+          }}
+          aria-hidden="true"
+        />
+      ) : null}
+
       <div
         className={[styles.worldLayer, smoothViewport ? styles.worldLayerSmooth : '']
           .filter(Boolean)
@@ -454,12 +732,28 @@ export function InfiniteCanvas({
               onLock={onLockItem}
               onMove={onMoveItem}
               onUpdateData={onUpdateItemData}
+              onToggleChecklistEntry={onToggleChecklistEntry}
               onBringToFront={onBringToFront}
               onSendToBack={onSendToBack}
               onDelete={onDeleteItem}
             />
           );
         })}
+
+        <DoodleLayer
+          strokes={strokes}
+          remoteLiveStrokes={remoteLiveStrokes}
+          activePathRef={activePathRef}
+          visible={doodleVisible}
+          scale={viewport.scale}
+          selectMode={isDoodleInteracting && doodleBrush.mode === 'select'}
+          canEditBoard={canEditBoard}
+          selectedStrokeIds={selectedStrokeIds}
+          marqueeRect={marqueeRect}
+          viewBounds={viewBounds}
+          onTransformStrokes={onTransformStrokes}
+          onDeleteStrokes={onDeleteStrokes}
+        />
 
         <PresenceLayer onlineUsers={onlineUsers} selfSocketId={selfSocketId} />
       </div>
