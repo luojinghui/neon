@@ -405,8 +405,33 @@ export function InfiniteCanvas({
         }}
       >
         {/* Island center (0, 0) subtle landmark */}
-        <div className={styles.islandOrigin}>
-          <span className={styles.islandOriginLabel}>浮岛中心</span>
+        <div className={styles.islandOrigin} aria-hidden="true">
+          <svg
+            className={styles.islandOriginSvg}
+            viewBox="0 0 240 240"
+            fill="none"
+          >
+            <circle
+              cx="120"
+              cy="120"
+              r="84"
+              className={styles.islandOriginRing}
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx="120"
+              cy="120"
+              r="10"
+              className={styles.islandOriginCoreHalo}
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx="120"
+              cy="120"
+              r="3"
+              className={styles.islandOriginCoreDot}
+            />
+          </svg>
         </div>
 
         {items.map((item) => {

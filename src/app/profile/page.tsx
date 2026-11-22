@@ -41,7 +41,7 @@ export default function MyProfileRedirectPage() {
           </>
         ) : (
           <div className="inline-flex items-center gap-2 text-sm text-foreground-secondary">
-            <LoadingOutlined className="text-primary" /> 正在认领你的星球身份…
+            <LoadingOutlined className="text-primary" /> 加载中…
           </div>
         )}
       </div>
