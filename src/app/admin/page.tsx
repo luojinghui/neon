@@ -44,11 +44,13 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { AdminApiError, adminRequest } from './client';
 import { DirectDataTable, DoodleShareTable, MomentDataTable } from './ContentTables';
+import { IslandManagement } from './IslandManagement';
 import { PushManagement } from './PushManagement';
+import { Icon } from '@/components/ui/icon';
 import type { AdminCloudItem, AdminDoodleItem, AdminIdentity, AdminProfileItem, AdminRoomAccessItem, AdminRoomItem } from './types';
 
 type Notice = { type: 'error' | 'success'; text: string } | null;
-type AdminTab = 'cloud' | 'rooms' | 'access' | 'users' | 'doodles' | 'directs' | 'moments' | 'shares' | 'push';
+type AdminTab = 'cloud' | 'rooms' | 'islands' | 'access' | 'users' | 'doodles' | 'directs' | 'moments' | 'shares' | 'push';
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';
@@ -692,7 +694,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
   const remove = async (item: AdminDoodleItem) => {
     try {
       await adminRequest<void>(`/doodles/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
-      setNotice({ type: 'success', text: `漫游作品“${item.title}”的原图、成品、审核记录及公开分享已删除` });
+      setNotice({ type: 'success', text: `画镜作品“${item.title}”的原图、成品、审核记录及公开分享已删除` });
       await load();
     } catch (error) {
       handleAuthError(error, onUnauthorized);
@@ -703,7 +705,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
   const moderate = async (item: AdminDoodleItem, action: 'approved' | 'rejected') => {
     try {
       await adminRequest(`/doodles/${encodeURIComponent(item.id)}`, { method: 'PATCH', body: JSON.stringify({ action }) });
-      setNotice({ type: 'success', text: action === 'approved' ? `漫游作品“${item.title}”已审核通过` : `漫游作品“${item.title}”已驳回，原图、成品及公开分享已撤销` });
+      setNotice({ type: 'success', text: action === 'approved' ? `画镜作品“${item.title}”已审核通过` : `画镜作品“${item.title}”已驳回，原图、成品及公开分享已撤销` });
       await load();
     } catch (error) {
       handleAuthError(error, onUnauthorized);
@@ -770,7 +772,7 @@ function DoodleDataTable({ refreshToken, onUnauthorized, setNotice }: DataTableP
     <section>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">漫游作品审核</h2>
+          <h2 className="text-lg font-semibold text-foreground">画镜作品审核</h2>
           <p className="mt-1 text-xs text-foreground-muted">展示每次拍摄的原始图片与当前加工成品，默认保留 30 天，可审核通过、驳回删除或永久删除。</p>
         </div>
         <div className="flex gap-2 text-xs"><Tag color="processing">待审核 {stats.pending}</Tag><Tag>记录 {stats.total}</Tag></div>
@@ -789,13 +791,14 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
   const tabs: Array<{ key: AdminTab; label: string; icon: React.ReactNode }> = [
     { key: 'cloud', label: '云传数据', icon: <CloudOutlined /> },
     { key: 'rooms', label: '聊天室', icon: <GlobalOutlined /> },
+    { key: 'islands', label: '浮岛数据', icon: <Icon name="compass" size="sm" /> },
     { key: 'directs', label: '全部私信', icon: <SolutionOutlined /> },
     { key: 'moments', label: '星语管理', icon: <PictureOutlined /> },
     { key: 'access', label: '访问申请', icon: <SolutionOutlined /> },
     { key: 'users', label: '人员数据', icon: <TeamOutlined /> },
     { key: 'push', label: '消息推送', icon: <BellOutlined /> },
-    { key: 'doodles', label: '漫游作品', icon: <PictureOutlined /> },
-    { key: 'shares', label: '相机分享链接', icon: <PictureOutlined /> }
+    { key: 'doodles', label: '画镜作品', icon: <PictureOutlined /> },
+    { key: 'shares', label: '画镜分享链接', icon: <PictureOutlined /> }
   ];
 
   useEffect(() => {
@@ -856,6 +859,7 @@ function Dashboard({ admin, onLogout, onUnauthorized }: { admin: AdminIdentity; 
           {tab === 'moments' && <MomentDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
           {tab === 'shares' && <DoodleShareTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}
           {tab === 'rooms' && <RoomDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
+          {tab === 'islands' && <IslandManagement refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'access' && <RoomAccessTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'users' && <UserDataTable refreshToken={refreshToken} onUnauthorized={onUnauthorized} setNotice={setNotice} />}
           {tab === 'push' && <PushManagement refreshToken={refreshToken} onUnauthorized={onUnauthorized} />}

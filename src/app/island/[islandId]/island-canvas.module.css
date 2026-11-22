@@ -1,0 +1,912 @@
+/* Island infinite collage canvas styles.
+ * UI chrome strictly uses semantic tokens from src/styles/index.css.
+ * Stationery sticky notes, polaroid white paper frame, and washi tape/stickers
+ * are content-data palettes explicitly documented below. */
+
+.pageShell {
+  position: relative;
+  width: 100%;
+  height: var(--app-content-height);
+  overflow: hidden;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Status / unauthorized / loading full-canvas view */
+.stateCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+}
+
+.stateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(400px, 100%);
+  padding: 28px 24px;
+  border-radius: var(--radius-xl);
+  background-color: hsl(var(--surface));
+  box-shadow: var(--shadow-card);
+}
+
+.stateTitle {
+  margin: 0;
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(var(--foreground));
+}
+
+.stateDesc {
+  margin: 0;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  color: hsl(var(--foreground-secondary));
+}
+
+/* Top bar title & online member avatars */
+.topBarTitleWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.topBarTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-body-lg);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(var(--foreground));
+}
+
+.statusDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: hsl(var(--success));
+}
+
+.statusDotOffline {
+  background-color: hsl(var(--warning));
+}
+
+.readOnlyTag {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: hsl(var(--surface-inset));
+  color: hsl(var(--foreground-secondary));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+.onlineStack {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.avatarChip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--member-color, hsl(var(--primary)));
+  border-radius: 9999px;
+  background-color: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  cursor: default;
+}
+
+.avatarChip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Infinite canvas viewport */
+.canvasViewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--border-hover) / 0.55) 1.25px,
+    transparent 1.25px
+  );
+}
+
+.canvasViewportPanning {
+  cursor: grabbing;
+}
+
+.worldLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.worldLayerSmooth {
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Subtle landmark at island center (0, 0) */
+.islandOrigin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    hsl(var(--primary) / 0.08) 0%,
+    hsl(var(--accent) / 0.04) 45%,
+    transparent 72%
+  );
+  border: 1px dashed hsl(var(--border-hover) / 0.45);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.islandOriginLabel {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background-color: hsl(var(--surface) / 0.72);
+  color: hsl(var(--foreground-muted));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  letter-spacing: 0.04em;
+}
+
+/* Drag-and-drop image overlay */
+.dropOverlay {
+  position: absolute;
+  inset: 16px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed hsl(var(--primary));
+  border-radius: var(--radius-xl);
+  background-color: hsl(var(--primary-soft) / 0.85);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.dropOverlayText {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  background-color: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  font-size: var(--font-size-body-lg);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-md);
+}
+
+/* Canvas item wrapper */
+.canvasItem {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: center center;
+  touch-action: none;
+  cursor: grab;
+  transition: box-shadow 180ms ease;
+}
+
+.canvasItemReadonly {
+  cursor: default;
+}
+
+.canvasItemDragging {
+  cursor: grabbing;
+}
+
+.canvasItemDragging .itemBody {
+  filter: drop-shadow(0 18px 28px hsl(var(--shadow-color) / 0.24));
+}
+
+.itemBody {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.selectionRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--focus-color, hsl(var(--primary)));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-color, hsl(var(--primary))) 22%, transparent);
+  pointer-events: none;
+}
+
+.focusRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--focus-color, hsl(var(--accent)));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-color, hsl(var(--accent))) 18%, transparent);
+  pointer-events: none;
+}
+
+.focusBadgeStack {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.focusBadgeStackBottom {
+  top: auto;
+  bottom: -28px;
+}
+
+.focusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: var(--focus-color, hsl(var(--primary)));
+  color: hsl(var(--primary-foreground));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.lockRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--lock-color, hsl(var(--accent)));
+  pointer-events: none;
+}
+
+.lockBadge {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: var(--lock-color, hsl(var(--accent)));
+  color: hsl(var(--primary-foreground));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Selection floating toolbar above item */
+.itemActionBar {
+  position: absolute;
+  top: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--surface));
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  z-index: 5;
+}
+
+/* Resize handle (bottom-right) */
+.resizeHandle {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 2px solid var(--focus-color, hsl(var(--primary)));
+  background-color: hsl(var(--surface));
+  box-shadow: var(--shadow-sm);
+  cursor: nwse-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  z-index: 4;
+}
+
+.resizeHandle::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--focus-color, hsl(var(--primary)));
+  border-bottom: 2px solid var(--focus-color, hsl(var(--primary)));
+}
+
+/* Rotate handle (top-center) */
+.rotateHandleWrap {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 4;
+}
+
+.rotateHandle {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 2px solid var(--focus-color, hsl(var(--primary)));
+  background-color: hsl(var(--surface));
+  color: var(--focus-color, hsl(var(--primary)));
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  padding: 0;
+}
+
+.rotateHandle:active {
+  cursor: grabbing;
+}
+
+.rotateStem {
+  width: 1.5px;
+  height: 8px;
+  background-color: var(--focus-color, hsl(var(--primary)));
+  pointer-events: none;
+}
+
+/* ============================================================================
+ * Content-Data Palette: Stationery Sticky Notes (5 pastel journal tones)
+ * Intentionally independent of UI skin; tuned for crisp readability in light & dark.
+ * ============================================================================ */
+.noteCard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 10px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.noteCard[data-color='sun'] {
+  background-color: #fff4c2;
+  color: #3d3112;
+}
+.noteCard[data-color='sky'] {
+  background-color: #dff1ff;
+  color: #17344a;
+}
+.noteCard[data-color='blush'] {
+  background-color: #ffe3ea;
+  color: #4a1e2a;
+}
+.noteCard[data-color='mint'] {
+  background-color: #ddf7ea;
+  color: #163d2d;
+}
+.noteCard[data-color='lavender'] {
+  background-color: #ece3ff;
+  color: #2e1f4d;
+}
+
+:global(.dark) .noteCard {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+:global(.dark) .noteCard[data-color='sun'] {
+  background-color: #4a3f1d;
+  color: #fff3c4;
+}
+:global(.dark) .noteCard[data-color='sky'] {
+  background-color: #1d384c;
+  color: #dff1ff;
+}
+:global(.dark) .noteCard[data-color='blush'] {
+  background-color: #4b2430;
+  color: #ffe4ec;
+}
+:global(.dark) .noteCard[data-color='mint'] {
+  background-color: #1c3f31;
+  color: #dcf7ea;
+}
+:global(.dark) .noteCard[data-color='lavender'] {
+  background-color: #332452;
+  color: #eee5ff;
+}
+
+.noteTextarea {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  padding: 0;
+}
+
+.noteTextDisplay {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.notePlaceholder {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.noteFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  margin-top: 6px;
+  border-top: 1px dashed currentColor;
+  border-top-color: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.noteAuthor {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  opacity: 0.72;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteSwatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+
+.noteSwatchBtn {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.noteSwatchBtn:hover {
+  transform: scale(1.18);
+}
+
+.noteSwatchBtn[data-active='true'] {
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+/* ============================================================================
+ * Content-Data Palette: Classic Polaroid Photo Frame
+ * Classic warm white paper border with handwritten-style caption chin.
+ * ============================================================================ */
+.polaroidCard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 14px;
+  border-radius: var(--radius-sm);
+  background-color: #fffdf9;
+  color: #2c2520;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+:global(.dark) .polaroidCard {
+  background-color: #f4efe8;
+  color: #29221d;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.polaroidPhotoBox {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border-radius: 2px; /* Content geometry: crisp photographic print edge inside polaroid frame */
+  overflow: hidden;
+  background-color: #e9e4dc;
+}
+
+.polaroidPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.polaroidChin {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 10px;
+  min-height: 44px;
+}
+
+.polaroidCaptionInput {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  color: inherit;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  text-align: center;
+}
+
+.polaroidCaptionText {
+  width: 100%;
+  min-height: 21px;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.polaroidCaptionEmpty {
+  opacity: 0.45;
+  font-size: var(--font-size-caption);
+}
+
+.polaroidMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  opacity: 0.58;
+}
+
+/* ============================================================================
+ * Content-Data Palette: Stickers & Semi-Transparent Washi Tape
+ * ============================================================================ */
+.stickerRoot {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 3px 6px hsl(var(--shadow-color) / 0.14));
+}
+
+.stickerSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tapeRoot {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.86;
+}
+
+/* Presence cursors in world space */
+.presenceLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.remoteCursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  transition: transform 85ms linear;
+  will-change: transform;
+}
+
+.remoteCursorTag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+  margin-top: -4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: var(--cursor-color, hsl(var(--primary)));
+  color: hsl(var(--primary-foreground));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Bottom floating toolbar */
+.toolbarDock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--app-safe-bottom) + 16px);
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100vw - 24px);
+  padding: 6px 8px;
+  border-radius: var(--radius-xl);
+  background-color: hsl(var(--surface) / 0.92);
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 20px;
+  margin-inline: 4px;
+  background-color: hsl(var(--border));
+  flex: none;
+}
+
+.zoomLabel {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+}
+
+/* Sticker & Tape Picker Popover */
+.pickerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pickerSectionTitle {
+  margin: 0 0 6px;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-semibold);
+  color: hsl(var(--foreground-secondary));
+}
+
+.stickerGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stickerPickBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--surface-inset));
+  color: hsl(var(--foreground-secondary));
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 140ms ease, border-color 140ms ease;
+}
+
+.stickerPickBtn:hover {
+  background-color: hsl(var(--surface-hover));
+  border-color: hsl(var(--border-hover));
+  transform: translateY(-1px);
+}
+
+.stickerPickBtn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+
+.tapeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tapePickBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--surface-inset));
+  color: hsl(var(--foreground-secondary));
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.tapePickBtn:hover {
+  background-color: hsl(var(--surface-hover));
+  border-color: hsl(var(--border-hover));
+}
+
+.tapePickBtn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+
+/* Settings Modal Form */
+.settingsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--foreground));
+}
+
+.fieldHint {
+  font-size: var(--font-size-caption);
+  color: hsl(var(--foreground-muted));
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--surface-inset));
+}
+
+.inviteBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--surface-inset));
+}
+
+.inviteCodeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.passcodeValue {
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.14em;
+  color: hsl(var(--primary));
+}
+
+/* Empty hint floating gently near top */
+.emptyHint {
+  position: fixed;
+  top: calc(var(--app-safe-top) + var(--app-topbar-height) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background-color: hsl(var(--surface) / 0.88);
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground-secondary));
+  font-size: var(--font-size-caption);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .toolbarDock {
+    bottom: calc(var(--app-safe-bottom) + 10px);
+    padding: 5px 6px;
+    gap: 2px;
+  }
+
+  .zoomLabel {
+    min-width: 40px;
+  }
+
+  .readOnlyTag {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .worldLayerSmooth,
+  .remoteCursor,
+  .avatarChip,
+  .stickerPickBtn,
+  .noteSwatchBtn {
+    transition: none;
+  }
+}

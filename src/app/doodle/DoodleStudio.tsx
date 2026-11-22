@@ -643,7 +643,7 @@ export default function DoodleStudio() {
       if (!blob) return;
       const url = URL.createObjectURL(blob), anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `漫游相机-${title || '今日限定角色'}-${new Date().toISOString().slice(0, 10)}.jpg`;
+      anchor.download = `画镜-${title || '今日限定角色'}-${new Date().toISOString().slice(0, 10)}.jpg`;
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
       message.success('图片已开始保存');
@@ -749,7 +749,7 @@ export default function DoodleStudio() {
           });
         }}
       />
-      <TopBar middle="漫游相机" position="sticky" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
+      <TopBar middle="画镜" position="sticky" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
 
       <div className="app-content-width py-6 sm:py-8">
         {mode === 'welcome' && (
@@ -841,7 +841,7 @@ export default function DoodleStudio() {
           <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_390px]">
             <div className="mx-auto w-full max-w-[620px] lg:sticky lg:top-24 lg:max-w-[min(620px,calc((100vh-170px)*0.75))]">
               <div className="relative overflow-hidden rounded-xl border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
-                <ImagePreview images={[{ id: 'result', url: resultUrl, name: title }]} imageId="result" title="漫游相机" className={`w-full ${previewRef.current?.pending || busy ? 'pointer-events-none' : ''}`}>
+                <ImagePreview images={[{ id: 'result', url: resultUrl, name: title }]} imageId="result" title="画镜" className={`w-full ${previewRef.current?.pending || busy ? 'pointer-events-none' : ''}`}>
                   <NextImage src={resultUrl} alt={`漫画涂鸦：${title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" onLoad={event => { if (event.currentTarget.src === resultUrlRef.current && !previewRef.current?.pending && previewCanvasRef.current) previewCanvasRef.current.style.opacity = '0'; }} />
                 </ImagePreview>
                 <canvas ref={previewCanvasRef} aria-hidden="true" className="doodle-live-preview pointer-events-none absolute inset-0 h-full w-full opacity-0" />

@@ -1,0 +1,588 @@
+/*
+ * 浮岛外景页面样式（极简有机等高线方案 / Topo & Apple Maps 质感）：
+ * - 呼应岛内拼贴画布的点阵底纹，叠加数学样条生成的疏密有机等高线与边缘羽化遮罩；
+ * - 全部颜色由全站语义变量派生，自动联动 .light / .dark 与 5 套 data-skin 皮肤；
+ * - 所有标签胶囊、弹窗与状态提示均严格遵循全站语义变量、四档圆角与六级字号。
+ */
+
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: var(--app-content-height);
+  min-height: 540px;
+  overflow: hidden;
+  color: hsl(var(--foreground));
+}
+
+/* ==================== 极简有机等高线背景层 ==================== */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: hsl(var(--background));
+}
+
+/* 温润干净的纸面底色 */
+.mapPaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 68% 54% at 50% 45%,
+      hsl(var(--surface) / 0.78) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 52% 44% at 14% 16%,
+      hsl(var(--primary) / 0.065) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 44% at 88% 84%,
+      hsl(var(--accent) / 0.065) 0%,
+      transparent 70%
+    ),
+    hsl(var(--background));
+}
+
+:global(.dark) .mapPaper {
+  background:
+    radial-gradient(
+      ellipse 64% 52% at 50% 45%,
+      hsl(var(--primary) / 0.09) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 50% 42% at 86% 84%,
+      hsl(var(--info) / 0.08) 0%,
+      transparent 70%
+    ),
+    hsl(var(--background));
+}
+
+/* 细腻点阵纹理（与岛内 InfiniteCanvas 同源，降低对比度避免与等高线抢戏） */
+.mapDotGrid {
+  position: absolute;
+  inset: -18px;
+  will-change: transform;
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--border-hover) / 0.42) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse 84% 80% at 50% 48%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 84% 80% at 50% 48%, #000 55%, transparent 100%);
+}
+
+:global(.dark) .mapDotGrid {
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--border-hover) / 0.28) 1px,
+    transparent 1px
+  );
+}
+
+.topoLayer {
+  position: absolute;
+  inset: -16px;
+  will-change: transform;
+}
+
+.topoSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 等高线两级层次：副等高线（极淡 0.85px）与主等高线（略清晰 1.15px） */
+.contourMinor {
+  fill: none;
+  stroke: hsl(var(--foreground) / 0.075);
+  stroke-width: 0.85;
+}
+
+.contourIndex {
+  fill: none;
+  stroke: hsl(var(--primary) / 0.2);
+  stroke-width: 1.15;
+}
+
+.contourIndexMuted {
+  fill: none;
+  stroke: hsl(var(--foreground) / 0.115);
+  stroke-width: 1.05;
+}
+
+.contourInnerFill {
+  fill: hsl(var(--primary) / 0.032);
+  stroke: hsl(var(--primary) / 0.16);
+  stroke-width: 0.9;
+}
+
+.contourIndexFill {
+  fill: hsl(var(--primary) / 0.022);
+  stroke: hsl(var(--primary) / 0.24);
+  stroke-width: 1.15;
+}
+
+:global(.dark) .contourMinor {
+  stroke: hsl(var(--foreground) / 0.095);
+}
+
+:global(.dark) .contourIndex {
+  stroke: hsl(var(--primary) / 0.26);
+}
+
+:global(.dark) .contourIndexMuted {
+  stroke: hsl(var(--foreground) / 0.145);
+}
+
+:global(.dark) .contourInnerFill {
+  fill: hsl(var(--primary) / 0.055);
+  stroke: hsl(var(--primary) / 0.22);
+}
+
+:global(.dark) .contourIndexFill {
+  fill: hsl(var(--primary) / 0.035);
+  stroke: hsl(var(--primary) / 0.32);
+}
+
+/* 主岛到好友岛的两端渐隐曲线航路 */
+.routeGroup {
+  color: hsl(var(--foreground-secondary) / 0.3);
+}
+
+.routeGroupActive {
+  color: hsl(var(--primary) / 0.68);
+}
+
+.seaRoute {
+  stroke-width: 1.15;
+  stroke-dasharray: 4 7;
+  stroke-linecap: round;
+}
+
+.seaRouteActive {
+  stroke-width: 1.4;
+  stroke-dasharray: 5 6;
+  stroke-linecap: round;
+  animation: routeFlow 18s linear infinite;
+}
+
+/* 顶/底轻渐晕 */
+.sceneVignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--background) / 0.26) 0%,
+    transparent 14%,
+    transparent 88%,
+    hsl(var(--shadow-color) / 0.04) 100%
+  );
+}
+
+:global(.dark) .sceneVignette {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--shadow-color) / 0.24) 0%,
+    transparent 16%,
+    transparent 86%,
+    hsl(var(--shadow-color) / 0.28) 100%
+  );
+}
+
+/* ==================== 主舞台与浮岛排布 ==================== */
+
+.main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  padding: calc(var(--app-topbar-height) + 8px) var(--app-page-gutter) 88px;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: var(--app-content-max);
+  margin-inline: auto;
+  min-height: 0;
+}
+
+.orbitCanvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centerSlot {
+  position: relative;
+  z-index: 3;
+  transform: translateY(-7%);
+}
+
+.orbitSlot {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+}
+
+/* ==================== 定制绘本浮岛节点 ==================== */
+
+.islandNode {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--radius-xl);
+  text-decoration: none;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
+  animation: floatBob 7.2s ease-in-out infinite;
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.islandNodeOwn {
+  animation-duration: 7.8s;
+}
+
+.islandNodeFriend {
+  animation-duration: 6.6s;
+}
+
+.islandNode:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 4px;
+}
+
+.islandArtWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .islandNode:hover .islandArtWrap {
+    transform: translateY(-6px) scale(1.035);
+  }
+
+  .islandNode:hover .islandMeta {
+    background: hsl(var(--surface) / 0.9);
+    border-color: hsl(var(--primary) / 0.36);
+  }
+
+  :global(.dark) .islandNode:hover .islandMeta {
+    background: hsl(var(--surface) / 0.8);
+    border-color: hsl(var(--primary) / 0.42);
+  }
+}
+
+.islandAura {
+  position: absolute;
+  inset: 14% 12% 18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.16) 0%, transparent 72%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+:global(.dark) .islandAura {
+  background: radial-gradient(circle, hsl(var(--primary) / 0.22) 0%, transparent 72%);
+}
+
+.islandImgOwn {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: clamp(232px, 26vw, 316px);
+  height: auto;
+  user-select: none;
+  filter: drop-shadow(0 18px 24px rgba(34, 58, 82, 0.24));
+  transition: filter 520ms ease;
+}
+
+.islandImgFriend {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: clamp(128px, 13.5vw, 168px);
+  height: auto;
+  user-select: none;
+  filter: drop-shadow(0 12px 18px rgba(34, 58, 82, 0.2));
+  transition: filter 520ms ease;
+}
+
+/* 暗夜模式下自动融入月光氛围 */
+:global(.dark) .islandImgOwn {
+  filter: brightness(0.76) contrast(1.05) saturate(0.86) hue-rotate(-8deg)
+    drop-shadow(0 20px 30px rgba(4, 10, 26, 0.58));
+}
+
+:global(.dark) .islandImgFriend {
+  filter: brightness(0.74) contrast(1.05) saturate(0.84) hue-rotate(-8deg)
+    drop-shadow(0 14px 22px rgba(4, 10, 26, 0.52));
+}
+
+/* 暗夜模式石灯笼暖光点亮效果（仅场景光效） */
+.lanternGlowOwn,
+.lanternGlowFriend {
+  position: absolute;
+  z-index: 2;
+  border-radius: 9999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 640ms ease;
+  background: radial-gradient(
+    circle,
+    rgba(255, 232, 164, 0.92) 0%,
+    rgba(255, 198, 112, 0.42) 40%,
+    transparent 74%
+  );
+  filter: blur(4px);
+}
+
+.lanternGlowOwn {
+  left: 41.5%;
+  top: 31%;
+  width: 34px;
+  height: 34px;
+}
+
+.lanternGlowFriend {
+  left: 59%;
+  top: 29.5%;
+  width: 24px;
+  height: 24px;
+}
+
+:global(.dark) .lanternGlowOwn,
+:global(.dark) .lanternGlowFriend {
+  opacity: 0.92;
+  animation: lanternPulse 4.2s ease-in-out infinite;
+}
+
+/* 岛屿名牌玻璃胶囊 */
+.islandMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 224px;
+  padding: 5px 13px;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--surface) / 0.62);
+  background: hsl(var(--surface) / 0.76);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow: var(--shadow-md);
+  transition: background-color 220ms ease, border-color 220ms ease;
+}
+
+:global(.dark) .islandMeta {
+  border-color: hsl(var(--border-hover) / 0.36);
+  background: hsl(var(--surface) / 0.64);
+  box-shadow: var(--shadow-lg);
+}
+
+.onlineDot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: hsl(var(--success));
+  box-shadow: 0 0 8px hsl(var(--success) / 0.8);
+}
+
+.islandName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--foreground));
+}
+
+.islandNodeOwn .islandName {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.islandMetaSub {
+  flex-shrink: 0;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: hsl(var(--foreground-secondary));
+}
+
+/* ==================== 底部玻璃操作胶囊 ==================== */
+
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + var(--app-safe-bottom));
+  z-index: 10;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--surface) / 0.62);
+  background: hsl(var(--surface) / 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    var(--shadow-lg),
+    inset 0 1px 0 hsl(var(--surface) / 0.8);
+}
+
+:global(.dark) .dock {
+  border-color: hsl(var(--border-hover) / 0.36);
+  background: hsl(var(--surface) / 0.62);
+  box-shadow:
+    var(--shadow-xl),
+    inset 0 1px 0 hsl(var(--foreground) / 0.08);
+}
+
+.dockDivider {
+  width: 1px;
+  height: 14px;
+  background: hsl(var(--foreground) / 0.14);
+  flex-shrink: 0;
+}
+
+.dockAction {
+  padding-inline: 12px;
+}
+
+.dockActionPrimary {
+  padding-inline: 12px;
+}
+
+.stateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 28px;
+  border-radius: var(--radius-xl);
+  background: hsl(var(--surface) / 0.84);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.overflowStrip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* ==================== 移动端布局 ==================== */
+
+@media (max-width: 767px) {
+  .routeLayer {
+    display: none;
+  }
+
+  .main {
+    overflow-y: auto;
+    padding-bottom: 96px;
+  }
+
+  .stage {
+    justify-content: flex-start;
+  }
+
+  .orbitCanvas {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 14px;
+    min-height: 0;
+    height: auto;
+    padding-top: 10px;
+  }
+
+  .centerSlot {
+    transform: none;
+  }
+
+  .mobileFriendGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .orbitSlot {
+    position: static;
+    transform: none;
+    display: flex;
+    justify-content: center;
+  }
+
+  .islandImgOwn {
+    width: 220px;
+  }
+
+  .islandImgFriend {
+    width: 124px;
+  }
+}
+
+/* ==================== 轻柔动画 ==================== */
+
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes routeFlow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -110; }
+}
+
+@keyframes lanternPulse {
+  0%, 100% { opacity: 0.78; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seaRouteActive,
+  .islandNode,
+  .islandArtWrap,
+  .lanternGlowOwn,
+  .lanternGlowFriend {
+    animation: none !important;
+    transition: none !important;
+  }
+}

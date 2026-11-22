@@ -1,6 +1,7 @@
 import { isPlazaMessageId, PLAZA_PATH } from '../cloud/navigation';
 
 const ROOM_RETURN_PATTERN = /^\/soul\/[A-Za-z0-9_-]+$/;
+const ISLAND_RETURN_PATTERN = /^\/island\/[A-Za-z0-9_-]+$/;
 
 function isPlazaReturnTo(value: string): boolean {
   if (value === PLAZA_PATH) return true;
@@ -10,17 +11,25 @@ function isPlazaReturnTo(value: string): boolean {
 
 export function sanitizeProfileReturnTo(value: string | null | undefined): string {
   const returnTo = String(value || '').trim();
-  if (['/', '/soul', '/cloud', '/moments', '/doodle', '/profile'].includes(returnTo) || ROOM_RETURN_PATTERN.test(returnTo) || isPlazaReturnTo(returnTo)) return returnTo;
+  if (
+    ['/', '/soul', '/cloud', '/moments', '/doodle', '/profile', '/island'].includes(returnTo) ||
+    ROOM_RETURN_PATTERN.test(returnTo) ||
+    ISLAND_RETURN_PATTERN.test(returnTo) ||
+    isPlazaReturnTo(returnTo)
+  ) {
+    return returnTo;
+  }
   return '/';
 }
 
 export function getProfileBackLabel(returnTo: string): string {
   if (ROOM_RETURN_PATTERN.test(returnTo)) return '聊天';
+  if (returnTo === '/island' || ISLAND_RETURN_PATTERN.test(returnTo)) return '浮岛';
   if (returnTo === '/soul') return '星球';
   if (returnTo === '/cloud') return '云传';
   if (isPlazaReturnTo(returnTo)) return '广场';
   if (returnTo === '/moments') return '星河';
-  if (returnTo === '/doodle') return '漫游相机';
+  if (returnTo === '/doodle') return '画镜';
   if (returnTo === '/profile') return '个人中心';
   return '首页';
 }

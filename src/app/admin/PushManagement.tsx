@@ -22,7 +22,7 @@ const pageOptions = [
   { value: '/moments', label: '星河' },
   { value: '/soul', label: '星球' },
   { value: '/cloud/plaza', label: '云传广场' },
-  { value: '/doodle', label: '漫游相机' }
+  { value: '/doodle', label: '画镜' }
 ];
 const date = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false });
 const statusLabels = { sending: '发送中', sent: '已提交', partial: '部分失败', failed: '全部失败', interrupted: '中断，结果未知' };

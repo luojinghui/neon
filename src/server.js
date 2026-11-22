@@ -3,11 +3,13 @@ const http = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
 const chatController = require('./server/controller/chatController');
+const islandController = require('./server/controller/islandController');
 const { mountAdminController } = require('./server/controller/adminController');
 const { authenticateCookieHeader } = require('./server/admin/auth');
 const { doodleShareRepository } = require('./server/doodle/shareRepository');
 const { doodleReviewRepository } = require('./server/doodle/reviewRepository');
 const { momentRepository } = require('./server/moment/momentRepository');
+const { islandRepository } = require('./server/island/islandRepository');
 const { plazaRepository } = require('./server/cloud/plazaRepository');
 const { connectDB } = require('./server/models');
 const { createMcpRouter } = require('./server/mcp/http');
@@ -75,6 +77,7 @@ nextApp
     // wss服务
     io.on('connection', (socket) => {
       chatController.onSocket(socket, io);
+      islandController.onSocket(socket, io);
     });
 
     mountAdminController(app, io);
@@ -101,6 +104,7 @@ nextApp
         res.status(200).json({ status: 'ok', releaseId })
       )
       .use('/uploads/moments', express.static(momentRepository.uploadDirectory, { fallthrough: true, maxAge: '1h' }))
+      .use('/uploads/islands', express.static(islandRepository.uploadDirectory, { fallthrough: true, maxAge: '1h' }))
       .use(express.static('public'))
       .use(express.static('static'))
       .all('*', (req, res) => handle(req, res));

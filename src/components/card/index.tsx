@@ -10,7 +10,7 @@ interface CardProps {
   description: string;
   href: string;
   icon: ReactNode;
-  tone?: 'primary' | 'info' | 'accent' | 'success';
+  tone?: 'primary' | 'info' | 'accent' | 'success' | 'warning';
 }
 
 export const Card: FC<CardProps> = ({ title, description, href, icon, tone = 'primary' }) => {

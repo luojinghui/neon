@@ -28,8 +28,8 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
   const share = getShare(shareId);
   const active = share?.state === 'active';
   return {
-    title: active ? `${share.title} · 漫游相机` : '这张涂鸦已经离开星球',
-    description: active ? `查收我的今日角色：${share.title}` : '这条漫游相机分享已经失效。',
+    title: active ? `${share.title} · 画镜` : '这张涂鸦已经离开星球',
+    description: active ? `查收我的今日角色：${share.title}` : '这条画镜分享已经失效。',
     robots: { index: false, follow: false }
   };
 }
@@ -60,11 +60,11 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
 
   return (
     <main className="app-page doodle-page bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
-      <TopBar middle="漫游相机" position="sticky" backHref="/doodle" backLabel="漫游相机" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
+      <TopBar middle="画镜" position="sticky" backHref="/doodle" backLabel="画镜" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
 
       <div className="app-content-width grid items-center gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-8">
         <div className="mx-auto w-full max-w-[560px] overflow-hidden rounded-xl border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
-          <ImagePreview images={[{ id: share.id, url: share.imageUrl, name: share.title }]} imageId={share.id} title="漫游相机" className="w-full">
+          <ImagePreview images={[{ id: share.id, url: share.imageUrl, name: share.title }]} imageId={share.id} title="画镜" className="w-full">
             <Image src={share.imageUrl} alt={`漫画涂鸦：${share.title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />
           </ImagePreview>
         </div>

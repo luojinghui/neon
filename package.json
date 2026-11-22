@@ -22,6 +22,7 @@
     "test:push:browser": "node scripts/push-browser.cjs",
     "test:social": "node --test src/server/chat/directSocket.test.js",
     "test:moments": "node --test src/server/moment/momentRepository.test.js scripts/moments-cache.test.cjs scripts/moments-masonry.test.cjs scripts/moments-paste.test.cjs",
+    "test:island": "node --test src/server/island/islandRepository.test.js src/server/island/islandSocket.test.js",
     "test:doodle": "node --test src/server/doodle/shareRepository.test.js src/server/doodle/reviewRepository.test.js",
     "test:experience": "node --test scripts/experience.test.cjs",
     "test:cloud": "node --test scripts/cloud-input.test.cjs scripts/cloud-plaza.test.cjs",

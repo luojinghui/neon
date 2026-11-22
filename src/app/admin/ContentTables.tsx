@@ -164,5 +164,5 @@ export function DoodleShareTable(props: Props) {
     { title: '状态', render: (_, item) => <Tag color={item.state === 'active' ? 'success' : 'default'}>{item.state === 'active' ? '有效' : item.state === 'expired' ? '已过期' : '已删除'}</Tag> },
     { title: '有效期至', render: (_, item) => date(item.expiresAt) }
   ];
-  return <section><h2 className="mb-2 text-lg font-semibold">漫游相机分享链接</h2><p className="mb-4 text-xs text-foreground-muted">显示已生成的分享链接，包括未关联审核记录的历史分享。</p><LoadError error={error} retry={() => void load()} /><Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ pageSize: 20 }} /></section>;
+  return <section><h2 className="mb-2 text-lg font-semibold">画镜分享链接</h2><p className="mb-4 text-xs text-foreground-muted">显示已生成的分享链接，包括未关联审核记录的历史分享。</p><LoadError error={error} retry={() => void load()} /><Table rowKey="id" loading={loading} columns={columns} dataSource={data?.items || []} scroll={{ x: 900 }} pagination={{ pageSize: 20 }} /></section>;
 }

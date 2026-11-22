@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const mongoose = require('mongoose');
 const chatController = require('./chatController');
+const islandController = require('./islandController');
 const { connectDB } = require('../models');
 const { CloudMessage } = require('../models/cloud');
 const { AdminUser } = require('../models/admin');
@@ -11,6 +12,7 @@ const { profileRepository } = require('../user/profileRepository');
 const { doodleReviewRepository } = require('../doodle/reviewRepository');
 const { doodleShareRepository } = require('../doodle/shareRepository');
 const { momentRepository } = require('../moment/momentRepository');
+const { islandRepository } = require('../island/islandRepository');
 const { presentMoment } = require('../moment/presenter');
 const { createAdminPushRouter } = require('../push/routes');
 const { pushRepository } = require('../push/repository');
@@ -166,13 +168,13 @@ function adminRoomRecords() {
 function adminError(error) {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
   const message = error instanceof Error ? error.message : '管理操作失败';
-  const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError', 'MomentRepositoryError'].includes(error?.name);
+  const isValidationError = ['ProfileRepositoryError', 'RoomRepositoryError', 'DoodleShareError', 'DoodleReviewError', 'MomentRepositoryError', 'IslandRepositoryError'].includes(error?.name);
   const status =
-    code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND' || code === 'MOMENT_NOT_FOUND' || code === 'COMMENT_NOT_FOUND'
+    code === 'PROFILE_NOT_FOUND' || code === 'ROOM_NOT_FOUND' || code === 'SHARE_NOT_FOUND' || code === 'REVIEW_NOT_FOUND' || code === 'MOMENT_NOT_FOUND' || code === 'COMMENT_NOT_FOUND' || code === 'ISLAND_NOT_FOUND' || code === 'ISLAND_ITEM_NOT_FOUND' || code === 'ISLAND_MEMBER_NOT_FOUND'
       ? 404
       : code === 'USER_ID_TAKEN'
         ? 409
-        : code === 'REVIEW_STORAGE_UNAVAILABLE' || code === 'REVIEW_IMAGE_MISSING' || code === 'SHARE_STORAGE_UNAVAILABLE' || code === 'MOMENT_STORAGE_UNAVAILABLE'
+        : code === 'REVIEW_STORAGE_UNAVAILABLE' || code === 'REVIEW_IMAGE_MISSING' || code === 'SHARE_STORAGE_UNAVAILABLE' || code === 'MOMENT_STORAGE_UNAVAILABLE' || code === 'ISLAND_STORAGE_UNAVAILABLE'
           ? 503
           : code || isValidationError
             ? 400
@@ -290,6 +292,46 @@ function mountAdminController(app, io) {
   router.delete('/moments/:id/comments/:commentId', asyncRoute(async (req, res) => {
     await momentRepository.deleteComment(req.params.id, req.params.commentId, '', { isAdmin: true });
     await audit(req, 'moment.comment.delete', 'moment', req.params.id, { commentId: req.params.commentId });
+    return res.status(204).end();
+  }));
+
+  router.get('/islands', (_req, res, next) => {
+    try {
+      const islands = islandRepository.listAllIslands().map((island) =>
+        islandRepository.presentAdminSummary(island, islandController.getOnlineCount(island.id))
+      );
+      return res.json({ islands });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get('/islands/:islandId', (req, res, next) => {
+    try {
+      const island = islandRepository.getIslandById(req.params.islandId);
+      if (!island) return res.status(404).json({ error: '浮岛不存在', code: 'ISLAND_NOT_FOUND' });
+      return res.json({
+        island: islandRepository.presentAdminDetail(island, islandController.getOnlineCount(island.id))
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete('/islands/:islandId/items/:itemId', asyncRoute(async (req, res) => {
+    await islandRepository.deleteItem(req.params.islandId, null, req.params.itemId, { isAdmin: true });
+    islandController.broadcastItemDeleted(io, req.params.islandId, req.params.itemId);
+    await audit(req, 'island.item.delete', 'island', req.params.islandId, { itemId: req.params.itemId });
+    return res.status(204).end();
+  }));
+
+  router.delete('/islands/:islandId/members/:publicKey', asyncRoute(async (req, res) => {
+    const { removedMember } = await islandRepository.removeMemberAsAdmin(req.params.islandId, req.params.publicKey);
+    islandController.evictMember(io, req.params.islandId, req.params.publicKey);
+    await audit(req, 'island.member.remove', 'island', req.params.islandId, {
+      publicKey: req.params.publicKey,
+      name: removedMember?.name || ''
+    });
     return res.status(204).end();
   }));
 

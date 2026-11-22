@@ -33,11 +33,18 @@ export default function Home() {
       tone: 'accent' as const
     },
     {
-      title: '漫游相机',
+      title: '画镜',
       description: '让表情变成漫画',
       href: '/doodle',
       icon: <Icon name="camera" />,
       tone: 'success' as const
+    },
+    {
+      title: '浮岛',
+      description: '自由拼贴，共同浮岛',
+      href: '/island',
+      icon: <Icon name="compass" />,
+      tone: 'warning' as const
     }
   ];
 
@@ -52,7 +59,7 @@ export default function Home() {
       <main className="app-content-width flex-1 pb-8 pt-24 sm:pt-28">
         <HomeHero />
 
-        <nav aria-label="探索 Soul 星球" className="mx-auto grid w-full max-w-[1008px] grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
+        <nav aria-label="探索 Soul 星球" className="mx-auto grid w-full max-w-[1080px] grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
           {cards.map((card) => (
             <Card key={card.href} {...card} />
           ))}

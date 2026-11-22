@@ -50,7 +50,7 @@ function Actions({ id, title, imageUrl, pageUrl }: ShareActionsProps) {
   const download = () => {
     const anchor = document.createElement('a');
     anchor.href = imageUrl;
-    anchor.download = `漫游相机-${title}.jpg`;
+    anchor.download = `画镜-${title}.jpg`;
     anchor.click();
   };
 

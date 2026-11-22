@@ -238,7 +238,7 @@ function drawBrand(context: CanvasRenderingContext2D, x: number, y: number, fill
     context.font = '900 34px Arial, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText('NEON · 漫游', x + 122, y + 39, 214);
+    context.fillText('NEON · 画镜', x + 122, y + 39, 214);
   });
 }
 
@@ -579,7 +579,7 @@ export function renderDoodlePoster(source: CanvasImageSource, sourceWidth: numbe
     context.textBaseline = 'alphabetic';
     context.fillStyle = theme.ink;
     context.font = '800 24px "PingFang SC", "Microsoft YaHei", sans-serif';
-    context.fillText(`${card.mood || '今日漫游'}${card.signature ? `  /  ${card.signature}` : ''}`, 90, 1208, 654);
+    context.fillText(`${card.mood || '今日画镜'}${card.signature ? `  /  ${card.signature}` : ''}`, 90, 1208, 654);
     context.font = '600 28px "PingFang SC", "Microsoft YaHei", sans-serif';
     const lines = [''];
     for (const character of Array.from(card.caption)) {

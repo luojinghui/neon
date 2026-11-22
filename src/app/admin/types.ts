@@ -124,3 +124,5 @@ export type AdminDoodleItem = {
   ownerUserId: string;
   ownerName: string;
 };
+
+export type { AdminIslandDetail, AdminIslandSummary } from '../island/core/types';

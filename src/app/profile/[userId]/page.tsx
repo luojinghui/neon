@@ -16,6 +16,7 @@ import type { Moment } from '@/app/moments/types';
 import '@/app/moments/moments.css';
 import { getPublicProfile } from '../client';
 import { ProfileIdentity } from '../components/ProfileIdentity';
+import { ProfileIslandEntry } from '../components/ProfileIslandEntry';
 import { ProfileUuid } from '../components/ProfileUuid';
 import { useCurrentProfile } from '../useCurrentProfile';
 import type { PublicProfile } from '../types';
@@ -222,6 +223,9 @@ export default function ProfilePage() {
                   <dl className="profile-details">
                     {isOwner && !profile.isSystem && currentProfile?.publicKey === profile.publicKey && (
                       <ProfileUuid key={currentProfile.uuid} uuid={currentProfile.uuid} />
+                    )}
+                    {!profile.isSystem && (
+                      <ProfileIslandEntry userId={profile.userId} isOwner={isOwner} />
                     )}
                     <div className="profile-detail">
                       <span className="profile-detail-icon"><CalendarOutlined /></span>

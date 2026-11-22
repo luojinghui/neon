@@ -33,7 +33,7 @@ export function PortraitControls({ value: draft, title, busy, faceCount, segment
       {slider('人物描边', 'outline', 0, 100, 1, !segmented)}
       <div className="portrait-chips" role="group" aria-label="人物背景">{BACKGROUNDS.map(item => <Button type="button" key={item.id} disabled={busy || (!segmented && item.id !== 'original')} aria-pressed={draft.background === item.id} onClick={() => patch({ background: item.id })}>{item.name}</Button>)}</div>
     </details>
-    <details><summary>漫游卡片文案 <span>记录你的状态</span></summary>
+    <details><summary>画镜卡片文案 <span>记录你的状态</span></summary>
       <label className="portrait-field">角色称号<Input maxLength={24} value={title} disabled={busy} onChange={event => onChange(draft, event.target.value)} /></label>
       <div className="portrait-chips" role="group" aria-label="今日心情">{MOODS.map(mood => <Button type="button" key={mood} aria-pressed={draft.mood === mood} onClick={() => patch({ mood })} disabled={busy}>{mood}</Button>)}</div>
       <label className="portrait-field">今日宣言<Textarea rows={2} maxLength={36} value={draft.caption} onChange={event => patch({ caption: event.target.value })} disabled={busy} /></label>
