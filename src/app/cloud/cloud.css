@@ -1,6 +1,5 @@
 /* Keep scrolling content below the fixed topbar's stacking context. */
 .cloud-page {
-  --app-header-background: hsl(var(--background));
   height: min(var(--app-content-height), var(--cloud-editor-viewport-height, var(--app-content-height)));
   background: hsl(var(--background));
 }

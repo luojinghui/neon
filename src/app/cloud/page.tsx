@@ -98,7 +98,7 @@ function CloudPage() {
       <TopBar middle={<CloudTabs />} backHref="/" backLabel="首页" right={<><ProfileShortcut returnTo={isPlaza ? messageId !== null ? plazaSharePath(messageId) : PLAZA_PATH : CLOUD_PATH} /><ThemeToggle /></>} />
 
       {/* Content */}
-      <main ref={contentRef} onScroll={event => { scrollPositions.current[viewKey] = event.currentTarget.scrollTop; }} className="content w-full pt-[var(--app-page-top)] pb-8 flex-1 overflow-y-auto overflow-x-hidden">
+      <main ref={contentRef} onScroll={event => { scrollPositions.current[viewKey] = event.currentTarget.scrollTop; }} className="content app-scroll-main w-full pt-[var(--app-page-top)] pb-8 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="app-content-width">
           <div data-cloud-view="cloud" hidden={isPlaza} className="space-y-4">
             <ContentEditor />

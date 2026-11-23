@@ -41,7 +41,7 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
 
   if (!share || isGone) {
     return (
-      <main className="app-page doodle-page flex items-center justify-center bg-[#fffaf0] px-5 py-12 text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
+      <main className="app-page doodle-page flex items-center justify-center px-5 py-12 text-[#201a17] dark:text-[#fff8ee]">
         <div className="w-full max-w-xl text-center">
           <div className="mx-auto flex h-28 w-28 rotate-6 items-center justify-center rounded-xl bg-[#ff7ba8]/60 text-5xl text-[#201a17]">
             <StarFilled />
@@ -59,10 +59,10 @@ export default async function DoodleSharePage({ params }: SharePageProps) {
   const pageUrl = `/doodle/s/${share.id}`;
 
   return (
-    <main className="app-page doodle-page bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
-      <TopBar middle="画镜" position="sticky" backHref="/doodle" backLabel="画镜" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
+    <main className="app-page doodle-page text-[#201a17] dark:text-[#fff8ee]">
+      <TopBar middle="画镜" backHref="/doodle" backLabel="画镜" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
 
-      <div className="app-content-width grid items-center gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:py-8">
+      <div className="app-content-width grid items-center gap-8 pb-6 pt-[var(--app-page-top)] lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-8 lg:pt-[calc(var(--app-page-top)+0.5rem)]">
         <div className="mx-auto w-full max-w-[560px] overflow-hidden rounded-xl border-[6px] border-[#201a17] bg-white shadow-[12px_12px_0_#201a17]">
           <ImagePreview images={[{ id: share.id, url: share.imageUrl, name: share.title }]} imageId={share.id} title="画镜" className="w-full">
             <Image src={share.imageUrl} alt={`漫画涂鸦：${share.title}`} width={1080} height={1440} unoptimized className="doodle-result-image block h-auto w-full" />

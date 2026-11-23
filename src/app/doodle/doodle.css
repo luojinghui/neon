@@ -2,13 +2,21 @@
   overflow-x: hidden;
   --doodle-ink: #201a17;
   --app-header-background: #fffaf0;
+}
+
+.dark .doodle-page { --app-header-background: #17110f; }
+
+/* The paper background lives on html/body so it also fills the safe area and runs under the topbar. */
+html:has(.doodle-page) { background-color: #fffaf0; }
+html.dark:has(.doodle-page) { background-color: #17110f; }
+body:has(.doodle-page) {
+  background-color: #fffaf0;
   background-image:
     radial-gradient(circle at 10% 18%, rgba(255, 216, 77, 0.22) 0 5px, transparent 6px),
     radial-gradient(circle at 91% 72%, rgba(255, 123, 168, 0.18) 0 6px, transparent 7px);
   background-size: 64px 64px, 82px 82px;
 }
-
-.dark .doodle-page { --app-header-background: #17110f; }
+html.dark body:has(.doodle-page) { background-color: #17110f; }
 
 .doodle-result-image {
   -webkit-touch-callout: default !important;

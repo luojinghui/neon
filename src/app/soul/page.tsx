@@ -111,7 +111,7 @@ function SoulPage() {
         }
       />
 
-      <main className="w-full flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-[var(--app-page-top)]">
+      <main className="app-scroll-main w-full flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-[var(--app-page-top)]">
         <div className="app-content-width">
           <div className="mb-5 flex min-w-0 items-center justify-between gap-2">
             <Tabs id="soul-room-tabs" panelId="soul-room-panel" size="md" className="min-w-0" aria-label="星球类型" activeKey={activeTab}

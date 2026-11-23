@@ -84,7 +84,7 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
         setActiveSection(sections[sections.length - 1][0]);
         return;
       }
-      const top = root.getBoundingClientRect().top + 48;
+      const top = root.getBoundingClientRect().top + (Number.parseFloat(getComputedStyle(root).scrollPaddingTop) || 0) + 48;
       const current = [...root.querySelectorAll<HTMLElement>('section[id]')].filter(section => section.getBoundingClientRect().top <= top).at(-1);
       setActiveSection(current?.id ?? 'buttons');
     };
@@ -109,7 +109,7 @@ export default function UIKitShowcase({ catalog }: { catalog: Pick<ThemeCatalog,
         <p className={styles.navLabel}>组件分类</p>
         <nav aria-label="UIKit 组件目录">{sections.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={activeSection === id ? 'location' : undefined} onClick={() => setActiveSection(id)}>{label}</a>)}</nav>
       </aside>
-      <main ref={main} className={styles.main} data-skin={skin}>
+      <main ref={main} className={`${styles.main} app-scroll-main`} data-skin={skin}>
         <header className={styles.overview}>
           <h1>组件库</h1>
           <div className={styles.skinToolbar} role="group" aria-label="主题色切换">

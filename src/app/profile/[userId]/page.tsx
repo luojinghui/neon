@@ -168,7 +168,7 @@ export default function ProfilePage() {
         }
       />
 
-      <main className="chat-scrollbar flex-1 overflow-y-auto overflow-x-hidden pb-12 pt-[var(--app-page-top)]">
+      <main className="app-scroll-main chat-scrollbar flex-1 overflow-y-auto overflow-x-hidden pb-12 pt-[var(--app-page-top)]">
         <div className="profile-shell">
           {loading ? (
             <div className="animate-pulse overflow-hidden rounded-xl border border-border bg-surface">

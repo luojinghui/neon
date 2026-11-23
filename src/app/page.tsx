@@ -224,7 +224,7 @@ export default function Home() {
   const centerKey = focused?.id ?? 'idle';
 
   return (
-    <div className="app-screen flex w-full flex-col overflow-x-hidden overflow-y-auto bg-background text-foreground">
+    <div className="app-screen app-scroll-main flex w-full flex-col overflow-x-hidden overflow-y-auto bg-background text-foreground">
       <TopBar
         middle=""
         leading={<h1 className="whitespace-nowrap text-body-lg font-semibold tracking-tight">Soul 星球</h1>}

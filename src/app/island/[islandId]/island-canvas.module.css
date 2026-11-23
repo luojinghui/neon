@@ -3,13 +3,20 @@
  * Stationery sticky notes, polaroid white paper frame, and washi tape/stickers
  * are content-data palettes explicitly documented below. */
 
+/* The infinite canvas fills the whole viewport, including the safe areas, so the
+ * paper and cards run under the status bar and the transparent topbar. */
 .pageShell {
-  position: relative;
-  width: 100%;
-  height: var(--app-content-height);
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+/* The canvas pans instead of scrolling, so keep the topbar scrim permanently on. */
+.pageShell :global(.app-glass-header)::before {
+  animation: none;
+  opacity: 1;
 }
 
 /* Status / unauthorized / loading full-canvas view */
@@ -20,7 +27,8 @@
   justify-content: center;
   gap: 12px;
   height: 100%;
-  padding: 24px;
+  padding: calc(var(--app-safe-top) + var(--app-topbar-height) + 24px) calc(var(--app-safe-right) + 24px)
+    calc(var(--app-safe-bottom) + 24px) calc(var(--app-safe-left) + 24px);
   text-align: center;
 }
 

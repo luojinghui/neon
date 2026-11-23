@@ -736,7 +736,7 @@ export default function DoodleStudio() {
     : '';
 
   return (
-    <main className="app-page doodle-page bg-[#fffaf0] text-[#201a17] dark:bg-[#17110f] dark:text-[#fff8ee]">
+    <main className="app-page doodle-page text-[#201a17] dark:text-[#fff8ee]">
       <input
         ref={albumInputRef}
         type="file"
@@ -749,9 +749,9 @@ export default function DoodleStudio() {
           });
         }}
       />
-      <TopBar middle="画镜" position="sticky" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
+      <TopBar middle="画镜" right={<><ProfileShortcut returnTo="/doodle" /><ThemeToggle /></>} />
 
-      <div className="app-content-width py-6 sm:py-8">
+      <div className="app-content-width pb-6 pt-[var(--app-page-top)] sm:pb-8 sm:pt-[calc(var(--app-page-top)+0.5rem)]">
         {mode === 'welcome' && (
           <section className="grid items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
             <div>
@@ -781,7 +781,7 @@ export default function DoodleStudio() {
               </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-md">
+            <div className="relative isolate mx-auto w-full max-w-md">
               <div className="absolute -left-7 top-16 z-10 rotate-[-12deg] text-6xl text-[#ff5d46]"><ThunderboltFilled /></div>
               <div className="absolute -right-4 bottom-20 z-10 rotate-12 text-5xl text-[#8b74ff]"><StarFilled /></div>
               <div className="rotate-2 rounded-xl border-[6px] border-[#201a17] bg-[#ffd84d] p-5 shadow-[14px_14px_0_#201a17]">

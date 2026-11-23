@@ -14,6 +14,8 @@
     --app-page-gutter: 1rem;
     --app-topbar-height: 3.5rem;
     --app-page-top: calc(var(--app-topbar-height) + 1.5rem);
+    /* Scrim fade that bleeds below the topbar; paint only, no layout. */
+    --app-topbar-fade: 1.25rem;
     /* Shape scale: independent of skin and light/dark mode. */
     --radius-sm: 6px;
     --radius-md: 10px;
@@ -294,12 +296,57 @@
 
 .app-header-row { height: var(--app-topbar-height); }
 
+/* The bar itself is transparent so the page background runs under it; a
+ * pseudo-element paints a blur scrim that fades out below the bar edge. */
 .app-glass-header {
   border: 0;
-  background: color-mix(in srgb, var(--app-header-background, hsl(var(--background))) 35%, transparent);
+  background: transparent;
+}
+
+.app-glass-header::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 calc(-1 * var(--app-topbar-fade)) 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--app-header-background, hsl(var(--background))) 78%, transparent),
+    color-mix(in srgb, var(--app-header-background, hsl(var(--background))) 0%, transparent)
+  );
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2 * var(--app-topbar-fade)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2 * var(--app-topbar-fade)), transparent);
 }
+
+/* Empty overlay-bar area lets clicks through to content underneath; real controls stay interactive. */
+.app-topbar { pointer-events: none; }
+.app-topbar .app-topbar-grid > * > * { pointer-events: auto; }
+
+/* Scroll-aware scrim: invisible at the top, fades in within the first 48px of scroll.
+ * Pages tag their single scroll container with .app-scroll-main; window-scrolled
+ * .app-page pages use the root scroller. Without support the scrim stays visible;
+ * pages that pan instead of scroll opt out with animation: none + opacity: 1. */
+@supports (animation-timeline: scroll()) {
+  body { timeline-scope: --app-scroll; }
+  .app-scroll-main { scroll-timeline: --app-scroll block; }
+  /* Nothing scrolls under the bar until the timeline is active, so the resting state is transparent. */
+  .app-glass-header::before {
+    opacity: 0;
+    animation: app-topbar-scrim linear both;
+    animation-timeline: --app-scroll;
+    animation-range: 0 48px;
+  }
+  .app-page .app-glass-header::before { animation-timeline: scroll(root block); }
+}
+
+@keyframes app-topbar-scrim {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.app-scroll-main { scroll-padding-top: var(--app-page-top); }
 
 .app-topbar-grid {
   display: grid;
@@ -313,11 +360,13 @@
 .app-topbar-controls { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 0.5rem; }
 .app-topbar-controls > div { gap: 0.5rem; }
 
-/* Fixed elements are positioned against the viewport, outside body's padding. */
+/* The fixed bar starts at y=0 so its scrim also covers the status-bar area;
+ * the visible row keeps its 3.5rem height below the safe-area padding. */
 .app-topbar {
-  top: var(--app-safe-top);
-  right: var(--app-safe-right);
-  left: var(--app-safe-left);
+  top: 0;
+  right: 0;
+  left: 0;
+  padding: var(--app-safe-top) var(--app-safe-right) 0 var(--app-safe-left);
 }
 
 .app-home-actions {

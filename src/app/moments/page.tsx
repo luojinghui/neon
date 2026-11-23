@@ -40,7 +40,7 @@ export default function MomentsPage() {
         }
       />
 
-      <main ref={scrollRef} className="moment-scroll-area chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <main ref={scrollRef} className="moment-scroll-area app-scroll-main chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="app-content-width moment-journal-content">
           <Suspense fallback={null}><MomentPermalink /></Suspense>
           <header className="moment-hero">

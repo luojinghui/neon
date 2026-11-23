@@ -147,7 +147,7 @@ export function MessageList({ className = '' }: MessageListProps) {
 
   return (
     <div className="relative w-full flex-1 overflow-hidden">
-      <div ref={containerRef} className="chat-scrollbar h-full overflow-y-auto" onScroll={handleScroll}>
+      <div ref={containerRef} className="app-scroll-main chat-scrollbar h-full overflow-y-auto" onScroll={handleScroll}>
         <div ref={contentRef} className={`app-content-width flex min-h-full flex-col justify-end pb-4 ${className}`}>
           {hasMoreHistory && (
             <div className="flex justify-center pb-4">
