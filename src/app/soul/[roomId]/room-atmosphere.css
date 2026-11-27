@@ -1,0 +1,18 @@
+/* 房间背景只跟随主题色相，深浅仍由当前模式控制。 */
+.soul-room-page[data-period] {
+  background:
+    radial-gradient(ellipse 72% 28% at 50% 0%, hsl(var(--primary) / .12), transparent 70%),
+    hsl(var(--background));
+}
+
+.soul-room-page[data-period='dawn'] {
+  background:
+    radial-gradient(ellipse 72% 28% at 50% 0%, hsl(var(--accent) / .16), transparent 70%),
+    hsl(var(--background));
+}
+
+.soul-room-page[data-period='night'] {
+  background:
+    radial-gradient(ellipse 80% 34% at 50% 0%, hsl(var(--primary) / .22), transparent 68%),
+    hsl(var(--background));
+}

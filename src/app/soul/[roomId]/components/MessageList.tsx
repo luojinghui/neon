@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm';
 import { message as toast } from '@/components/ui/message';
 import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { ImageViewer } from '@/components/image-viewer/ImageViewer';
@@ -18,6 +19,9 @@ export function MessageList({ className = '' }: MessageListProps) {
   const messages = useSoulStore((s) => s.messages);
   const direct = useSoulStore((s) => s.room?.kind === 'direct');
   const hasNewMessage = useSoulStore((s) => s.hasNewMessage);
+  const shareSelecting = useSoulStore((state) => state.shareSelecting);
+  const shareCount = useSoulStore((state) => state.shareSelectedIds.length);
+  const modal = useConfirm();
   const hasMoreHistory = useSoulStore((s) => s.hasMoreHistory);
   const isLoadingHistory = useSoulStore((s) => s.isLoadingHistory);
   const connectionState = useSoulStore((s) => s.connectionState);
@@ -148,7 +152,7 @@ export function MessageList({ className = '' }: MessageListProps) {
   return (
     <div className="relative w-full flex-1 overflow-hidden">
       <div ref={containerRef} className="app-scroll-main chat-scrollbar h-full overflow-y-auto" onScroll={handleScroll}>
-        <div ref={contentRef} className={`app-content-width flex min-h-full flex-col justify-end pb-4 ${className}`}>
+        <div ref={contentRef} className={`app-content-width flex min-h-full flex-col justify-end ${shareSelecting ? 'pb-16' : 'pb-4'} ${className}`}>
           {hasMoreHistory && (
             <div className="flex justify-center pb-4">
               <Button size="sm" variant="outline"
@@ -174,6 +178,25 @@ export function MessageList({ className = '' }: MessageListProps) {
       </div>
 
       {previewIndex >= 0 && <ImageViewer images={images} currentIndex={previewIndex} onSelect={setPreviewId} onClose={() => setPreviewId(null)} title="聊天图片" />}
+
+      {shareSelecting && (
+        <div className="absolute bottom-3 left-1/2 z-10 flex w-[min(100%-1.5rem,24rem)] -translate-x-1/2 items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2" role="toolbar" aria-label="分享到星河">
+          <span className="text-caption text-foreground-secondary">已选 {shareCount} 条</span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" type="button" onClick={() => useSoulStore.getState().clearShareSelection()}>取消</Button>
+            <Button size="sm" variant="primary" type="button" disabled={shareCount === 0} onClick={() => {
+              const ids = useSoulStore.getState().shareSelectedIds;
+              modal.confirm({
+                title: ids.length > 1 ? `把这 ${ids.length} 条投进星河？` : '把这条消息投进星河？',
+                content: '会按聊天里从上到下的顺序公开。图片会带上，文件、语音和投票会写成文字。',
+                okText: '投进星河',
+                cancelText: '再想想',
+                onOk: () => soulChat.shareToMoments(ids)
+              });
+            }}>投到星河</Button>
+          </div>
+        </div>
+      )}
 
       {hasNewMessage && (
         <Button size="sm" variant="primary"

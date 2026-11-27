@@ -12,6 +12,20 @@ const repository = new RoomRepository({
 });
 const roomMembers = new Map();
 const calls = new CallSignaling({ requireJoinedRoom });
+const pokeTimes = new Map();
+let presenceIo = null;
+
+function listOnlinePeople(roomId) {
+  const seen = new Map();
+  const io = presenceIo;
+  if (!io || !roomId) return [];
+  for (const socketId of roomMembers.get(roomId) || []) {
+    const member = io.sockets.sockets.get(socketId)?.data.user;
+    if (!member?.userId || seen.has(member.userId)) continue;
+    seen.set(member.userId, { userId: member.userId, name: member.name, avatarUrl: member.avatarUrl || '' });
+  }
+  return [...seen.values()];
+}
 
 function normalizeSocketUser(input) {
   const uuid = typeof input?.uuid === 'string' ? input.uuid.trim().toLowerCase() : '';
@@ -85,16 +99,18 @@ function getMembership(room, user, admin = false) {
 }
 
 function presentRoom(room, user, admin = false) {
+  const people = listOnlinePeople(room.id);
+  const presence = { onlineCount: people.length, onlineUsers: people.slice(0, 5) };
   if (room.kind === 'direct') {
     const peer = repository.publicPerson(room.participantKeys.find((key) => key !== user?.publicKey));
     return { ...repository.toPublicRoom(room), name: peer?.name || '私信', peer,
-      onlineCount: roomMembers.get(room.id)?.size || 0, status: 'online', isOwner: false,
+      ...presence, status: 'online', isOwner: false,
       isCreator: false, membership: 'approved', owner: peer, pendingRequestCount: 0 };
   }
   const isCreator = !room.isFixed && room.ownerId === user?.id;
   return {
     ...repository.toPublicRoom(room),
-    onlineCount: roomMembers.get(room.id)?.size || 0,
+    ...presence,
     status: 'online',
     isOwner: admin || isCreator,
     isCreator,
@@ -291,6 +307,7 @@ function removeDeletedRoomMembers(roomId, io) {
 }
 
 const onSocket = (socket, io) => {
+  presenceIo = io;
   try {
     socket.data.user = repository.normalizeUser(normalizeSocketUser(socket.handshake.auth?.user));
   } catch (error) {
@@ -446,6 +463,56 @@ const onSocket = (socket, io) => {
   socket.on('room:leave', (ack) => {
     leaveCurrentRoom(socket, io);
     if (typeof ack === 'function') ack({ ok: true, data: null });
+  });
+
+  socket.on('room:poke', (payload, ack) => respond(ack, () => {
+    const user = requireUser(socket);
+    const room = repository.getRoom(payload?.roomId);
+    if (!room || !repository.canViewRoom(room, user, isSuperAdmin(socket))) {
+      throw new RoomRepositoryError('无法向这颗星球打招呼', 'ROOM_FORBIDDEN');
+    }
+    const targetUserId = typeof payload?.targetUserId === 'string' ? payload.targetUserId.trim() : '';
+    if (!targetUserId) throw new RoomRepositoryError('先选一个正在这颗星球上的人', 'POKE_TARGET_INVALID');
+    if (targetUserId === user.userId) throw new RoomRepositoryError('不能戳自己', 'POKE_SELF');
+    const target = listOnlinePeople(room.id).find((person) => person.userId === targetUserId);
+    if (!target) throw new RoomRepositoryError('对方现在不在这颗星球上', 'POKE_OFFLINE');
+    const now = Date.now();
+    const key = `${user.userId}:${room.id}:${targetUserId}`;
+    if (now - (pokeTimes.get(key) || 0) < 3000) throw new RoomRepositoryError('轻轻等一下，再戳一次', 'POKE_RATE_LIMITED');
+    pokeTimes.set(key, now);
+    if (pokeTimes.size > 1000) {
+      for (const [entry, at] of pokeTimes) if (now - at > 3000) pokeTimes.delete(entry);
+    }
+    const event = { roomId: room.id, roomName: room.name, from: { userId: user.userId, name: user.name, avatarUrl: user.avatarUrl || '' } };
+    for (const targetSocket of io.sockets.sockets.values()) {
+      if (targetSocket.data.user?.userId === targetUserId) targetSocket.emit('room:poked', event);
+    }
+    return { ok: true };
+  }));
+
+  socket.on('room:share-moment', async (payload, ack) => {
+    try {
+      const user = requireJoinedRoom(socket, payload?.roomId);
+      const { shareRoomMessages } = require('../chat/momentShare');
+      const { momentRepository } = require('../moment/momentRepository');
+      const data = await shareRoomMessages({
+        roomRepository: repository,
+        momentRepository,
+        uploadDirectory: repository.uploadDirectory,
+        user,
+        roomId: payload.roomId,
+        messageIds: payload?.messageIds
+      });
+      if (typeof ack === 'function') ack({ ok: true, data });
+    } catch (error) {
+      if (typeof ack === 'function') {
+        ack({
+          ok: false,
+          error: error instanceof Error ? error.message : '分享失败，请重试',
+          ...(error?.code ? { code: error.code } : {})
+        });
+      }
+    }
   });
 
   socket.on('chat:history', (payload, ack) => {

@@ -1,11 +1,10 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonClassName } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { useState } from 'react';
+import Link from 'next/link';
 import { formatMomentTime } from '../format';
 import type { Moment } from '../types';
-import { MomentViewer } from './MomentViewer';
 import { VideoCover } from '@/components/video-player/VideoPlayer';
 import './moment-gallery.css';
 
@@ -18,10 +17,7 @@ type Props = {
   onUpdated?: (moment: Moment) => void;
 };
 
-export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted, onUpdated }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedMoment = moments.find((moment) => moment.id === selectedId);
-
+export function MomentGallery({ moments, loading, error = '', onRetry }: Props) {
   return (
     <section className="moment-profile-gallery" aria-label="星语列表" aria-busy={loading}>
       <header className="moment-profile-heading"><div><h2>时光切片</h2><p>{moments.length} 条记录 · {moments.reduce((sum, moment) => sum + (moment.likeCount || 0), 0)} 次喜欢</p></div></header>
@@ -39,7 +35,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
           const firstMedia = moment.media[0] || inlineImages[0];
           const totalMediaCount = moment.media.length + inlineImages.length;
           return (
-            <Button variant="outline" key={moment.id} type="button" className={`moment-profile-entry ${firstMedia ? 'has-media' : ''}`} onClick={() => setSelectedId(moment.id)} aria-label={`查看星河：${moment.text || (moment.voice ? '语音星河' : moment.attachments?.[0]?.name || '图片与视频')}`}>
+            <Link key={moment.id} href={`/moments/${moment.id}`} className={buttonClassName({ variant: 'outline', align: 'start', className: `moment-profile-entry ${firstMedia ? 'has-media' : ''}` })} aria-label={`查看星语详情：${moment.text || (moment.voice ? '语音星河' : moment.attachments?.[0]?.name || '图片与视频')}`}>
               {!firstMedia && <span className="moment-profile-note-label"><Icon name={moment.voice ? 'audio' : 'edit'} />{moment.voice ? '声音日记' : '随手记'}</span>}
               {firstMedia && (
                 <span className="moment-profile-cover">
@@ -59,19 +55,10 @@ export function MomentGallery({ moments, loading, error = '', onRetry, onDeleted
                 {moment.attachments?.length > 0 && <span className="moment-profile-entry-text">{moment.attachments.length} 个附件 · {moment.attachments[0].name}</span>}
                 <span className="moment-profile-entry-footer"><time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time><span className="moment-profile-reactions"><span><Icon name="heart" active={moment.liked} /> {moment.likeCount > 0 ? moment.likeCount : null}</span><span><Icon name="comment" /> {moment.commentCount > 0 ? moment.commentCount : null}</span></span></span>
               </span>
-            </Button>
+            </Link>
           );
         })}
       </div>
-      {selectedMoment && (
-        <MomentViewer
-          key={selectedMoment.id}
-          moment={selectedMoment}
-          onClose={() => setSelectedId(null)}
-          onDeleted={(id) => { setSelectedId(null); onDeleted(id); }}
-          onUpdated={(updated) => { onUpdated?.(updated); onRetry?.(); }}
-        />
-      )}
     </section>
   );
 }

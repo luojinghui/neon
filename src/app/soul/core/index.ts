@@ -15,8 +15,10 @@ import type {
   PollCreateInput,
   RoomAccessChangedEvent,
   RoomAccessGateData,
+  MomentShareResult,
   RoomAccessManagement,
   RoomMember,
+  RoomPokedEvent,
   ServerChatMessage,
   UpdateRoomInput
 } from './types';
@@ -40,6 +42,7 @@ export class SoulChat {
   private listOwner = '';
   private roomsRequest = 0;
   private unsubscribers: Array<() => void> = [];
+  private pokeTimer = 0;
 
   public async initList(): Promise<void> {
     this.prepareBrowserCache();
@@ -100,6 +103,7 @@ export class SoulChat {
   }
 
   public destroy(): void {
+    window.clearTimeout(this.pokeTimer);
     this.sessionId += 1;
     this.mode = null;
     this.roomId = '';
@@ -508,8 +512,40 @@ export class SoulChat {
       }),
       this.transport.onRoomsChanged(() => {
         if (this.mode === 'list') void this.loadRooms(true);
-      })
+      }),
+      this.transport.onPoked((event) => this.handlePoke(event))
     );
+  }
+
+  public async poke(roomId: string, targetUserId: string): Promise<void> {
+    try {
+      await this.transport.poke(roomId, targetUserId);
+    } catch (error) {
+      toast.warning(this.getErrorMessage(error));
+    }
+  }
+
+  public async shareToMoments(messageIds: string[]): Promise<MomentShareResult> {
+    if (!this.roomId) throw new Error('先进入星球，再投到星河');
+    const store = useSoulStore.getState();
+    if (store.connectionState !== 'connected' || store.accessState !== 'granted') {
+      throw new Error('聊天服务正在重连，请稍后再试');
+    }
+    const result = await this.transport.shareMoment(this.roomId, messageIds);
+    store.clearShareSelection();
+    store.setMomentShare(result);
+    return result;
+  }
+
+  private handlePoke(event: RoomPokedEvent): void {
+    window.clearTimeout(this.pokeTimer);
+    if (this.mode === 'room' && event.roomId === this.roomId) {
+      useSoulStore.getState().setPokeNotice(`${event.from.name} 轻轻戳了你`);
+      this.pokeTimer = window.setTimeout(() => useSoulStore.getState().setPokeNotice(''), 2600);
+      return;
+    }
+    useSoulStore.getState().flashRoom(event.roomId, event.from.name);
+    this.pokeTimer = window.setTimeout(() => useSoulStore.getState().clearRoomPoke(), 2600);
   }
 
   private bindRoomEvents(): void {

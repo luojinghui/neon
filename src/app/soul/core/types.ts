@@ -50,6 +50,23 @@ export interface ChatUser {
   avatarUrl: string;
 }
 
+export interface RoomOnlineUser {
+  userId: string;
+  name: string;
+  avatarUrl: string;
+}
+
+export interface RoomPokedEvent {
+  roomId: string;
+  roomName: string;
+  from: RoomOnlineUser;
+}
+
+export interface MomentShareResult {
+  momentId: string;
+  path: string;
+}
+
 export interface ChatRoom {
   kind?: 'planet' | 'direct';
   peer?: { publicKey: string; userId: string; name: string; avatarUrl: string };
@@ -59,6 +76,7 @@ export interface ChatRoom {
   description: string;
   tags?: string[];
   onlineCount?: number;
+  onlineUsers?: RoomOnlineUser[];
   status: 'online';
   isPrivate: boolean;
   hasPassword: boolean;

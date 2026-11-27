@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined, MoreOutlined } from '@ant-design/icons';
 import { Dropdown, type DropdownItem } from '@/components/ui/dropdown';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createProfileHref } from '@/app/profile/navigation';
 import { deleteMoment } from '../client';
@@ -19,7 +20,6 @@ import { MomentMediaView } from './MomentMedia';
 import { MomentVoicePlayer } from './MomentVoice';
 import { MomentAttachments } from './MomentAttachments';
 import { MomentComposer } from './MomentComposer';
-import { MomentViewer } from './MomentViewer';
 
 type Props = {
   moment: Moment;
@@ -31,9 +31,9 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
   const modal = useConfirm();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
-  const [viewerOpen, setViewerOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [localMoment, setLocalMoment] = useState<Moment>(moment);
   const [liveState, setLiveState] = useState({
@@ -142,9 +142,11 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
             <Link href={createProfileHref(activeMoment.author.userId, { returnTo: '/moments' })} title={`@${activeMoment.author.userId}`} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">
               {activeMoment.author.name}
             </Link>
-            <div className="moment-card-byline">
+              <div className="moment-card-byline">
               <time dateTime={activeMoment.createdAt}>{formatMomentTime(activeMoment.createdAt)}</time>
               {activeMoment.isEdited ? ' · 已编辑' : null}
+              {' · '}
+              <Link href={`/moments/${activeMoment.id}`}>详情</Link>
             </div>
           </div>
         </div>
@@ -155,7 +157,12 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
         )}
       </header>
 
-      <div className="moment-entry-content">
+      <div className="moment-entry-content" onClick={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('a, button, input, textarea, [role="menuitem"]')) return;
+        if (window.getSelection()?.toString()) return;
+        router.push(`/moments/${activeMoment.id}`);
+      }}>
         {hasBodyContent && (
           <div className="moment-post-copy">
             <div ref={textRef} id={textId} className={`moment-card-text${!expanded ? ' is-collapsed' : ''}${hasInterleavedImages ? ' has-inline-images' : ''}${canExpand && !expanded ? ' has-overflow' : ''}`}>
@@ -166,9 +173,7 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
                 <Button variant="ghost" size="sm" type="button" aria-expanded={expanded} aria-controls={textId} onClick={() => setExpanded((value) => !value)}>
                   {expanded ? '收起' : '展开全文'}
                 </Button>
-                <Button variant="ghost" size="sm" type="button" icon={<Icon name="expand" size="sm" />} aria-haspopup="dialog" aria-expanded={viewerOpen} onClick={() => setViewerOpen(true)}>
-                  详情阅读
-                </Button>
+                <Link href={`/moments/${activeMoment.id}`} className="text-caption text-primary">进入详情</Link>
               </div>
             )}
           </div>
@@ -182,15 +187,6 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
         <MomentActions key={activeMoment.id} moment={currentMoment} appearance="journal" onChange={applyReactionPatch} />
         {error && <p className="moment-inline-error" role="alert">{error}</p>}
       </div>
-      {viewerOpen && (
-        <MomentViewer
-          moment={currentMoment}
-          onClose={() => setViewerOpen(false)}
-          onDeleted={(id) => { setViewerOpen(false); onDeleted(id); }}
-          onUpdated={handleUpdated}
-          onReactionChange={applyReactionPatch}
-        />
-      )}
       {canEdit && (
         <MomentComposer
           appearance="journal"

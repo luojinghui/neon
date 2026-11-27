@@ -69,7 +69,7 @@ test('MCP publishes mixed media and downloadable ordinary files with a configure
   assert.equal(result.attachments[0].name, '项目说明.pdf');
   assert.equal(result.attachments[1].mimeType, 'text/html');
   assert.equal(result.attachments[0].url, `https://neon.example/api/moments/${result.id}/attachments/${result.attachments[0].id}`);
-  assert.equal(result.viewUrl, `https://neon.example/moments?moment=${result.id}`);
+  assert.equal(result.viewUrl, `https://neon.example/moments/${result.id}`);
   assert.equal('ownerUuid' in result, false);
   assert.equal(repository.getMoment(result.id).ownerUuid, OWNER_UUID);
   assert.equal(presentMoment(repository.getMoment(result.id)).attachments.length, 2);

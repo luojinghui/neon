@@ -8,6 +8,7 @@ import { PaperClipOutlined, SendOutlined } from '@ant-design/icons';
 import { useSoulStore } from '../../store';
 import { soulChat } from '../../core';
 import { clipboardImages } from '@/lib/clipboardImages';
+import { useAtmosphere } from '../../useAtmosphere';
 import { SOUL_INSERT_TEXT_EVENT } from './insertText';
 import { ImageAttachmentDraft } from '@/components/image-viewer/ImageAttachmentDraft';
 
@@ -36,6 +37,7 @@ export function ChatInput() {
     const generation = ++draftGeneration.current;
     return () => { draftGeneration.current = generation + 1; };
   }, [roomId]);
+  const { placeholder } = useAtmosphere();
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
@@ -115,7 +117,7 @@ export function ChatInput() {
           rows={1}
           autoSize={{ minRows: 1, maxRows: 5 }}
           className="w-full"
-          placeholder="输入消息…"
+          placeholder={placeholder}
           onPaste={event => {
             const pasted = clipboardImages(event.clipboardData);
             if (!pasted.length) return;

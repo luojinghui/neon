@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/icon';
 import styles from './chat-menus.module.css';
 
 import { Popconfirm } from '@/components/ui/popconfirm';
+import { useConfirm } from '@/components/ui/confirm';
 import { useRef, useState, type ReactNode } from 'react';
 import { soulChat } from '../../core';
 import { useSoulStore } from '../../store';
@@ -44,6 +45,7 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   const [gameError, setGameError] = useState('');
   const gameDisabled = gamePending || !connected || !canAccess || isSending;
   const canFinishGame = isLocal && ((game?.kind === 'rps' && game.status === 'waiting') || (game?.kind === 'draw' && game.status === 'playing'));
+  const modal = useConfirm();
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [replyPending, setReplyPending] = useState(false);
@@ -98,6 +100,18 @@ export function MessageActions({ messageId, messageType, hasAttachment, isLocal,
   }
   if (canCopy) actions.push(<button type="button" key="copy" className={styles.actionButton} onClick={() => { soulChat.copyMessage(messageId); close(); }}><Icon name="copy" size={18} /><span>复制</span></button>);
   if (canDownload) actions.push(<button type="button" key="download" className={styles.actionButton} onClick={() => { soulChat.downloadMessage(messageId); close(); }}><Icon name="download" size={18} /><span>下载</span></button>);
+  const publishToMoments = (ids: string[]) => {
+    close();
+    modal.confirm({
+      title: ids.length > 1 ? `把这 ${ids.length} 条投进星河？` : '把这条消息投进星河？',
+      content: '会按聊天里从上到下的顺序公开。图片会带上，文件、语音和投票会写成文字。',
+      okText: '投进星河',
+      cancelText: '再想想',
+      onOk: () => soulChat.shareToMoments(ids)
+    });
+  };
+  actions.push(<button type="button" key="moment" className={styles.actionButton} onClick={() => publishToMoments([messageId])}><Icon name="heart" size={18} /><span>投到星河</span></button>);
+  actions.push(<button type="button" key="select" className={styles.actionButton} onClick={() => { close(); useSoulStore.getState().startShareSelection(messageId); }}><Icon name="check" size={18} /><span>多选分享</span></button>);
   if (canShare) actions.push(<button type="button" key="share" className={styles.actionButton} onClick={() => { void soulChat.shareMessage(messageId); close(); }}><Icon name="share" size={18} /><span>分享</span></button>);
   if (canPin && !game) actions.push(<button type="button" key="pin" disabled={!connected || !canAccess} className={styles.actionButton} onClick={() => { void soulChat.pinMessage(messageId, !pinned); close(); }}><Icon name="environment" size={18} /><span>{pinned ? '取消置顶' : '置顶'}</span></button>);
   if (isLocal) actions.push(<button type="button" key="recall" disabled={!connected || !canAccess} className={styles.actionButton} onClick={() => { void soulChat.recallMessage(messageId); close(); }}><Icon name="rollback" size={18} /><span>撤回</span></button>);

@@ -24,6 +24,9 @@ import { RoomAccessModal } from './components/RoomAccessModal';
 import { RoomNoticeBars } from './components/RoomNoticeBars';
 import { RoomInfoModal } from './components/RoomInfoModal';
 import { RoomCallNotice, RoomCallProvider } from './components/RoomCall';
+import { ShareMomentDialog } from './components/ShareMomentDialog';
+import { useAtmosphere } from '../useAtmosphere';
+import './room-atmosphere.css';
 
 function ChatRoomPage() {
   const params = useParams<{ roomId: string }>();
@@ -33,6 +36,8 @@ function ChatRoomPage() {
   const accessState = useSoulStore((s) => s.accessState);
   const connected = useSoulStore((s) => s.connectionState === 'connected');
   const [roomInfoOpen, setRoomInfoOpen] = useState(false);
+  const pokeNotice = useSoulStore((state) => state.pokeNotice);
+  const atmosphere = useAtmosphere();
   const direct = room?.kind === 'direct' || params.roomId.startsWith('dm-');
 
   useEffect(() => {
@@ -51,7 +56,8 @@ function ChatRoomPage() {
   return (
     <RoomCallProvider roomId={params.roomId} roomName={roomName} ready={!direct && connected && accessState === 'granted'}>
     <div
-      className="app-screen soul-page soul-room-page flex w-full select-none flex-col bg-background"
+      className="app-screen soul-page soul-room-page flex w-full select-none flex-col"
+      data-period={atmosphere.period}
       onContextMenu={(event) => {
         const target = event.target as HTMLElement;
         if (!target.closest('input, textarea, [contenteditable="true"]')) event.preventDefault();
@@ -59,14 +65,14 @@ function ChatRoomPage() {
     >
       <TopBar
         middle={
-          direct ? <div className="flex min-w-0 flex-col items-center"><span className="truncate text-sm font-medium">{roomName || '私信'}</span><span className="text-[10px] text-foreground-muted">一对一私信</span></div> : <Button variant="ghost"
+          direct ? <div className="flex min-w-0 flex-col items-center"><span className="truncate text-sm font-medium">{roomName || '私信'}</span><span className="text-caption text-foreground-muted">一对一 · {atmosphere.periodLabel}</span></div> : <Button variant="ghost"
               type="button"
               onClick={() => setRoomInfoOpen(true)}
               disabled={!room || accessState !== 'granted'}
               className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 px-2 py-1 text-base font-medium"
               aria-label={`查看${roomName || '星球'}信息`}
             >
-              <span className="truncate">{roomName || '加载中...'}</span>
+              <span className="flex min-w-0 flex-col items-center leading-tight"><span className="truncate">{roomName || '加载中...'}</span><span className="text-caption font-normal text-foreground-muted">{atmosphere.periodLabel}</span></span>
               <Badge dot={Boolean(room?.pendingRequestCount)} offset={[2, -2]}>
                 <InfoCircleOutlined className="block shrink-0 text-sm text-foreground-muted" aria-hidden />
               </Badge>
@@ -89,6 +95,7 @@ function ChatRoomPage() {
         {accessState === 'granted' && (
           <div className="app-content-width shrink-0 pb-3 pt-2">
             {direct && room?.peer ? <div className="flex flex-wrap items-center justify-between gap-2"><Link className="text-xs text-primary" href={createProfileHref(room.peer.userId, { publicKey: room.peer.publicKey, returnTo: `/soul/${params.roomId}` })}>查看对方主页</Link><ContactActions contact={room.peer} showMessage={false} /></div> : <RoomCallNotice />}
+            {pokeNotice && <p className="mb-2 text-center text-caption text-foreground-secondary" role="status">{pokeNotice}</p>}
             <Card as="div" padding="sm" bodyWrap={false}>
               <ChatInput />
               <ChatToolbar />
@@ -99,6 +106,7 @@ function ChatRoomPage() {
 
       <RoomAccessModal onBack={() => router.replace(direct ? '/profile' : '/soul')} />
       {!direct && <RoomInfoModal room={room} open={roomInfoOpen} onClose={() => setRoomInfoOpen(false)} />}
+      <ShareMomentDialog />
     </div>
     </RoomCallProvider>
   );

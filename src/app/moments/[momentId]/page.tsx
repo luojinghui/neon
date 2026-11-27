@@ -1,0 +1,153 @@
+'use client';
+
+import { Button, buttonClassName } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Input } from '@/components/ui/input';
+import { useConfirm } from '@/components/ui/confirm';
+import { TopBar } from '@/components/topbar';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
+import { createProfileHref } from '@/app/profile/navigation';
+import { deleteMoment, getMoment } from '../client';
+import { formatMomentTime, splitMomentParagraphs, splitTrailingImages } from '../format';
+import type { Moment } from '../types';
+import { MomentActions } from '../components/MomentActions';
+import { MomentAttachments } from '../components/MomentAttachments';
+import { MomentAvatar } from '../components/MomentAvatar';
+import { MomentBody } from '../components/MomentBody';
+import { MomentComments } from '../components/MomentComments';
+import { MomentComposer } from '../components/MomentComposer';
+import { MomentMediaView } from '../components/MomentMedia';
+import { MomentVoicePlayer } from '../components/MomentVoice';
+import '../moments.css';
+import '../moments-journal.css';
+import '../components/moment-gallery.css';
+
+const MOMENT_ID = /^[A-Za-z0-9_-]{16}$/;
+
+function ShareLink({ momentId }: { momentId: string }) {
+  const [url, setUrl] = useState('');
+  const [note, setNote] = useState('');
+
+  const create = async () => {
+    const next = `${window.location.origin}/moments/${momentId}`;
+    setUrl(next);
+    try {
+      await navigator.clipboard.writeText(next);
+      setNote('分享链接已复制');
+    } catch {
+      setNote('链接已生成，可以手动复制');
+    }
+  };
+
+  return (
+    <section className="mt-6 flex flex-col gap-3" aria-label="分享这条星语">
+      <Button variant="outline" type="button" onClick={() => void create()}>生成分享链接</Button>
+      {url && <Input readOnly value={url} aria-label="星语分享链接" onFocus={(event) => event.currentTarget.select()} />}
+      {note && <p className="text-caption text-foreground-muted" role="status">{note}</p>}
+    </section>
+  );
+}
+
+function MomentDetail({ momentId }: { momentId: string }) {
+  const router = useRouter();
+  const modal = useConfirm();
+  const [moment, setMoment] = useState<Moment | null>(null);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const valid = MOMENT_ID.test(momentId);
+
+  useEffect(() => {
+    if (!valid) return;
+    const controller = new AbortController();
+    setMoment(null);
+    setError('');
+    getMoment(momentId, controller.signal).then(setMoment).catch((loadError) => {
+      if (!controller.signal.aborted) setError(loadError instanceof Error ? loadError.message : '星语加载失败');
+    });
+    return () => controller.abort();
+  }, [momentId, valid]);
+
+  const remove = () => {
+    if (!moment || deleting) return;
+    modal.confirm({
+      title: '删除整条星语？',
+      content: '正文、媒体、语音和全部评论都会被永久删除。',
+      okText: '删除星语',
+      cancelText: '取消',
+      async onOk() {
+        setDeleting(true);
+        try {
+          await deleteMoment(moment);
+          router.replace('/moments');
+        } catch (deleteError) {
+          setDeleting(false);
+          throw deleteError instanceof Error ? deleteError : new Error('删除失败，请重试');
+        }
+      }
+    });
+  };
+
+  const canEdit = moment ? (moment.canEdit ?? moment.canDelete) : false;
+  const { interleavedBlocks, trailingImages } = splitTrailingImages(moment?.blocks);
+  const displayMedia = moment ? (trailingImages.length > 0 ? [...trailingImages, ...moment.media] : moment.media) : [];
+  const hasBody = Boolean(moment && (interleavedBlocks.length > 0 || (moment.text && splitMomentParagraphs(moment.text).length > 0)));
+
+  return (
+    <div className="moments-screen app-screen flex w-full flex-col overflow-hidden bg-background">
+      <TopBar
+        middle="星语"
+        backHref="/moments"
+        backLabel="星河"
+        right={<div className="flex items-center gap-2"><ProfileShortcut returnTo={`/moments/${momentId}`} /><ThemeToggle /></div>}
+      />
+      <main className="moment-scroll-area app-scroll-main min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <article className="app-content-width moment-journal-content moment-viewer">
+          {!valid && <p className="moment-inline-error" role="alert">星语地址无效</p>}
+          {valid && !moment && !error && <p className="text-body text-foreground-muted" role="status">正在读取星语…</p>}
+          {error && <div className="moment-empty-state" role="alert"><span>{error}</span><Link href="/moments" className={buttonClassName({ variant: 'ghost' })}>返回星河</Link></div>}
+          {moment && (
+            <>
+              <header className="moment-viewer-author">
+                <MomentAvatar author={moment.author} size={40} />
+                <div className="min-w-0">
+                  <Link href={createProfileHref(moment.author.userId, { returnTo: `/moments/${moment.id}` })} className="block truncate text-body font-medium text-foreground">{moment.author.name}</Link>
+                  <time className="text-caption text-foreground-muted" dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}{moment.isEdited ? ' · 已编辑' : ''}</time>
+                </div>
+              </header>
+              {hasBody && <div className="moment-viewer-text"><MomentBody text={moment.text} blocks={interleavedBlocks} immersive /></div>}
+              {displayMedia.length > 0 && <MomentMediaView media={displayMedia} immersive />}
+              <MomentAttachments attachments={moment.attachments} />
+              {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
+              {(moment.location || canEdit || moment.canDelete) && (
+                <footer className="moment-viewer-footer">
+                  <span className="moment-viewer-location">{moment.location && <><EnvironmentOutlined />{moment.location.label}</>}</span>
+                  <div className="flex items-center gap-1">
+                    {canEdit && <Button variant="ghost" type="button" onClick={() => setEditing(true)} disabled={deleting}><Icon name="edit" size="sm" />编辑</Button>}
+                    {moment.canDelete && <Button variant="ghost" type="button" onClick={remove} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}删除</Button>}
+                  </div>
+                </footer>
+              )}
+              <MomentActions moment={moment} onChange={(patch) => setMoment((current) => current ? { ...current, ...patch } : current)} />
+              <MomentComments momentId={moment.id} initialComments={moment.comments} initialCount={moment.commentCount} onCountChange={(commentCount) => setMoment((current) => current ? { ...current, commentCount } : current)} />
+              <ShareLink momentId={moment.id} />
+            </>
+          )}
+        </article>
+      </main>
+      {moment && canEdit && (
+        <MomentComposer appearance="journal" open={editing} moment={moment} onClose={() => setEditing(false)} onPublished={(updated) => { setMoment(updated); setEditing(false); }} />
+      )}
+    </div>
+  );
+}
+
+export default function MomentDetailPage() {
+  const params = useParams<{ momentId: string }>();
+  return <MomentDetail momentId={params.momentId || ''} />;
+}

@@ -30,7 +30,7 @@ function createMomentService(options = {}) {
         attachments: moment.attachments.map((file) => ({ ...file, url: absolute(file.url) })),
         author: { userId: profile.userId, name: profile.name },
         createdAt: moment.createdAt,
-        viewUrl: absolute(`/moments?moment=${moment.id}`),
+        viewUrl: absolute(`/moments/${moment.id}`),
         apiUrl: absolute(`/api/moments/${moment.id}`)
       };
     }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ChatMessage, ChatRoom, ConnectionState, RoomAccessState } from './core/types';
+import type { ChatMessage, ChatRoom, ConnectionState, MomentShareResult, RoomAccessState } from './core/types';
 
 type RoomsState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -22,6 +22,11 @@ interface SoulStore {
   isSending: boolean;
   isUploading: boolean;
   chatError: string;
+  roomPoke: { roomId: string; fromName: string; nonce: number } | null;
+  pokeNotice: string;
+  shareSelecting: boolean;
+  shareSelectedIds: string[];
+  momentShare: MomentShareResult | null;
 
   setRooms: (rooms: ChatRoom[]) => void;
   setRoomsState: (state: RoomsState, error?: string) => void;
@@ -42,6 +47,13 @@ interface SoulStore {
   setIsSending: (sending: boolean) => void;
   setIsUploading: (uploading: boolean) => void;
   setChatError: (error: string) => void;
+  flashRoom: (roomId: string, fromName: string) => void;
+  clearRoomPoke: () => void;
+  setPokeNotice: (notice: string) => void;
+  startShareSelection: (messageId: string) => void;
+  toggleShareSelection: (messageId: string) => void;
+  clearShareSelection: () => void;
+  setMomentShare: (share: MomentShareResult | null) => void;
   prepareRoom: (roomId: string) => void;
   reset: () => void;
 }
@@ -77,7 +89,12 @@ const initialState = {
   isLoadingHistory: false,
   isSending: false,
   isUploading: false,
-  chatError: ''
+  chatError: '',
+  roomPoke: null as SoulStore['roomPoke'],
+  pokeNotice: '',
+  shareSelecting: false,
+  shareSelectedIds: [] as string[],
+  momentShare: null as MomentShareResult | null
 };
 
 export const useSoulStore = create<SoulStore>((set) => ({
@@ -99,6 +116,20 @@ export const useSoulStore = create<SoulStore>((set) => ({
   setIsSending: (isSending) => set({ isSending }),
   setIsUploading: (isUploading) => set({ isUploading }),
   setChatError: (chatError) => set({ chatError }),
+  flashRoom: (roomId, fromName) => set((state) => ({ roomPoke: { roomId, fromName, nonce: (state.roomPoke?.nonce || 0) + 1 } })),
+  clearRoomPoke: () => set({ roomPoke: null }),
+  setPokeNotice: (pokeNotice) => set({ pokeNotice }),
+  startShareSelection: (messageId) => set({ shareSelecting: true, shareSelectedIds: [messageId] }),
+  toggleShareSelection: (messageId) => set((state) => {
+    const selected = state.shareSelectedIds.includes(messageId);
+    if (!selected && state.shareSelectedIds.length >= 20) return state;
+    return {
+      shareSelecting: true,
+      shareSelectedIds: selected ? state.shareSelectedIds.filter((id) => id !== messageId) : [...state.shareSelectedIds, messageId]
+    };
+  }),
+  clearShareSelection: () => set({ shareSelecting: false, shareSelectedIds: [] }),
+  setMomentShare: (momentShare) => set({ momentShare }),
   prepareRoom: (roomId) =>
     set({
       roomId,
@@ -114,7 +145,11 @@ export const useSoulStore = create<SoulStore>((set) => ({
       isLoadingHistory: false,
       isSending: false,
       isUploading: false,
-      chatError: ''
+      chatError: '',
+      pokeNotice: '',
+      shareSelecting: false,
+      shareSelectedIds: [],
+      momentShare: null
     }),
   reset: () => set((state) => ({ ...initialState, rooms: state.rooms, roomsState: state.roomsState === 'ready' ? 'ready' : 'idle' }))
 }));

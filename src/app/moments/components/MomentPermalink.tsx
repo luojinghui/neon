@@ -16,6 +16,10 @@ export function MomentPermalink() {
   const [result, setResult] = useState<{ id: string; moment: Moment | null; error: string } | null>(null);
 
   useEffect(() => {
+    if (id && /^[A-Za-z0-9_-]{16}$/.test(id)) {
+      router.replace(`/moments/${id}`);
+      return;
+    }
     if (!id) return;
     if (!/^[A-Za-z0-9_-]{16}$/.test(id)) {
       setResult({ id, moment: null, error: '星语地址无效' });
@@ -28,7 +32,7 @@ export function MomentPermalink() {
       if (!controller.signal.aborted) setResult({ id, moment: null, error: error instanceof Error ? error.message : '星河加载失败' });
     });
     return () => controller.abort();
-  }, [id]);
+  }, [id, router]);
 
   const close = () => {
     const next = new URLSearchParams(search.toString());
@@ -37,7 +41,7 @@ export function MomentPermalink() {
     setResult(null);
   };
 
-  if (!id) return null;
+  if (!id || /^[A-Za-z0-9_-]{16}$/.test(id)) return id ? <p className="px-4 py-2 text-body text-foreground-muted" role="status">正在打开星语…</p> : null;
   if (result?.id !== id) return <p className="px-4 py-2 text-body text-foreground-muted" role="status">正在读取指定星语…</p>;
   if (result.error) return <div className="moment-inline-error" role="alert">{result.error}<Button variant="ghost" type="button" className="ml-3" onClick={close}>关闭</Button></div>;
   if (!result.moment) return null;

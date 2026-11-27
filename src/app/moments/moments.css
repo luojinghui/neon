@@ -36,6 +36,7 @@
   justify-content: center;
 }
 
+.moment-entry-content { cursor: pointer; }
 .moment-card {
   overflow: hidden;
   min-width: 0;

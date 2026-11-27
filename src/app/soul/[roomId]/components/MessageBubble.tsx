@@ -1,10 +1,13 @@
 'use client';
 
 import { Button, buttonClassName } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { FileOutlined } from '@ant-design/icons';
 import NextImage from 'next/image';
 import Link from 'next/link';
+import { message as toast } from '@/components/ui/message';
 import { useState } from 'react';
+import { useSoulStore } from '../../store';
 import { createProfileHref } from '@/app/profile/navigation';
 import { ImagePreview } from '@/components/image-viewer/ImagePreview';
 import type { ChatMessage } from './types';
@@ -98,9 +101,25 @@ export function MessageBubble({ message, onPreviewImage }: { message: ChatMessag
   const avatarUrl = getAvatarUrl(message.senderId, message.senderAvatar, message.senderKey);
   const profileHref = createProfileHref(message.senderId, { publicKey: message.senderKey, returnTo: `/soul/${message.roomId}` });
   const [filePreviewOpen, setFilePreviewOpen] = useState(false);
+  const selecting = useSoulStore((state) => state.shareSelecting);
+  const selected = useSoulStore((state) => state.shareSelectedIds.includes(message.id));
+  const toggleSelected = () => {
+    const state = useSoulStore.getState();
+    if (!state.shareSelectedIds.includes(message.id) && state.shareSelectedIds.length >= 20) {
+      toast.warning('一次最多选择 20 条');
+      return;
+    }
+    state.toggleShareSelection(message.id);
+  };
 
   return (
-    <article id={`msg-${message.id}`} className={`flex w-full gap-2 py-2 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`}>
+    <article id={`msg-${message.id}`} className={`flex w-full gap-2 py-2 ${isLocal ? 'flex-row-reverse' : 'flex-row'}`} data-selected={selected || undefined} onClick={(event) => {
+      if (!selecting) return;
+      const target = event.target as HTMLElement;
+      if (target.closest('a, button')) return;
+      toggleSelected();
+    }}>
+      {selecting && <Button variant="outline" size="sm" iconOnly type="button" aria-pressed={selected} aria-label={selected ? '取消选择这条消息' : '选择这条消息'} onClick={toggleSelected}><Icon name="check" /></Button>}
       <Link href={profileHref} data-ui-surface className={buttonClassName({ variant: 'ghost', size: 'sm', iconOnly: true, className: 'h-8 w-8 shrink-0' })} aria-label={`查看${message.senderName}的个人主页`}>
         <NextImage src={avatarUrl} alt={message.senderName} width={32} height={32} unoptimized draggable={false} className="h-8 w-8 rounded-full bg-surface-hover object-cover" />
       </Link>

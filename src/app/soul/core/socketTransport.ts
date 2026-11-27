@@ -17,7 +17,9 @@ import type {
   RoomAccessManagement,
   RoomAccessSummary,
   RoomDeletedEvent,
+  MomentShareResult,
   RoomKickedEvent,
+  RoomPokedEvent,
   RoomMember,
   ServerChatMessage,
   UpdateRoomInput
@@ -110,6 +112,14 @@ export class SocketChatTransport {
 
   public searchRoom(query: string): Promise<ChatRoom | null> {
     return this.emitWithAck<ChatRoom | null>('rooms:search', { query });
+  }
+
+  public poke(roomId: string, targetUserId: string): Promise<{ ok: true }> {
+    return this.emitWithAck<{ ok: true }>('room:poke', { roomId, targetUserId });
+  }
+
+  public shareMoment(roomId: string, messageIds: string[]): Promise<MomentShareResult> {
+    return this.emitWithAck<MomentShareResult>('room:share-moment', { roomId, messageIds });
   }
 
   public joinRoom(roomId: string, password = '', inviteToken = ''): Promise<JoinRoomResult> {
@@ -228,6 +238,12 @@ export class SocketChatTransport {
     const socket = this.requireSocket();
     socket.on('chat:recalled', listener);
     return () => socket.off('chat:recalled', listener);
+  }
+
+  public onPoked(listener: (event: RoomPokedEvent) => void): Unsubscribe {
+    const socket = this.requireSocket();
+    socket.on('room:poked', listener);
+    return () => socket.off('room:poked', listener);
   }
 
   public onRoomsChanged(listener: () => void): Unsubscribe {
