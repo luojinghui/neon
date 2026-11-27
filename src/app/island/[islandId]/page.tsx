@@ -39,6 +39,7 @@ import {
 } from '../core/types';
 import { type LiveStroke } from './components/DoodleLayer';
 import { clampScale, InfiniteCanvas, type CanvasViewportState } from './components/InfiniteCanvas';
+import { IslandEdgeSwipeGuard } from './components/IslandEdgeSwipeGuard';
 import { IslandToolbar } from './components/IslandToolbar';
 import { STICKER_PRESETS, TAPE_PRESETS } from './components/StickerItem';
 import {
@@ -919,6 +920,7 @@ export default function IslandBoardPage() {
   if (loading) {
     return (
       <main className={styles.pageShell}>
+        <IslandEdgeSwipeGuard />
         <TopBar backHref="/island" backLabel="天空群岛" middle="正在登岛..." />
         <div className={styles.stateCenter}>
           <Icon name="loading" size="lg" tone="primary" label="正在加载浮岛" />
@@ -931,6 +933,7 @@ export default function IslandBoardPage() {
   if (errorState || !island) {
     return (
       <main className={styles.pageShell}>
+        <IslandEdgeSwipeGuard />
         <TopBar backHref="/island" backLabel="天空群岛" middle="浮岛" />
         <div className={styles.stateCenter}>
           <div className={styles.stateCard}>
@@ -951,6 +954,7 @@ export default function IslandBoardPage() {
 
   return (
     <main className={styles.pageShell} data-skin={localSkinAttr}>
+      <IslandEdgeSwipeGuard />
       <TopBar
         backHref="/island"
         backLabel="天空群岛"

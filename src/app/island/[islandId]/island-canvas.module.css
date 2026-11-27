@@ -9,8 +9,34 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
+  overscroll-behavior-x: none;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+/* 移动端左右边缘认领触摸，避免浏览器把横滑当成历史返回。桌面精细指针不显示。 */
+.edgeGuard {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .edgeGuard {
+    position: fixed;
+    top: calc(var(--app-safe-top) + var(--app-topbar-height));
+    bottom: 0;
+    z-index: 8;
+    display: block;
+    width: 20px;
+    touch-action: none;
+  }
+
+  .edgeGuard[data-side='left'] {
+    left: 0;
+  }
+
+  .edgeGuard[data-side='right'] {
+    right: 0;
+  }
 }
 
 /* The canvas pans instead of scrolling, so keep the topbar scrim permanently on. */
