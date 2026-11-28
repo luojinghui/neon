@@ -82,7 +82,7 @@ export function MomentBody({ text, blocks, immersive = false }: Props) {
         return (
           <div
             key={group.key}
-            className="moment-inline-grid"
+            className={`moment-inline-grid${immersive ? ' is-immersive' : ''}`}
             data-count={Math.min(group.images.length, 3)}
             role="group"
             aria-label={`共 ${group.images.length} 张正文图片`}

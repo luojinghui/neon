@@ -37,6 +37,7 @@ export function MomentMediaView({ media, immersive = false }: Props) {
           className="moment-media-grid"
           data-count={immersive ? images.length : Math.min(images.length, FEED_IMAGE_LIMIT)}
           data-compact={immersive ? undefined : ''}
+          data-layout={immersive ? 'natural' : undefined}
           style={{ '--moment-single-ratio': singleRatio } as CSSProperties}
           role="group"
           aria-label={`共 ${images.length} 张图片，点击可查看大图`}
