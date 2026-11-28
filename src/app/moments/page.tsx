@@ -13,7 +13,7 @@ import { MomentCard } from './components/MomentCard';
 import { MomentComposer } from './components/MomentComposer';
 import { MomentFeed } from './components/MomentFeed';
 import { MomentPermalink } from './components/MomentPermalink';
-import { clearMomentListScroll, readMomentListScroll } from './listScroll';
+import { alignMomentListScroll, clearMomentListPlace, momentListPlaceSettled, readMomentListPlace } from './listScroll';
 
 import './moments.css';
 import './moments-journal.css';
@@ -26,18 +26,66 @@ export default function MomentsPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const scrollRef = useRef<HTMLElement>(null);
   const restoredScroll = useRef(false);
+  const itemKey = items.map((item) => item.id).join(',');
   useLayoutEffect(() => {
     if (restoredScroll.current || items.length === 0) return;
     const scroller = scrollRef.current;
-    const top = readMomentListScroll();
-    if (!scroller || top == null) {
+    const place = readMomentListPlace();
+    if (!place) {
       restoredScroll.current = true;
       return;
     }
-    scroller.scrollTop = top;
-    clearMomentListScroll();
-    restoredScroll.current = true;
-  }, [items.length]);
+    if (!scroller) return;
+    let quietTimer = 0;
+    let deadline = 0;
+    let ignoreScrollUntil = 0;
+    let stopped = false;
+    let observer: ResizeObserver | null = null;
+    const stop = (done: boolean) => {
+      if (stopped) return;
+      stopped = true;
+      observer?.disconnect();
+      scroller.removeEventListener('scroll', onScroll);
+      window.clearTimeout(quietTimer);
+      window.clearTimeout(deadline);
+      if (done) {
+        restoredScroll.current = true;
+        clearMomentListPlace();
+      }
+    };
+    const apply = () => {
+      if (stopped || restoredScroll.current) {
+        stop(false);
+        return;
+      }
+      const card = document.getElementById(`moment-${place.id}`);
+      ignoreScrollUntil = performance.now() + 80;
+      if (!(card instanceof HTMLElement) || !scroller.contains(card)) {
+        if (Math.abs(scroller.scrollTop - place.top) > 1) scroller.scrollTop = place.top;
+        return;
+      }
+      const offset = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      const next = alignMomentListScroll(scroller.scrollTop, offset, place.offset);
+      if (Math.abs(next - scroller.scrollTop) > 1) scroller.scrollTop = next;
+      const seen = card.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      if (momentListPlaceSettled(seen, place.offset)) {
+        window.clearTimeout(quietTimer);
+        quietTimer = window.setTimeout(() => stop(true), 400);
+      }
+    };
+    const onScroll = () => {
+      if (performance.now() < ignoreScrollUntil) return;
+      stop(true);
+    };
+    observer = new ResizeObserver(() => apply());
+    observer.observe(scroller);
+    const feed = scroller.querySelector('.moment-feed-grid');
+    if (feed) observer.observe(feed);
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    apply();
+    deadline = window.setTimeout(() => stop(true), 2000);
+    return () => stop(false);
+  }, [itemKey, items.length]);
   const load = () => refreshMomentFeed();
   const loadMore = () => refreshMomentFeed(true);
   return (
@@ -112,7 +160,7 @@ export default function MomentsPage() {
       </main>
 
       <MomentComposer appearance="journal" open={composerOpen} onClose={() => setComposerOpen(false)} onPublished={() => {
-        clearMomentListScroll();
+        clearMomentListPlace();
         restoredScroll.current = true;
         scrollRef.current?.scrollTo({ top: 0 });
         void refreshMomentFeed(false, true);

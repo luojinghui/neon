@@ -15,6 +15,7 @@ function load(relative) {
 }
 
 const scroll = load('src/app/moments/listScroll.ts');
+const momentId = 'a'.repeat(16);
 
 function memory() {
   const values = new Map();
@@ -25,16 +26,24 @@ function memory() {
   };
 }
 
-test('星河列表滚动位置只保存合法值，读一次后仍可清除', () => {
+test('返回后按卡片在视口中的位置对齐，而不是只恢复滚动条数值', () => {
+  assert.equal(scroll.alignMomentListScroll(640, 220, 80), 780);
+  assert.equal(scroll.alignMomentListScroll(500, -40, -120), 580);
+  assert.equal(scroll.alignMomentListScroll(30, 10, 100), 0);
+  assert.equal(scroll.alignMomentListScroll(100, 40.4, 40.6), 100);
+  assert.equal(scroll.momentListPlaceSettled(81, 80), true);
+  assert.equal(scroll.momentListPlaceSettled(84, 80), false);
+});
+
+test('星河列表位置记录卡片和滚动条，并拒绝无效数据', () => {
   const storage = memory();
-  scroll.writeMomentListScroll(480.6, storage);
-  assert.equal(scroll.readMomentListScroll(storage), 481);
-  scroll.clearMomentListScroll(storage);
-  assert.equal(scroll.readMomentListScroll(storage), null);
-  for (const value of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
-    scroll.writeMomentListScroll(value, storage);
-    assert.equal(scroll.readMomentListScroll(storage), null);
+  const place = { id: momentId, offset: -36.2, top: 640.8 };
+  scroll.writeMomentListPlace(place, storage);
+  assert.deepEqual(scroll.readMomentListPlace(storage), { id: momentId, offset: -36, top: 641 });
+  scroll.clearMomentListPlace(storage);
+  assert.equal(scroll.readMomentListPlace(storage), null);
+  for (const value of ['oops', JSON.stringify({ id: 'short', offset: 1, top: 1 }), JSON.stringify({ id: momentId, offset: '1', top: 1 })]) {
+    storage.setItem('neon:moments-list-place', value);
+    assert.equal(scroll.readMomentListPlace(storage), null);
   }
-  storage.setItem('neon:moments-list-scroll', 'oops');
-  assert.equal(scroll.readMomentListScroll(storage), null);
 });
