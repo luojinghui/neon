@@ -74,3 +74,42 @@
 .moment-media-grid[data-compact][data-count='3'] { aspect-ratio: 16 / 9; }
 .moment-media-grid[data-compact]:not([data-count='1']) .moment-media-tile { aspect-ratio: auto; }
 .moment-media-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / 0.5); color: #fff; font-size: var(--font-size-title); line-height: var(--line-height-title); font-weight: var(--font-weight-semibold); }
+
+/* 详情页按每张图的原始比例纵向排列，不再裁进方格。 */
+.moment-media-grid[data-layout='natural'],
+.moment-media-grid[data-layout='natural'][data-count='1'],
+.moment-media-grid[data-layout='natural'][data-count='2'],
+.moment-media-grid[data-layout='natural'][data-count='3'],
+.moment-media-grid[data-layout='natural'][data-count='4'] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.625rem;
+  width: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+.moment-media-grid[data-layout='natural'] .moment-media-tile,
+.moment-media-grid[data-layout='natural'][data-count='1'] .moment-media-tile,
+.moment-media-grid[data-layout='natural'][data-count='3'] .moment-media-tile,
+.moment-media-grid[data-layout='natural'][data-count='3'] .moment-media-tile:first-child {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: auto;
+  grid-row: auto;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: var(--radius-lg);
+  background: hsl(var(--surface-inset));
+}
+.moment-media-grid[data-layout='natural'] .moment-media-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
