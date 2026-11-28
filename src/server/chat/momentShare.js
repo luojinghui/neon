@@ -38,43 +38,36 @@ function localImage(message) {
   };
 }
 
-function messageBody(message, hasLocalImage) {
-  const name = String(message.attachment?.name || '').trim();
-  const content = String(message.content || '').trim();
-  if (message.type === 'image' || message.type === 'gif') {
-    if (hasLocalImage) return '';
-    return `[${message.type === 'gif' ? '表情' : '图片'}] ${content || name || (message.type === 'gif' ? '表情' : '图片')}`;
-  }
-  if (message.type === 'file') return `[文件] ${name || content || '文件'}`;
-  if (message.type === 'audio') return `[语音] ${name || '语音'}`;
-  if (message.type === 'video') return `[视频] ${name || '视频'}`;
-  return content;
+function messageText(message) {
+  if (message?.type !== 'text' && message?.type !== 'markdown') return '';
+  return String(message.content || '').replace(/\r\n?/g, '\n').trim();
 }
 
-/** 按消息时间从上到下排成星河正文。勾选顺序不影响结果。 */
-function buildMomentShareDraft(label, messages) {
+function appendLine(blocks, line) {
+  const previous = blocks[blocks.length - 1];
+  if (previous?.type === 'text') previous.text = `${previous.text}\n${line}`;
+  else blocks.push({ type: 'text', text: line });
+}
+
+/** 按列表从上到下书写。一条消息占一行，图片穿插在对应位置，不带人名和时间。 */
+function buildMomentShareDraft(messages) {
   const sorted = [...messages].sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0) || String(a.id).localeCompare(String(b.id)));
   if (sorted.length === 0) throw new RoomRepositoryError('先选择要分享的消息', 'SHARE_EMPTY');
   if (sorted.length > MAX_MESSAGES) throw new RoomRepositoryError('一次最多分享 20 条消息', 'SHARE_TOO_MANY');
 
-  const blocks = [{ type: 'text', text: String(label || '').trim() || '来自星球' }];
+  const blocks = [];
   const inlineImages = [];
-  let imageCount = 0;
   for (const message of sorted) {
-    const sender = String(message.senderName || '').trim() || '有人';
     const image = localImage(message);
-    let body = messageBody(message, Boolean(image));
-    if (image && imageCount < MAX_IMAGES) {
-      imageCount += 1;
-      blocks.push({ type: 'text', text: body ? `${sender}\n${body}` : sender });
-      blocks.push({ type: 'image', inlineIndex: inlineImages.length, alt: sender });
+    if (image && inlineImages.length < MAX_IMAGES) {
+      blocks.push({ type: 'image', inlineIndex: inlineImages.length, alt: '' });
       inlineImages.push(image);
       continue;
     }
-    if (image) body = [body, `[图片] ${image.name}`].filter(Boolean).join('\n');
-    if (!body) body = '[消息]';
-    blocks.push({ type: 'text', text: `${sender}\n${body}` });
+    const line = messageText(message);
+    if (line) appendLine(blocks, line);
   }
+  if (blocks.length === 0) throw new RoomRepositoryError('这些消息里没有可以分享的文字或图片', 'SHARE_EMPTY');
   return { blocks, inlineImages };
 }
 
@@ -105,26 +98,11 @@ async function materializeImages(draft, uploadDirectory) {
     }
     const source = draft.inlineImages[block.inlineIndex];
     const file = await readSoulImage(uploadDirectory, source);
-    if (!file) {
-      const fallback = `[图片] ${source?.name || '图片'}`;
-      const previous = blocks[blocks.length - 1];
-      if (previous?.type === 'text') previous.text = `${previous.text}\n${fallback}`;
-      else blocks.push({ type: 'text', text: fallback });
-      continue;
-    }
+    if (!file) continue;
     blocks.push({ type: 'image', inlineIndex: inlineImages.length, alt: block.alt || '' });
     inlineImages.push(file);
   }
   return { blocks, inlineImages };
-}
-
-function roomLabel(roomRepository, room, user) {
-  if (room.kind === 'direct') {
-    const peerKey = (room.participantKeys || []).find((key) => key !== user?.publicKey);
-    const peer = roomRepository.publicPerson?.(peerKey);
-    return `来自和「${peer?.name || '对方'}」的私信`;
-  }
-  return `来自星球「${room.name}」`;
 }
 
 async function shareRoomMessages({ roomRepository, momentRepository, uploadDirectory, user, roomId, messageIds }) {
@@ -137,8 +115,9 @@ async function shareRoomMessages({ roomRepository, momentRepository, uploadDirec
     if (!message) throw new RoomRepositoryError('有消息已经不在了，重新选一下吧', 'SHARE_MESSAGE_MISSING');
     return message;
   });
-  const draft = buildMomentShareDraft(roomLabel(roomRepository, room, user), messages);
+  const draft = buildMomentShareDraft(messages);
   const prepared = await materializeImages(draft, uploadDirectory || roomRepository.uploadDirectory);
+  if (prepared.blocks.length === 0) throw new RoomRepositoryError('这些消息里没有可以分享的文字或图片', 'SHARE_EMPTY');
   const moment = await momentRepository.createMoment(
     { ownerUuid: ownerUuid(user), blocks: prepared.blocks },
     { inlineImages: prepared.inlineImages }

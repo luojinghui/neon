@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { PlanetIllustration } from '@/components/ui/planet-illustration';
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useLayoutEffect, useRef, useState } from 'react';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { TopBar } from '@/components/topbar';
@@ -13,6 +13,7 @@ import { MomentCard } from './components/MomentCard';
 import { MomentComposer } from './components/MomentComposer';
 import { MomentFeed } from './components/MomentFeed';
 import { MomentPermalink } from './components/MomentPermalink';
+import { clearMomentListScroll, readMomentListScroll } from './listScroll';
 
 import './moments.css';
 import './moments-journal.css';
@@ -24,6 +25,19 @@ export default function MomentsPage() {
   const loading = refreshing || (!data && !error);
   const [composerOpen, setComposerOpen] = useState(false);
   const scrollRef = useRef<HTMLElement>(null);
+  const restoredScroll = useRef(false);
+  useLayoutEffect(() => {
+    if (restoredScroll.current || items.length === 0) return;
+    const scroller = scrollRef.current;
+    const top = readMomentListScroll();
+    if (!scroller || top == null) {
+      restoredScroll.current = true;
+      return;
+    }
+    scroller.scrollTop = top;
+    clearMomentListScroll();
+    restoredScroll.current = true;
+  }, [items.length]);
   const load = () => refreshMomentFeed();
   const loadMore = () => refreshMomentFeed(true);
   return (
@@ -40,7 +54,7 @@ export default function MomentsPage() {
         }
       />
 
-      <main ref={scrollRef} className="moment-scroll-area app-scroll-main chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <main ref={scrollRef} data-moment-list="" className="moment-scroll-area app-scroll-main chat-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="app-content-width moment-journal-content">
           <Suspense fallback={null}><MomentPermalink /></Suspense>
           <header className="moment-hero">
@@ -98,6 +112,8 @@ export default function MomentsPage() {
       </main>
 
       <MomentComposer appearance="journal" open={composerOpen} onClose={() => setComposerOpen(false)} onPublished={() => {
+        clearMomentListScroll();
+        restoredScroll.current = true;
         scrollRef.current?.scrollTo({ top: 0 });
         void refreshMomentFeed(false, true);
       }} />

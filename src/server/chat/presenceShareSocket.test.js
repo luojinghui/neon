@@ -137,6 +137,6 @@ test('在线的人出现在星球上，轻戳不进消息流，分享按先后�
   const shared = await accepted(host, 'room:share-moment', { roomId: room.id, messageIds: [second.id, first.id] });
   assert.equal(shared.path, `/moments/${shared.momentId}`);
   const moment = moments.getMoment(shared.momentId);
-  assert.match(moment.text, /来自星球「夜谈」\n\n小鱼\n先说的\n\n小鱼\n后说的/);
+  assert.equal(moment.text, '先说的\n后说的');
   assert.equal(repository.getHistory(room.id, { limit: 20, user: { id: `guest-${profiles[0].uuid}`, userId: 'HostOne', publicKey: 'host-public', name: '小鱼' } }).messages.length, 2);
 });

@@ -12,6 +12,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createProfileHref } from '@/app/profile/navigation';
 import { deleteMoment } from '../client';
 import { formatMomentTime, splitMomentParagraphs, splitTrailingImages } from '../format';
+import { rememberMomentListScroll } from '../listScroll';
 import type { Moment } from '../types';
 import { MomentAvatar } from './MomentAvatar';
 import { MomentActions, type MomentReactionPatch } from './MomentActions';
@@ -146,7 +147,7 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
               <time dateTime={activeMoment.createdAt}>{formatMomentTime(activeMoment.createdAt)}</time>
               {activeMoment.isEdited ? ' · 已编辑' : null}
               {' · '}
-              <Link href={`/moments/${activeMoment.id}`}>详情</Link>
+              <Link href={`/moments/${activeMoment.id}`} onClick={(event) => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) rememberMomentListScroll(event.currentTarget); }}>详情</Link>
             </div>
           </div>
         </div>
@@ -161,6 +162,7 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
         const target = event.target as HTMLElement;
         if (target.closest('a, button, input, textarea, [role="menuitem"]')) return;
         if (window.getSelection()?.toString()) return;
+        rememberMomentListScroll(event.currentTarget);
         router.push(`/moments/${activeMoment.id}`);
       }}>
         {hasBodyContent && (
@@ -173,7 +175,7 @@ export function MomentCard({ moment, onDeleted, onUpdated }: Props) {
                 <Button variant="ghost" size="sm" type="button" aria-expanded={expanded} aria-controls={textId} onClick={() => setExpanded((value) => !value)}>
                   {expanded ? '收起' : '展开全文'}
                 </Button>
-                <Link href={`/moments/${activeMoment.id}`} className="text-caption text-primary">进入详情</Link>
+                <Link href={`/moments/${activeMoment.id}`} className="text-caption text-primary" onClick={(event) => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) rememberMomentListScroll(event.currentTarget); }}>进入详情</Link>
               </div>
             )}
           </div>
