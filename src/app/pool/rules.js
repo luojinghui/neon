@@ -47,8 +47,18 @@ function createGame() {
     breakWarning: false,
     message: '甲方开球。母球放在开球线后，打向球堆。',
     winner: null,
-    choice: null
+    choice: null,
+    practice: false
   };
+}
+
+function createPractice() {
+  const state = createGame();
+  state.practice = true;
+  state.isBreak = false;
+  state.ballInHand = null;
+  state.message = '自由练习。打完可以继续，母球落袋后点台面摆回。';
+  return state;
 }
 
 function cloneState(state) {
@@ -303,6 +313,25 @@ function choose(state, option) {
   return state;
 }
 
+function resolvePractice(state, outcome) {
+  const next = cloneState(state);
+  const incoming = new Map((outcome.balls || []).map(ball => [ball.id, cloneBall(ball)]));
+  next.balls = next.balls.map(ball => incoming.get(ball.id) || ball);
+  const cueDown = (outcome.pocketed || []).includes(0) || (outcome.offTable || []).includes(0);
+  const cue = next.balls.find(ball => ball.id === 0);
+  if (cueDown && cue) cue.pocketed = true;
+  next.practice = true;
+  next.phase = 'aim';
+  next.current = 0;
+  next.isBreak = false;
+  next.open = true;
+  next.winner = null;
+  next.choice = null;
+  next.ballInHand = cueDown ? 'table' : null;
+  next.message = cueDown ? '母球落袋。点击台面摆回后继续练习。' : '自由练习。可以继续出杆。';
+  return next;
+}
+
 function playShot(state, shot) {
   if (state.phase !== 'aim') return { state, simulation: null };
   const cue = state.balls.find(ball => ball.id === 0);
@@ -312,7 +341,8 @@ function playShot(state, shot) {
   const simulation = simulateShot(active, { shot, maxTime: 9, dt: 1 / 420, sampleDt: 1 / 60 });
   const present = new Map(simulation.balls.map(ball => [ball.id, ball]));
   const balls = state.balls.map(ball => present.get(ball.id) || cloneBall(ball));
-  const resolved = resolveShot(state, { ...simulation, balls });
+  const outcome = { ...simulation, balls };
+  const resolved = state.practice ? resolvePractice(state, outcome) : resolveShot(state, outcome);
   return { state: resolved, simulation };
 }
 
@@ -322,9 +352,11 @@ module.exports = {
   NAMES,
   playerName,
   createGame,
+  createPractice,
   canPlace,
   placeCue,
   resolveShot,
+  resolvePractice,
   choose,
   playShot
 };

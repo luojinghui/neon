@@ -1,29 +1,123 @@
 .page {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  min-height: 100dvh;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
 
 .loading {
-  flex: 1;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   color: hsl(var(--foreground-secondary));
 }
 
-.stage {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+.lobby {
+  min-height: 100dvh;
+  width: min(520px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 20px 32px;
 }
 
-.viewport {
+.lobbyBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 首页里的球台插画使用台呢和木库本色，不是界面配色。 */
+.hero {
   position: relative;
-  min-width: 0;
-  min-height: 0;
+  height: 240px;
+  border-radius: var(--radius-xl);
+  background: #0b6234;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background: #6b3e22;
+}
+
+.hero::before { top: 10px; }
+.hero::after { bottom: 10px; }
+
+.heroLine {
+  position: absolute;
+  top: 36px;
+  bottom: 36px;
+  left: 30%;
+  width: 2px;
+  background: rgb(255 255 255 / 0.4);
+}
+
+.heroCue {
+  position: absolute;
+  left: 7%;
+  bottom: 54px;
+  width: 128px;
+  height: 8px;
+  border-radius: 9999px;
+  transform: rotate(-12deg);
+}
+
+.heroTip {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 14px;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+.rack {
+  position: absolute;
+  right: 18%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+
+.rackRow {
+  display: flex;
+  gap: 4px;
+}
+
+.rackRow span {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+}
+
+.cueGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cueSwatch {
+  width: 54px;
+  height: 8px;
+  border-radius: 9999px;
+}
+
+.table {
+  position: relative;
+  height: 100dvh;
+  background: #16120f;
 }
 
 .canvasHost {
@@ -38,54 +132,87 @@
   touch-action: none;
 }
 
-.banner {
+.topBar,
+.bottomBar {
   position: absolute;
-  top: 12px;
+  z-index: 2;
   left: 12px;
   right: 12px;
-  z-index: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   pointer-events: none;
 }
 
-.bannerCard {
-  max-width: min(460px, 100%);
+.topBar {
+  top: 12px;
+  align-items: flex-start;
+}
+
+.bottomBar {
+  bottom: 12px;
+  align-items: flex-end;
+}
+
+.topBar > *,
+.bottomBar > * {
+  pointer-events: auto;
+}
+
+.status {
+  max-width: min(460px, calc(100% - 72px));
   padding: 10px 12px;
   border-radius: var(--radius-lg);
   background: hsl(var(--surface) / 0.94);
-  color: hsl(var(--foreground));
   box-shadow: var(--shadow-md);
 }
 
-.panel {
-  min-height: 0;
-  overflow: auto;
-  padding: 16px;
-  background: hsl(var(--surface));
-  border-left: 1px solid hsl(var(--border));
+.menuAnchor {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: flex-end;
 }
 
-.angles {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.ballFace {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #fff, #f7f4ee 46%, #d5d0c4 80%);
+  box-shadow: inset 0 -3px 5px rgb(0 0 0 / 0.2);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(280px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-xl);
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+  box-shadow: var(--shadow-xl);
+}
+
+.modes {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.angle {
-  padding: 8px 10px;
-  border-radius: var(--radius-lg);
-  background: hsl(var(--surface-inset));
+.tools {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
 }
 
 .spin {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 104px;
+  height: 104px;
   border-radius: 9999px;
   border: 1px solid hsl(var(--border));
   background:
@@ -103,54 +230,76 @@
 
 .spin::before {
   left: 50%;
-  top: 14%;
-  bottom: 14%;
+  top: 16%;
+  bottom: 16%;
   width: 1px;
 }
 
 .spin::after {
   top: 50%;
-  left: 14%;
-  right: 14%;
+  left: 16%;
+  right: 16%;
   height: 1px;
 }
 
 .spinDot {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 9999px;
   background: hsl(var(--primary));
-  box-shadow: var(--shadow-sm);
   transform: translate(-50%, -50%);
 }
 
-.slider {
+.powerTrack {
+  width: 12px;
+  height: 104px;
+  border-radius: 9999px;
+  background: hsl(var(--surface-inset));
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.powerFill {
   width: 100%;
+  background: hsl(var(--primary));
+}
+
+.hint {
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: var(--radius-lg);
+  background: hsl(var(--surface) / 0.9);
+}
+
+.slider {
+  width: 112px;
   accent-color: hsl(var(--primary));
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: hsl(var(--overlay) / 0.4);
 }
 
-.modes {
+.overlayCard {
+  width: min(420px, 100%);
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  background: hsl(var(--surface));
+  box-shadow: var(--shadow-xl);
 }
 
-@media (max-width: 860px) {
-  .stage {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(240px, 1fr) auto;
-  }
-
-  .panel {
-    max-height: 48dvh;
-    border-left: 0;
-    border-top: 1px solid hsl(var(--border));
-  }
+@media (max-width: 720px) {
+  .hint { display: none; }
+  .hero { height: 200px; }
 }

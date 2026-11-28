@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { BALL_RADIUS, TABLE_LENGTH } = require('./physics');
-const { createGame, resolveShot, placeCue, choose } = require('./rules');
+const { createGame, createPractice, resolveShot, resolvePractice, placeCue, choose } = require('./rules');
 
 const R = BALL_RADIUS;
 const HEAD = TABLE_LENGTH / 2 - 0.635;
@@ -231,4 +231,34 @@ test('自由球不能叠到其他球上，开球线后的母球不能放到线�
   const placed = placeCue(game, -0.9, 0.1);
   assert.ok(Math.abs(placed.balls.find(item => item.id === 0).x + 0.9) < 1e-9);
   assert.equal(placed.ballInHand, 'kitchen');
+});
+
+test('自由练习不换人、不因 8 号结束，母球落袋后可以摆回', () => {
+  const game = createPractice();
+  assert.equal(game.practice, true);
+  assert.equal(game.isBreak, false);
+  assert.equal(game.phase, 'aim');
+  assert.equal(game.balls.length, 16);
+  const continued = resolvePractice(game, {
+    balls: resting(game, { 8: { pocketed: true }, 1: { pocketed: true } }),
+    pocketed: [8, 1],
+    cushions: [],
+    offTable: [],
+    firstContact: 1
+  });
+  assert.equal(continued.phase, 'aim');
+  assert.equal(continued.winner, null);
+  assert.equal(continued.current, 0);
+  assert.equal(continued.practice, true);
+  assert.equal(continued.balls.find(item => item.id === 8).pocketed, true);
+  const scratched = resolvePractice(game, {
+    balls: resting(game, { 0: { pocketed: true } }),
+    pocketed: [0],
+    cushions: [],
+    offTable: [],
+    firstContact: 1
+  });
+  assert.equal(scratched.ballInHand, 'table');
+  assert.equal(scratched.balls.find(item => item.id === 0).pocketed, true);
+  assert.equal(scratched.winner, null);
 });

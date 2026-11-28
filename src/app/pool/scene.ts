@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { BALL_RADIUS, powerToSpeed, simulateShot, type Ball, type Simulation } from './physics';
+import { cueStyle } from './cues';
 import { canPlace, type GameState } from './rules';
 
 const R = BALL_RADIUS;
@@ -10,6 +11,9 @@ export interface ShotReadout {
   cutAngle: number | null;
   separation: number | null;
 }
+
+export type ViewMode = 'table' | 'follow' | 'top';
+export type AimMode = 'drag' | 'point' | 'fine';
 
 export interface SceneHandlers {
   onPlace: (x: number, z: number) => void;
@@ -23,7 +27,9 @@ interface SceneControls {
   spinX: number;
   spinY: number;
   elevation: number;
-  mode: 'table' | 'follow' | 'top';
+  mode: ViewMode;
+  aimMode: AimMode;
+  cueId: string;
 }
 
 /** 球台、球和预测线。台呢、木库和球色是球桌内容，不走界面主题色。 */
@@ -42,11 +48,14 @@ export class PoolScene {
   private readonly contactGhost: THREE.Mesh;
   private readonly placeGhost: THREE.Mesh;
   private game: GameState | null = null;
-  private controls: SceneControls = { power: 0.8, spinX: 0, spinY: 0, elevation: 0, mode: 'table' };
+  private controls: SceneControls = { power: 0.8, spinX: 0, spinY: 0, elevation: 0, mode: 'table', aimMode: 'drag', cueId: 'maple' };
+  private shaftMaterial: THREE.MeshStandardMaterial | null = null;
+  private tipMaterial: THREE.MeshStandardMaterial | null = null;
+  private buttMaterial: THREE.MeshStandardMaterial | null = null;
   private aim = 0;
-  private yaw = -1.38;
-  private pitch = 0.78;
-  private distance = 3.2;
+  private yaw = 0.04;
+  private pitch = 1.05;
+  private distance = 2.55;
   private inputKey = '';
   private dirty = true;
   private playing = false;
@@ -94,6 +103,7 @@ export class PoolScene {
     this.game = game;
     const key = `${controls.power.toFixed(3)}|${controls.spinX.toFixed(3)}|${controls.spinY.toFixed(3)}|${controls.elevation.toFixed(3)}|${game.phase}|${game.ballInHand}|${this.ballKey(game.balls)}`;
     this.controls = controls;
+    this.applyCue(controls.cueId);
     if (key !== this.inputKey) {
       this.inputKey = key;
       this.dirty = true;
@@ -134,7 +144,7 @@ export class PoolScene {
     cancelAnimationFrame(this.frame);
     this.renderer.domElement.remove();
     this.renderer.dispose();
-    this.audio?.close().catch(() => undefined);
+    this.audio = null;
   }
 
   private loop = () => {
@@ -298,8 +308,8 @@ export class PoolScene {
       this.camera.lookAt(cue.x + dx * 0.85, 0.02, cue.z + dz * 0.85);
       return;
     }
-    const pitch = this.controls.mode === 'top' ? 1.2 : this.pitch;
-    const distance = this.controls.mode === 'top' ? 2.65 : this.distance;
+    const pitch = this.controls.mode === 'top' ? 1.28 : this.pitch;
+    const distance = (this.controls.mode === 'top' ? 2.2 : this.distance) * (this.camera.aspect < 1 ? 1.28 : 1);
     const horizontal = Math.cos(pitch) * distance;
     this.camera.position.set(Math.sin(this.yaw) * horizontal, Math.sin(pitch) * distance + 0.05, Math.cos(this.yaw) * horizontal);
     this.camera.lookAt(0, 0, 0);
@@ -378,62 +388,72 @@ export class PoolScene {
     this.pointer = { x: event.clientX, y: event.clientY, mode: this.game.ballInHand ? 'place' : 'aim' };
   };
 
+  private forwardOf(point: { x: number; z: number }) {
+    const cue = this.cueBall();
+    if (!cue) return 0;
+    return (point.x - cue.x) * Math.cos(this.aim) + (point.z - cue.z) * Math.sin(this.aim);
+  }
+
+  private pullPower(point: { x: number; z: number }) {
+    const forward = this.forwardOf(point);
+    if (forward > -0.06) return null;
+    return Math.min(1, Math.max(0.05, (-forward - 0.04) / 0.72));
+  }
+
   private onPointerMove = (event: PointerEvent) => {
     const point = this.clothPoint(event);
     if (!point || this.playing || this.game?.phase !== 'aim') return;
     this.hover = point;
-    if (!this.pointer) {
-      if (!this.game?.ballInHand && this.controls.mode !== 'follow') this.aimAt(point);
-      return;
-    }
-    if (this.pointer.mode === 'orbit' && this.controls.mode !== 'follow') {
-      this.yaw -= (event.clientX - this.pointer.x) * 0.005;
-      this.pitch = Math.max(0.28, Math.min(1.15, this.pitch - (event.clientY - this.pointer.y) * 0.004));
+    if (!this.pointer || this.pointer.mode === 'place') return;
+    if (this.pointer.mode === 'orbit') {
+      if (this.controls.mode !== 'follow') {
+        this.yaw -= (event.clientX - this.pointer.x) * 0.005;
+        this.pitch = Math.max(0.32, Math.min(1.2, this.pitch - (event.clientY - this.pointer.y) * 0.004));
+      }
       this.pointer.x = event.clientX;
       this.pointer.y = event.clientY;
       return;
     }
-    if (this.controls.mode === 'follow') {
-      this.aim -= (event.clientX - this.pointer.x) * 0.004;
-      this.dirty = true;
-      const pull = Math.max(0, event.clientY - this.pointer.y);
-      if (pull > 8) {
-        this.pointer.mode = 'power';
-        this.dragPower = Math.min(1, pull / 180);
-        this.handlers.onPower(this.dragPower);
-        this.dirty = true;
-      }
+    if (this.controls.aimMode === 'fine') {
+      this.aim -= (event.clientX - this.pointer.x) * 0.0032;
       this.pointer.x = event.clientX;
+      const pull = event.clientY - this.pointer.y;
+      if (pull > 12) {
+        this.pointer.mode = 'power';
+        this.dragPower = Math.min(1, pull / 210);
+        this.handlers.onPower(this.dragPower);
+      }
+      this.dirty = true;
       return;
     }
-    const cue = this.cueBall();
-    if (cue && this.pointer.mode !== 'place') {
-      const forward = (point.x - cue.x) * Math.cos(this.aim) + (point.z - cue.z) * Math.sin(this.aim);
-      if (forward < -0.05) {
-        this.pointer.mode = 'power';
-        this.dragPower = Math.min(1, (-forward - 0.05) / 0.62);
-        this.handlers.onPower(this.dragPower);
-        this.dirty = true;
-        return;
-      }
+    const power = this.pullPower(point);
+    if (power != null) {
+      this.pointer.mode = 'power';
+      this.dragPower = power;
+      this.handlers.onPower(power);
+      this.dirty = true;
+      return;
     }
-    if (this.pointer.mode !== 'power') this.aimAt(point);
+    if (this.pointer.mode !== 'power' && this.controls.aimMode === 'drag') this.aimAt(point);
   };
 
   private onPointerUp = (event: PointerEvent) => {
     const pointer = this.pointer;
+    const hover = this.hover;
     this.pointer = null;
     if (!pointer || this.playing || this.game?.phase !== 'aim') return;
-    if (pointer.mode === 'power' && (this.dragPower || 0) > 0.04) {
+    if (pointer.mode === 'power' && (this.dragPower || 0) > 0.05) {
       const power = this.dragPower || this.controls.power;
       this.dragPower = null;
       this.handlers.onShoot(power);
       return;
     }
     this.dragPower = null;
-    if (pointer.mode === 'place' && this.hover && this.game && canPlace(this.game, this.hover.x, this.hover.z)) {
-      this.handlers.onPlace(this.hover.x, this.hover.z);
+    if (pointer.mode === 'place' && hover && this.game && canPlace(this.game, hover.x, hover.z)) {
+      this.handlers.onPlace(hover.x, hover.z);
+      return;
     }
+    if (pointer.mode === 'aim' && this.controls.aimMode === 'point' && hover) this.aimAt(hover);
     if (event.type === 'pointerleave') this.hover = null;
   };
 
@@ -622,17 +642,24 @@ export class PoolScene {
     return texture;
   }
 
+  private applyCue(id: string) {
+    const style = cueStyle(id);
+    this.shaftMaterial?.color.set(style.shaft);
+    this.tipMaterial?.color.set(style.tip);
+    this.buttMaterial?.color.set(style.butt);
+  }
+
   private buildCue() {
-    const mesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.006, 0.011, 0.68, 18),
-      new THREE.MeshStandardMaterial({ color: 0xc98445, roughness: 0.42, metalness: 0.04 })
-    );
-    const tip = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.0054, 0.006, 0.03, 12),
-      new THREE.MeshStandardMaterial({ color: 0x1f6ea8, roughness: 0.45 })
-    );
+    const style = cueStyle(this.controls.cueId);
+    this.shaftMaterial = new THREE.MeshStandardMaterial({ color: style.shaft, roughness: 0.42, metalness: 0.04 });
+    this.tipMaterial = new THREE.MeshStandardMaterial({ color: style.tip, roughness: 0.45 });
+    this.buttMaterial = new THREE.MeshStandardMaterial({ color: style.butt, roughness: 0.5 });
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.011, 0.68, 18), this.shaftMaterial);
+    const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.0054, 0.006, 0.03, 12), this.tipMaterial);
     tip.position.y = 0.35;
-    mesh.add(tip);
+    const butt = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.013, 0.09, 16), this.buttMaterial);
+    butt.position.y = -0.3;
+    mesh.add(tip, butt);
     mesh.castShadow = true;
     this.scene.add(mesh);
     const shadowGeo = new THREE.CircleGeometry(R * 0.86, 18);
