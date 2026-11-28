@@ -17,7 +17,7 @@ export type AimMode = 'drag' | 'point' | 'fine';
 
 export interface SceneHandlers {
   onPlace: (x: number, z: number) => void;
-  onPower: (power: number) => void;
+  onPower: (power: number | null) => void;
   onShoot: (power: number) => void;
   onReadout: (readout: ShotReadout) => void;
 }
@@ -63,7 +63,8 @@ export class PoolScene {
   private playPower = 0.8;
   private samples: Simulation['samples'] = [];
   private playDone: (() => void) | null = null;
-  private pointer: { x: number; y: number; mode: 'aim' | 'power' | 'orbit' | 'place' } | null = null;
+  private pointer: { x: number; y: number; startX: number; startY: number; clothX: number; clothZ: number; mode: 'aim' | 'power' | 'orbit' | 'place' } | null = null;
+  private landscape = true;
   private hover: { x: number; z: number } | null = null;
   private dragPower: number | null = null;
   private audio: AudioContext | null = null;
@@ -308,8 +309,10 @@ export class PoolScene {
       this.camera.lookAt(cue.x + dx * 0.85, 0.02, cue.z + dz * 0.85);
       return;
     }
-    const pitch = this.controls.mode === 'top' ? 1.28 : this.pitch;
-    const distance = (this.controls.mode === 'top' ? 2.2 : this.distance) * (this.camera.aspect < 1 ? 1.28 : 1);
+    const landscape = this.camera.aspect >= 1;
+    const pitch = this.controls.mode === 'top' ? 1.28 : landscape ? this.pitch : 1.12;
+    const span = this.controls.mode === 'top' ? 2.15 : landscape ? 2.62 : 3.35;
+    const distance = span;
     const horizontal = Math.cos(pitch) * distance;
     this.camera.position.set(Math.sin(this.yaw) * horizontal, Math.sin(pitch) * distance + 0.05, Math.cos(this.yaw) * horizontal);
     this.camera.lookAt(0, 0, 0);
@@ -371,9 +374,14 @@ export class PoolScene {
     const width = this.host.clientWidth;
     const height = this.host.clientHeight;
     if (!width || !height) return;
+    const landscape = width >= height;
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    if (landscape !== this.landscape && this.controls.mode === 'table') {
+      this.yaw = landscape ? 0.02 : -Math.PI / 2;
+    }
+    this.landscape = landscape;
   }
 
   private onPointerDown = (event: PointerEvent) => {
@@ -382,10 +390,19 @@ export class PoolScene {
     const point = this.clothPoint(event);
     this.hover = point;
     if (event.button === 2 || event.altKey) {
-      this.pointer = { x: event.clientX, y: event.clientY, mode: 'orbit' };
+      this.pointer = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, clothX: 0, clothZ: 0, mode: 'orbit' };
       return;
     }
-    this.pointer = { x: event.clientX, y: event.clientY, mode: this.game.ballInHand ? 'place' : 'aim' };
+    const cloth = point || { x: 0, z: 0 };
+    this.pointer = {
+      x: event.clientX,
+      y: event.clientY,
+      startX: event.clientX,
+      startY: event.clientY,
+      clothX: cloth.x,
+      clothZ: cloth.z,
+      mode: this.game.ballInHand ? 'place' : 'aim'
+    };
   };
 
   private forwardOf(point: { x: number; z: number }) {
@@ -394,10 +411,32 @@ export class PoolScene {
     return (point.x - cue.x) * Math.cos(this.aim) + (point.z - cue.z) * Math.sin(this.aim);
   }
 
-  private pullPower(point: { x: number; z: number }) {
-    const forward = this.forwardOf(point);
-    if (forward > -0.06) return null;
-    return Math.min(1, Math.max(0.05, (-forward - 0.04) / 0.72));
+  private lateralOf(point: { x: number; z: number }) {
+    const cue = this.cueBall();
+    if (!cue) return 0;
+    const dx = point.x - cue.x;
+    const dz = point.z - cue.z;
+    return Math.abs(-dx * Math.sin(this.aim) + dz * Math.cos(this.aim));
+  }
+
+  /** 只有按在球杆附近、并且明显往后拉，才进入出杆。台面上拖动只负责瞄准。 */
+  private startedOnCue() {
+    const pointer = this.pointer;
+    if (!pointer) return false;
+    const cue = this.cueBall();
+    if (!cue) return false;
+    const dx = pointer.clothX - cue.x;
+    const dz = pointer.clothZ - cue.z;
+    if (Math.hypot(dx, dz) < 0.2) return true;
+    const forward = dx * Math.cos(this.aim) + dz * Math.sin(this.aim);
+    const lateral = Math.abs(-dx * Math.sin(this.aim) + dz * Math.cos(this.aim));
+    return forward < -0.02 && forward > -0.9 && lateral < 0.11;
+  }
+
+  private cancelPull() {
+    if (this.dragPower == null) return;
+    this.dragPower = null;
+    this.handlers.onPower(null);
   }
 
   private onPointerMove = (event: PointerEvent) => {
@@ -417,44 +456,61 @@ export class PoolScene {
     if (this.controls.aimMode === 'fine') {
       this.aim -= (event.clientX - this.pointer.x) * 0.0032;
       this.pointer.x = event.clientX;
-      const pull = event.clientY - this.pointer.y;
-      if (pull > 12) {
+      const down = event.clientY - this.pointer.startY;
+      const side = Math.abs(event.clientX - this.pointer.startX);
+      if (down > 96 && down > side * 1.8) {
         this.pointer.mode = 'power';
-        this.dragPower = Math.min(1, pull / 210);
+        this.dragPower = Math.min(1, (down - 96) / 240);
         this.handlers.onPower(this.dragPower);
+      } else if (this.pointer.mode === 'power') {
+        this.pointer.mode = 'aim';
+        this.cancelPull();
       }
       this.dirty = true;
       return;
     }
-    const power = this.pullPower(point);
-    if (power != null) {
-      this.pointer.mode = 'power';
-      this.dragPower = power;
-      this.handlers.onPower(power);
-      this.dirty = true;
+    const aiming = !this.startedOnCue() || this.lateralOf(point) > Math.max(0.16, -this.forwardOf(point));
+    if (aiming) {
+      if (this.pointer.mode === 'power') {
+        this.pointer.mode = 'aim';
+        this.cancelPull();
+      }
+      if (this.controls.aimMode === 'drag') this.aimAt(point);
       return;
     }
-    if (this.pointer.mode !== 'power' && this.controls.aimMode === 'drag') this.aimAt(point);
+    const back = -this.forwardOf(point);
+    if (back > 0.22) {
+      this.pointer.mode = 'power';
+      this.dragPower = Math.min(1, (back - 0.16) / 0.55);
+      this.handlers.onPower(this.dragPower);
+      this.dirty = true;
+    }
   };
 
   private onPointerUp = (event: PointerEvent) => {
     const pointer = this.pointer;
     const hover = this.hover;
     this.pointer = null;
+    if (event.type === 'pointerleave') {
+      this.cancelPull();
+      this.hover = null;
+      return;
+    }
     if (!pointer || this.playing || this.game?.phase !== 'aim') return;
-    if (pointer.mode === 'power' && (this.dragPower || 0) > 0.05) {
-      const power = this.dragPower || this.controls.power;
+    const travel = Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY);
+    if (pointer.mode === 'power' && (this.dragPower || 0) >= 0.22 && travel > 56) {
+      const power = this.dragPower || 0.34;
       this.dragPower = null;
+      this.handlers.onPower(null);
       this.handlers.onShoot(power);
       return;
     }
-    this.dragPower = null;
+    this.cancelPull();
     if (pointer.mode === 'place' && hover && this.game && canPlace(this.game, hover.x, hover.z)) {
       this.handlers.onPlace(hover.x, hover.z);
       return;
     }
-    if (pointer.mode === 'aim' && this.controls.aimMode === 'point' && hover) this.aimAt(hover);
-    if (event.type === 'pointerleave') this.hover = null;
+    if (this.controls.aimMode === 'point' && hover && travel < 18) this.aimAt(hover);
   };
 
   private onWheel = (event: WheelEvent) => {

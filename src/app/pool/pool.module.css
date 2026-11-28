@@ -160,11 +160,10 @@
 }
 
 .status {
-  max-width: min(460px, calc(100% - 72px));
-  padding: 10px 12px;
-  border-radius: var(--radius-lg);
-  background: hsl(var(--surface) / 0.94);
-  box-shadow: var(--shadow-md);
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  background: hsl(var(--surface) / 0.82);
 }
 
 .menuAnchor {
@@ -211,8 +210,8 @@
 
 .spin {
   position: relative;
-  width: 104px;
-  height: 104px;
+  width: 72px;
+  height: 72px;
   border-radius: 9999px;
   border: 1px solid hsl(var(--border));
   background:
@@ -252,8 +251,11 @@
 }
 
 .powerTrack {
-  width: 12px;
-  height: 104px;
+  position: absolute;
+  left: 92px;
+  bottom: 0;
+  width: 8px;
+  height: 72px;
   border-radius: 9999px;
   background: hsl(var(--surface-inset));
   overflow: hidden;
@@ -266,15 +268,8 @@
   background: hsl(var(--primary));
 }
 
-.hint {
-  max-width: 240px;
-  padding: 8px 10px;
-  border-radius: var(--radius-lg);
-  background: hsl(var(--surface) / 0.9);
-}
-
 .slider {
-  width: 112px;
+  width: 100%;
   accent-color: hsl(var(--primary));
 }
 
@@ -299,7 +294,14 @@
   box-shadow: var(--shadow-xl);
 }
 
-@media (max-width: 720px) {
-  .hint { display: none; }
-  .hero { height: 200px; }
+@media (orientation: portrait) {
+  .hero { height: 180px; }
+  .spin { width: 64px; height: 64px; }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .topBar { top: 8px; }
+  .bottomBar { bottom: 8px; }
+  .spin { width: 56px; height: 56px; }
+  .powerTrack { height: 56px; left: 72px; }
 }

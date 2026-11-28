@@ -39,7 +39,6 @@ export function PoolLobby({
           ))}
         </span>
       </div>
-      <p className="text-body text-foreground-secondary">进桌以后整屏都是球台。右上角的白球用来切换视角和打点。</p>
       <Button variant="primary" size="lg" block onClick={() => onStart('eight')}>开始中八</Button>
       <Button size="lg" block onClick={() => onStart('practice')}>自由练习</Button>
       <section className="flex flex-col gap-2">
