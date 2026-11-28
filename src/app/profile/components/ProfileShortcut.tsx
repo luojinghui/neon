@@ -15,7 +15,7 @@ export function ProfileShortcut({ returnTo = '/' }: { returnTo?: string }) {
 
   return (
     <Link
-      href={`${createProfileHref('', { returnTo })}${unread > 0 ? '&section=messages' : ''}`}
+      href={createProfileHref('', { returnTo, section: unread > 0 ? 'messages' : undefined })}
       className={buttonClassName({ iconOnly: true, className: 'relative' })}
       aria-label={profile ? `打开${profile.name}的个人中心` : '打开个人中心'}
     >

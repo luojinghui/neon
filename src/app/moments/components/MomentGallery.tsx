@@ -4,6 +4,7 @@ import { Button, buttonClassName } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import Link from 'next/link';
 import { formatMomentTime } from '../format';
+import { createMomentHref } from '../navigation';
 import type { Moment } from '../types';
 import { VideoCover } from '@/components/video-player/VideoPlayer';
 import './moment-gallery.css';
@@ -12,12 +13,13 @@ type Props = {
   moments: Moment[];
   loading: boolean;
   error?: string;
+  returnTo?: string;
   onRetry?: () => void;
   onDeleted: (id: string) => void;
   onUpdated?: (moment: Moment) => void;
 };
 
-export function MomentGallery({ moments, loading, error = '', onRetry }: Props) {
+export function MomentGallery({ moments, loading, error = '', returnTo, onRetry }: Props) {
   return (
     <section className="moment-profile-gallery" aria-label="星语列表" aria-busy={loading}>
       <header className="moment-profile-heading"><div><h2>时光切片</h2><p>{moments.length} 条记录 · {moments.reduce((sum, moment) => sum + (moment.likeCount || 0), 0)} 次喜欢</p></div></header>
@@ -35,7 +37,7 @@ export function MomentGallery({ moments, loading, error = '', onRetry }: Props) 
           const firstMedia = moment.media[0] || inlineImages[0];
           const totalMediaCount = moment.media.length + inlineImages.length;
           return (
-            <Link key={moment.id} href={`/moments/${moment.id}`} className={buttonClassName({ variant: 'outline', align: 'start', className: `moment-profile-entry ${firstMedia ? 'has-media' : ''}` })} aria-label={`查看星语详情：${moment.text || (moment.voice ? '语音星河' : moment.attachments?.[0]?.name || '图片与视频')}`}>
+            <Link key={moment.id} href={createMomentHref(moment.id, { returnTo })} className={buttonClassName({ variant: 'outline', align: 'start', className: `moment-profile-entry ${firstMedia ? 'has-media' : ''}` })} aria-label={`查看星语详情：${moment.text || (moment.voice ? '语音星河' : moment.attachments?.[0]?.name || '图片与视频')}`}>
               {!firstMedia && <span className="moment-profile-note-label"><Icon name={moment.voice ? 'audio' : 'edit'} />{moment.voice ? '声音日记' : '随手记'}</span>}
               {firstMedia && (
                 <span className="moment-profile-cover">

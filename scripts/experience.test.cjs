@@ -38,8 +38,10 @@ test('cloud queries are anchored and case insensitive for generated and older mi
 });
 
 test('profile return links preserve plaza query destinations and reject unsafe or unknown parameters', () => {
+  const cloudNavigation = load('src/app/cloud/navigation.ts');
   const { sanitizeProfileReturnTo, getProfileBackLabel, createProfileHref } = load('src/app/profile/navigation.ts', {
-    '../cloud/navigation': load('src/app/cloud/navigation.ts')
+    '../cloud/navigation': cloudNavigation,
+    '../moments/navigation': load('src/app/moments/navigation.ts', { '../cloud/navigation': cloudNavigation })
   });
   for (const destination of ['/cloud?tab=plaza', '/cloud?tab=plaza&id=Ab_cd-12', `/cloud?tab=plaza&id=${'a'.repeat(32)}`]) {
     assert.equal(sanitizeProfileReturnTo(destination), destination);

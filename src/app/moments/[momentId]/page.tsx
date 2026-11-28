@@ -9,10 +9,11 @@ import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LoadingOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ProfileShortcut } from '@/app/profile/components/ProfileShortcut';
 import { createProfileHref } from '@/app/profile/navigation';
+import { createMomentHref, getMomentBackLabel, sanitizeMomentReturnTo } from '../navigation';
 import { deleteMoment, getMoment } from '../client';
 import { formatMomentTime, splitMomentParagraphs, splitTrailingImages } from '../format';
 import type { Moment } from '../types';
@@ -69,8 +70,12 @@ function focusCommentComposer() {
 
 function MomentDetail({ momentId }: { momentId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const modal = useConfirm();
   const shareLink = useMomentShare(momentId);
+  const returnTo = sanitizeMomentReturnTo(searchParams.get('from'));
+  const backLabel = getMomentBackLabel(returnTo);
+  const detailHref = createMomentHref(momentId, { returnTo });
   const [moment, setMoment] = useState<Moment | null>(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -99,7 +104,7 @@ function MomentDetail({ momentId }: { momentId: string }) {
         setDeleting(true);
         try {
           await deleteMoment(moment);
-          router.replace('/moments');
+          router.replace(returnTo);
         } catch (deleteError) {
           setDeleting(false);
           throw deleteError instanceof Error ? deleteError : new Error('删除失败，请重试');
@@ -120,21 +125,21 @@ function MomentDetail({ momentId }: { momentId: string }) {
     <div className="moments-screen app-screen flex w-full flex-col overflow-hidden bg-background">
       <TopBar
         middle="星语"
-        backHref="/moments"
-        backLabel="星河"
-        right={<div className="flex items-center gap-2"><ProfileShortcut returnTo={`/moments/${momentId}`} /><ThemeToggle /></div>}
+        backHref={returnTo}
+        backLabel={backLabel}
+        right={<div className="flex items-center gap-2"><ProfileShortcut returnTo={detailHref} /><ThemeToggle /></div>}
       />
       <main className="moment-scroll-area app-scroll-main min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <article className="app-content-width moment-journal-content moment-detail moment-viewer">
           {!valid && <p className="moment-inline-error" role="alert">星语地址无效</p>}
           {valid && !moment && !error && <p className="text-body text-foreground-muted" role="status">正在读取星语…</p>}
-          {error && <div className="moment-empty-state" role="alert"><span>{error}</span><Link href="/moments" className={buttonClassName({ variant: 'ghost' })}>返回星河</Link></div>}
+          {error && <div className="moment-empty-state" role="alert"><span>{error}</span><Link href={returnTo} className={buttonClassName({ variant: 'ghost' })}>返回{backLabel}</Link></div>}
           {moment && (
             <>
               <header className="moment-viewer-author">
-                <MomentAvatar author={moment.author} size={40} returnTo={`/moments/${moment.id}`} />
+                <MomentAvatar author={moment.author} size={40} returnTo={detailHref} />
                 <div className="min-w-0">
-                  <Link href={createProfileHref(moment.author.userId, { returnTo: `/moments/${moment.id}` })} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">{moment.author.name}</Link>
+                  <Link href={createProfileHref(moment.author.userId, { returnTo: detailHref })} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">{moment.author.name}</Link>
                   <div className="moment-card-byline">
                     <time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time>
                     {moment.isEdited ? ' · 已编辑' : null}

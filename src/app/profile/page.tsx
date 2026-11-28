@@ -5,20 +5,20 @@ import { LoadingOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ensureCurrentProfile } from './client';
-import { createProfileHref, sanitizeProfileReturnTo } from './navigation';
+import { createProfileHref, sanitizeProfileReturnTo, sanitizeProfileSection } from './navigation';
 
 export default function MyProfileRedirectPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
   const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
-  const section = searchParams.get('section') === 'messages' ? '&section=messages' : '';
+  const section = sanitizeProfileSection(searchParams.get('section'));
 
   useEffect(() => {
     let active = true;
     ensureCurrentProfile()
       .then((profile) => {
-        if (active) router.replace(`${createProfileHref(profile.userId, { returnTo })}${section}`);
+        if (active) router.replace(createProfileHref(profile.userId, { returnTo, section }));
       })
       .catch((profileError) => {
         if (active) setError(profileError instanceof Error ? profileError.message : '个人资料加载失败');

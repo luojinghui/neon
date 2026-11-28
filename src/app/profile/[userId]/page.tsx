@@ -22,7 +22,7 @@ import { ProfileIslandEntry } from '../components/ProfileIslandEntry';
 import { ProfileUuid } from '../components/ProfileUuid';
 import { useCurrentProfile } from '../useCurrentProfile';
 import type { PublicProfile } from '../types';
-import { createProfileHref, getProfileBackLabel, sanitizeProfileReturnTo } from '../navigation';
+import { createProfileHref, getProfileBackLabel, resolveProfileSection, sanitizeProfileReturnTo } from '../navigation';
 import { SocialPanel } from '@/app/social/SocialPanel';
 import { useSocialStore } from '@/app/social/client';
 import { ProfileShortcut } from '../components/ProfileShortcut';
@@ -39,13 +39,17 @@ export default function ProfilePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentProfile = useCurrentProfile();
+  const userId = decodeURIComponent(params.userId || '');
+  const publicKey = searchParams.get('key') || '';
+  const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
+  const requestedSection = searchParams.get('section');
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [composerOpen, setComposerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeSection, setActiveSection] = useState<'profile' | 'moments' | 'messages' | 'friends'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'moments' | 'messages' | 'friends'>(() => resolveProfileSection(requestedSection, false));
   const unread = useSocialStore((state) => state.conversations.reduce((total, item) => total + item.unreadCount, 0));
   const friendCount = useSocialStore((state) => state.favorites.length);
   const socialReady = useSocialStore((state) => state.ready);
@@ -58,10 +62,6 @@ export default function ProfilePage() {
   const publishedMoments = useRef<Moment[]>([]);
   const deletedMoments = useRef(new Set<string>());
   const activeProfileKey = useRef('');
-  const userId = decodeURIComponent(params.userId || '');
-  const publicKey = searchParams.get('key') || '';
-  const returnTo = sanitizeProfileReturnTo(searchParams.get('from'));
-  const requestedSection = searchParams.get('section');
 
   useEffect(() => {
     let active = true;
@@ -75,7 +75,7 @@ export default function ProfilePage() {
     setLoading(true);
     setError('');
     setComposerOpen(false);
-    setActiveSection('profile');
+    setActiveSection(resolveProfileSection(requestedSection, false));
     setMoments([]);
     setMomentsLoading(false);
     setMomentsLoaded(false);
@@ -86,10 +86,10 @@ export default function ProfilePage() {
         activeProfileKey.current = result.profile.publicKey;
         setProfile(result.profile);
         setIsOwner(result.isOwner);
-        if (result.isOwner && requestedSection === 'messages') setActiveSection('messages');
+        setActiveSection(resolveProfileSection(requestedSection, result.isOwner));
         setLoading(false);
         if (result.profile.userId.toLowerCase() !== userId.toLowerCase()) {
-          router.replace(createProfileHref(result.profile.userId, { returnTo }));
+          router.replace(createProfileHref(result.profile.userId, { returnTo, section: requestedSection || undefined }));
         }
       })
       .catch((profileError) => {
@@ -204,7 +204,7 @@ export default function ProfilePage() {
                 onSaved={(updated) => {
                   if (updated.publicKey !== activeProfileKey.current) return;
                   setProfile(updated);
-                  if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo }));
+                  if (updated.userId !== userId) router.replace(createProfileHref(updated.userId, { returnTo, section: activeSection }));
                 }}
               />
               <div className="profile-sections">
@@ -266,6 +266,7 @@ export default function ProfilePage() {
                 ) : (
                     <MomentGallery
                       key={profile.publicKey}
+                      returnTo={createProfileHref(profile.userId, { publicKey: profile.publicKey, returnTo, section: 'moments' })}
                       moments={moments}
                       loading={momentsLoading}
                       error={momentsError}
