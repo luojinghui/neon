@@ -97,6 +97,71 @@
 .moment-journal-comments .moment-comment { border: 0; }
 .moment-journal-comments .moment-comment-list { gap: 1rem; }
 
+/* 详情页按单张星语卡片的阅读宽度居中，不拉满瀑布流的双列宽度。 */
+.moments-screen .moment-detail { max-width: 40rem; }
+.moment-detail-location {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0;
+  color: hsl(var(--foreground-muted));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+.moments-screen .moment-detail .moment-action-error { padding: 0.25rem 0 0; }
+.moment-detail-share-note {
+  margin: 0.35rem 0 0;
+  color: hsl(var(--foreground-muted));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+}
+.moment-detail-link { margin-top: 0.5rem; }
+
+.moment-detail .moment-comments-on-page {
+  margin-top: 1.25rem;
+  border-top: 1px solid hsl(var(--border) / 0.55);
+  padding-top: 1.125rem;
+  background: transparent;
+}
+.moment-detail-comments-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+.moment-detail-comments-head h2 {
+  margin: 0;
+  color: hsl(var(--foreground));
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-semibold);
+}
+.moment-detail-comments-head span {
+  color: hsl(var(--foreground-muted));
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  font-variant-numeric: tabular-nums;
+}
+.moment-detail-comments-empty {
+  margin: 0 0 0.9rem;
+  color: hsl(var(--foreground-muted));
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.moment-detail .moment-comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0;
+}
+.moment-detail .moment-reply-target { margin: 0 0 0.5rem; }
+.moment-detail .moment-comment-composer {
+  align-items: end;
+  margin-top: 1.15rem;
+  padding: 0;
+}
+.moment-detail .moment-comment-footer { margin-top: 0.15rem; }
+
 
 @media (min-width: 768px) {
   .moments-screen .moment-feed-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }

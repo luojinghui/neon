@@ -1,12 +1,13 @@
 'use client';
 
 import { Button, buttonClassName } from '@/components/ui/button';
+import { Dropdown, type DropdownItem } from '@/components/ui/dropdown';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { useConfirm } from '@/components/ui/confirm';
 import { TopBar } from '@/components/topbar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { DeleteOutlined, EnvironmentOutlined, LoadingOutlined } from '@ant-design/icons';
+import { LoadingOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -29,33 +30,47 @@ import '../components/moment-gallery.css';
 
 const MOMENT_ID = /^[A-Za-z0-9_-]{16}$/;
 
-function ShareLink({ momentId }: { momentId: string }) {
+function useMomentShare(momentId: string) {
+  const [phase, setPhase] = useState<'idle' | 'copied' | 'manual'>('idle');
   const [url, setUrl] = useState('');
-  const [note, setNote] = useState('');
 
-  const create = async () => {
+  useEffect(() => {
+    setPhase('idle');
+    setUrl('');
+  }, [momentId]);
+
+  useEffect(() => {
+    if (phase !== 'copied') return;
+    const timer = window.setTimeout(() => setPhase('idle'), 2200);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+
+  const share = async () => {
     const next = `${window.location.origin}/moments/${momentId}`;
     setUrl(next);
     try {
+      if (!navigator.clipboard?.writeText) throw new Error('clipboard');
       await navigator.clipboard.writeText(next);
-      setNote('分享链接已复制');
+      setPhase('copied');
     } catch {
-      setNote('链接已生成，可以手动复制');
+      setPhase('manual');
     }
   };
 
-  return (
-    <section className="mt-6 flex flex-col gap-3" aria-label="分享这条星语">
-      <Button variant="outline" type="button" onClick={() => void create()}>生成分享链接</Button>
-      {url && <Input readOnly value={url} aria-label="星语分享链接" onFocus={(event) => event.currentTarget.select()} />}
-      {note && <p className="text-caption text-foreground-muted" role="status">{note}</p>}
-    </section>
-  );
+  return { phase, url, share };
+}
+
+function focusCommentComposer() {
+  const input = document.getElementById('moment-detail-comment-input');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  input?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  input?.focus({ preventScroll: true });
 }
 
 function MomentDetail({ momentId }: { momentId: string }) {
   const router = useRouter();
   const modal = useConfirm();
+  const shareLink = useMomentShare(momentId);
   const [moment, setMoment] = useState<Moment | null>(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -94,6 +109,9 @@ function MomentDetail({ momentId }: { momentId: string }) {
   };
 
   const canEdit = moment ? (moment.canEdit ?? moment.canDelete) : false;
+  const menuItems: DropdownItem[] = [];
+  if (moment && canEdit) menuItems.push({ key: 'edit', icon: <Icon name="edit" size="sm" />, label: '编辑', disabled: deleting, onClick: () => setEditing(true) });
+  if (moment?.canDelete) menuItems.push({ key: 'delete', danger: true, icon: deleting ? <LoadingOutlined /> : <Icon name="trash" size="sm" />, label: '删除', disabled: deleting, onClick: remove });
   const { interleavedBlocks, trailingImages } = splitTrailingImages(moment?.blocks);
   const displayMedia = moment ? (trailingImages.length > 0 ? [...trailingImages, ...moment.media] : moment.media) : [];
   const hasBody = Boolean(moment && (interleavedBlocks.length > 0 || (moment.text && splitMomentParagraphs(moment.text).length > 0)));
@@ -107,35 +125,44 @@ function MomentDetail({ momentId }: { momentId: string }) {
         right={<div className="flex items-center gap-2"><ProfileShortcut returnTo={`/moments/${momentId}`} /><ThemeToggle /></div>}
       />
       <main className="moment-scroll-area app-scroll-main min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <article className="app-content-width moment-journal-content moment-viewer">
+        <article className="app-content-width moment-journal-content moment-detail moment-viewer">
           {!valid && <p className="moment-inline-error" role="alert">星语地址无效</p>}
           {valid && !moment && !error && <p className="text-body text-foreground-muted" role="status">正在读取星语…</p>}
           {error && <div className="moment-empty-state" role="alert"><span>{error}</span><Link href="/moments" className={buttonClassName({ variant: 'ghost' })}>返回星河</Link></div>}
           {moment && (
             <>
               <header className="moment-viewer-author">
-                <MomentAvatar author={moment.author} size={40} />
+                <MomentAvatar author={moment.author} size={40} returnTo={`/moments/${moment.id}`} />
                 <div className="min-w-0">
-                  <Link href={createProfileHref(moment.author.userId, { returnTo: `/moments/${moment.id}` })} className="block truncate text-body font-medium text-foreground">{moment.author.name}</Link>
-                  <time className="text-caption text-foreground-muted" dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}{moment.isEdited ? ' · 已编辑' : ''}</time>
+                  <Link href={createProfileHref(moment.author.userId, { returnTo: `/moments/${moment.id}` })} className="moment-card-author block truncate font-semibold text-foreground hover:text-primary">{moment.author.name}</Link>
+                  <div className="moment-card-byline">
+                    <time dateTime={moment.createdAt}>{formatMomentTime(moment.createdAt)}</time>
+                    {moment.isEdited ? ' · 已编辑' : null}
+                  </div>
                 </div>
               </header>
               {hasBody && <div className="moment-viewer-text"><MomentBody text={moment.text} blocks={interleavedBlocks} immersive /></div>}
               {displayMedia.length > 0 && <MomentMediaView media={displayMedia} immersive />}
               <MomentAttachments attachments={moment.attachments} />
               {moment.voice && <div className="moment-viewer-voice"><MomentVoicePlayer voice={moment.voice} /></div>}
-              {(moment.location || canEdit || moment.canDelete) && (
-                <footer className="moment-viewer-footer">
-                  <span className="moment-viewer-location">{moment.location && <><EnvironmentOutlined />{moment.location.label}</>}</span>
-                  <div className="flex items-center gap-1">
-                    {canEdit && <Button variant="ghost" type="button" onClick={() => setEditing(true)} disabled={deleting}><Icon name="edit" size="sm" />编辑</Button>}
-                    {moment.canDelete && <Button variant="ghost" type="button" onClick={remove} disabled={deleting}>{deleting ? <LoadingOutlined /> : <DeleteOutlined />}删除</Button>}
-                  </div>
-                </footer>
+              {moment.location && <p className="moment-detail-location"><Icon name="environment" size="sm" />{moment.location.label}</p>}
+              <MomentActions
+                appearance="journal"
+                moment={moment}
+                onChange={(patch) => setMoment((current) => current ? { ...current, ...patch } : current)}
+                onComment={focusCommentComposer}
+                share={{ copied: shareLink.phase === 'copied', onShare: () => void shareLink.share() }}
+                extra={menuItems.length > 0 ? (
+                  <Dropdown items={menuItems} trigger={['click']} placement="bottomRight">
+                    <Button variant="ghost" size="sm" iconOnly type="button" aria-label="管理这条星语" disabled={deleting}><Icon name="more" /></Button>
+                  </Dropdown>
+                ) : null}
+              />
+              <p className={shareLink.phase === 'manual' ? 'moment-detail-share-note' : 'sr-only'} role="status">{shareLink.phase === 'copied' ? '链接已复制' : shareLink.phase === 'manual' ? '无法写入剪贴板，请手动复制' : ''}</p>
+              {shareLink.phase === 'manual' && (
+                <Input className="moment-detail-link" readOnly value={shareLink.url} aria-label="星语分享链接" onFocus={(event) => event.currentTarget.select()} />
               )}
-              <MomentActions moment={moment} onChange={(patch) => setMoment((current) => current ? { ...current, ...patch } : current)} />
-              <MomentComments momentId={moment.id} initialComments={moment.comments} initialCount={moment.commentCount} onCountChange={(commentCount) => setMoment((current) => current ? { ...current, commentCount } : current)} />
-              <ShareLink momentId={moment.id} />
+              <MomentComments variant="page" momentId={moment.id} initialComments={moment.comments} initialCount={moment.commentCount} onCountChange={(commentCount) => setMoment((current) => current ? { ...current, commentCount } : current)} />
             </>
           )}
         </article>

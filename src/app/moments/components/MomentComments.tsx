@@ -16,7 +16,7 @@ type Props = {
   initialComments: MomentComment[];
   initialCount: number;
   onCountChange?: (count: number) => void;
-  variant?: 'inline' | 'sheet';
+  variant?: 'inline' | 'sheet' | 'page';
   active?: boolean;
 };
 
@@ -53,8 +53,9 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
   const [lastCreatedId, setLastCreatedId] = useState('');
   const listId = useId();
   const isSheet = variant === 'sheet';
+  const isPage = variant === 'page';
   const busy = loadingMore || sending || Boolean(actingId);
-  const visibleComments = isSheet || expanded ? comments : comments.slice(0, 2);
+  const visibleComments = isSheet || isPage || expanded ? comments : comments.slice(0, 2);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -66,11 +67,12 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
 
   useEffect(() => {
     const snapshot = JSON.stringify([initialComments, initialCount]);
-    const changed = snapshot !== previewRef.current || (!isSheet && initialCount !== countRef.current);
+    const changed = snapshot !== previewRef.current || (!isSheet && !isPage && initialCount !== countRef.current);
     previewRef.current = snapshot;
+    // 详情页自己维护完整评论，不能被列表接口的两条预览覆盖。
     // A feed refresh can finish while a comment mutation is still pending.
     // Consume that snapshot without replaying it over the mutation's result.
-    if (!changed || busyRef.current || (isSheet && active)) return;
+    if (!changed || busyRef.current || (isSheet && active) || isPage) return;
     const preview = initialComments.slice(0, 2);
     setComments(initialComments);
     countRef.current = initialCount;
@@ -86,7 +88,7 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
     setNeedsRefresh(false);
     setError('');
     setNotice('');
-  }, [active, initialComments, initialCount, isSheet]);
+  }, [active, initialComments, initialCount, isPage, isSheet]);
 
   // Keep requests in order so a slow expansion cannot overwrite a newer mutation.
   const beginRequest = useCallback(() => {
@@ -133,6 +135,15 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
       finishRequest(request);
     }
   }, [beginRequest, finishRequest, isCurrentRequest, momentId, setCommentCount]);
+
+  useEffect(() => {
+    if (!isPage) return;
+    void loadComments(true);
+    return () => {
+      // 严格模式会重放 effect。请求失效后必须放开锁，否则第二次加载会被跳过。
+      busyRef.current = false;
+    };
+  }, [isPage, loadComments]);
 
   useEffect(() => {
     refreshOnOpenRef.current = isSheet && active;
@@ -276,20 +287,29 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
   };
 
   return (
-    <section className={`moment-comments${isSheet ? ' moment-comments-in-sheet' : ''}`} aria-label={`${count} 条评论`}>
-      <div className="moment-comments-heading">
-        <span><MessageOutlined /> {count} 条评论</span>
-        {!isSheet && count > 2 && (
-          <Button variant="ghost" type="button" onClick={toggleExpanded} disabled={busy} aria-expanded={expanded} aria-controls={listId}>
-            {loadingMore ? <LoadingOutlined /> : null}
-            {expanded ? '收起评论' : `展开其余 ${Math.max(0, count - visibleComments.length)} 条`}
-          </Button>
-        )}
-      </div>
+    <section id={isPage ? 'moment-detail-comments' : undefined} className={`moment-comments${isSheet ? ' moment-comments-in-sheet' : ''}${isPage ? ' moment-comments-on-page' : ''}`} aria-label={`${count} 条评论`}>
+      {isPage ? (
+        <div className="moment-detail-comments-head">
+          <h2>评论</h2>
+          {count > 0 && <span>{count}</span>}
+          {loadingMore ? <span role="status">正在加载</span> : null}
+        </div>
+      ) : (
+        <div className="moment-comments-heading">
+          <span><MessageOutlined /> {count} 条评论</span>
+          {!isSheet && count > 2 && (
+            <Button variant="ghost" type="button" onClick={toggleExpanded} disabled={busy} aria-expanded={expanded} aria-controls={listId}>
+              {loadingMore ? <LoadingOutlined /> : null}
+              {expanded ? '收起评论' : `展开其余 ${Math.max(0, count - visibleComments.length)} 条`}
+            </Button>
+          )}
+        </div>
+      )}
 
       <div id={listId} ref={listRef} className="moment-comment-list" aria-busy={loadingMore}>
         {isSheet && loadingMore && <div className="moment-sheet-status" role="status"><LoadingOutlined />正在加载评论…</div>}
         {isSheet && !loadingMore && !error && comments.length === 0 && <div className="moment-sheet-empty"><MessageOutlined /><span>还没有评论</span><p>写下第一条评论吧。</p></div>}
+        {isPage && !loadingMore && !error && comments.length === 0 && <p className="moment-detail-comments-empty">还没有评论，写下第一条吧。</p>}
         {visibleComments.map((comment) => {
           const selected = selectedId === comment.id;
           const editing = editingId === comment.id;
@@ -308,7 +328,7 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
                     <span className="text-caption text-foreground-muted">{formatMomentTime(comment.createdAt)}{comment.isEdited ? ' · 已编辑' : ''}</span>
                   </span>
                   {!editing && (
-                    <span className="mt-0.5 block break-words text-body text-foreground">
+                    <span className="mt-0.5 block break-words text-body text-foreground" data-selectable>
                       {comment.replyTo && <span className="mr-1 text-primary">回复 @{comment.replyTo.userId}</span>}
                       {comment.text}
                     </span>
@@ -348,6 +368,10 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
       <div className="moment-comment-composer">
         <Textarea
           ref={inputRef}
+          id={isPage ? 'moment-detail-comment-input' : undefined}
+          size={isPage ? 'sm' : 'md'}
+          autoSize={isPage ? { minRows: 1, maxRows: 4 } : false}
+          enterKeyHint={isPage ? 'send' : undefined}
           aria-label={replyTo ? `回复 @${replyTo.author.userId}` : '写下评论'}
           disabled={sending}
           value={draft}
@@ -362,7 +386,7 @@ function MomentCommentThread({ momentId, initialComments, initialCount, onCountC
             }
           }}
         />
-        <Button variant="primary" iconOnly type="button" onClick={() => void send()} disabled={!draft.trim() || busy} aria-label="发送评论">
+        <Button variant="primary" size={isPage ? 'sm' : 'md'} iconOnly type="button" onClick={() => void send()} disabled={!draft.trim() || busy} aria-label="发送评论">
           {sending ? <LoadingOutlined /> : <SendOutlined />}
         </Button>
       </div>

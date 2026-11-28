@@ -43,4 +43,8 @@
 .moment-action:focus-visible { outline: none; }
 .moment-action:focus-visible > [data-ui-icon] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; }
 .moment-action-count { font-variant-numeric: tabular-nums; }
+.moment-action.is-share { width: auto; padding-right: 0.55rem; white-space: nowrap; }
+.moment-action-label { font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
+.moment-action.is-share[data-copied] { color: hsl(var(--primary)); }
+.moment-actions-extra { display: flex; margin-left: auto; }
 .moment-action-error { padding: 0 1rem 0.75rem; color: hsl(var(--danger)); font-size: var(--font-size-caption); line-height: var(--line-height-caption); }
